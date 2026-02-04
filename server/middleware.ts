@@ -2,6 +2,7 @@
 // Implements comprehensive HTTP security headers
 
 import type { Request, Response, NextFunction } from 'express';
+import { randomBytes } from 'crypto';
 
 /**
  * Security headers configuration
@@ -227,8 +228,17 @@ export function rateLimit(options: {
  */
 export function requestId(): (req: Request, res: Response, next: NextFunction) => void {
   return (req: Request, res: Response, next: NextFunction) => {
-    const id = req.headers['x-request-id'] as string || 
-               `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Use existing request ID if provided, otherwise generate a new one
+    const existingId = req.headers['x-request-id'] as string;
+    if (existingId) {
+      res.setHeader('X-Request-ID', existingId);
+      next();
+      return;
+    }
+    
+    // Generate cryptographically secure random ID
+    const randomPart = randomBytes(8).toString('hex');
+    const id = `req_${Date.now()}_${randomPart}`;
     
     req.headers['x-request-id'] = id;
     res.setHeader('X-Request-ID', id);
