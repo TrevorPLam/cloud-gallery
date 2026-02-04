@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Error UI shown when error boundary catches failures with dev-only stack traces
+// OWNERSHIP: client/components (error handling)
+// ENTRYPOINTS: Rendered by ErrorBoundary on component errors
+// DEPENDENCIES: expo (reloadAppAsync), modal, theme system
+// DANGER: Must gracefully handle app restart failures; dev modal shows sensitive stack traces
+// CHANGE-SAFETY: Safe to modify UI; __DEV__ checks prevent prod leaks; restart logic is critical
+// TESTS: Test error scenarios, verify __DEV__ conditionals, confirm restart works
+// AI-META-END
+
 import React, { useState } from "react";
 import { reloadAppAsync } from "expo";
 import {
@@ -24,6 +34,7 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
   const [isModalVisible, setIsModalVisible] = useState(false);
 
   const handleRestart = async () => {
+    // AI-NOTE: If reloadAppAsync fails, fallback to resetError to allow manual recovery
     try {
       await reloadAppAsync();
     } catch (restartError) {
@@ -42,6 +53,7 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
 
   return (
     <ThemedView style={styles.container}>
+      {/* AI-NOTE: Dev-only button reveals error details modal; hidden in production builds */}
       {__DEV__ ? (
         <Pressable
           onPress={() => setIsModalVisible(true)}

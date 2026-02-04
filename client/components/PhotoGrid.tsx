@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: High-performance photo grid using FlashList with grouped/ungrouped rendering modes
+// OWNERSHIP: client/components (photo display)
+// ENTRYPOINTS: Used by PhotosScreen, SearchScreen, AlbumDetailScreen
+// DEPENDENCIES: @shopify/flash-list, expo-image, react-native-reanimated, expo-haptics
+// DANGER: FlashList perf-sensitive; grouping logic affects layout; NUM_COLUMNS hardcoded
+// CHANGE-SAFETY: Risky to change layout logic; safe to modify item styles; test perf with large datasets
+// TESTS: Test with 100+ photos, verify section headers, check animations, validate haptics
+// AI-META-END
+
 import React from "react";
 import {
   StyleSheet,
@@ -20,6 +30,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, Colors } from "@/constants/theme";
 
+// AI-NOTE: Column count and sizing calculated at module load; won't respond to orientation changes
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const NUM_COLUMNS = 3;
 const GAP = Spacing.photoGap;
@@ -106,6 +117,7 @@ export function PhotoGrid({
 }: PhotoGridProps) {
   const { theme } = useTheme();
 
+  // AI-NOTE: Grouped mode flattens sections into single array with header items for FlashList efficiency
   if (groupedData && showSectionHeaders) {
     const flatData: (Photo | { type: "header"; title: string })[] = [];
     groupedData.forEach((group) => {
@@ -144,10 +156,12 @@ export function PhotoGrid({
           );
         }}
         getItemType={(item) => {
+          // AI-NOTE: Type discrimination allows FlashList to optimize layout per item type
           if ("type" in item && item.type === "header") return "header";
           return "photo";
         }}
         overrideItemLayout={(layout, item) => {
+          // AI-NOTE: Headers span all columns; photos maintain grid sizing for perf
           if ("type" in item && item.type === "header") {
             layout.span = NUM_COLUMNS;
             layout.size = 48;

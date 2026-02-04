@@ -1,5 +1,16 @@
+// AI-META-BEGIN
+// AI-META: Design system constants for colors, spacing, typography, and shadows
+// OWNERSHIP: client/constants (design tokens)
+// ENTRYPOINTS: Imported by components and hooks for consistent styling
+// DEPENDENCIES: react-native Platform
+// DANGER: Changes affect entire UI; test both light and dark themes; platform fonts differ
+// CHANGE-SAFETY: Safe to add values; changing existing values requires visual regression testing
+// TESTS: Visual verification across platforms and themes; check font availability
+// AI-META-END
+
 import { Platform } from "react-native";
 
+// AI-NOTE: Complete light and dark theme objects ensure all color keys exist in both modes
 export const Colors = {
   light: {
     text: "#1A202C",
@@ -125,6 +136,7 @@ export const Fonts = Platform.select({
     rounded: "normal",
     mono: "monospace",
   },
+  // AI-NOTE: Web font stacks provide cross-platform compatibility with system fonts
   web: {
     sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
     serif: "Georgia, 'Times New Roman', serif",

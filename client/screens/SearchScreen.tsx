@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Search screen with filter chips, live search, and results grid
+// OWNERSHIP: client/screens (search)
+// ENTRYPOINTS: Accessed via SearchTab in MainTabNavigator
+// DEPENDENCIES: storage lib, expo-image, react-native-reanimated
+// DANGER: Live filtering on every keystroke; suggestion chips modify search state
+// CHANGE-SAFETY: Safe to modify UI; search logic affects performance; test with large datasets
+// TESTS: Test live search, verify filter chips, check empty results, validate navigation
+// AI-META-END
+
 import React, { useState, useCallback, useEffect } from "react";
 import {
   StyleSheet,
@@ -94,6 +104,7 @@ export default function SearchScreen() {
   );
 
   useEffect(() => {
+    // AI-NOTE: Live filter on every keystroke; could debounce for large photo libraries
     if (!searchQuery.trim()) {
       setFilteredPhotos([]);
       setHasSearched(false);
@@ -115,6 +126,7 @@ export default function SearchScreen() {
   };
 
   const handleSuggestion = (type: string) => {
+    // AI-NOTE: Suggestion chips apply predefined filters (favorites, recent); sets search state
     if (type === "favorites") {
       const favorites = photos.filter((p) => p.isFavorite);
       setFilteredPhotos(favorites);

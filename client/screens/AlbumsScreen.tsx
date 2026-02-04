@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Albums list screen with create modal and long-press delete
+// OWNERSHIP: client/screens (album management)
+// ENTRYPOINTS: Accessed via AlbumsTab in MainTabNavigator
+// DEPENDENCIES: storage lib, AlbumCard, modal, navigation, haptics
+// DANGER: Delete via long press with no confirmation; modal input validation
+// CHANGE-SAFETY: Safe to modify UI; delete flow is destructive; test create/delete thoroughly
+// TESTS: Test album creation, deletion, navigation, verify haptics, check empty state
+// AI-META-END
+
 import React, { useState, useCallback } from "react";
 import {
   StyleSheet,
@@ -70,6 +80,7 @@ export default function AlbumsScreen() {
   };
 
   const handleAlbumLongPress = async (album: Album) => {
+    // AI-NOTE: Heavy haptic for destructive delete; no confirmation dialog for speed
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     }
@@ -85,6 +96,7 @@ export default function AlbumsScreen() {
   };
 
   React.useLayoutEffect(() => {
+    // AI-NOTE: Dynamically sets parent navigator header right button for create action
     navigation.getParent()?.setOptions({
       headerRight: () => (
         <Pressable

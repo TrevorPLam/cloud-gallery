@@ -1,8 +1,18 @@
 {
+  // AI-META-BEGIN
+  // AI-META: TypeScript compiler configuration with path aliases for Expo project
+  // OWNERSHIP: build/config
+  // ENTRYPOINTS: npm run check:types, IDE type checking
+  // DEPENDENCIES: expo/tsconfig.base.json, TypeScript
+  // DANGER: paths must match babel.config.js aliases; strict mode enforces type safety; test files excluded from compilation
+  // CHANGE-SAFETY: safe to add new path aliases (must sync with babel); do not disable strict; exclude list affects build scope
+  // TESTS: npm run check:types
+  // AI-META-END
   "extends": "expo/tsconfig.base.json",
   "compilerOptions": {
     "strict": true,
     "esModuleInterop": true,
+    // AI-NOTE: paths match babel module-resolver for consistent import resolution across bundler and type checker
     "paths": {
       "@/*": ["./client/*"],
       "@shared/*": ["./shared/*"]
@@ -10,5 +20,5 @@
     "types": ["node"]
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
+  "exclude": ["node_modules", "build", "dist", "**/*.test.ts"]
 }

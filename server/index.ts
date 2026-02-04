@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Express server bootstrap and configuration for Cloud Gallery backend
+// OWNERSHIP: server/core
+// ENTRYPOINTS: main server process (node server/index.ts or npm run server:dev)
+// DEPENDENCIES: express, ./routes, fs, path, Expo static serving
+// DANGER: CORS configuration, request logging captures sensitive data, error handler must not leak internals
+// CHANGE-SAFETY: CORS origins are safe to modify; middleware order is critical (do not reorder); error handler must remain last
+// TESTS: npm run check:types, manual server start validation
+// AI-META-END
+
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
@@ -13,6 +23,7 @@ declare module "http" {
   }
 }
 
+// AI-NOTE: CORS allows both Replit production domains and localhost for Expo development
 function setupCors(app: express.Application) {
   app.use((req, res, next) => {
     const origins = new Set<string>();
@@ -34,6 +45,7 @@ function setupCors(app: express.Application) {
       origin?.startsWith("http://localhost:") ||
       origin?.startsWith("http://127.0.0.1:");
 
+    // AI-NOTE: Dynamic origin validation prevents CSRF while supporting both production and dev environments
     if (origin && (origins.has(origin) || isLocalhost)) {
       res.header("Access-Control-Allow-Origin", origin);
       res.header(
@@ -64,6 +76,7 @@ function setupBodyParsing(app: express.Application) {
   app.use(express.urlencoded({ extended: false }));
 }
 
+// AI-NOTE: Request logging monkey-patches res.json to capture responses for debugging; only logs /api routes
 function setupRequestLogging(app: express.Application) {
   app.use((req, res, next) => {
     const start = Date.now();
@@ -160,6 +173,7 @@ function serveLandingPage({
   res.status(200).send(html);
 }
 
+// AI-NOTE: Expo manifest routing detects platform from headers; fallback serves landing page for web browsers
 function configureExpoAndLanding(app: express.Application) {
   const templatePath = path.resolve(
     process.cwd(),

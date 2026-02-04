@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Album detail screen with photo grid and modal for adding photos
+// OWNERSHIP: client/screens (album management)
+// ENTRYPOINTS: Navigated from AlbumsScreen via AlbumCard press
+// DEPENDENCIES: storage lib, PhotoGrid, modal, haptics, navigation
+// DANGER: Photo removal via long press; modal state management; album not found handling
+// CHANGE-SAFETY: Risky to change data flow; safe to modify UI; test photo add/remove thoroughly
+// TESTS: Test adding/removing photos, verify modal interaction, check haptics, handle edge cases
+// AI-META-END
+
 import React, { useState, useCallback } from "react";
 import {
   StyleSheet,
@@ -24,6 +34,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, Shadows, Colors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 
+// AI-NOTE: Photo grid sizing calculated at module load; shared across screens
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const NUM_COLUMNS = 3;
 const GAP = Spacing.photoGap;
@@ -90,6 +101,7 @@ export default function AlbumDetailScreen() {
   };
 
   const handlePhotoLongPress = async (photo: Photo) => {
+    // AI-NOTE: Heavy haptic signals destructive action; removes photo from album only
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     }
@@ -98,6 +110,7 @@ export default function AlbumDetailScreen() {
   };
 
   const handleToggleSelect = (photoId: string) => {
+    // AI-NOTE: Selection haptic is subtle; toggling updates local state for multi-select
     if (Platform.OS !== "web") {
       Haptics.selectionAsync();
     }
@@ -120,6 +133,7 @@ export default function AlbumDetailScreen() {
   };
 
   const availablePhotos = allPhotos.filter(
+    // AI-NOTE: Filter out photos already in album to prevent duplicates in add modal
     (p) => !album?.photoIds.includes(p.id)
   );
 

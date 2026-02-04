@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Full-screen photo viewer with swipe navigation and action controls
+// OWNERSHIP: client/screens (photo viewing)
+// ENTRYPOINTS: Navigated from PhotosScreen, SearchScreen, AlbumDetailScreen
+// DEPENDENCIES: FlashList, expo-image, expo-sharing, storage lib, haptics
+// DANGER: Delete modifies photo array; sharing iOS/Android only; controls toggle state
+// CHANGE-SAFETY: Risky to change photo deletion logic; safe to modify UI; test sharing thoroughly
+// TESTS: Test swipe navigation, photo deletion, sharing, verify haptics, check controls toggle
+// AI-META-END
+
 import React, { useState, useCallback, useRef } from "react";
 import {
   StyleSheet,
@@ -72,6 +82,7 @@ export default function PhotoDetailScreen() {
 
   const handleShare = async () => {
     if (!currentPhoto) return;
+    // AI-NOTE: Sharing API available iOS/Android only; web requires different approach
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -87,6 +98,7 @@ export default function PhotoDetailScreen() {
 
   const handleDelete = async () => {
     if (!currentPhoto) return;
+    // AI-NOTE: Warning haptic for destructive delete; adjusts index if deleting last photo
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     }

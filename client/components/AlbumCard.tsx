@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Interactive card displaying album cover and metadata with press animations
+// OWNERSHIP: client/components (UI layer)
+// ENTRYPOINTS: Rendered by AlbumsScreen in FlatList
+// DEPENDENCIES: react-native-reanimated, expo-haptics, expo-image, @/types
+// DANGER: Animation performance with many cards, haptics only on native platforms
+// CHANGE-SAFETY: Safe to modify styles; animation config affects UX; onLongPress optional
+// TESTS: Check AlbumsScreen rendering, verify haptics on iOS/Android, test web graceful degradation
+// AI-META-END
+
 import React from "react";
 import { StyleSheet, Pressable, View, Platform } from "react-native";
 import { Image } from "expo-image";
@@ -38,6 +48,7 @@ export function AlbumCard({ album, onPress, onLongPress }: AlbumCardProps) {
   };
 
   const handleLongPress = () => {
+    // AI-NOTE: Web lacks haptics support; long press triggers delete workflow in parent
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }

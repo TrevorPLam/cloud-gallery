@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Bottom tab navigator with blur effect and platform-specific styling
+// OWNERSHIP: client/navigation (main tabs)
+// ENTRYPOINTS: Rendered by RootStackNavigator Main screen
+// DEPENDENCIES: @react-navigation/bottom-tabs, expo-blur, stack navigators
+// DANGER: iOS blur requires transparency; Android/web need solid backgrounds
+// CHANGE-SAFETY: Safe to add tabs; platform styles critical for proper rendering
+// TESTS: Test tab switching, verify blur on iOS, check solid backgrounds on Android/web
+// AI-META-END
+
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Feather } from "@expo/vector-icons";
@@ -30,6 +40,7 @@ export default function MainTabNavigator() {
         tabBarInactiveTintColor: theme.tabIconDefault,
         tabBarStyle: {
           position: "absolute",
+          // AI-NOTE: iOS uses transparent tab bar with blur; Android/web need solid color
           backgroundColor: Platform.select({
             ios: "transparent",
             android: theme.backgroundRoot,
@@ -38,6 +49,7 @@ export default function MainTabNavigator() {
           elevation: 0,
         },
         tabBarBackground: () =>
+          // AI-NOTE: BlurView only renders on iOS; null on Android/web
           Platform.OS === "ios" ? (
             <BlurView
               intensity={100}

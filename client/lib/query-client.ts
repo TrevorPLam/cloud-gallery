@@ -1,8 +1,18 @@
+// AI-META-BEGIN
+// AI-META: React Query client config with custom fetch wrapper for API requests
+// OWNERSHIP: client/lib (API layer)
+// ENTRYPOINTS: Imported by App root for QueryClientProvider
+// DEPENDENCIES: @tanstack/react-query, fetch API
+// DANGER: EXPO_PUBLIC_DOMAIN required; 401 handling configurable; credentials include
+// CHANGE-SAFETY: Risky - API requests depend on this; test error handling; env var critical
+// TESTS: Test API calls, verify 401 handling, check error responses, validate credentials
+// AI-META-END
+
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 /**
- * Gets the base URL for the Express API server (e.g., "http://localhost:3000")
- * @returns {string} The API base URL
+ * AI-NOTE: Gets base URL from env var; throws if missing to fail fast in dev.
+ * HTTPS enforced for all API calls.
  */
 export function getApiUrl(): string {
   let host = process.env.EXPO_PUBLIC_DOMAIN;
@@ -43,6 +53,8 @@ export async function apiRequest(
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
+// AI-NOTE: Query function factory allows configurable 401 handling per query;
+// credentials: "include" sends cookies for auth
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
@@ -69,6 +81,7 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
+      // AI-NOTE: Infinity staleTime means data never auto-refetches; manual invalidation required
       staleTime: Infinity,
       retry: false,
     },
