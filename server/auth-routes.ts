@@ -1,16 +1,16 @@
 // Authentication routes for Cloud Gallery
 
-import { Router, Request, Response } from "express";
+import { Router } from "express";
+import { z } from "zod";
 import {
   hashPassword,
   verifyPassword,
   generateAccessToken,
-  generateRefreshToken,
-  validatePasswordStrength,
   verifyAccessToken,
+  generateRefreshToken,
 } from "./security";
-import { authRateLimit, authenticateToken } from "./auth";
-import { z } from "zod";
+import { authenticateToken, authRateLimit } from "./auth";
+import { logAuthEvent, logSecurityEvent, AuditEventType } from "./audit";
 
 const router = Router();
 

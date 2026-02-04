@@ -463,7 +463,7 @@ describe("Secure Storage", () => {
         isFavorite: false,
         albumIds: [],
       };
-      
+
       // Mock encrypted data that will fail to decrypt
       const securePhoto = {
         ...photoWithEncryptedData,
@@ -474,7 +474,7 @@ describe("Secure Storage", () => {
           salt: "invalid-salt",
         },
       };
-      
+
       mockAsyncStorage.getItem.mockImplementation((key: string) => {
         if (key === "@photo_vault_photos") {
           return Promise.resolve(JSON.stringify([securePhoto]));
@@ -484,9 +484,9 @@ describe("Secure Storage", () => {
         }
         return Promise.resolve(null);
       });
-      
+
       const photos = await getPhotos();
-      
+
       expect(photos).toHaveLength(1);
       expect(photos[0].id).toBe("photo-1");
       // Sensitive metadata should be missing due to decryption error
