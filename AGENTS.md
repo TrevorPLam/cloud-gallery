@@ -1,8 +1,668 @@
-# Cloud Gallery — Development TODO
+# AGENTS.md — Cloud Gallery Development Guide
 
+**Version**: 2.0.0  
 **Last Updated**: 2026-02-04  
-**For**: Non-technical builders using AI assistants  
-**Purpose**: Every task broken into substasks with code examples, file paths, and success criteria
+**For**: AI Agents & Non-technical Builders  
+**Purpose**: Comprehensive development guide with task breakdowns, code examples, and inline commentary
+
+---
+
+## � **TABLE OF CONTENTS**
+
+### **🎯 Getting Started**
+- [📋 Project Overview](#-project-overview)
+- [🛠️ Tech Stack](#️-tech-stack)
+- [📁 Repository Map](#-repository-map-with-inline-commentary)
+- [🚨 Critical Issues Identified](#-critical-issues-identified-must-fix-before-features)
+- [🎯 How AI Agents Should Use This Document](#-how-ai-agents-should-use-this-document)
+- [📊 Project Injection](#-project-injection-ai-context)
+
+### **📚 Reference Materials**
+- [🏷️ Label System](#️-label-system)
+- [🎯 Quick Reference Cards](#-quick-reference-cards)
+- [📖 Glossary — Learn the Jargon First](#-glossary--learn-the-jargon-first)
+  - [🏗️ Architecture Terms](#️-architecture-terms)
+  - [💾 Data & Storage Terms](#-data--storage-terms)
+  - [⚛️ React & TypeScript Terms](#️-react--typescript-terms)
+  - [📡 Data Fetching Terms](#-data-fetching-terms)
+  - [🎨 Code Architecture Terms](#-code-architecture-terms)
+  - [🚀 Performance Terms](#-performance-terms)
+  - [🔧 Development Tools Terms](#-development-tools-terms)
+
+### **🗓️ Work Schedule**
+- [🎯 Work Order: What Sequence to Follow](#-work-order-what-sequence-to-follow)
+
+### **🔴 Critical Foundation Fixes** (Week 1-4)
+- [📝 TASK 1: Connect Client to Server](#-task-1-connect-client-to-server--start-here) 🚨 **START HERE**
+  - [SUBTASK 1.1: Create Photo Database Table](#-subtask-11-create-photo-database-table--agent)
+  - [SUBTASK 1.2: Create Album Database Table](#-subtask-12-create-album-database-table--agent)
+  - [SUBTASK 1.3: Create Database Connection Helper](#-subtask-13-create-database-connection-helper--agent)
+  - [SUBTASK 1.4: Create Photo API Endpoints](#-subtask-14-create-photo-api-endpoints-server-side--agent)
+  - [SUBTASK 1.5: Register Photo Routes](#-subtask-15-register-photo-routes-in-main-server--agent)
+  - [SUBTASK 1.6: Update Client PhotosScreen](#-subtask-16-update-client-photosscreen-to-use-api--agent)
+- [🔴 TASK 2: Fix Data Storage Layer](#-task-2-fix-data-storage-layer)
+  - [SUBTASK 2.1: Create Validation Schemas](#-subtask-21-create-validation-schemas--agent)
+  - [SUBTASK 2.2: Install UUID Generator](#-subtask-22-install-uuid-generator--agent)
+  - [SUBTASK 2.3: Refactor storage.ts](#-subtask-23-refactor-storagets-with-validation--agent)
+- [🔴 TASK 3: Environment Variables](#-task-3-environment-variables--agent-creation--trevor-testing)
+- [🔴 TASK 4: Type Safety Improvements](#-task-4-type-safety-improvements--agent)
+- [🔴 TASK 5: Responsive Layouts](#-task-5-responsive-layouts--agent-code--trevor-testing)
+- [🟡 TASK 6: Logger Service](#-task-6-logger-service--agent)
+- [🟡 TASK 7: Centralized Error Handling](#-task-7-centralized-error-handling--agent-code--trevor-testing)
+- [🟡 TASK 8: Performance (Pagination)](#-task-8-performance-pagination--agent-code--trevor-testing)
+- [🟡 TASK 9: Service/Repository Layers](#-task-9-servicerepository-layers--agent)
+- [🟡 TASK 10: Offline/Online Management](#-task-10-offlineonline-management--agent-code--trevor-testing)
+- [🟡 TASK 11: React Query Integration](#-task-11-react-query-integration--agent)
+
+### **🟥 Features** (After Foundation)
+- [🟥 P0-P3 Feature Roadmap](#-p0-p3-feature-roadmap-after-foundation-fixed)
+  - [P0 — Critical Features](#p0--critical-features--trevor-decides-priority-agent-implements)
+  - [P1 — High Priority Features](#p1--high-priority-features--trevor-decides-priority-agent-implements)
+  - [P2 — Medium Priority](#p2--medium-priority--trevor-decides-priority-agent-implements)
+  - [P3 — Nice-to-Have](#p3--nice-to-have--trevor-decides-priority-agent-implements)
+
+### **🎓 Usage & Tracking**
+- [🎓 How to Use This TODO with AI](#-how-to-use-this-todo-with-ai)
+- [� Rollback & Recovery Procedures](#-rollback--recovery-procedures)
+- [🆘 Error Recovery & Escalation](#-error-recovery--escalation)
+- [🧪 Testing Strategy](#-testing-strategy)
+- [🔀 Git Workflow & Commit Conventions](#-git-workflow--commit-conventions)
+- [📊 Progress Tracking](#-progress-tracking)
+- [📚 External Resources & Documentation](#-external-resources--documentation)
+
+---
+
+## �📋 **PROJECT OVERVIEW**
+
+### 🎯 Project Name
+**Cloud Gallery** — A React Native photo management application with cloud sync capabilities
+
+### 💡 Project Purpose
+Multi-platform (iOS, Android, Web) photo gallery app with:
+- Cloud backup and sync across devices
+- Album organization
+- Photo metadata (EXIF, GPS, tags)
+- User authentication and privacy controls
+- Offline-first architecture with server sync
+
+### 🤖 AI Agent Context
+This document is designed for AI agents assisting a non-technical builder. Each task includes:
+- **Beginner-friendly explanations** (plain English)
+- **Complete code snippets** (copy-paste ready)
+- **Exact file paths and line numbers**
+- **Success criteria** (how to verify it worked)
+- **Troubleshooting** (common errors and fixes)
+
+---
+
+## � **PREREQUISITES & INITIAL SETUP**
+
+### 💻 System Requirements
+
+**Before you begin, ensure you have:**
+
+- **Node.js 18+** → Check: `node --version`
+- **npm 9+** → Check: `npm --version`
+- **PostgreSQL 15+** → Check: `psql --version`
+- **Git** → Check: `git --version`
+- **Code Editor** → VS Code recommended
+
+**Operating System:**
+- ✅ Windows 10/11
+- ✅ macOS 12+
+- ✅ Linux (Ubuntu 20.04+)
+
+### 📥 Installation Guide
+
+#### Step 1: Install Node.js
+```bash
+# Download from: https://nodejs.org/
+# Verify installation:
+node --version  # Should show v18.x.x or higher
+npm --version   # Should show v9.x.x or higher
+```
+
+#### Step 2: Install PostgreSQL
+
+**macOS:**
+```bash
+brew install postgresql@15
+brew services start postgresql@15
+```
+
+**Windows:**
+- Download from: https://www.postgresql.org/download/windows/
+- Run installer, remember the password you set
+- Add to PATH if not automatic
+
+**Linux (Ubuntu):**
+```bash
+sudo apt update
+sudo apt install postgresql postgresql-contrib
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+```
+
+**Verify PostgreSQL:**
+```bash
+psql --version  # Should show PostgreSQL 15.x
+```
+
+#### Step 3: Install Expo CLI (for mobile development)
+```bash
+npm install -g expo-cli
+expo --version  # Verify installation
+```
+
+### 🎬 First-Time Project Setup
+
+**Run these commands in order:**
+
+```bash
+# 1. Navigate to project directory
+cd c:\dev\Cloud-Gallery
+
+# 2. Install all dependencies (takes 2-5 minutes)
+npm install
+
+# 3. Create PostgreSQL database
+createdb cloudgallery
+
+# 4. Create environment file from template
+cp .env.example .env  # Linux/Mac
+copy .env.example .env  # Windows
+
+# 5. Edit .env file and set your DATABASE_URL
+# Example: DATABASE_URL=postgresql://postgres:yourpassword@localhost:5432/cloudgallery
+
+# 6. Push database schema (creates tables)
+npm run db:push
+
+# 7. Verify TypeScript compilation
+npm run check:types
+
+# 8. Run tests to ensure everything works
+npm test
+```
+
+### ✅ First-Time Setup Checklist
+
+**Complete these before starting ANY task:**
+
+- [ ] Node.js 18+ installed and verified
+- [ ] PostgreSQL 15+ installed and running
+- [ ] Git installed and configured
+- [ ] Repository cloned to local machine
+- [ ] `npm install` completed successfully
+- [ ] Database `cloudgallery` created
+- [ ] `.env` file created from `.env.example`
+- [ ] `DATABASE_URL` set in `.env` file
+- [ ] Database migrations run: `npm run db:push`
+- [ ] TypeScript check passes: `npm run check:types`
+- [ ] Tests pass: `npm test`
+- [ ] Server starts: `npm run server:dev` (should see "ready on port 5000")
+- [ ] Client starts: `npm start` (Expo dev server opens)
+- [ ] Can access http://localhost:5000 (server responding)
+
+### 🐛 Setup Troubleshooting
+
+**Problem: "command not found: node"**
+- Solution: Node.js not installed or not in PATH
+- Fix: Install Node.js from nodejs.org, restart terminal
+
+**Problem: "command not found: psql"**
+- Solution: PostgreSQL not installed or not in PATH
+- Fix: Install PostgreSQL, add to PATH, restart terminal
+
+**Problem: "createdb: could not connect to database"**
+- Solution: PostgreSQL service not running
+- Fix: Start PostgreSQL service (see installation commands above)
+
+**Problem: "npm install" fails with permission errors**
+- Solution: Permissions issue or corrupted cache
+- Fix: Run `npm cache clean --force`, then `npm install` again
+
+**Problem: "Database migration failed"**
+- Solution: DATABASE_URL incorrect or database doesn't exist
+- Fix: Check `.env` file, verify database exists with `psql -l`
+
+---
+
+## �🛠️ **TECH STACK**
+
+### Frontend (Client)
+- **React Native** (0.78.8) — Cross-platform mobile framework
+- **Expo** (54.0.23) — React Native development platform
+- **TypeScript** (5.9.2) — Type-safe JavaScript
+- **React Navigation** (7.0+) — App navigation
+- **React Query / TanStack Query** (5.90.7) — Server state management
+- **AsyncStorage** — Local data persistence
+- **Zod** (3.24.2) — Runtime validation
+
+### Backend (Server)
+- **Node.js** — JavaScript runtime
+- **Express** (5.0.1) — Web server framework
+- **PostgreSQL** — Relational database
+- **Drizzle ORM** (0.39.3) — Type-safe database queries
+- **JWT** — Authentication tokens
+- **bcrypt** — Password hashing
+
+### Development Tools
+- **Vite** — Fast build tool
+- **ESLint** — Code linting
+- **Vitest** — Unit testing
+- **TypeScript Compiler** — Type checking
+
+---
+
+[↑ Table of Contents](#-table-of-contents) | [→ Tasks](#-critical-foundation-fixes-do-first)
+
+---
+
+## 📁 **REPOSITORY MAP** (with inline commentary)
+
+```
+c:\dev\Cloud-Gallery\
+│
+├─ 📄 package.json                    # Dependencies, scripts, project metadata
+├─ 📄 tsconfig.json                   # TypeScript configuration (strict mode enabled)
+├─ 📄 drizzle.config.ts              # Database ORM configuration
+├─ 📄 vitest.config.ts               # Test runner configuration
+├─ 📄 eslint.config.js               # Linting rules
+├─ 📄 babel.config.js                # JavaScript transpiler config
+├─ 📄 app.json                       # Expo app configuration
+├─ 📄 AGENTS.md                      # ← THIS FILE (AI agent instructions)
+├─ 📄 TODO.backup.md                 # Original code quality analysis
+│
+├─ 📁 client/ ................................. React Native mobile app
+│   ├─ 📄 App.tsx                    # Application entry point (navigation setup)
+│   ├─ 📄 index.js                   # Expo entry file
+│   │
+│   ├─ 📁 components/ ................. Reusable UI components
+│   │   ├─ AlbumCard.tsx            # Album grid item
+│   │   ├─ PhotoGrid.tsx            # High-performance photo grid (FlashList)
+│   │   ├─ FloatingActionButton.tsx # + button for uploads
+│   │   ├─ EmptyState.tsx           # "No photos yet" placeholder
+│   │   ├─ ErrorBoundary.tsx        # React error catcher
+│   │   ├─ SkeletonLoader.tsx       # Loading placeholders
+│   │   └─ Themed*.tsx              # Dark/light mode wrappers
+│   │
+│   ├─ 📁 screens/ .................... Full-page views
+│   │   ├─ PhotosScreen.tsx         # Main photo library (NEEDS API integration)
+│   │   ├─ AlbumsScreen.tsx         # Album collection view (NEEDS API integration)
+│   │   ├─ PhotoDetailScreen.tsx    # Single photo view with actions
+│   │   ├─ AlbumDetailScreen.tsx    # Photos within one album
+│   │   ├─ SearchScreen.tsx         # Photo search interface
+│   │   └─ ProfileScreen.tsx        # User settings and account
+│   │
+│   ├─ 📁 navigation/ ................. React Navigation setup
+│   │   ├─ RootStackNavigator.tsx   # Top-level navigation container
+│   │   ├─ MainTabNavigator.tsx     # Bottom tab bar (Photos, Albums, Search, Profile)
+│   │   ├─ PhotosStackNavigator.tsx # Photo-related screens stack
+│   │   ├─ AlbumsStackNavigator.tsx # Album-related screens stack
+│   │   ├─ SearchStackNavigator.tsx # Search screens stack
+│   │   └─ ProfileStackNavigator.tsx# Profile screens stack
+│   │
+│   ├─ 📁 lib/ ........................ Utility libraries and services
+│   │   ├─ storage.ts               # ⚠️ FRAGILE: Local data persistence (needs refactor)
+│   │   ├─ storage.test.ts          # Storage unit tests
+│   │   ├─ query-client.ts          # React Query configuration
+│   │   ├─ query-client.test.ts     # Query client tests
+│   │   ├─ secure-storage.ts        # Encrypted storage for sensitive data
+│   │   └─ secure-storage.test.ts   # Secure storage tests
+│   │
+│   ├─ 📁 hooks/ ...................... Custom React hooks
+│   │   ├─ useTheme.ts              # Dark/light theme hook
+│   │   ├─ useColorScheme.ts        # Native color scheme detection
+│   │   ├─ useColorScheme.web.ts    # Web color scheme detection
+│   │   └─ useScreenOptions.ts      # Navigation header configs
+│   │
+│   ├─ 📁 constants/ .................. App-wide constants
+│   │   └─ theme.ts                 # Colors, spacing, typography
+│   │
+│   └─ 📁 types/ ...................... TypeScript type definitions
+│       └─ index.ts                 # Photo, Album, User types
+│
+├─ 📁 server/ ................................. Express backend API
+│   ├─ 📄 index.ts                   # Server bootstrap (middleware, security)
+│   ├─ 📄 routes.ts                  # ⚠️ INCOMPLETE: Route registration (needs photo/album routes)
+│   ├─ 📄 auth-routes.ts             # Authentication endpoints (/api/auth)
+│   ├─ 📄 auth.ts                    # Auth middleware (JWT validation)
+│   ├─ 📄 upload-routes.ts           # File upload endpoints (/api/upload)
+│   ├─ 📄 middleware.ts              # Custom middleware functions
+│   ├─ 📄 security.ts                # Security utilities (rate limiting, CORS, CSP)
+│   ├─ 📄 encryption.ts              # Data encryption utilities
+│   ├─ 📄 backup-encryption.ts       # Backup file encryption
+│   ├─ 📄 captcha.ts                 # CAPTCHA validation
+│   ├─ 📄 audit.ts                   # Audit logging system
+│   ├─ 📄 siem.ts                    # Security monitoring
+│   ├─ 📄 file-validation.ts         # File upload validation
+│   ├─ 📄 storage.ts                 # Server-side file storage
+│   ├─ 📄 encrypted-storage.ts       # Encrypted file storage
+│   ├─ 📄 db-encryption.ts           # Database encryption layer
+│   │
+│   └─ 📁 templates/                 # Email/notification templates
+│
+├─ 📁 shared/ ................................. Code shared between client & server
+│   ├─ 📄 schema.ts                  # ⚠️ INCOMPLETE: Database schemas (only users table exists)
+│   └─ 📄 schema.test.ts             # Schema validation tests
+│
+├─ 📁 tests/ .................................. Test utilities
+│   └─ 📄 factories.ts               # Test data factories
+│
+├─ 📁 scripts/ ................................ Build and utility scripts
+│   ├─ build.js                      # Production build script
+│   ├─ security-check.sh             # Security scanning
+│   └─ pen-test.sh                   # Penetration testing
+│
+├─ 📁 docs/ ................................... Project documentation
+│   ├─ 📄 design_guidelines.md       # UI/UX design principles
+│   │
+│   ├─ 📁 api/                       # API documentation
+│   │   └─ 00_INDEX.md
+│   │
+│   ├─ 📁 architecture/              # System architecture docs
+│   │   ├─ 00_INDEX.md
+│   │   ├─ 10_OVERVIEW.md
+│   │   ├─ 20_RUNTIME_TOPOLOGY.md
+│   │   ├─ 30_MODULES_AND_DEPENDENCIES.md
+│   │   ├─ 40_KEY_FLOWS.md
+│   │   └─ 90_GLOSSARY.md
+│   │
+│   ├─ 📁 adr/                       # Architecture Decision Records
+│   │   └─ README.md
+│   │
+│   ├─ 📁 data/                      # Data models and schemas
+│   │   └─ 00_INDEX.md
+│   │
+│   └─ 📁 archive/                   # Old documentation
+│
+└─ 📁 assets/ ................................. Static assets
+    └─ 📁 images/                    # App images and icons
+```
+
+---
+
+[↑ Table of Contents](#-table-of-contents) | [→ Tasks](#-critical-foundation-fixes-do-first)
+
+---
+
+## 🚨 **CRITICAL ISSUES IDENTIFIED** (Must Fix Before Features)
+
+### ❌ **Issue 1: Client-Server Disconnect** (BLOCKING)
+- **Problem**: Client uses local `AsyncStorage`, server has no photo/album API endpoints
+- **Impact**: No cloud sync, no multi-device support, data loss risk
+- **Status**: Documented in TASK 1 below
+
+### ⚠️ **Issue 2: Fragile Data Layer**
+- **Problem**: No validation, collision-prone IDs, no transactions
+- **Impact**: Data corruption risk, inconsistent state
+- **Status**: Documented in TASK 2 below
+
+### ⚠️ **Issue 3: Missing Environment Management**
+- **Problem**: No `.env.example`, hardcoded secrets, no validation
+- **Status**: Documented in TASK 3 below
+
+### ⚠️ **Issue 4-11: Type Safety, Responsive UI, Logging, Error Handling, Performance**
+- **Status**: All documented in tasks below
+
+---
+
+[↑ Table of Contents](#-table-of-contents) | [→ Tasks](#-critical-foundation-fixes-do-first)
+
+---
+
+## 🎯 **HOW AI AGENTS SHOULD USE THIS DOCUMENT**
+
+### 1. **Understand the Context**
+   - Read PROJECT OVERVIEW and TECH STACK sections first
+   - Review REPOSITORY MAP to understand codebase structure
+   - Note CRITICAL ISSUES that block feature development
+
+### 2. **Execute Tasks in Order**
+   - Start with TASK 1 (most critical)
+   - Follow 4-week schedule (Week 1 → Week 2 → Week 3 → Week 4)
+   - Complete all subtasks before marking task complete
+
+### 3. **Follow Label System**
+   - **AGENT** = You execute (write code, create files, run commands)
+   - **TREVOR** = Human verifies (tests, reviews, makes decisions)
+   - **Mixed** = Collaboration required
+
+### 4. **For Each Subtask**
+   - Read "What This Means" section (plain English explanation)
+   - Review "Why This Is Critical" (understand impact)
+   - Follow "What To Do" steps exactly
+   - Execute code changes
+   - Report completion to human for verification
+
+### 5. **Code Standards**
+   - Use TypeScript strict mode (no `any` types)
+   - Add inline comments explaining complex logic
+   - Follow existing code patterns in the repo
+   - Include error handling in all async operations
+   - Write comprehensive JSDoc comments
+
+### 6. **Communication**
+   - Explain what you're doing in plain English
+   - Show code before executing when destructive
+   - Report errors with context and suggested fixes
+   - Ask for clarification if task is ambiguous
+
+---
+
+[↑ Table of Contents](#-table-of-contents) | [→ Tasks](#-critical-foundation-fixes-do-first)
+
+---
+
+## 📊 **PROJECT INJECTION** (AI Context)
+
+### Current State Assessment
+- **Code Quality**: 6/10 (functional but needs refactoring)
+- **Test Coverage**: ~40% (many tests exist but not comprehensive)
+- **Security**: 8/10 (strong auth, needs env hardening)
+- **Architecture**: 7/10 (well-organized but client-server disconnect)
+- **Performance**: 7/10 (good but needs pagination)
+
+### Development Phase
+- **Phase**: Foundation Repair (Pre-Feature Development)
+- **Sprint**: 4-Week Critical Fixes
+- **Next Phase**: P0 Feature Implementation
+
+### Key Files Requiring Immediate Attention
+1. `shared/schema.ts` — Missing photo/album tables
+2. `server/routes.ts` — Missing photo/album endpoints
+3. `client/lib/storage.ts` — Needs validation and UUIDs
+4. `client/screens/PhotosScreen.tsx` — Needs API integration
+5. `client/screens/AlbumsScreen.tsx` — Needs API integration
+
+### Human Developer Profile
+- **Name**: Trevor (non-technical)
+- **Experience**: Uses AI to build entirely
+- **Needs**: Maximum detail, beginner-friendly language, step-by-step guidance
+- **Role**: Tests, verifies, makes product decisions
+
+---
+
+[↑ Table of Contents](#-table-of-contents) | [→ Tasks](#-critical-foundation-fixes-do-first)
+
+---
+
+## 📦 **REQUIRED IMPORTS REFERENCE**
+
+### 🎯 Purpose
+This section provides all the import statements and helper functions that are referenced in tasks but not yet defined in your codebase. Copy these into the appropriate files when needed.
+
+---
+
+### `client/lib/query-client.ts` - API Request Helper
+
+**Add this function to your existing query-client.ts file:**
+
+```typescript
+// ═══════════════════════════════════════════════════════════
+// API REQUEST HELPER
+// ═══════════════════════════════════════════════════════════
+// Centralized API request function with authentication
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Base URL for API (change based on environment)
+const API_BASE_URL = __DEV__ 
+  ? 'http://localhost:5000'  // Development
+  : 'https://your-production-api.com';  // Production
+
+/**
+ * Make authenticated API request
+ * @param method - HTTP method (GET, POST, PUT, DELETE)
+ * @param endpoint - API endpoint (e.g., '/api/photos')
+ * @param body - Request body (optional)
+ * @returns Promise<Response>
+ */
+export async function apiRequest(
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+  endpoint: string,
+  body?: any
+): Promise<Response> {
+  // Get authentication token from storage
+  const token = await AsyncStorage.getItem('authToken');
+  
+  // Build request configuration
+  const config: RequestInit = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+  };
+  
+  // Add body for POST/PUT requests
+  if (body && (method === 'POST' || method === 'PUT')) {
+    config.body = JSON.stringify(body);
+  }
+  
+  // Make request
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+  
+  // Handle unauthorized (token expired)
+  if (response.status === 401) {
+    await AsyncStorage.removeItem('authToken');
+    throw new Error('Authentication required. Please log in again.');
+  }
+  
+  // Handle other errors
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || `Request failed with status ${response.status}`);
+  }
+  
+  return response;
+}
+
+/**
+ * Set authentication token
+ * @param token - JWT token from login
+ */
+export async function setAuthToken(token: string): Promise<void> {
+  await AsyncStorage.setItem('authToken', token);
+}
+
+/**
+ * Get current auth token
+ * @returns Promise<string | null>
+ */
+export async function getAuthToken(): Promise<string | null> {
+  return await AsyncStorage.getItem('authToken');
+}
+
+/**
+ * Clear authentication token (logout)
+ */
+export async function clearAuthToken(): Promise<void> {
+  await AsyncStorage.removeItem('authToken');
+}
+```
+
+---
+
+### `shared/schema.ts` - Required Imports
+
+**Add these imports at the top of shared/schema.ts:**
+
+```typescript
+import { 
+  pgTable, 
+  varchar, 
+  text, 
+  integer, 
+  boolean, 
+  timestamp, 
+  jsonb, 
+  primaryKey 
+} from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
+import { z } from 'zod';
+```
+
+**If you get "Cannot find module 'drizzle-zod'":**
+```bash
+npm install drizzle-zod
+```
+
+---
+
+### `server/photo-routes.ts` - Required Imports
+
+```typescript
+import { Router, Request, Response } from 'express';
+import { z } from 'zod';
+import { db } from './db';
+import { photos, insertPhotoSchema } from '../shared/schema';
+import { eq, and, desc } from 'drizzle-orm';
+import { authenticateToken } from './auth';
+```
+
+---
+
+### Common Import Errors & Solutions
+
+| Error | Solution |
+|-------|----------|
+| `Cannot find module 'expo-crypto'` | Run: `npm install expo-crypto` |
+| `Cannot find module 'drizzle-zod'` | Run: `npm install drizzle-zod` |
+| `Cannot find name 'sql'` | Add: `import { sql } from 'drizzle-orm'` |
+| `Cannot find name 'z'` | Add: `import { z } from 'zod'` |
+| `Property 'user' does not exist on type 'Request'` | See TypeScript type extension below |
+
+---
+
+### TypeScript Type Extensions
+
+**For Express Request with user property (server/types.ts or add to existing file):**
+
+```typescript
+// Extend Express Request type to include user
+import { Request } from 'express';
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string;
+        email: string;
+        username: string;
+      };
+    }
+  }
+}
+
+export {};
+```
+
+---
+
+[↑ Table of Contents](#-table-of-contents) | [→ Tasks](#-critical-foundation-fixes-do-first)
 
 ---
 
@@ -21,6 +681,209 @@ Every task and subtask is labeled with who should do it:
 2. AI completes → Check for **TREVOR** verification step
 3. You test/verify → Report results back to AI
 4. Move to next subtask
+
+---
+
+[↑ Table of Contents](#-table-of-contents) | [→ Tasks](#-critical-foundation-fixes-do-first)
+
+---
+
+## 🎯 **QUICK REFERENCE CARDS**
+
+### 🔧 Common Commands
+
+**Daily Development:**
+```bash
+# Start everything (client + server)
+npm run dev
+
+# Server only (backend API)
+npm run server:dev
+
+# Client only (mobile app)
+npm start
+# or
+expo start
+
+# Client with cache cleared
+expo start --clear
+```
+
+**Database:**
+```bash
+# Apply schema changes to database
+npm run db:push
+
+# Open visual database browser
+npm run db:studio
+
+# Direct database access (SQL command line)
+psql cloudgallery
+
+# View all tables
+psql cloudgallery -c "\dt"
+
+# View data in photos table
+psql cloudgallery -c "SELECT * FROM photos LIMIT 10;"
+
+# Backup database
+pg_dump cloudgallery > backup_$(date +%Y%m%d_%H%M%S).sql
+```
+
+**Testing:**
+```bash
+# Run all tests
+npm test
+
+# Run specific test file
+npm test storage.test.ts
+
+# Run tests in watch mode
+npm test -- --watch
+
+# Run tests with coverage
+npm test -- --coverage
+
+# Type checking
+npm run check:types
+
+# Linting
+npm run lint
+```
+
+**Debugging:**
+```bash
+# Server with debugging enabled
+npm run server:dev -- --inspect
+
+# Clear all caches
+rm -rf node_modules/.cache
+expo start --clear
+
+# Reinstall dependencies
+rm -rf node_modules package-lock.json
+npm install
+
+# View server logs
+npm run server:dev 2>&1 | tee server.log
+```
+
+---
+
+### 📂 File Quick Access
+
+**Bookmark these files for quick editing:**
+
+```
+🔴 Critical Files:
+├─ 📄 shared/schema.ts ................ Database table definitions
+├─ 📄 server/routes.ts ................ API endpoint registration
+├─ 📄 server/db.ts .................... Database connection
+├─ 📄 .env ............................ Environment configuration
+└─ 📄 package.json .................... Dependencies and scripts
+
+🟡 Common Edit Locations:
+├─ 📄 client/lib/storage.ts ........... Data access layer
+├─ 📄 client/lib/query-client.ts ...... API client & React Query config
+├─ 📄 client/screens/PhotosScreen.tsx . Main photo screen
+├─ 📄 client/screens/AlbumsScreen.tsx . Main album screen
+└─ 📄 client/types/index.ts ........... TypeScript type definitions
+
+🟢 API Routes:
+├─ 📄 server/photo-routes.ts .......... Photo CRUD endpoints
+├─ 📄 server/album-routes.ts .......... Album CRUD endpoints (to be created)
+├─ 📄 server/auth-routes.ts ........... Authentication endpoints
+└─ 📄 server/upload-routes.ts ......... File upload endpoints
+```
+
+---
+
+### 🚨 Troubleshooting Quick Hits
+
+| Problem | Solution |
+|---------|----------|
+| **Port 5000 already in use** | `lsof -ti:5000 \| xargs kill` (Mac/Linux)<br>`netstat -ano \| findstr :5000` then `taskkill /PID <pid> /F` (Windows) |
+| **Database connection failed** | Check `DATABASE_URL` in `.env` file<br>Verify PostgreSQL is running |
+| **TypeScript errors** | Run `npm run check:types` to see all errors<br>Check imports are correct |
+| **Can't find module** | Run `npm install`<br>Restart TypeScript server in VS Code |
+| **Tests failing** | Run `npm test -- --clearCache`<br>Check test file imports |
+| **Expo won't start** | Run `expo start --clear`<br>Delete `node_modules/.cache` |
+| **White screen on mobile** | Check metro bundler is running<br>Look for errors in terminal |
+| **API requests failing** | Check server is running on port 5000<br>Verify `API_BASE_URL` in query-client.ts |
+| **Photos not appearing** | Check database has data: `psql cloudgallery -c "SELECT COUNT(*) FROM photos;"`<br>Check network tab in browser/React Native debugger |
+| **Permission denied errors** | Check file permissions<br>Try running with `sudo` (Linux/Mac) or as Administrator (Windows) |
+
+---
+
+### 🔑 Environment Variables Quick Reference
+
+**Required in `.env` file:**
+
+```bash
+# Database connection
+DATABASE_URL=postgresql://username:password@localhost:5432/cloudgallery
+
+# JWT secret (for authentication)
+JWT_SECRET=your-super-secret-key-change-in-production
+
+# Node environment
+NODE_ENV=development
+
+# Server port
+PORT=5000
+
+# Optional: File upload settings
+MAX_FILE_SIZE=10485760  # 10MB in bytes
+ALLOWED_FILE_TYPES=image/jpeg,image/png,image/gif,image/webp
+```
+
+**Access in code:**
+
+```typescript
+// Server-side (Node.js)
+const dbUrl = process.env.DATABASE_URL;
+
+// Client-side (React Native / Expo)
+import Constants from 'expo-constants';
+const apiUrl = Constants.expoConfig?.extra?.apiUrl;
+```
+
+---
+
+### 📊 Git Quick Commands
+
+```bash
+# Check status
+git status
+
+# Create new branch for task
+git checkout -b task-1-client-server
+
+# Stage all changes
+git add .
+
+# Commit with message
+git commit -m "feat(api): add photo CRUD endpoints"
+
+# Push to remote
+git push origin task-1-client-server
+
+# View commit history
+git log --oneline
+
+# Undo last commit (keep changes)
+git reset --soft HEAD~1
+
+# Discard all local changes (dangerous!)
+git reset --hard HEAD
+
+# Discard changes to specific file
+git checkout -- <filename>
+```
+
+---
+
+[↑ Table of Contents](#-table-of-contents) | [→ Tasks](#-critical-foundation-fixes-do-first)
 
 ---
 
@@ -77,6 +940,10 @@ Every task and subtask is labeled with who should do it:
 - **Logger** = Service for recording events and errors (better than random console.log everywhere)
 - **Environment Variables** = Configuration values stored outside code (like settings.ini files)
 - **.env.example** = Template showing what environment variables are needed (without actual secret values)
+
+---
+
+[↑ Table of Contents](#-table-of-contents) | [→ Tasks](#-critical-foundation-fixes-do-first)
 
 ---
 
@@ -146,6 +1013,10 @@ Every task and subtask is labeled with who should do it:
 
 ---
 
+[↑ Table of Contents](#-table-of-contents) | [→ Tasks](#-critical-foundation-fixes-do-first)
+
+---
+
 # 🔴 **CRITICAL FOUNDATION FIXES** (Do First)
 
 ---
@@ -203,6 +1074,22 @@ Without this connection:
 1. **Open file**: `shared/schema.ts`
 2. **Find insertion point**: Look for the `users` table definition (around line 20-30)
 3. **Add this code after it**:
+
+**⏱️ Estimated Time**: 30 minutes
+
+**⚠️ COMMON PITFALLS:**
+1. **Forgot to import `sql`** → Error: "sql is not defined"
+   - Fix: Add `import { sql } from 'drizzle-orm'` at top of file
+2. **Added code BEFORE users table** → Error: "users is not defined"
+   - Fix: Scroll down, find users table, add AFTER it
+3. **Typo in table name** → Photos table created as "photoss"
+   - Fix: Check spelling exactly: `pgTable('photos', {`
+4. **DATABASE_URL not set** → Error: "Connection refused"
+   - Fix: Check .env file exists with DATABASE_URL
+5. **PostgreSQL not running** → Error: "Could not connect"
+   - Fix (Mac): `brew services start postgresql`
+   - Fix (Linux): `sudo systemctl start postgresql`
+   - Fix (Windows): Start PostgreSQL service manually
 
 ```typescript
 // ─────────────────────────────────────────────────────────
@@ -317,6 +1204,8 @@ export type InsertPhoto = z.infer<typeof insertPhotoSchema>;  // For creating ne
 
 **📍 Location**: `shared/schema.ts` (add after photos table)
 
+**⏱️ Estimated Time**: 30 minutes
+
 **💡 Why 3 Tables?**:
 - `albums` = Album info (title, description, owner)
 - `album_photos` = "Junction table" linking albums ↔ photos (many-to-many)
@@ -426,6 +1315,8 @@ npm run db:push
 
 **📍 Location**: Create new file `server/db.ts`
 
+**⏱️ Estimated Time**: 15 minutes
+
 **💡 Why Needed**: Every server route needs to query the database. This creates one shared connection.
 
 **🔧 What To Do**:
@@ -505,6 +1396,8 @@ const userPhotos = await db
 **🎯 Goal**: Build 5 endpoints so client can create/read/update/delete photos
 
 **📍 Location**: Create new file `server/photo-routes.ts`
+
+**⏱️ Estimated Time**: 1-2 hours
 
 **💡 What Are We Building**:
 - `GET /api/photos` → List all photos for logged-in user
@@ -798,6 +1691,8 @@ export default router;
 
 **📍 Location**: `server/routes.ts`
 
+**⏱️ Estimated Time**: 15 minutes
+
 **🔧 What To Do**:
 
 1. **Open `server/routes.ts`**
@@ -880,6 +1775,8 @@ npm run server:dev
 **🎯 Goal**: Change PhotosScreen from AsyncStorage to server API + React Query
 
 **📍 Location**: `client/screens/PhotosScreen.tsx`
+
+**⏱️ Estimated Time**: 1-2 hours
 
 **💡 What We're Changing**:
 - ❌ OLD: Manual `useState` + `useCallback` + AsyncStorage
@@ -1134,13 +2031,316 @@ const styles = StyleSheet.create({
 
 ---
 
-**📝 SUBTASK 1.7: Create Album Routes (Server)** - Copy similar pattern to photo routes but for albums
+---
 
-**📝 SUBTASK 1.8: Update AlbumsScreen (Client)** - Similar changes to PhotosScreen
+### ✅ **SUBTASK 1.7: Create Album Routes (Server Side)** → **AGENT**
 
-**📝 SUBTASK 1.9: Test End-to-End** - Verify everything works together
+**🎯 Goal**: Build CRUD endpoints for albums (following same pattern as photos)
 
-**Due to file size limits, I'm showing the detailed pattern with photos. Albums follow the same pattern. You can use AI to "create album routes following the same pattern as photo routes" for the remaining subtasks.**
+**📍 Location**: Create new file `server/album-routes.ts`
+
+**⏱️ Estimated Time**: 1 hour
+
+**💡 What We're Building**:
+- `GET /api/albums` → List all albums for user
+- `GET /api/albums/:id` → Get one album with photos
+- `POST /api/albums` → Create new album
+- `PUT /api/albums/:id` → Update album (title, description)
+- `DELETE /api/albums/:id` → Delete album
+- `POST /api/albums/:id/photos` → Add photo to album
+- `DELETE /api/albums/:id/photos/:photoId` → Remove photo from album
+
+**🔧 What To Do**:
+
+1. **Create file**: `server/album-routes.ts`
+2. **Add this code**:
+
+```typescript
+// ═══════════════════════════════════════════════════════════
+// ALBUM API ROUTES
+// ═══════════════════════════════════════════════════════════
+
+import { Router, Request, Response } from "express";
+import { z } from "zod";
+import { db } from "./db";
+import { albums, albumPhotos, insertAlbumSchema } from "../shared/schema";
+import { eq, and, desc } from "drizzle-orm";
+import { authenticateToken } from "./auth";
+
+const router = Router();
+router.use(authenticateToken);
+
+// ═══════════════════════════════════════════════════════════
+// GET /api/albums - List all albums
+// ═══════════════════════════════════════════════════════════
+
+router.get("/", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    
+    const userAlbums = await db
+      .select()
+      .from(albums)
+      .where(eq(albums.userId, userId))
+      .orderBy(desc(albums.createdAt));
+    
+    res.json({ albums: userAlbums });
+  } catch (error) {
+    console.error("Error fetching albums:", error);
+    res.status(500).json({ error: "Failed to fetch albums" });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// GET /api/albums/:id - Get album with photos
+// ═══════════════════════════════════════════════════════════
+
+router.get("/:id", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const albumId = req.params.id;
+    
+    const [album] = await db
+      .select()
+      .from(albums)
+      .where(and(
+        eq(albums.id, albumId),
+        eq(albums.userId, userId)
+      ));
+    
+    if (!album) {
+      return res.status(404).json({ error: "Album not found" });
+    }
+    
+    // Get photos in this album
+    const albumPhotosList = await db
+      .select()
+      .from(albumPhotos)
+      .where(eq(albumPhotos.albumId, albumId))
+      .orderBy(albumPhotos.position);
+    
+    res.json({ album, photoIds: albumPhotosList.map(ap => ap.photoId) });
+  } catch (error) {
+    console.error("Error fetching album:", error);
+    res.status(500).json({ error: "Failed to fetch album" });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// POST /api/albums - Create album
+// ═══════════════════════════════════════════════════════════
+
+router.post("/", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    
+    const albumData = insertAlbumSchema.parse({
+      ...req.body,
+      userId,
+    });
+    
+    const [newAlbum] = await db
+      .insert(albums)
+      .values(albumData)
+      .returning();
+    
+    res.status(201).json({ album: newAlbum });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        error: "Validation error",
+        details: error.errors,
+      });
+    }
+    console.error("Error creating album:", error);
+    res.status(500).json({ error: "Failed to create album" });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// POST /api/albums/:id/photos - Add photo to album
+// ═══════════════════════════════════════════════════════════
+
+router.post("/:id/photos", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const albumId = req.params.id;
+    const { photoId } = req.body;
+    
+    // Verify album belongs to user
+    const [album] = await db
+      .select()
+      .from(albums)
+      .where(and(
+        eq(albums.id, albumId),
+        eq(albums.userId, userId)
+      ));
+    
+    if (!album) {
+      return res.status(404).json({ error: "Album not found" });
+    }
+    
+    // Add photo to album
+    await db.insert(albumPhotos).values({
+      albumId,
+      photoId,
+    });
+    
+    res.json({ message: "Photo added to album" });
+  } catch (error) {
+    console.error("Error adding photo to album:", error);
+    res.status(500).json({ error: "Failed to add photo to album" });
+  }
+});
+
+// PUT, DELETE routes follow same pattern...
+
+export default router;
+```
+
+3. **Register routes** in `server/routes.ts`:
+```typescript
+import albumRoutes from "./album-routes";
+app.use("/api/albums", albumRoutes);
+```
+
+**⚠️ COMMON PITFALLS:**
+1. **Forgot to import albumPhotos** → Error: "albumPhotos is not defined"
+   - Fix: Add to imports from shared/schema
+2. **Wrong junction table query** → Photos don't show in album
+   - Fix: Check you're querying albumPhotos table correctly
+3. **Not checking album ownership** → Security issue
+   - Fix: Always verify `eq(albums.userId, userId)` before operations
+
+**✅ Success Check** → **TREVOR**:
+- [ ] File compiles without errors
+- [ ] Routes registered in server/routes.ts
+- [ ] Can create album via API: `POST /api/albums`
+- [ ] Can list albums: `GET /api/albums`
+- [ ] Can add photo to album: `POST /api/albums/:id/photos`
+
+---
+
+### ✅ **SUBTASK 1.8: Update AlbumsScreen (Client)** → **AGENT**
+
+**🎯 Goal**: Connect AlbumsScreen to server API using React Query
+
+**📍 Location**: `client/screens/AlbumsScreen.tsx`
+
+**⏱️ Estimated Time**: 1 hour
+
+**🔧 What To Do**:
+
+Follow the same pattern as PhotosScreen (SUBTASK 1.6), but for albums:
+
+1. **Import React Query hooks**:
+```typescript
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/query-client";
+```
+
+2. **Replace AsyncStorage with useQuery**:
+```typescript
+const { data: albums = [], isLoading } = useQuery({
+  queryKey: ['albums'],
+  queryFn: async () => {
+    const res = await apiRequest('GET', '/api/albums');
+    const data = await res.json();
+    return data.albums;
+  },
+});
+```
+
+3. **Add mutation for creating albums**:
+```typescript
+const createAlbumMutation = useMutation({
+  mutationFn: async (album: { title: string; description?: string }) => {
+    const res = await apiRequest('POST', '/api/albums', album);
+    return res.json();
+  },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['albums'] });
+  },
+});
+```
+
+**⚠️ COMMON PITFALLS:**
+1. **Forgot to invalidate albums query** → New albums don't appear
+   - Fix: Add `queryClient.invalidateQueries({ queryKey: ['albums'] })` after mutations
+2. **Not handling empty state** → Blank screen when no albums
+   - Fix: Use `ListEmptyComponent` prop in FlatList
+
+**✅ Success Check** → **TREVOR**:
+- [ ] Screen compiles and loads
+- [ ] Shows loading skeleton initially
+- [ ] Displays albums from server
+- [ ] Can create new album
+- [ ] Albums persist after refresh
+
+---
+
+### ✅ **SUBTASK 1.9: End-to-End Testing** → **TREVOR**
+
+**🎯 Goal**: Verify complete client-server integration works end-to-end
+
+**⏱️ Estimated Time**: 1-2 hours
+
+**📋 Complete Testing Checklist**:
+
+#### Server Health
+- [ ] Server starts without errors: `npm run server:dev`
+- [ ] Database tables exist: `psql cloudgallery -c "\dt"`
+- [ ] Can query tables: `SELECT COUNT(*) FROM photos;`
+
+#### Authentication Flow
+- [ ] Can register new user
+- [ ] Can login and receive JWT token
+- [ ] Token stored in AsyncStorage
+- [ ] Logout clears token
+
+#### Photo Management
+- [ ] Upload photo from mobile device
+- [ ] Photo appears immediately (optimistic update)
+- [ ] Photo persists in database (check with `SELECT * FROM photos;`)
+- [ ] Photo syncs to second device
+- [ ] Can favorite/unfavorite photo
+- [ ] Can delete photo
+- [ ] Deletion syncs across devices
+
+#### Album Management
+- [ ] Create new album
+- [ ] Album appears in list
+- [ ] Can navigate into album
+- [ ] Add photos to album
+- [ ] Photos appear in album grid
+- [ ] Remove photo from album
+- [ ] Delete album
+- [ ] Album deletion syncs across devices
+
+#### Error Handling
+- [ ] Server offline → Shows error message
+- [ ] Invalid token → Redirects to login
+- [ ] Network timeout → Shows retry option
+- [ ] Duplicate upload → Prevented or handled
+
+#### Performance
+- [ ] App responds quickly (<1s)
+- [ ] Scrolling smooth with 50+ photos
+- [ ] No memory leaks (test with React DevTools Profiler)
+
+#### Cross-Device Sync
+- [ ] Upload on device A → appears on device B
+- [ ] Delete on device B → disappears on device A
+- [ ] Create album on web → appears on mobile
+
+**🐛 If Tests Fail**:
+1. Check server logs: `npm run server:dev`
+2. Check client console: Press `j` in Expo terminal
+3. Check database: `psql cloudgallery`
+4. Verify API requests in Network tab
+5. Review error messages carefully
+
+**✅ When All Tests Pass** → **TASK 1 COMPLETE!**
 
 ---
 
@@ -1158,6 +2358,8 @@ const styles = StyleSheet.create({
 **➡️ Next**: Task 2 (Make data storage robust with validation and proper IDs)
 
 ---
+
+[↑ Table of Contents](#-table-of-contents) | [→ Tasks](#-critical-foundation-fixes-do-first)
 
 ---
 
@@ -1203,6 +2405,8 @@ client/
 **🎯 Goal**: Define exact shape of data using Zod
 
 **📍 Location**: Create new file `client/lib/storage-schemas.ts`
+
+**⏱️ Estimated Time**: 45 minutes
 
 ```typescript
 // ═══════════════════════════════════════════════════════════
@@ -1313,6 +2517,8 @@ export function validateAlbumArray(albums: unknown): ValidatedAlbum[] {
 
 **🎯 Goal**: Add library for generating proper UUIDs
 
+**⏱️ Estimated Time**: 5 minutes
+
 ```bash
 npm install expo-crypto
 ```
@@ -1324,6 +2530,8 @@ npm install expo-crypto
 ### ✅ **SUBTASK 2.3: Refactor storage.ts with Validation** → **AGENT**
 
 **📍 Location**: `client/lib/storage.ts`
+
+**⏱️ Estimated Time**: 1-2 hours
 
 **🔧 Changes needed:**
 1. Import validation schemas
@@ -1405,6 +2613,10 @@ export async function getPhotos(): Promise<Photo[]> {
 ✅ **Type safety** (Zod + TypeScript catch bugs early)
 
 **➡️ Next**: Task 3 (Environment variables), Task 4 (Type safety), etc.
+
+---
+
+[↑ Table of Contents](#-table-of-contents) | [→ Tasks](#-critical-foundation-fixes-do-first)
 
 ---
 
@@ -1515,6 +2727,10 @@ export async function getPhotos(): Promise<Photo[]> {
 
 ---
 
+[↑ Table of Contents](#-table-of-contents) | [→ Tasks](#-critical-foundation-fixes-do-first)
+
+---
+
 # 🎓 **HOW TO USE THIS TODO WITH AI**
 
 ## 🏷️ **Understanding Labels**
@@ -1552,7 +2768,214 @@ Wait for me to say "done" before giving next subtask.
 
 ---
 
+# � **EXTERNAL RESOURCES & DOCUMENTATION**
+
+### 🎯 Official Documentation (Bookmark These)
+
+**Core Technologies:**
+- 📘 [React Query / TanStack Query](https://tanstack.com/query/latest/docs/react/overview) - Server state management
+- 📘 [Drizzle ORM](https://orm.drizzle.team/docs/overview) - Type-safe database queries
+- 📘 [Zod](https://zod.dev) - Runtime schema validation
+- 📘 [React Navigation](https://reactnavigation.org/docs/getting-started) - App navigation
+- 📘 [Expo](https://docs.expo.dev) - React Native tooling
+- 📘 [TypeScript](https://www.typescriptlang.org/docs/) - Type system
+- 📘 [PostgreSQL](https://www.postgresql.org/docs/current/) - Database
+- 📘 [Express.js](https://expressjs.com/en/5x/api.html) - Web framework
+
+---
+
+### 🎥 Video Tutorials
+
+**Quick Overviews (< 15 minutes):**
+- [React Query in 100 Seconds](https://www.youtube.com/watch?v=novnyCaa7To) - Fireship
+- [TypeScript in 100 Seconds](https://www.youtube.com/watch?v=zQnBQ4tB3ZA) - Fireship
+- [PostgreSQL in 100 Seconds](https://www.youtube.com/watch?v=n2Fluyr3lbc) - Fireship
+
+**In-Depth Courses:**
+- [React Query Course](https://www.youtube.com/watch?v=8K1N3fE-cDs) - Codevolution
+- [TypeScript Full Course](https://www.youtube.com/watch?v=BCg4U1FzODs) - freeCodeCamp
+- [PostgreSQL Tutorial](https://www.postgresqltutorial.com/) - Text-based
+
+---
+
+### 📖 Learning Resources
+
+**React Query:**
+- [TanStack Query Docs](https://tanstack.com/query/latest) - Official documentation
+- [React Query DevTools](https://tanstack.com/query/latest/docs/react/devtools) - Debugging
+- [Practical React Query](https://tkdodo.eu/blog/practical-react-query) - Blog series
+
+**TypeScript:**
+- [TypeScript Deep Dive](https://basarat.gitbook.io/typescript/) - Free book
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/handbook/intro.html) - Official guide
+
+**React Native:**
+- [React Native Docs](https://reactnative.dev/docs/getting-started) - Official docs
+- [Expo Docs](https://docs.expo.dev) - Expo-specific features
+
+**Database:**
+- [Drizzle ORM Quickstart](https://orm.drizzle.team/docs/quick-start) - Getting started
+- [PostgreSQL Tutorial](https://www.postgresqltutorial.com/) - SQL basics
+- [SQL Practice](https://www.sql-practice.com/) - Interactive exercises
+
+---
+
+### 💬 Community Support
+
+**Discord Servers:**
+- [Expo Discord](https://chat.expo.dev) - Expo and React Native help
+- [TanStack Discord](https://discord.gg/tanstack) - React Query support
+- [Reactiflux](https://discord.gg/reactiflux) - React community
+
+**Forums:**
+- [Expo Forums](https://forums.expo.dev) - Expo-specific issues
+- [Stack Overflow](https://stackoverflow.com) - General programming
+  - Tags: `react-native`, `react-query`, `drizzle-orm`, `typescript`, `postgresql`
+
+**Reddit:**
+- [r/reactnative](https://reddit.com/r/reactnative) - React Native community
+- [r/typescript](https://reddit.com/r/typescript) - TypeScript discussions
+- [r/PostgreSQL](https://reddit.com/r/PostgreSQL) - Database help
+
+---
+
+### 🛠️ Debugging Tools
+
+**Essential Tools (already in project or should install):**
+
+1. **React DevTools**
+   - [Chrome Extension](https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi)
+   - View component tree, props, state
+
+2. **React Query DevTools**
+   - Already installed in project
+   - Shows query cache, mutations, status
+   - Access: Look for floating icon in dev mode
+
+3. **Drizzle Studio**
+   - Visual database browser
+   - Start: `npm run db:studio`
+   - Opens web interface to browse tables
+
+4. **React Native Debugger**
+   - Press `j` in Expo terminal
+   - Opens Chrome DevTools
+   - View console, network, elements
+
+5. **Expo Dev Tools**
+   - Opens when you run `npm start`
+   - Shows logs, errors, QR code
+
+6. **VS Code Extensions**
+   - ESLint - Show linting errors
+   - Prettier - Code formatting
+   - TypeScript - Type checking
+   - GitLens - Git history
+
+---
+
+### 🔍 When You're Stuck
+
+**Search Strategy:**
+
+1. **Read the error message carefully**
+   - Often contains solution
+   - Google the exact error: "ECONNREFUSED postgresql"
+
+2. **Check official docs first**
+   - More reliable than random blogs
+   - Use docs search feature
+
+3. **Search Stack Overflow**
+   - Add tags: `[react-native] [typescript] keyword`
+   - Look for answers with high upvotes
+   - Check date (newer is usually better)
+
+4. **Search GitHub Issues**
+   - Check package's GitHub issues:
+     - https://github.com/TanStack/query/issues
+     - https://github.com/drizzle-team/drizzle-orm/issues
+   - Search closed issues too (might be solved)
+
+5. **Ask in community**
+   - Discord, forums, Reddit
+   - Provide context (see Error Recovery section)
+
+---
+
+### 📋 Cheat Sheets
+
+**Quick reference guides:**
+- [TypeScript Cheat Sheet](https://www.typescriptlang.org/cheatsheets) - Official
+- [SQL Cheat Sheet](https://www.sqltutorial.org/sql-cheat-sheet/) - Common queries
+- [Git Cheat Sheet](https://education.github.com/git-cheat-sheet-education.pdf) - GitHub's official
+- [React Hooks Cheat Sheet](https://react-hooks-cheatsheet.com/) - All hooks
+
+---
+
+### 🎓 Advanced Topics (After Foundation Complete)
+
+**Read these after completing Week 1-4 tasks:**
+- [React Query Best Practices](https://tkdodo.eu/blog/practical-react-query) - Advanced patterns
+- [TypeScript Performance](https://github.com/microsoft/TypeScript/wiki/Performance) - Optimization
+- [React Native Performance](https://reactnative.dev/docs/performance) - Speed up app
+- [PostgreSQL Query Optimization](https://www.postgresql.org/docs/current/performance-tips.html) - Database speed
+
+---
+
+[↑ Table of Contents](#-table-of-contents) | [→ Tasks](#-critical-foundation-fixes-do-first)
+
+---
+
 # 📊 **PROGRESS TRACKING**
+
+### 📊 Visual Progress Tracker
+
+**Update this after each task/subtask completion:**
+
+```
+═══════════════════════════════════════════════════════════
+  FOUNDATION REPAIR PROGRESS (4 Week Sprint)
+═══════════════════════════════════════════════════════════
+
+Week 1: CONNECTIVITY ████──────────── 40% (2/5 complete)
+├─ ✅ SUBTASK 1.1: Photo database table
+├─ ✅ SUBTASK 1.2: Album database table  
+├─ ⏳ SUBTASK 1.3: Database connection (IN PROGRESS)
+├─ ⏸️ SUBTASK 1.4: Photo API endpoints (PENDING)
+├─ ⏸️ SUBTASK 1.5: Register routes (PENDING)
+├─ ⏸️ SUBTASK 1.6: Update PhotosScreen (PENDING)
+├─ ⏸️ SUBTASK 1.7: Album API endpoints (PENDING)
+├─ ⏸️ SUBTASK 1.8: Update AlbumsScreen (PENDING)
+└─ ⏸️ SUBTASK 1.9: E2E Testing (PENDING)
+
+Week 2: DATA QUALITY ────────────── 0% (0/2 complete)
+├─ ⏸️ Task 2: Storage Layer Fixes
+└─ ⏸️ Task 4: Type Safety Improvements
+
+Week 3: MODERN PATTERNS ───────────── 0% (0/2 complete)
+├─ ⏸️ Task 11: React Query Integration
+└─ ⏸️ Task 9: Service/Repository Layers
+
+Week 4: UX & POLISH ───────────────── 0% (0/4 complete)
+├─ ⏸️ Task 5: Responsive Layouts
+├─ ⏸️ Task 6: Logger Service
+├─ ⏸️ Task 7: Centralized Error Handling
+└─ ⏸️ Task 8: Performance (Pagination)
+
+═══════════════════════════════════════════════════════════
+  OVERALL PROGRESS: ███──────────────────── 15%
+═══════════════════════════════════════════════════════════
+
+Legend:
+✅ Complete | ⏳ In Progress | ⏸️ Pending | ❌ Blocked
+```
+
+---
+
+[↑ Table of Contents](#-table-of-contents) | [→ Tasks](#-critical-foundation-fixes-do-first)
+
+---
 
 ## Current Sprint → **TREVOR updates this**
 - [ ] Task 1: Client-Server Connection (Week 1) → **Mixed**
@@ -1567,6 +2990,10 @@ Wait for me to say "done" before giving next subtask.
 ## Completed → **TREVOR updates this**
 - [x] Code quality assessment → **AGENT**
 - [x] Created comprehensive TODO guide → **AGENT**
+
+---
+
+[↑ Table of Contents](#-table-of-contents) | [→ Tasks](#-critical-foundation-fixes-do-first)
 
 ---
 
