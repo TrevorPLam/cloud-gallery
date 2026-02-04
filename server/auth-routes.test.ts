@@ -7,7 +7,9 @@ import authRoutes from "./auth-routes";
 
 // Mock the security functions
 vi.mock("./security", () => ({
-  hashPassword: vi.fn().mockResolvedValue("$argon2id$v=19$m=65536,t=3,p=4$hash"),
+  hashPassword: vi
+    .fn()
+    .mockResolvedValue("$argon2id$v=19$m=65536,t=3,p=4$hash"),
   verifyPassword: vi.fn().mockResolvedValue(true),
   generateAccessToken: vi.fn().mockReturnValue("mock-access-token"),
   generateRefreshToken: vi.fn().mockReturnValue("mock-refresh-token"),
@@ -15,7 +17,9 @@ vi.mock("./security", () => ({
     isValid: true,
     errors: [],
   }),
-  verifyAccessToken: vi.fn().mockReturnValue({ id: "user123", email: "test@example.com" }),
+  verifyAccessToken: vi
+    .fn()
+    .mockReturnValue({ id: "user123", email: "test@example.com" }),
 }));
 
 // Mock rate limiting to avoid 429 errors in tests

@@ -19,6 +19,26 @@ export interface Photo {
   isFavorite: boolean;
   // AI-NOTE: Bidirectional relationship - photo knows which albums contain it
   albumIds: string[];
+  // Sensitive metadata (should be encrypted at rest)
+  location?: {
+    latitude: number;
+    longitude: number;
+    address?: string;
+    city?: string;
+    country?: string;
+  };
+  camera?: {
+    make: string;
+    model: string;
+    iso?: number;
+    aperture?: string;
+    shutter?: string;
+    focalLength?: number;
+  };
+  exif?: Record<string, unknown>;
+  tags?: string[];
+  notes?: string;
+  isPrivate?: boolean;
 }
 
 export interface Album {

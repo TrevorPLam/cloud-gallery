@@ -15,7 +15,8 @@ import { z } from "zod";
 const router = Router();
 
 // JWT secret (should be in environment variables)
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+const JWT_SECRET =
+  process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
 // Input validation schemas
 const registerSchema = z.object({
@@ -29,12 +30,12 @@ const loginSchema = z.object({
 });
 
 // Mock user database (replace with real database)
-const users: Array<{
+const users: {
   id: string;
   email: string;
   passwordHash: string;
   createdAt: Date;
-}> = [];
+}[] = [];
 
 // Helper function to find user by email
 function findUserByEmail(email: string) {
@@ -90,11 +91,11 @@ router.post("/register", authRateLimit, async (req: Request, res: Response) => {
     // Generate tokens
     const accessToken = generateAccessToken(
       { id: user.id, email: user.email },
-      JWT_SECRET
+      JWT_SECRET,
     );
     const refreshToken = generateRefreshToken(
       { id: user.id, email: user.email },
-      JWT_SECRET
+      JWT_SECRET,
     );
 
     // Return user info and tokens (excluding password hash)
@@ -148,7 +149,7 @@ router.post("/login", authRateLimit, async (req: Request, res: Response) => {
     // Verify password
     const isValidPassword = await verifyPassword(
       validatedData.password,
-      user.passwordHash
+      user.passwordHash,
     );
     if (!isValidPassword) {
       return res.status(401).json({
@@ -160,11 +161,11 @@ router.post("/login", authRateLimit, async (req: Request, res: Response) => {
     // Generate tokens
     const accessToken = generateAccessToken(
       { id: user.id, email: user.email },
-      JWT_SECRET
+      JWT_SECRET,
     );
     const refreshToken = generateRefreshToken(
       { id: user.id, email: user.email },
-      JWT_SECRET
+      JWT_SECRET,
     );
 
     // Return user info and tokens
@@ -233,7 +234,7 @@ router.post("/refresh", async (req: Request, res: Response) => {
     // Generate new access token
     const newAccessToken = generateAccessToken(
       { id: user.id, email: user.email },
-      JWT_SECRET
+      JWT_SECRET,
     );
 
     res.json({
