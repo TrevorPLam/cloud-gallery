@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Static Expo Go deployment build script for production bundles
+// OWNERSHIP: scripts/build
+// ENTRYPOINTS: npm run expo:static:build
+// DEPENDENCIES: Metro bundler (localhost:8081), fs, child_process, fetch API
+// DANGER: requires Metro running; 5-minute timeout per download; cleanup handlers prevent zombie processes; updates bundles in-place
+// CHANGE-SAFETY: domain detection logic is critical; timeout values affect large apps; asset extraction regex must match Metro output format
+// TESTS: npm run expo:static:build, verify static-build directory contents
+// AI-META-END
+
 const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
@@ -14,6 +24,7 @@ function exitWithError(message) {
   process.exit(1);
 }
 
+// AI-NOTE: Signal handlers ensure Metro cleanup even on CTRL+C or kill; prevents port conflicts on next run
 function setupSignalHandlers() {
   const cleanup = () => {
     if (metroProcess) {
@@ -38,6 +49,7 @@ function stripProtocol(domain) {
   return new URL(urlString).host;
 }
 
+// AI-NOTE: Replit environment variable priority: INTERNAL > DEV > PUBLIC; fails loudly if none present
 function getDeploymentDomain() {
   // Check Replit deployment environment variables first
   if (process.env.REPLIT_INTERNAL_APP_DOMAIN) {
@@ -282,6 +294,7 @@ async function downloadBundlesAndManifests(timestamp) {
   }
 }
 
+// AI-NOTE: Asset extraction regex parses Metro's bundled asset metadata; hash ensures cache busting; unstable_path contains original file location
 function extractAssets(timestamp) {
   const bundles = {
     ios: fs.readFileSync(

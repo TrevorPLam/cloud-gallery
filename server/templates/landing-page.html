@@ -1,4 +1,15 @@
 <!doctype html>
+<!--
+AI-META-BEGIN
+AI-META: Landing page for Expo Go deployment with QR code and store links
+OWNERSHIP: server/templates
+ENTRYPOINTS: served by server/index.ts when browser (non-Expo) requests root path
+DEPENDENCIES: qr-code-styling library (CDN), template placeholders (APP_NAME, BASE_URL, EXPS_URL)
+DANGER: placeholders must be replaced before serving; deep link format must match Expo Go schema; user agent detection for iOS/Android
+CHANGE-SAFETY: safe to modify styles; do not change placeholder names; deep link format must stay 'exps://' for Expo Go
+TESTS: manual testing with different devices/browsers
+AI-META-END
+-->
 <html>
   <head>
     <title>APP_NAME_PLACEHOLDER</title>
@@ -395,6 +406,7 @@
 
     <script src="https://unpkg.com/qr-code-styling@1.6.0/lib/qr-code-styling.js"></script>
     <script>
+      // AI-NOTE: User agent detection determines platform-specific behavior; iOS/Android get automatic deep link redirect
       (function () {
         const ua = navigator.userAgent;
         const loadingEl = document.getElementById("loading");
@@ -412,6 +424,7 @@
         const playStoreBtn = document.getElementById("play-store-btn");
         const storeButtonsContainer = document.getElementById("store-buttons");
 
+        // AI-NOTE: Platform detection prioritizes relevant store button and demotes the other to a secondary link
         if (isIOS) {
           playStoreBtn.className = "store-link";
           storeButtonsContainer.appendChild(playStoreBtn);
@@ -420,6 +433,7 @@
           storeButtonsContainer.insertBefore(playStoreBtn, appStoreBtn);
         }
 
+        // AI-NOTE: High error correction level (H) allows logo overlay without breaking QR code functionality
         const qrCode = new QRCodeStyling({
           width: 400,
           height: 400,
@@ -450,6 +464,7 @@
 
         qrCode.append(document.getElementById("qr-code"));
 
+        // AI-NOTE: Mobile platforms get automatic redirect with 500ms fallback to landing page if Expo Go not installed
         if (isAndroid || isIOS) {
           loadingEl.style.display = "block";
           contentEl.style.display = "none";

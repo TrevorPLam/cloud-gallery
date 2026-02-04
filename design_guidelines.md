@@ -1,3 +1,15 @@
+<!--
+AI-META-BEGIN
+AI-META: Design guidelines and specifications for Photo Vault app UI/UX
+OWNERSHIP: documentation/design
+ENTRYPOINTS: read by designers and developers for UI consistency
+DEPENDENCIES: none (reference document)
+DANGER: changes affect entire app design language; screen specs must match implemented components
+CHANGE-SAFETY: safe to add new sections; existing screen specs should stay in sync with actual implementation
+TESTS: visual inspection of implemented screens against specs
+AI-META-END
+-->
+
 # Photo Vault - Design Guidelines
 
 ## Brand Identity

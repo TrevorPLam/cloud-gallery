@@ -1,3 +1,15 @@
+<!--
+AI-META-BEGIN
+AI-META: Replit-specific project documentation for Photo Vault app architecture and setup
+OWNERSHIP: documentation/project
+ENTRYPOINTS: read by developers for project understanding and onboarding
+DEPENDENCIES: none (reference document)
+DANGER: navigation structure must match actual implementation; storage keys are hardcoded in client/lib/storage.ts
+CHANGE-SAFETY: safe to update feature list and architecture; storage keys and data models must stay in sync with code
+TESTS: verify documentation accuracy against implementation when making changes
+AI-META-END
+-->
+
 # Photo Vault - A Google Photos Competitor
 
 ## Overview
