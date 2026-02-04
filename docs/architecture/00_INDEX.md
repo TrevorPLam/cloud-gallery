@@ -23,6 +23,7 @@
 ### Deep-Dive Documentation
 - [**Data Layer**](../data/00_INDEX.md) - Storage, schemas, persistence
 - [**API Layer**](../api/00_INDEX.md) - Routes, error handling, conventions
+- [**Security**](../security/00_INDEX.md) - Threat model, authentication, cryptography, secure coding
 - [**Integrations**](../integrations/00_INDEX.md) - Third-party services, secrets
 - [**Architecture Decision Records**](../adr/README.md) - Why we made key decisions
 

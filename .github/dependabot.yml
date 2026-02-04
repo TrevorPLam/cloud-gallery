@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "update_configs": [
+    {
+      "package_ecosystem": "npm",
+      "directory": "/",
+      "schedule": {
+        "interval": "weekly",
+        "day": "monday",
+        "time": "09:00"
+      },
+      "open_pull_requests_limit": 10,
+      "reviewers": [],
+      "assignees": [],
+      "labels": ["dependencies", "security"],
+      "commit_message": {
+        "prefix": "chore(deps)",
+        "include": "scope"
+      },
+      "ignore": [
+        {
+          "dependency_name": "react-native",
+          "update_types": ["version-update:semver-major"]
+        },
+        {
+          "dependency_name": "expo",
+          "update_types": ["version-update:semver-major"]
+        }
+      ],
+      "groups": {
+        "expo": {
+          "patterns": [
+            "expo*"
+          ]
+        },
+        "react-navigation": {
+          "patterns": [
+            "@react-navigation/*"
+          ]
+        },
+        "testing": {
+          "patterns": [
+            "@vitest/*",
+            "vitest",
+            "@testing-library/*"
+          ]
+        }
+      }
+    },
+    {
+      "package_ecosystem": "github-actions",
+      "directory": "/",
+      "schedule": {
+        "interval": "monthly"
+      },
+      "commit_message": {
+        "prefix": "ci"
+      },
+      "labels": ["dependencies", "ci"]
+    }
+  ]
+}
