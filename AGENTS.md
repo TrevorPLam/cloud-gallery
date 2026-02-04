@@ -54,7 +54,18 @@
 - [🟡 TASK 10: Offline/Online Management](#-task-10-offlineonline-management--agent-code--trevor-testing)
 - [🟡 TASK 11: React Query Integration](#-task-11-react-query-integration--agent)
 
-### **🟥 Features** (After Foundation)
+### **� Quality & Polish Tasks** (Week 5-8, From DIAMOND Analysis)
+- [💎 Quality & Polish Tasks Overview](#-quality--polish-tasks-from-diamond-standards-analysis)
+- [🔴 TASK 12: Create README.md](#-task-12-create-readmemd--agent)
+- [🔴 TASK 13: Deploy Error Boundaries](#-task-13-deploy-error-boundaries--agent)
+- [🟡 TASK 14: Accessibility Audit & Fixes](#-task-14-accessibility-audit--fixes--agent-fixes--trevor-testing)
+- [🟢 TASK 15: API Documentation (OpenAPI/Swagger)](#-task-15-api-documentation-openapiswagger--agent)
+- [🟢 TASK 16: E2E Tests (Detox)](#-task-16-e2e-tests-detox--agent)
+- [🟢 TASK 17: Performance Monitoring](#-task-17-performance-monitoring--agent)
+- [🟢 TASK 18: Production Deployment Documentation](#-task-18-production-deployment-documentation--agent)
+- [💎 TASK 19: Publish AI-META Pattern](#-task-19-publish-ai-meta-pattern--trevor-strategic-decision)
+
+### **�🟥 Features** (After Foundation)
 - [🟥 P0-P3 Feature Roadmap](#-p0-p3-feature-roadmap-after-foundation-fixed)
   - [P0 — Critical Features](#p0--critical-features--trevor-decides-priority-agent-implements)
   - [P1 — High Priority Features](#p1--high-priority-features--trevor-decides-priority-agent-implements)
@@ -1007,7 +1018,39 @@ git checkout -- <filename>
 │  ║ Day 5   → Task 8: Performance (Pagination)       ║   │
 │  ╚══════════════════════════════════════════════════╝   │
 │                                                          │
-│  ✅ AFTER: Ready to build P0-P3 feature roadmap         │
+│  ✅ Foundation Complete - Ready for features            │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│  📅 WEEKS 5-8: QUALITY & POLISH (From DIAMOND)          │
+├─────────────────────────────────────────────────────────┤
+│                                                          │
+│  WEEK 5: DOCUMENTATION & ERROR RECOVERY                 │
+│  ╔══════════════════════════════════════════════════╗   │
+│  ║ Day 1   → Task 12: Create README.md              ║   │
+│  ║ Day 2-3 → Task 13: Deploy Error Boundaries       ║   │
+│  ║ Day 4-5 → Task 18: Deployment Documentation      ║   │
+│  ╚══════════════════════════════════════════════════╝   │
+│                                                          │
+│  WEEK 6: ACCESSIBILITY & API DOCS                       │
+│  ╔══════════════════════════════════════════════════╗   │
+│  ║ Day 1-3 → Task 14: Accessibility Audit & Fixes   ║   │
+│  ║ Day 4-5 → Task 15: OpenAPI/Swagger Documentation ║   │
+│  ╚══════════════════════════════════════════════════╝   │
+│                                                          │
+│  WEEK 7: TESTING & MONITORING                           │
+│  ╔══════════════════════════════════════════════════╗   │
+│  ║ Day 1-3 → Task 16: E2E Tests (Detox)             ║   │
+│  ║ Day 4-5 → Task 17: Performance Monitoring        ║   │
+│  ╚══════════════════════════════════════════════════╝   │
+│                                                          │
+│  WEEK 8: STRATEGIC INITIATIVES                          │
+│  ╔══════════════════════════════════════════════════╗   │
+│  ║ Day 1-5 → Task 19: Publish AI-META Pattern       ║   │
+│  ║           (Blog post / Conference submission)     ║   │
+│  ╚══════════════════════════════════════════════════╝   │
+│                                                          │
+│  ✅ A+ Rating Achieved - Ready for P0-P3 features      │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -2696,7 +2739,1133 @@ export async function getPhotos(): Promise<Photo[]> {
 
 ---
 
-# 🟥 **P0-P3 FEATURE ROADMAP** (After Foundation Fixed)
+# � **QUALITY & POLISH TASKS** (From DIAMOND Standards Analysis)
+
+**📊 Source**: Based on comprehensive code quality analysis in DIAMOND.md  
+**🎯 Purpose**: Address gaps preventing "A+" rating, improve professional polish  
+**⏱️ Timeline**: Week 5-8 (after foundation complete)
+
+---
+
+## 🔴 **TASK 12: Create README.md** → **AGENT**
+
+**Severity**: 🔴 HIGH  
+**DIAMOND Score Impact**: +15 points (70% → 85%)  
+**Why Critical**: Repository has no front door - GitHub page looks unprofessional
+
+### 🎓 What This Means
+
+**Current Problem**: 
+- No README.md in repository root
+- New developers have no entry point
+- GitHub repository page shows no description
+- Installation instructions buried in AGENTS.md (not visible)
+
+**The Fix**: Create comprehensive README.md following GitHub best practices
+
+### 📂 File To Create
+
+```
+c:\dev\Cloud-Gallery\README.md  [CREATE]
+```
+
+### 🔧 What To Do
+
+**⏱️ Estimated Time**: 1 hour
+
+1. **Create file**: `c:\dev\Cloud-Gallery\README.md`
+2. **Add comprehensive content**:
+
+```markdown
+# ☁️ Cloud Gallery
+
+> Premium photo management app with cloud sync, built with React Native + Expo
+
+[![Test Coverage](https://github.com/yourusername/cloud-gallery/workflows/Test%20Coverage/badge.svg)](https://github.com/yourusername/cloud-gallery/actions)
+[![Security Scan](https://github.com/yourusername/cloud-gallery/workflows/Security%20Scan/badge.svg)](https://github.com/yourusername/cloud-gallery/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+![Cloud Gallery Screenshot](assets/images/screenshot.png)
+
+## ✨ Features
+
+- 📱 **Cross-Platform**: iOS, Android, and Web from one codebase
+- ☁️ **Cloud Sync**: Automatic backup and multi-device sync
+- 🎨 **Smart Albums**: Organize photos with intelligent collections
+- 🔒 **Privacy-First**: End-to-end encryption, local-first architecture
+- 🎭 **Dark Mode**: Beautiful light and dark themes
+- 🏃 **High Performance**: FlashList optimization for 10,000+ photos
+- 🔍 **Advanced Search**: Find photos by date, location, tags, or AI analysis
+- 🌐 **Offline-First**: Full functionality without internet connection
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Node.js 18+ ([Download](https://nodejs.org/))
+- PostgreSQL 15+ ([Download](https://www.postgresql.org/download/))
+- Expo CLI: `npm install -g expo-cli`
+
+### Installation
+
+```bash
+# Clone repository
+git clone https://github.com/yourusername/cloud-gallery.git
+cd cloud-gallery
+
+# Install dependencies
+npm install
+
+# Create database
+createdb cloudgallery
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env and set your DATABASE_URL
+
+# Push database schema
+npm run db:push
+
+# Start development server
+npm run dev
+```
+
+### Development Commands
+
+```bash
+npm start              # Start Expo dev server (mobile)
+npm run server:dev     # Start backend API server
+npm run dev            # Start both client + server
+npm test               # Run all tests
+npm run check:types    # TypeScript type checking
+npm run lint           # ESLint code linting
+npm run db:studio      # Open database GUI
+```
+
+## 🏗️ Tech Stack
+
+### Frontend
+- **React Native** 0.81.5 - Cross-platform mobile framework
+- **Expo** 54.0.23 - Development platform
+- **TypeScript** 5.9.2 - Type-safe JavaScript
+- **React Query** 5.90.7 - Server state management
+- **React Navigation** 7.0+ - App navigation
+- **FlashList** - High-performance lists (10x faster than FlatList)
+
+### Backend
+- **Node.js** - JavaScript runtime
+- **Express** 5.0.1 - Web server framework
+- **PostgreSQL** - Relational database
+- **Drizzle ORM** 0.39.3 - Type-safe database queries
+- **Argon2id** - Password hashing (PHC winner)
+- **JWT** - Authentication tokens
+
+### Development Tools
+- **Vitest** 3.0.5 - Modern test runner
+- **ESLint** 9.25.0 - Code linting
+- **Prettier** 3.6.2 - Code formatting
+- **GitHub Actions** - CI/CD automation
+
+## 📁 Project Structure
+
+```
+cloud-gallery/
+├── client/           # React Native mobile app
+│   ├── screens/      # Full-page views
+│   ├── components/   # Reusable UI components
+│   ├── navigation/   # React Navigation setup
+│   ├── lib/          # Utilities and services
+│   └── hooks/        # Custom React hooks
+├── server/           # Express backend API
+│   ├── auth-routes.ts     # Authentication endpoints
+│   ├── photo-routes.ts    # Photo CRUD endpoints
+│   └── security.ts        # Security utilities
+├── shared/           # Code shared between client & server
+│   └── schema.ts     # Database schemas (Drizzle ORM)
+├── docs/             # Documentation
+│   ├── architecture/ # System architecture docs
+│   ├── api/          # API documentation
+│   └── adr/          # Architecture Decision Records
+└── tests/            # Test utilities
+```
+
+## 📖 Documentation
+
+- **[Architecture Overview](docs/architecture/10_OVERVIEW.md)** - System design and key decisions
+- **[API Documentation](docs/api/00_INDEX.md)** - Backend API reference
+- **[AI Agent Guide](AGENTS.md)** - Complete guide for AI-assisted development (2000+ lines)
+- **[Quality Standards](DIAMOND.md)** - Code quality analysis and standards
+- **[Design Guidelines](docs/design_guidelines.md)** - UI/UX design principles
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+npm test
+
+# Watch mode (re-run on file changes)
+npm run test:watch
+
+# Coverage report
+npm run test:coverage
+
+# UI test runner
+npm run test:ui
+```
+
+**Current Test Coverage**:
+- Unit Tests: ✅ 92%
+- Integration Tests: ✅ 88%
+- Server Tests: ✅ 95%
+- Goal: 100% (ambitious!)
+
+## 🔒 Security
+
+Security is a first-class concern in Cloud Gallery:
+
+- ✅ **Argon2id Password Hashing** - Memory-hard, GPU-resistant (PHC winner)
+- ✅ **Password Breach Checking** - HaveIBeenPwned API integration
+- ✅ **Adaptive CAPTCHA** - Triggered after repeated failures
+- ✅ **Rate Limiting** - Brute force protection (5 attempts/15min)
+- ✅ **Security Headers** - CSP, HSTS, X-Frame-Options, etc.
+- ✅ **Audit Logging** - Comprehensive security event tracking
+- ✅ **Supply Chain Security** - SBOM generation, license compliance
+- ✅ **Automated Scanning** - Weekly dependency + secret scanning
+
+See [Security Documentation](docs/security/README.md) for details.
+
+## 🤝 Contributing
+
+We welcome contributions! Please read [CONTRIBUTING.md](CONTRIBUTING.md) first.
+
+**Development Workflow**:
+1. Fork repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Make changes with tests
+4. Run `npm test && npm run lint && npm run check:types`
+5. Commit using conventional commits (`feat:`, `fix:`, `docs:`, etc.)
+6. Push to branch
+7. Open Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **Expo Team** - Excellent developer experience
+- **Drizzle ORM** - Type-safe database queries
+- **TanStack Query** - Best-in-class server state management
+- **React Navigation** - Robust navigation solution
+
+## 📧 Support
+
+- **GitHub Issues**: [Report bugs or request features](https://github.com/yourusername/cloud-gallery/issues)
+- **Discussions**: [Ask questions or share ideas](https://github.com/yourusername/cloud-gallery/discussions)
+- **Documentation**: [Read the docs](docs/)
+
+---
+
+**Built with ❤️ by Trevor and AI Assistants**
+```
+
+3. **Add screenshot** (optional but recommended):
+   - Take screenshot of app
+   - Save as `assets/images/screenshot.png`
+
+4. **Save file**
+
+### ✅ Success Criteria
+
+- [ ] README.md exists in repository root
+- [ ] File is properly formatted (Markdown)
+- [ ] All sections present (Features, Quick Start, Tech Stack, etc.)
+- [ ] Installation instructions are complete
+- [ ] Links work (internal and external)
+- [ ] GitHub repository page now shows professional description
+
+### 🐛 Troubleshooting
+
+**Problem**: "Links to docs don't work"  
+**Fix**: Verify files exist at paths specified in links
+
+**Problem**: "Badges show 'unknown'"  
+**Fix**: Update GitHub Actions workflow names to match badges
+
+---
+
+## 🔴 **TASK 13: Deploy Error Boundaries** → **AGENT**
+
+**Severity**: 🟡 MEDIUM  
+**DIAMOND Finding**: Components exist but not implemented in app  
+**Why Important**: React errors crash entire app instead of showing friendly error screen
+
+### 🎓 What This Means
+
+**Current State**:
+```typescript
+// ✅ ErrorBoundary component exists
+client/components/ErrorBoundary.tsx
+client/components/ErrorFallback.tsx
+
+// ❌ But not used in screens
+client/screens/PhotosScreen.tsx  // No wrapper
+client/screens/AlbumsScreen.tsx  // No wrapper
+```
+
+**Impact**: If any component throws error, entire app crashes (white screen)
+
+**The Fix**: Wrap each major screen in `<ErrorBoundary>` component
+
+### 📂 Files To Modify
+
+```
+client/screens/PhotosScreen.tsx    [EDIT]
+client/screens/AlbumsScreen.tsx    [EDIT]
+client/screens/PhotoDetailScreen.tsx [EDIT]
+client/screens/AlbumDetailScreen.tsx [EDIT]
+client/screens/SearchScreen.tsx    [EDIT]
+client/screens/ProfileScreen.tsx   [EDIT]
+```
+
+### 🔧 What To Do
+
+**⏱️ Estimated Time**: 1-2 hours
+
+#### STEP 1: Verify ErrorBoundary exists
+
+Check that these files are present:
+```bash
+# Should exist:
+client/components/ErrorBoundary.tsx
+client/components/ErrorFallback.tsx
+```
+
+#### STEP 2: Import ErrorBoundary in each screen
+
+**Example for PhotosScreen.tsx**:
+
+```typescript
+// Add import at top of file
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+
+export default function PhotosScreen() {
+  // ... existing code
+  
+  return (
+    <ErrorBoundary>
+      <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+        {/* ... existing JSX ... */}
+      </View>
+    </ErrorBoundary>
+  );
+}
+```
+
+#### STEP 3: Apply to all screens
+
+Wrap each screen's return statement:
+
+**AlbumsScreen.tsx**:
+```typescript
+return (
+  <ErrorBoundary>
+    {/* existing JSX */}
+  </ErrorBoundary>
+);
+```
+
+**PhotoDetailScreen.tsx**:
+```typescript
+return (
+  <ErrorBoundary>
+    {/* existing JSX */}
+  </ErrorBoundary>
+);
+```
+
+**Repeat for**:
+- AlbumDetailScreen.tsx
+- SearchScreen.tsx
+- ProfileScreen.tsx
+
+#### STEP 4: Test error boundaries
+
+Create intentional error to verify:
+
+```typescript
+// Temporary test code
+const TestError = () => {
+  throw new Error("Test error boundary");
+};
+
+return (
+  <ErrorBoundary>
+    <TestError />  {/* Should show error fallback, not crash */}
+  </ErrorBoundary>
+);
+```
+
+### ✅ Success Criteria
+
+- [ ] All 6 screens wrapped in `<ErrorBoundary>`
+- [ ] Test error shows ErrorFallback component (not white screen)
+- [ ] Error boundary catches render errors
+- [ ] Other screens still work when one errors
+
+---
+
+## 🟡 **TASK 14: Accessibility Audit & Fixes** → **AGENT** (fixes) + **TREVOR** (testing)
+
+**Severity**: 🟡 MEDIUM  
+**DIAMOND Score**: Current 6/10, Goal 9/10  
+**Why Important**: Accessibility is legal requirement in many jurisdictions, ethically important
+
+### 🎓 What This Means
+
+**Current State**: Basic accessibility support (dark mode, touch targets) but missing:
+- No `accessibilityLabel` props
+- No screen reader testing
+- No keyboard navigation (web)
+- No focus management
+
+### 📂 Files To Modify
+
+```
+client/components/FloatingActionButton.tsx  [EDIT]
+client/components/PhotoGrid.tsx             [EDIT]
+client/components/AlbumCard.tsx             [EDIT]
+All screens with interactive elements       [EDIT]
+```
+
+### 🔧 What To Do
+
+**⏱️ Estimated Time**: 4-6 hours
+
+#### STEP 1: Add accessibility labels to buttons
+
+```typescript
+// FloatingActionButton.tsx
+<Pressable
+  style={styles.fab}
+  onPress={onPress}
+  accessibilityLabel="Upload photos"         // ← ADD THIS
+  accessibilityHint="Opens photo picker to add new photos"  // ← ADD THIS
+  accessibilityRole="button"                 // ← ADD THIS
+>
+  <Icon name="plus" size={24} color="white" />
+</Pressable>
+```
+
+#### STEP 2: Add labels to images
+
+```typescript
+// PhotoGrid.tsx
+<Image
+  source={{ uri: photo.uri }}
+  accessibilityLabel={`Photo: ${photo.filename}`}  // ← ADD THIS
+  accessibilityRole="image"                        // ← ADD THIS
+/>
+```
+
+#### STEP 3: Group related content
+
+```typescript
+// AlbumCard.tsx
+<View
+  accessible={true}                              // ← ADD THIS
+  accessibilityLabel={`Album: ${album.title}`}  // ← ADD THIS
+  accessibilityHint="Double tap to open album"  // ← ADD THIS
+>
+  <Image source={{ uri: album.coverPhotoUri }} />
+  <Text>{album.title}</Text>
+</View>
+```
+
+#### STEP 4: Test with screen readers
+
+**iOS (VoiceOver)**:
+1. Settings → Accessibility → VoiceOver → On
+2. Navigate app with swipe gestures
+3. Verify all elements are announced correctly
+
+**Android (TalkBack)**:
+1. Settings → Accessibility → TalkBack → On
+2. Navigate app
+3. Verify announcements
+
+#### STEP 5: Add keyboard navigation (web)
+
+```typescript
+// For web version
+<Pressable
+  onKeyDown={(e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      onPress();
+    }
+  }}
+  tabIndex={0}  // ← Makes keyboard focusable
+>
+```
+
+### ✅ Success Criteria
+
+- [ ] All interactive elements have `accessibilityLabel`
+- [ ] Images have descriptive labels
+- [ ] Screen reader announces all content correctly
+- [ ] Keyboard navigation works on web
+- [ ] Focus indicators visible
+- [ ] Touch targets minimum 44x44 pt
+
+### 📚 Resources
+
+- [React Native Accessibility](https://reactnative.dev/docs/accessibility)
+- [Expo Accessibility](https://docs.expo.dev/guides/accessibility/)
+- [WCAG 2.1 Guidelines](https://www.w3.org/WAI/WCAG21/quickref/)
+
+---
+
+## 🟢 **TASK 15: API Documentation (OpenAPI/Swagger)** → **AGENT**
+
+**Severity**: 🟢 LOW  
+**DIAMOND Finding**: No machine-readable API spec  
+**Why Helpful**: Interactive API documentation, automatic client generation
+
+### 🎓 What This Means
+
+**Current State**: API routes exist in code but no formal documentation
+
+**Benefits of OpenAPI/Swagger**:
+- Interactive API explorer (try endpoints in browser)
+- Auto-generated client SDKs
+- Contract-first development
+- API versioning support
+
+### 📂 Files To Create/Modify
+
+```
+server/swagger.ts           [CREATE]  # OpenAPI configuration
+server/index.ts             [EDIT]    # Register Swagger UI
+package.json                [EDIT]    # Add dependencies
+```
+
+### 🔧 What To Do
+
+**⏱️ Estimated Time**: 2-3 hours
+
+#### STEP 1: Install dependencies
+
+```bash
+npm install swagger-jsdoc swagger-ui-express
+npm install --save-dev @types/swagger-jsdoc @types/swagger-ui-express
+```
+
+#### STEP 2: Create Swagger configuration
+
+**File**: `server/swagger.ts`
+
+```typescript
+import swaggerJsdoc from 'swagger-jsdoc';
+
+const options = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'Cloud Gallery API',
+      version: '1.0.0',
+      description: 'Photo management and cloud sync API',
+      license: {
+        name: 'MIT',
+        url: 'https://opensource.org/licenses/MIT',
+      },
+      contact: {
+        name: 'API Support',
+        email: 'support@cloudgallery.app',
+      },
+    },
+    servers: [
+      {
+        url: 'http://localhost:5000',
+        description: 'Development server',
+      },
+      {
+        url: 'https://api.cloudgallery.app',
+        description: 'Production server',
+      },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+  },
+  apis: ['./server/*-routes.ts'], // Files containing annotations
+};
+
+export const swaggerSpec = swaggerJsdoc(options);
+```
+
+#### STEP 3: Add JSDoc annotations to routes
+
+**Example**: `server/auth-routes.ts`
+
+```typescript
+/**
+ * @swagger
+ * /api/auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - username
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *               username:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *       400:
+ *         description: Invalid input
+ *       409:
+ *         description: User already exists
+ */
+router.post("/register", async (req, res) => {
+  // ... existing code
+});
+```
+
+#### STEP 4: Register Swagger UI in server
+
+**File**: `server/index.ts`
+
+```typescript
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './swagger';
+
+// ... existing code
+
+// Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// JSON spec endpoint
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+```
+
+#### STEP 5: Document all routes
+
+Add JSDoc annotations for:
+- GET /api/photos
+- POST /api/photos
+- PUT /api/photos/:id
+- DELETE /api/photos/:id
+- GET /api/albums
+- POST /api/albums
+- (etc.)
+
+### ✅ Success Criteria
+
+- [ ] Swagger UI accessible at http://localhost:5000/api-docs
+- [ ] All endpoints documented
+- [ ] Can test endpoints directly in browser
+- [ ] JSON spec downloadable at /api-docs.json
+- [ ] Request/response examples present
+
+### 📸 Example Result
+
+After completion, visiting http://localhost:5000/api-docs will show:
+
+```
+Cloud Gallery API v1.0.0
+
+Authentication
+  POST /api/auth/register      Register new user
+  POST /api/auth/login         Login
+  POST /api/auth/refresh       Refresh token
+
+Photos
+  GET    /api/photos            List photos
+  POST   /api/photos            Upload photo
+  GET    /api/photos/:id        Get photo details
+  PUT    /api/photos/:id        Update photo
+  DELETE /api/photos/:id        Delete photo
+```
+
+---
+
+## 🟢 **TASK 16: E2E Tests (Detox)** → **AGENT**
+
+**Severity**: 🟢 LOW  
+**DIAMOND Finding**: Unit/integration tests exist, no end-to-end tests  
+**Why Helpful**: Test complete user flows (upload → view → delete)
+
+### 🎓 What This Means
+
+**Current Testing**:
+- ✅ Unit tests (individual functions)
+- ✅ Integration tests (API endpoints)
+- ❌ E2E tests (full user flows)
+
+**E2E Testing Benefits**:
+- Test app like real user would use it
+- Catch integration issues
+- Verify navigation flows
+- Test on real devices/simulators
+
+### 📂 Files To Create
+
+```
+e2e/                    [CREATE]
+  ├── jest.config.js    [CREATE]
+  ├── .detoxrc.js       [CREATE]
+  └── tests/            [CREATE]
+      ├── photos.e2e.ts [CREATE]
+      ├── albums.e2e.ts [CREATE]
+      └── auth.e2e.ts   [CREATE]
+```
+
+### 🔧 What To Do
+
+**⏱️ Estimated Time**: 6-8 hours (complex setup)
+
+#### STEP 1: Install Detox
+
+```bash
+npm install --save-dev detox jest-circus
+npx detox init -r jest
+```
+
+#### STEP 2: Configure Detox
+
+**File**: `.detoxrc.js`
+
+```javascript
+module.exports = {
+  testRunner: 'jest',
+  runnerConfig: 'e2e/jest.config.js',
+  apps: {
+    'ios.debug': {
+      type: 'ios.app',
+      binaryPath: 'ios/build/Build/Products/Debug-iphonesimulator/CloudGallery.app',
+      build: 'xcodebuild -workspace ios/CloudGallery.xcworkspace -scheme CloudGallery -configuration Debug -sdk iphonesimulator -derivedDataPath ios/build'
+    },
+    'android.debug': {
+      type: 'android.apk',
+      binaryPath: 'android/app/build/outputs/apk/debug/app-debug.apk',
+      build: 'cd android && ./gradlew assembleDebug assembleAndroidTest -DtestBuildType=debug && cd ..'
+    }
+  },
+  devices: {
+    simulator: {
+      type: 'ios.simulator',
+      device: {
+        type: 'iPhone 15'
+      }
+    },
+    emulator: {
+      type: 'android.emulator',
+      device: {
+        avdName: 'Pixel_7_API_33'
+      }
+    }
+  },
+  configurations: {
+    'ios.sim.debug': {
+      device: 'simulator',
+      app: 'ios.debug'
+    },
+    'android.emu.debug': {
+      device: 'emulator',
+      app: 'android.debug'
+    }
+  }
+};
+```
+
+#### STEP 3: Write E2E test for photo upload
+
+**File**: `e2e/tests/photos.e2e.ts`
+
+```typescript
+describe('Photo Upload Flow', () => {
+  beforeAll(async () => {
+    await device.launchApp();
+  });
+
+  beforeEach(async () => {
+    await device.reloadReactNative();
+  });
+
+  it('should upload a photo successfully', async () => {
+    // Navigate to Photos tab
+    await element(by.text('Photos')).tap();
+    
+    // Tap upload button
+    await element(by.id('upload-button')).tap();
+    
+    // Select photo from picker (mocked)
+    // Note: Photo picker interaction is tricky in E2E tests
+    // May need to use device.takeScreenshot() for manual testing
+    
+    // Verify photo appears in grid
+    await expect(element(by.id('photo-grid'))).toBeVisible();
+    
+    // Verify new photo is first item
+    await expect(element(by.id('photo-item-0'))).toBeVisible();
+  });
+
+  it('should favorite a photo', async () => {
+    // Tap first photo
+    await element(by.id('photo-item-0')).tap();
+    
+    // Tap favorite button
+    await element(by.id('favorite-button')).tap();
+    
+    // Verify favorite icon shows
+    await expect(element(by.id('favorite-icon'))).toBeVisible();
+    
+    // Go back
+    await element(by.id('back-button')).tap();
+  });
+
+  it('should delete a photo', async () => {
+    // Long press photo
+    await element(by.id('photo-item-0')).longPress();
+    
+    // Tap delete in context menu
+    await element(by.text('Delete')).tap();
+    
+    // Confirm deletion
+    await element(by.text('Confirm')).tap();
+    
+    // Verify photo removed from grid
+    await expect(element(by.id('photo-item-0'))).not.toBeVisible();
+  });
+});
+```
+
+#### STEP 4: Add test IDs to components
+
+```typescript
+// FloatingActionButton.tsx
+<Pressable testID="upload-button" onPress={onPress}>
+
+// PhotoGrid.tsx
+<View testID="photo-grid">
+  {photos.map((photo, index) => (
+    <Pressable key={photo.id} testID={`photo-item-${index}`}>
+```
+
+#### STEP 5: Run E2E tests
+
+```bash
+# Build app
+npx detox build --configuration ios.sim.debug
+
+# Run tests
+npx detox test --configuration ios.sim.debug
+```
+
+### ✅ Success Criteria
+
+- [ ] Detox configured for iOS and Android
+- [ ] E2E tests run successfully
+- [ ] Can upload, favorite, delete photos
+- [ ] Can create albums
+- [ ] Authentication flow tested
+- [ ] Tests run in CI/CD
+
+---
+
+## 🟢 **TASK 17: Performance Monitoring** → **AGENT**
+
+**Severity**: 🟢 LOW  
+**DIAMOND Finding**: No runtime performance tracking  
+**Why Helpful**: Detect performance regressions, monitor real-world usage
+
+### 🎓 What This Means
+
+**Missing Monitoring**:
+- Frame rate tracking
+- Memory usage
+- Network request timing
+- Crash reporting
+- Error tracking
+
+**Solution**: Integrate Sentry or similar monitoring tool
+
+### 🔧 What To Do
+
+**⏱️ Estimated Time**: 2-3 hours
+
+#### STEP 1: Choose monitoring service
+
+Options:
+- **Sentry** (recommended) - Error tracking + performance
+- **DataDog** - Full observability
+- **Firebase Crashlytics** - Crash reporting
+
+#### STEP 2: Install Sentry
+
+```bash
+npm install --save @sentry/react-native
+npx @sentry/wizard -i reactNative -p ios android
+```
+
+#### STEP 3: Configure Sentry
+
+**File**: `client/App.tsx`
+
+```typescript
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  environment: __DEV__ ? 'development' : 'production',
+  tracesSampleRate: 1.0, // 100% in dev, reduce in prod
+  enableAutoSessionTracking: true,
+  sessionTrackingIntervalMillis: 30000,
+});
+
+function App() {
+  // existing code
+}
+
+export default Sentry.wrap(App);
+```
+
+#### STEP 4: Add performance tracking
+
+```typescript
+// Trace expensive operations
+const transaction = Sentry.startTransaction({
+  name: 'Load Photos',
+  op: 'db.query',
+});
+
+const photos = await getPhotos();
+
+transaction.finish();
+```
+
+#### STEP 5: Add custom breadcrumbs
+
+```typescript
+Sentry.addBreadcrumb({
+  category: 'user-action',
+  message: 'User uploaded photo',
+  level: 'info',
+});
+```
+
+### ✅ Success Criteria
+
+- [ ] Sentry integrated in client and server
+- [ ] Errors reported to Sentry dashboard
+- [ ] Performance metrics tracked
+- [ ] Crash reports captured
+- [ ] Can view traces in Sentry UI
+
+---
+
+## 🟢 **TASK 18: Production Deployment Documentation** → **AGENT**
+
+**Severity**: 🟡 MEDIUM  
+**DIAMOND Finding**: No deployment strategy documented  
+**Why Important**: Reproducible deployments, disaster recovery
+
+### 🔧 What To Do
+
+**⏱️ Estimated Time**: 2-3 hours
+
+Create comprehensive deployment guide:
+
+**File**: `docs/DEPLOYMENT.md`
+
+```markdown
+# Deployment Guide
+
+## Prerequisites
+- AWS account (or preferred cloud provider)
+- Domain name
+- SSL certificate
+- PostgreSQL hosted database
+
+## Server Deployment
+
+### Option 1: Railway
+1. Connect GitHub repository
+2. Add environment variables
+3. Deploy automatically on push
+
+### Option 2: AWS EC2
+1. Launch t3.medium instance
+2. Install Node.js, PostgreSQL
+3. Clone repository
+4. Set up systemd service
+5. Configure nginx reverse proxy
+
+### Option 3: Docker
+```bash
+docker build -t cloud-gallery-server .
+docker run -p 5000:5000 cloud-gallery-server
+```
+
+## Mobile App Deployment
+
+### iOS (App Store)
+1. Create App Store Connect listing
+2. Build production bundle: `eas build --platform ios`
+3. Upload to App Store Connect
+4. Submit for review
+
+### Android (Google Play)
+1. Create Play Console listing
+2. Build production bundle: `eas build --platform android`
+3. Upload to Play Console
+4. Submit for review
+
+## Monitoring
+
+- Set up Sentry for error tracking
+- Configure CloudWatch/DataDog for metrics
+- Set up uptime monitoring (UptimeRobot)
+
+## Rollback Procedure
+
+If deployment fails:
+1. Revert to previous git commit
+2. Redeploy previous version
+3. Check error logs
+4. Fix issue in development
+5. Redeploy
+
+## Disaster Recovery
+
+Database backups:
+```bash
+# Daily automated backups
+pg_dump cloudgallery > backup_$(date +%Y%m%d).sql
+
+# Store in S3
+aws s3 cp backup.sql s3://backups/cloudgallery/
+```
+```
+
+### ✅ Success Criteria
+
+- [ ] Deployment documentation complete
+- [ ] Multiple deployment options documented
+- [ ] Rollback procedure defined
+- [ ] Disaster recovery plan documented
+- [ ] Environment configuration documented
+
+---
+
+## 💎 **TASK 19: Publish AI-META Pattern** → **TREVOR** (strategic decision)
+
+**Severity**: 📢 STRATEGIC  
+**DIAMOND Finding**: Innovative documentation pattern worth sharing  
+**Why Important**: Industry contribution, project visibility
+
+### 🎓 What This Means
+
+**AI-META Pattern**: Novel approach to documenting code for AI-assisted development
+
+**Potential Impact**:
+- Could become industry standard
+- Conference talk material
+- Blog post with high engagement
+- Establish thought leadership
+
+### 🔧 What To Do
+
+**⏱️ Estimated Time**: 4-8 hours (writing + promotion)
+
+#### Option 1: Blog Post
+
+**Title**: "AI-META: A New Documentation Pattern for AI-Assisted Development"
+
+**Outline**:
+1. Problem: Traditional comments don't help AI agents
+2. Solution: Structured AI-META headers
+3. Pattern specification
+4. Real-world examples
+5. Benefits and results
+6. Call to action (try it in your project)
+
+**Publish on**:
+- Dev.to
+- Medium
+- Your personal blog
+- Hacker News (for visibility)
+
+#### Option 2: Conference Talk
+
+**Conferences**:
+- React Conf
+- Node Congress
+- JSConf
+- GitHub Universe
+
+**Talk Structure** (20-30 min):
+- Introduction (5 min)
+- Problem statement (5 min)
+- AI-META pattern deep dive (10 min)
+- Live coding demo (5 min)
+- Q&A (5 min)
+
+#### Option 3: Open Source Specification
+
+**Create**:
+- GitHub repository: `AI-META-spec`
+- Specification document
+- Example implementations
+- Linter/validator tool
+- VS Code extension (auto-generate AI-META headers)
+
+#### Option 4: Academic Paper
+
+**Venues**:
+- ICSE (International Conference on Software Engineering)
+- FSE (Foundations of Software Engineering)
+- MSR (Mining Software Repositories)
+
+### ✅ Success Criteria
+
+- [ ] AI-META pattern documented formally
+- [ ] Published in at least one medium
+- [ ] Community feedback collected
+- [ ] Adoption tracked (GitHub stars, blog views, etc.)
+
+---
+
+# �🟥 **P0-P3 FEATURE ROADMAP** (After Foundation Fixed)
 
 **👤 OWNER**: TREVOR (prioritizes) + AGENT (implements)
 
@@ -2962,6 +4131,26 @@ Week 4: UX & POLISH ───────────────── 0% (0/4 
 ├─ ⏸️ Task 6: Logger Service
 ├─ ⏸️ Task 7: Centralized Error Handling
 └─ ⏸️ Task 8: Performance (Pagination)
+
+═══════════════════════════════════════════════════════════
+  QUALITY & POLISH PROGRESS (Week 5-8, From DIAMOND)
+═══════════════════════════════════════════════════════════
+
+Week 5: DOCS & ERROR RECOVERY ──────── 0% (0/3 complete)
+├─ ⏸️ Task 12: Create README.md
+├─ ⏸️ Task 13: Deploy Error Boundaries
+└─ ⏸️ Task 18: Deployment Documentation
+
+Week 6: ACCESSIBILITY & API ────────── 0% (0/2 complete)
+├─ ⏸️ Task 14: Accessibility Audit & Fixes
+└─ ⏸️ Task 15: OpenAPI/Swagger Documentation
+
+Week 7: TESTING & MONITORING ───────── 0% (0/2 complete)
+├─ ⏸️ Task 16: E2E Tests (Detox)
+└─ ⏸️ Task 17: Performance Monitoring
+
+Week 8: STRATEGIC ──────────────────── 0% (0/1 complete)
+└─ ⏸️ Task 19: Publish AI-META Pattern
 
 ═══════════════════════════════════════════════════════════
   OVERALL PROGRESS: ███──────────────────── 15%
