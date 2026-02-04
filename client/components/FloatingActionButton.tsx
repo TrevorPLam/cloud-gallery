@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Floating action button with haptics and tab bar positioning
+// OWNERSHIP: client/components (navigation UI)
+// ENTRYPOINTS: Rendered on PhotosScreen for upload action
+// DEPENDENCIES: react-native-reanimated, expo-haptics, bottom-tabs, safe-area-context
+// DANGER: Position calculation depends on tab bar height; haptics web incompatible
+// CHANGE-SAFETY: Safe to modify styles; positioning logic affects all screen sizes
+// TESTS: Check positioning on iOS/Android/web, verify haptics, test different tab bar configs
+// AI-META-END
+
 import React from "react";
 import { StyleSheet, Pressable, Platform } from "react-native";
 import { Feather } from "@expo/vector-icons";
@@ -39,6 +49,7 @@ export function FloatingActionButton({
   };
 
   const handlePress = () => {
+    // AI-NOTE: Haptic feedback enhances native feel but unavailable on web
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }

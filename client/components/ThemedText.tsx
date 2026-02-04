@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Theme-aware text component with typography variants and color overrides
+// OWNERSHIP: client/components (UI primitives)
+// ENTRYPOINTS: Used throughout app for all text rendering
+// DEPENDENCIES: theme system, Typography constants
+// DANGER: Type variants must match Typography definitions; color fallback hierarchy critical
+// CHANGE-SAFETY: Safe to add types; changing color logic affects entire app
+// TESTS: Verify all type variants render correctly, test light/dark override behavior
+// AI-META-END
+
 import { Text, type TextProps } from "react-native";
 
 import { useTheme } from "@/hooks/useTheme";
@@ -19,6 +29,7 @@ export function ThemedText({
   const { theme, isDark } = useTheme();
 
   const getColor = () => {
+    // AI-NOTE: Color priority: explicit light/dark override > type-specific > theme default
     if (isDark && darkColor) {
       return darkColor;
     }

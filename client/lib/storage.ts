@@ -1,6 +1,17 @@
+// AI-META-BEGIN
+// AI-META: AsyncStorage wrapper for photos, albums, user profile with complex relationships
+// OWNERSHIP: client/lib (data persistence)
+// ENTRYPOINTS: Imported by all screens and components needing data access
+// DEPENDENCIES: @react-native-async-storage/async-storage, @/types
+// DANGER: No data validation; album/photo relationships must stay in sync; no transactions
+// CHANGE-SAFETY: Risky - data corruption possible; test all CRUD ops; backup/restore critical
+// TESTS: Test all operations, verify relationships maintained, check edge cases, test concurrent access
+// AI-META-END
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Photo, Album, StorageInfo } from "@/types";
 
+// AI-NOTE: Storage keys prefixed to prevent collisions with other app data
 const PHOTOS_KEY = "@photo_vault_photos";
 const ALBUMS_KEY = "@photo_vault_albums";
 const USER_KEY = "@photo_vault_user";
@@ -35,6 +46,7 @@ export async function deletePhoto(photoId: string): Promise<void> {
   const filtered = photos.filter((p) => p.id !== photoId);
   await savePhotos(filtered);
 
+  // AI-NOTE: Cascading delete - remove photo from all albums and update cover photos
   const albums = await getAlbums();
   const updatedAlbums = albums.map((album) => ({
     ...album,
@@ -100,6 +112,7 @@ export async function addPhotosToAlbum(
   const albumIndex = albums.findIndex((a) => a.id === albumId);
   if (albumIndex === -1) return;
 
+  // AI-NOTE: Deduplication prevents adding same photo twice; maintains bidirectional relationship
   const existingIds = new Set(albums[albumIndex].photoIds);
   const newIds = photoIds.filter((id) => !existingIds.has(id));
 
@@ -115,6 +128,7 @@ export async function addPhotosToAlbum(
 
   await saveAlbums(albums);
 
+  // AI-NOTE: Update photo.albumIds to maintain bidirectional relationship
   const updatedPhotos = photos.map((photo) => {
     if (newIds.includes(photo.id)) {
       return {
@@ -169,6 +183,7 @@ export async function getStorageInfo(): Promise<StorageInfo> {
   const photos = await getPhotos();
   const albums = await getAlbums();
 
+  // AI-NOTE: Rough storage estimate based on pixel count; actual file size varies by compression
   const usedBytes = photos.reduce((acc, photo) => {
     return acc + (photo.width * photo.height * 3) / 10;
   }, 0);
@@ -201,6 +216,7 @@ export async function clearAllData(): Promise<void> {
 }
 
 export function groupPhotosByDate(photos: Photo[]): { title: string; data: Photo[] }[] {
+  // AI-NOTE: Date grouping uses time ranges (today, yesterday, last week, etc.) for smart organization
   const now = Date.now();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -246,6 +262,7 @@ export function groupPhotosByDate(photos: Photo[]): { title: string; data: Photo
     groups[groupTitle].push(photo);
   });
 
+  // AI-NOTE: Custom sort order prioritizes recent groups then falls back to chronological
   const order = ["Today", "Yesterday", "Last 7 Days", "Last Month"];
   
   return Object.entries(groups)

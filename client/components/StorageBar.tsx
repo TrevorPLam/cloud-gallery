@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Storage usage bar with byte formatting and visual percentage indicator
+// OWNERSHIP: client/components (profile UI)
+// ENTRYPOINTS: Rendered by ProfileScreen
+// DEPENDENCIES: theme system
+// DANGER: Percentage calc must clamp at 100%; error color threshold at 90%
+// CHANGE-SAFETY: Safe to modify styles; formatBytes logic handles edge cases
+// TESTS: Test with various byte values, verify 90% threshold triggers error color
+// AI-META-END
+
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
@@ -19,6 +29,7 @@ function formatBytes(bytes: number): string {
 
 export function StorageBar({ usedBytes, totalBytes }: StorageBarProps) {
   const { theme } = useTheme();
+  // AI-NOTE: Clamp percentage to prevent visual overflow if used exceeds total
   const percentage = Math.min((usedBytes / totalBytes) * 100, 100);
 
   return (
@@ -35,6 +46,7 @@ export function StorageBar({ usedBytes, totalBytes }: StorageBarProps) {
             styles.barFill,
             {
               width: `${percentage}%`,
+              // AI-NOTE: Visual warning when storage > 90% full
               backgroundColor: percentage > 90 ? theme.error : Colors.light.accent,
             },
           ]}

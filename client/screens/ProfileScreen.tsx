@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: User profile screen with stats, settings, and storage info
+// OWNERSHIP: client/screens (profile/settings)
+// ENTRYPOINTS: Accessed via ProfileTab in MainTabNavigator
+// DEPENDENCIES: storage lib, StorageBar, SettingsRow components, haptics
+// DANGER: Clear all data is destructive with no confirmation; haptics web incompatible
+// CHANGE-SAFETY: Safe to modify UI; clear data logic is critical; test destructive actions
+// TESTS: Test data loading, verify clear all data, check storage calculations, validate haptics
+// AI-META-END
+
 import React, { useState, useCallback } from "react";
 import { StyleSheet, View, ScrollView, Image, Pressable, Platform } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
@@ -45,6 +55,7 @@ export default function ProfileScreen() {
   );
 
   const handleClearData = async () => {
+    // AI-NOTE: Destructive action with no confirmation; warning haptic indicates severity
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     }

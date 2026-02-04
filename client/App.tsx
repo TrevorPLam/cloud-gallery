@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Root React Native application component with provider setup
+// OWNERSHIP: client/root
+// ENTRYPOINTS: main entry point for React Native app via client/index.js
+// DEPENDENCIES: react-navigation (navigation), react-query (data fetching), react-native-keyboard-controller, react-native-gesture-handler, ErrorBoundary
+// DANGER: provider order matters (SafeAreaProvider must wrap GestureHandler); removing providers will break nested components
+// CHANGE-SAFETY: safe to add new providers inside QueryClientProvider; do not reorder existing providers; StatusBar style can be changed
+// TESTS: check:types, expo:dev for runtime validation
+// AI-META-END
+
 import React from "react";
 import { StyleSheet } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
@@ -12,6 +22,7 @@ import { queryClient } from "@/lib/query-client";
 import RootStackNavigator from "@/navigation/RootStackNavigator";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
+// AI-NOTE: Provider nesting order ensures gesture handlers and keyboard are available throughout navigation tree
 export default function App() {
   return (
     <ErrorBoundary>

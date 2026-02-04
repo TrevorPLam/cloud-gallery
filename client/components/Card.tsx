@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Generic reusable card component with elevation-based theming and press feedback
+// OWNERSHIP: client/components (UI primitives)
+// ENTRYPOINTS: Used across various screens for content containers
+// DEPENDENCIES: react-native-reanimated, theme system
+// DANGER: Elevation mapping affects visual hierarchy; animation must be performant
+// CHANGE-SAFETY: Safe to modify elevation colors; animation config affects UX
+// TESTS: Verify elevation levels render correctly, test press animations
+// AI-META-END
+
 import React from "react";
 import { StyleSheet, Pressable, ViewStyle } from "react-native";
 import Animated, {
@@ -28,6 +38,7 @@ const springConfig: WithSpringConfig = {
   energyThreshold: 0.001,
 };
 
+// AI-NOTE: Maps elevation numbers to theme colors for layered UI hierarchy
 const getBackgroundColorForElevation = (
   elevation: number,
   theme: any,

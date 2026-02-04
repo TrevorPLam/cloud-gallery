@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Simple spacer component for layout gaps with configurable width/height
+// OWNERSHIP: client/components (layout primitives)
+// ENTRYPOINTS: Used across UI for spacing control
+// DEPENDENCIES: react-native
+// DANGER: None - purely layout utility
+// CHANGE-SAFETY: Safe to modify; minimal logic
+// TESTS: Visual verification in layouts
+// AI-META-END
+
 import { View } from "react-native";
 
 type Props = {

@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Main photos screen with grid, date grouping, and upload FAB
+// OWNERSHIP: client/screens (photo management)
+// ENTRYPOINTS: Default tab in MainTabNavigator
+// DEPENDENCIES: expo-image-picker, storage lib, PhotoGrid, FAB, haptics
+// DANGER: Image picker multi-select; photo ID generation; haptics web incompatible
+// CHANGE-SAFETY: Safe to modify UI; upload logic affects storage; test picker permissions
+// TESTS: Test photo upload, verify date grouping, check empty state, validate haptics
+// AI-META-END
+
 import React, { useState, useCallback } from "react";
 import { StyleSheet, View, Platform, Pressable } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -47,6 +57,7 @@ export default function PhotosScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
 
+    // AI-NOTE: Image picker allows multi-select; generates unique IDs using timestamp + random
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,

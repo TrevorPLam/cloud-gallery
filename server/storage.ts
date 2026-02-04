@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: In-memory storage implementation for user data (development/testing)
+// OWNERSHIP: server/storage
+// ENTRYPOINTS: imported by server routes for user CRUD operations
+// DEPENDENCIES: shared/schema (User types), crypto (UUID generation)
+// DANGER: in-memory storage loses data on restart; passwords stored in map without encryption; not production-ready
+// CHANGE-SAFETY: safe to add methods to IStorage interface; do not remove existing methods; consider DB migration for production
+// TESTS: unit tests for CRUD operations, check:types
+// AI-META-END
+
 import { type User, type InsertUser } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -10,6 +20,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
 }
 
+// AI-NOTE: MemStorage provides in-memory persistence for development; replace with database-backed implementation for production
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
 
@@ -27,6 +38,7 @@ export class MemStorage implements IStorage {
     );
   }
 
+  // AI-NOTE: UUIDs prevent ID collision in distributed scenarios; consider hashing passwords before storage
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
     const user: User = { ...insertUser, id };

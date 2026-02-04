@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Empty state UI component for displaying placeholder content with imagery
+// OWNERSHIP: client/components (UI patterns)
+// ENTRYPOINTS: Used in Albums, Photos, Search screens when no data exists
+// DEPENDENCIES: react-native, theme system
+// DANGER: None - purely presentational
+// CHANGE-SAFETY: Safe to modify styles and text; image prop must be valid source
+// TESTS: Visual verification in empty states across all screens
+// AI-META-END
+
 import React from "react";
 import { View, StyleSheet, Image, ImageSourcePropType } from "react-native";
 import { ThemedText } from "@/components/ThemedText";

@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Root stack navigator with tab navigator and modal screens
+// OWNERSHIP: client/navigation (app root)
+// ENTRYPOINTS: Rendered by App root component
+// DEPENDENCIES: @react-navigation/native-stack, MainTabNavigator, detail screens
+// DANGER: PhotoDetail uses fullScreenModal; param types must match route usage
+// CHANGE-SAFETY: Safe to add screens; param list critical for type safety
+// TESTS: Test navigation between tabs and modals, verify modal presentations
+// AI-META-END
+
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import MainTabNavigator from "@/navigation/MainTabNavigator";
@@ -28,6 +38,7 @@ export default function RootStackNavigator() {
         component={PhotoDetailScreen}
         options={{
           headerShown: false,
+          // AI-NOTE: Full screen modal for immersive photo viewing experience
           presentation: "fullScreenModal",
           animation: "fade",
         }}

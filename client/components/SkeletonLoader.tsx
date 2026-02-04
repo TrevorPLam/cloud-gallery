@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Loading skeleton with pulsing animation for photos and albums
+// OWNERSHIP: client/components (loading states)
+// ENTRYPOINTS: Rendered by PhotosScreen and AlbumsScreen during initial load
+// DEPENDENCIES: react-native-reanimated, theme system
+// DANGER: Animation must loop infinitely; sizing must match actual content
+// CHANGE-SAFETY: Safe to modify animation params; sizing changes must match PhotoGrid
+// TESTS: Verify animations run smoothly, check sizing matches real content
+// AI-META-END
+
 import React, { useEffect } from "react";
 import { StyleSheet, View, Dimensions } from "react-native";
 import Animated, {
@@ -10,6 +20,7 @@ import Animated, {
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 
+// AI-NOTE: Skeleton sizing must match PhotoGrid for seamless transition when data loads
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const NUM_COLUMNS = 3;
 const GAP = Spacing.photoGap;

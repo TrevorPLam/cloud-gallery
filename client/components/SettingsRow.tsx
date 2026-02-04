@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Settings row component with icon, text, optional switch/chevron, and haptics
+// OWNERSHIP: client/components (settings UI)
+// ENTRYPOINTS: Used in ProfileScreen for all settings options
+// DEPENDENCIES: expo-haptics, theme system
+// DANGER: Haptics web incompatible; switch/press modes mutually exclusive
+// CHANGE-SAFETY: Safe to modify styles; ensure switch/press handling doesn't overlap
+// TESTS: Test both switch and press modes, verify haptics, check destructive styling
+// AI-META-END
+
 import React from "react";
 import { StyleSheet, Pressable, View, Switch, Platform } from "react-native";
 import { Feather } from "@expo/vector-icons";
@@ -39,6 +49,7 @@ export function SettingsRow({
   };
 
   const handleSwitchChange = (value: boolean) => {
+    // AI-NOTE: Light haptic for switch toggle; different from selection/press feedback
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
