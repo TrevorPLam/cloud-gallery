@@ -2,20 +2,33 @@
 // AI-META: Express server bootstrap and configuration for Cloud Gallery backend
 // OWNERSHIP: server/core
 // ENTRYPOINTS: main server process (node server/index.ts or npm run server:dev)
-// DEPENDENCIES: express, ./routes, fs, path, Expo static serving
-// DANGER: CORS configuration, request logging captures sensitive data, error handler must not leak internals
-// CHANGE-SAFETY: CORS origins are safe to modify; middleware order is critical (do not reorder); error handler must remain last
-// TESTS: npm run check:types, manual server start validation
+// DEPENDENCIES: express, ./routes, ./middleware, ./security, fs, path
+// DANGER: CORS configuration, middleware order is critical, error handler must not leak internals in production
+// CHANGE-SAFETY: Middleware order matters - security headers first, error handler last
+// TESTS: server/index.test.ts, integration tests
 // AI-META-END
 
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
+import { securityHeaders, requestId, rateLimit } from "./middleware";
+import { sanitizeForLogging } from "./security";
 import * as fs from "fs";
 import * as path from "path";
 
 const app = express();
 const log = console.log;
+
+// Detect environment
+const isDevelopment = process.env.NODE_ENV === "development";
+const isProduction = process.env.NODE_ENV === "production";
+
+// Trust proxy configuration for production deployments behind load balancer
+// Set to 1 if behind single proxy, 'loopback' for localhost, or specific IP
+if (isProduction && process.env.TRUST_PROXY) {
+  app.set("trust proxy", process.env.TRUST_PROXY);
+  log("Trust proxy enabled:", process.env.TRUST_PROXY);
+}
 
 declare module "http" {
   interface IncomingMessage {
@@ -23,64 +36,193 @@ declare module "http" {
   }
 }
 
-// AI-NOTE: CORS allows both Replit production domains and localhost for Expo development
+// PHASE 1A: TLS / Proxy Correctness - Trust proxy configuration is set above based on environment
+
+// PHASE 1B: Security Headers (environment-aware CSP)
+function setupSecurityHeaders(app: express.Application) {
+  // Environment-aware CSP configuration
+  const cspDirectives = isDevelopment
+    ? {
+        // Development: Relaxed CSP for hot reload and dev tools
+        'default-src': ["'self'"],
+        'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Allow dev tools
+        'style-src': ["'self'", "'unsafe-inline'"],
+        'img-src': ["'self'", 'data:', 'https:', 'http:'], // Allow localhost images
+        'font-src': ["'self'", 'data:'],
+        'connect-src': ["'self'", 'ws:', 'wss:', 'http:', 'https:'], // Allow hot reload
+        'frame-ancestors': ["'none'"],
+      }
+    : {
+        // Production: Strict CSP
+        'default-src': ["'self'"],
+        'script-src': ["'self'"],
+        'style-src': ["'self'", "'unsafe-inline'"], // React Native Web needs inline styles
+        'img-src': ["'self'", 'data:', 'https:'],
+        'font-src': ["'self'", 'data:'],
+        'connect-src': ["'self'"],
+        'frame-ancestors': ["'none'"],
+        'base-uri': ["'self'"],
+        'form-action': ["'self'"],
+        'upgrade-insecure-requests': [],
+      };
+
+  app.use(
+    securityHeaders({
+      csp: {
+        enabled: true,
+        directives: cspDirectives,
+      },
+      hsts: {
+        enabled: isProduction, // Only enable HSTS in production over HTTPS
+        maxAge: 31536000, // 1 year
+        includeSubDomains: true,
+        preload: false,
+      },
+      otherHeaders: {
+        xFrameOptions: true,
+        xContentTypeOptions: true,
+        xXssProtection: true,
+        referrerPolicy: true,
+      },
+    })
+  );
+
+  if (isDevelopment) {
+    log("Security headers: Development mode (relaxed CSP)");
+  } else {
+    log("Security headers: Production mode (strict CSP + HSTS)");
+  }
+}
+
+// PHASE 1C: CORS with Strict Origin Validation (no wildcards with credentials)
 function setupCors(app: express.Application) {
   app.use((req, res, next) => {
-    const origins = new Set<string>();
+    const allowedOrigins = new Set<string>();
 
+    // Production domains from environment
     if (process.env.REPLIT_DEV_DOMAIN) {
-      origins.add(`https://${process.env.REPLIT_DEV_DOMAIN}`);
+      allowedOrigins.add(`https://${process.env.REPLIT_DEV_DOMAIN}`);
     }
 
     if (process.env.REPLIT_DOMAINS) {
       process.env.REPLIT_DOMAINS.split(",").forEach((d) => {
-        origins.add(`https://${d.trim()}`);
+        allowedOrigins.add(`https://${d.trim()}`);
+      });
+    }
+
+    // Localhost only in development
+    if (isDevelopment) {
+      // Explicit localhost ports for Expo dev
+      const localhostPorts = [19000, 19001, 19002, 8081, 3000];
+      localhostPorts.forEach((port) => {
+        allowedOrigins.add(`http://localhost:${port}`);
+        allowedOrigins.add(`http://127.0.0.1:${port}`);
       });
     }
 
     const origin = req.header("origin");
 
-    // Allow localhost origins for Expo web development (any port)
-    const isLocalhost =
-      origin?.startsWith("http://localhost:") ||
-      origin?.startsWith("http://127.0.0.1:");
+    // Strict origin validation - no wildcards when credentials are used
+    let isAllowed = false;
+    if (origin) {
+      if (allowedOrigins.has(origin)) {
+        isAllowed = true;
+      } else if (isDevelopment) {
+        // In development, allow any localhost port
+        if (
+          origin.startsWith("http://localhost:") ||
+          origin.startsWith("http://127.0.0.1:")
+        ) {
+          isAllowed = true;
+        }
+      }
+    }
 
-    // AI-NOTE: Dynamic origin validation prevents CSRF while supporting both production and dev environments
-    if (origin && (origins.has(origin) || isLocalhost)) {
+    if (isAllowed && origin) {
       res.header("Access-Control-Allow-Origin", origin);
       res.header(
         "Access-Control-Allow-Methods",
         "GET, POST, PUT, DELETE, OPTIONS",
       );
-      res.header("Access-Control-Allow-Headers", "Content-Type");
+      res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
       res.header("Access-Control-Allow-Credentials", "true");
+      res.header("Access-Control-Max-Age", "86400"); // 24 hours
     }
 
+    // Handle preflight
     if (req.method === "OPTIONS") {
-      return res.sendStatus(200);
+      return res.sendStatus(isAllowed ? 204 : 403);
     }
 
     next();
   });
+
+  log(`CORS: ${isDevelopment ? "Development" : "Production"} mode - ${allowedOrigins.size} allowed origins`);
 }
 
+// PHASE 1D: Rate Limiting (production-ready configuration)
+function setupRateLimiting(app: express.Application) {
+  // Global rate limit - applies to all routes
+  app.use(
+    rateLimit({
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      max: isDevelopment ? 1000 : 100, // Relaxed in dev, strict in prod
+      message: "Too many requests from this IP, please try again later",
+    })
+  );
+
+  // Stricter rate limit for auth endpoints (when they exist)
+  app.use(
+    "/api/auth",
+    rateLimit({
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      max: isDevelopment ? 100 : 10, // Very strict for auth
+      message: "Too many authentication attempts, please try again later",
+    })
+  );
+
+  log(`Rate limiting: ${isDevelopment ? "Relaxed (dev)" : "Strict (prod)"}`);
+}
+
+// PHASE 1E: Request Parsing with DoS Controls
 function setupBodyParsing(app: express.Application) {
+  // Body size limits to prevent memory exhaustion
+  const jsonLimit = process.env.JSON_BODY_LIMIT || "10mb";
+  const urlencodedLimit = process.env.URLENCODED_BODY_LIMIT || "10mb";
+
   app.use(
     express.json({
+      limit: jsonLimit,
       verify: (req, _res, buf) => {
         req.rawBody = buf;
       },
     }),
   );
 
-  app.use(express.urlencoded({ extended: false }));
+  app.use(
+    express.urlencoded({
+      extended: false,
+      limit: urlencodedLimit,
+    })
+  );
+
+  // Request timeout to prevent slowloris attacks
+  app.use((_req, res, next) => {
+    res.setTimeout(30000, () => {
+      // 30 second timeout
+      res.status(408).json({ error: "Request timeout" });
+    });
+    next();
+  });
+
+  log(`Body limits: JSON=${jsonLimit}, URLEncoded=${urlencodedLimit}`);
 }
 
-// AI-NOTE: Request logging monkey-patches res.json to capture responses for debugging; only logs /api routes
+// Request logging with PII sanitization
 function setupRequestLogging(app: express.Application) {
   app.use((req, res, next) => {
     const start = Date.now();
-    const path = req.path;
+    const requestPath = req.path;
     let capturedJsonResponse: Record<string, unknown> | undefined = undefined;
 
     const originalResJson = res.json;
@@ -90,17 +232,20 @@ function setupRequestLogging(app: express.Application) {
     };
 
     res.on("finish", () => {
-      if (!path.startsWith("/api")) return;
+      if (!requestPath.startsWith("/api")) return;
 
       const duration = Date.now() - start;
+      const method = req.method;
+      const status = res.statusCode;
+      const correlationId = req.headers["x-request-id"] || "unknown";
 
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
+      // Basic log without response body (PII might be in response)
+      let logLine = `[${correlationId}] ${method} ${requestPath} ${status} ${duration}ms`;
 
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
+      // In development, log response for debugging
+      if (isDevelopment && capturedJsonResponse) {
+        const sanitized = sanitizeForLogging(JSON.stringify(capturedJsonResponse));
+        logLine += ` :: ${sanitized.substring(0, 100)}`;
       }
 
       log(logLine);
@@ -218,38 +363,90 @@ function configureExpoAndLanding(app: express.Application) {
   log("Expo routing: Checking expo-platform header on / and /manifest");
 }
 
+// PHASE 3: Centralized Error Handler (no stack traces in production)
 function setupErrorHandler(app: express.Application) {
-  app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
+  app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
     const error = err as {
       status?: number;
       statusCode?: number;
       message?: string;
+      stack?: string;
     };
 
     const status = error.status || error.statusCode || 500;
-    const message = error.message || "Internal Server Error";
+    const correlationId = req.headers["x-request-id"] || "unknown";
 
-    console.error("Internal Server Error:", err);
+    // Log full error server-side (with correlation ID for debugging)
+    console.error(`[${correlationId}] Error:`, {
+      status,
+      message: error.message,
+      stack: error.stack,
+      path: req.path,
+      method: req.method,
+    });
 
     if (res.headersSent) {
       return next(err);
     }
 
-    return res.status(status).json({ message });
+    // Send safe error to client (no stack traces in production)
+    if (isProduction) {
+      // Production: Generic error message only
+      const safeMessage =
+        status < 500
+          ? error.message || "Bad Request" // Client errors can show message
+          : "Internal Server Error"; // Server errors are generic
+
+      return res.status(status).json({
+        error: safeMessage,
+        correlationId, // For support/debugging
+      });
+    } else {
+      // Development: Include stack trace for debugging
+      return res.status(status).json({
+        error: error.message || "Internal Server Error",
+        correlationId,
+        stack: error.stack, // Only in dev
+        path: req.path,
+      });
+    }
   });
 }
 
+// Main server bootstrap
 (async () => {
+  log("Starting Cloud Gallery server...");
+  log(`Environment: ${process.env.NODE_ENV || "development"}`);
+
+  // CRITICAL: Middleware order matters!
+  // 1. Request ID for correlation (first, so all logs have it)
+  app.use(requestId());
+
+  // 2. Security headers (early, affects all responses)
+  setupSecurityHeaders(app);
+
+  // 3. CORS (before body parsing)
   setupCors(app);
+
+  // 4. Rate limiting (before expensive operations)
+  setupRateLimiting(app);
+
+  // 5. Body parsing with limits
   setupBodyParsing(app);
+
+  // 6. Request logging (after body parsing)
   setupRequestLogging(app);
 
+  // 7. Expo static serving and routing
   configureExpoAndLanding(app);
 
+  // 8. Application routes
   const server = await registerRoutes(app);
 
+  // 9. Error handler (MUST BE LAST)
   setupErrorHandler(app);
 
+  // Start server
   const port = parseInt(process.env.PORT || "5000", 10);
   server.listen(
     {
@@ -258,7 +455,29 @@ function setupErrorHandler(app: express.Application) {
       reusePort: true,
     },
     () => {
-      log(`express server serving on port ${port}`);
+      log(`✓ Server ready on port ${port}`);
+      log(`✓ Health check: http://localhost:${port}/`);
+      if (isDevelopment) {
+        log(`✓ API endpoints: http://localhost:${port}/api/*`);
+      }
     },
   );
+
+  // Graceful shutdown
+  const gracefulShutdown = () => {
+    log("Received shutdown signal, closing server gracefully...");
+    server.close(() => {
+      log("Server closed");
+      process.exit(0);
+    });
+
+    // Force close after 10 seconds
+    setTimeout(() => {
+      log("Forcing shutdown");
+      process.exit(1);
+    }, 10000);
+  };
+
+  process.on("SIGTERM", gracefulShutdown);
+  process.on("SIGINT", gracefulShutdown);
 })();
