@@ -4187,3 +4187,800 @@ Legend:
 ---
 
 **📌 Remember**: Each task is broken into subtasks. Each subtask has code examples, file paths, and success criteria. Use AI to execute each subtask systematically. This is your complete Battle Plan!
+
+---
+
+# 🔄 CROSS-POLLINATION TASKS (From Multi-Repo Analysis)
+
+**Source:** Triple Repository Analysis (February 4, 2026)  
+**Priority:** These tasks incorporate production-tested patterns from sibling repositories.
+
+---
+
+## 🔴 TASK 20: Add CSRF Protection (4 hours) → **AGENT**
+
+**Source Pattern:** Production-tested CSRF implementation from UBOS repository  
+**Priority:** P0 - Security Critical  
+**Why Critical:** Prevents attackers from tricking authenticated users into performing unwanted actions
+
+### 🎓 What This Means (Plain English)
+
+**Current Problem**: Your app has no CSRF (Cross-Site Request Forgery) protection. An attacker could create a malicious website that makes requests to your API using your logged-in user's session.
+
+**The Fix**: Add CSRF tokens that must be included in all state-changing requests (POST, PUT, DELETE).
+
+### 📂 Files You'll Create/Modify
+
+```
+📁 Project Structure:
+  📁 server/
+    │── csrf.ts           [CREATE] CSRF token generation and validation
+    │── csrf.test.ts      [CREATE] CSRF tests
+    │── routes.ts         [EDIT] Register CSRF middleware
+  📁 client/
+    └── lib/
+        └── query-client.ts [EDIT] Add CSRF token to requests
+```
+
+### 🔧 What To Do
+
+#### SUBTASK 20.1: Create CSRF Module → **AGENT**
+
+**File:** `server/csrf.ts`
+
+```typescript
+// AI-META-BEGIN
+// AI-META: CSRF token generation and validation
+// OWNERSHIP: server/security
+// ENTRYPOINTS: server/routes.ts
+// DEPENDENCIES: crypto (randomBytes)
+// DANGER: CSRF protection critical - timing-safe comparison required
+// CHANGE-SAFETY: Review changes carefully - security-critical code
+// TESTS: server/csrf.test.ts
+// AI-META-END
+
+/**
+ * CSRF (Cross-Site Request Forgery) Protection
+ * 
+ * Implements synchronizer token pattern for state-changing operations.
+ * 
+ * Standards Compliance:
+ * - OWASP ASVS 4.2.2: CSRF protection for state-changing operations
+ */
+
+import { randomBytes } from "crypto";
+import type { Request, Response, NextFunction, RequestHandler } from "express";
+
+/**
+ * Extend Express Request type to include CSRF token
+ */
+declare module "express-serve-static-core" {
+  interface Request {
+    csrfToken?: string;
+    generateCsrfToken?: () => string;
+  }
+}
+
+/**
+ * Session storage for CSRF tokens.
+ * In production, this should be backed by Redis.
+ */
+const csrfTokenStore = new Map<string, { token: string; createdAt: number }>();
+
+/**
+ * CSRF token lifetime (24 hours)
+ */
+const CSRF_TOKEN_LIFETIME = 24 * 60 * 60 * 1000;
+
+/**
+ * Generate cryptographically secure CSRF token.
+ * @returns Base64-encoded random token (32 bytes = 256 bits)
+ */
+export function generateCsrfToken(): string {
+  return randomBytes(32).toString("base64");
+}
+
+/**
+ * Get or create CSRF token for a user session.
+ */
+export function getOrCreateCsrfToken(userId: string): string {
+  const existing = csrfTokenStore.get(userId);
+  
+  if (existing && Date.now() - existing.createdAt < CSRF_TOKEN_LIFETIME) {
+    return existing.token;
+  }
+  
+  const newToken = generateCsrfToken();
+  csrfTokenStore.set(userId, {
+    token: newToken,
+    createdAt: Date.now(),
+  });
+  
+  return newToken;
+}
+
+/**
+ * Invalidate CSRF token (e.g., on logout).
+ */
+export function invalidateCsrfToken(userId: string): void {
+  csrfTokenStore.delete(userId);
+}
+
+/**
+ * Validate CSRF token from request against stored token.
+ * Uses timing-safe comparison to prevent timing attacks.
+ */
+export function validateCsrfToken(userId: string, providedToken: string | undefined): boolean {
+  if (!providedToken) {
+    return false;
+  }
+  
+  const stored = csrfTokenStore.get(userId);
+  
+  if (!stored || Date.now() - stored.createdAt >= CSRF_TOKEN_LIFETIME) {
+    return false;
+  }
+  
+  // Constant-time comparison to prevent timing attacks
+  if (stored.token.length !== providedToken.length) {
+    return false;
+  }
+  
+  let result = 0;
+  for (let i = 0; i < stored.token.length; i++) {
+    result |= stored.token.charCodeAt(i) ^ providedToken.charCodeAt(i);
+  }
+  return result === 0;
+}
+
+/**
+ * Extract CSRF token from request.
+ */
+function extractCsrfToken(req: Request): string | undefined {
+  const headerToken = req.header("X-CSRF-Token") || req.header("x-csrf-token");
+  if (headerToken) return headerToken;
+  
+  if (req.body && typeof req.body._csrf === "string") {
+    return req.body._csrf;
+  }
+  
+  if (req.query && typeof req.query.csrf === "string") {
+    return req.query.csrf;
+  }
+  
+  return undefined;
+}
+
+/**
+ * CSRF protection middleware for state-changing routes.
+ * 
+ * Usage:
+ *   app.post("/api/resource", requireAuth, requireCsrf, handler);
+ */
+export const requireCsrf: RequestHandler = (req: Request, res: Response, next: NextFunction) => {
+  const safeMethods = ["GET", "HEAD", "OPTIONS"];
+  if (safeMethods.includes(req.method)) {
+    return next();
+  }
+  
+  // Extract user ID from authenticated session
+  const userId = (req as any).user?.id || (req as any).user?.claims?.sub;
+  if (!userId) {
+    return res.status(401).json({ 
+      message: "Unauthorized - Authentication required for CSRF validation" 
+    });
+  }
+  
+  const providedToken = extractCsrfToken(req);
+  
+  if (!validateCsrfToken(userId, providedToken)) {
+    console.warn(
+      `[SECURITY] CSRF validation failed for user ${userId}, ` +
+      `method ${req.method}, path ${req.path}, IP ${req.ip}`
+    );
+    
+    return res.status(403).json({
+      message: "Forbidden - Invalid or missing CSRF token",
+      code: "CSRF_VALIDATION_FAILED",
+    });
+  }
+  
+  next();
+};
+
+/**
+ * Middleware to attach CSRF token to request and response.
+ */
+export const attachCsrfToken: RequestHandler = (req: Request, res: Response, next: NextFunction) => {
+  const userId = (req as any).user?.id || (req as any).user?.claims?.sub;
+  
+  if (userId) {
+    const token = getOrCreateCsrfToken(userId);
+    req.csrfToken = token;
+    req.generateCsrfToken = () => token;
+    res.setHeader("X-CSRF-Token", token);
+  }
+  
+  next();
+};
+
+/**
+ * Handler to explicitly return CSRF token.
+ */
+export const getCsrfTokenHandler: RequestHandler = (req: Request, res: Response) => {
+  const userId = (req as any).user?.id || (req as any).user?.claims?.sub;
+  
+  if (!userId) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  
+  const token = getOrCreateCsrfToken(userId);
+  res.json({ csrfToken: token, expiresIn: CSRF_TOKEN_LIFETIME });
+};
+
+/**
+ * Clean up expired CSRF tokens periodically.
+ */
+export function cleanupExpiredCsrfTokens(): void {
+  const now = Date.now();
+  const expired: string[] = [];
+  
+  for (const [userId, data] of csrfTokenStore.entries()) {
+    if (now - data.createdAt >= CSRF_TOKEN_LIFETIME) {
+      expired.push(userId);
+    }
+  }
+  
+  expired.forEach(userId => csrfTokenStore.delete(userId));
+}
+
+// Schedule cleanup every hour
+setInterval(cleanupExpiredCsrfTokens, 60 * 60 * 1000);
+```
+
+#### SUBTASK 20.2: Create CSRF Tests → **AGENT**
+
+**File:** `server/csrf.test.ts`
+
+```typescript
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import {
+  generateCsrfToken,
+  getOrCreateCsrfToken,
+  validateCsrfToken,
+  invalidateCsrfToken,
+} from './csrf';
+
+describe('CSRF Protection', () => {
+  const testUserId = 'test-user-123';
+
+  beforeEach(() => {
+    invalidateCsrfToken(testUserId);
+  });
+
+  describe('generateCsrfToken', () => {
+    it('should generate a base64 token', () => {
+      const token = generateCsrfToken();
+      expect(token).toBeTruthy();
+      expect(typeof token).toBe('string');
+      expect(token.length).toBeGreaterThan(20);
+    });
+
+    it('should generate unique tokens', () => {
+      const token1 = generateCsrfToken();
+      const token2 = generateCsrfToken();
+      expect(token1).not.toBe(token2);
+    });
+  });
+
+  describe('getOrCreateCsrfToken', () => {
+    it('should create a new token for new user', () => {
+      const token = getOrCreateCsrfToken(testUserId);
+      expect(token).toBeTruthy();
+    });
+
+    it('should return same token for same user within lifetime', () => {
+      const token1 = getOrCreateCsrfToken(testUserId);
+      const token2 = getOrCreateCsrfToken(testUserId);
+      expect(token1).toBe(token2);
+    });
+  });
+
+  describe('validateCsrfToken', () => {
+    it('should validate correct token', () => {
+      const token = getOrCreateCsrfToken(testUserId);
+      expect(validateCsrfToken(testUserId, token)).toBe(true);
+    });
+
+    it('should reject missing token', () => {
+      getOrCreateCsrfToken(testUserId);
+      expect(validateCsrfToken(testUserId, undefined)).toBe(false);
+    });
+
+    it('should reject invalid token', () => {
+      getOrCreateCsrfToken(testUserId);
+      expect(validateCsrfToken(testUserId, 'invalid-token')).toBe(false);
+    });
+
+    it('should reject token for unknown user', () => {
+      expect(validateCsrfToken('unknown-user', 'any-token')).toBe(false);
+    });
+  });
+
+  describe('invalidateCsrfToken', () => {
+    it('should invalidate existing token', () => {
+      const token = getOrCreateCsrfToken(testUserId);
+      expect(validateCsrfToken(testUserId, token)).toBe(true);
+      
+      invalidateCsrfToken(testUserId);
+      expect(validateCsrfToken(testUserId, token)).toBe(false);
+    });
+  });
+});
+```
+
+#### SUBTASK 20.3: Register CSRF Middleware → **AGENT**
+
+**File:** `server/routes.ts` (add these lines)
+
+```typescript
+import { attachCsrfToken, requireCsrf, getCsrfTokenHandler } from './csrf';
+
+// After authentication middleware
+app.use(attachCsrfToken);
+
+// CSRF token endpoint
+app.get('/api/csrf-token', getCsrfTokenHandler);
+
+// Apply CSRF protection to state-changing routes
+app.post('/api/*', requireCsrf);
+app.put('/api/*', requireCsrf);
+app.delete('/api/*', requireCsrf);
+```
+
+#### SUBTASK 20.4: Update Client API → **AGENT**
+
+**File:** `client/lib/query-client.ts` (add CSRF handling)
+
+```typescript
+let csrfToken: string | null = null;
+
+export async function getCsrfToken(): Promise<string> {
+  if (!csrfToken) {
+    const response = await fetch('/api/csrf-token', { credentials: 'include' });
+    const data = await response.json();
+    csrfToken = data.csrfToken;
+  }
+  return csrfToken!;
+}
+
+// Update apiRequest to include CSRF token
+export async function apiRequest(
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+  endpoint: string,
+  body?: any
+): Promise<Response> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  
+  // Add CSRF token for state-changing requests
+  if (['POST', 'PUT', 'DELETE'].includes(method)) {
+    headers['X-CSRF-Token'] = await getCsrfToken();
+  }
+  
+  // ... rest of existing apiRequest implementation
+}
+
+// Clear CSRF token on logout
+export function clearCsrfToken(): void {
+  csrfToken = null;
+}
+```
+
+### ✅ Success Criteria
+
+- [ ] `server/csrf.ts` created with all functions
+- [ ] `server/csrf.test.ts` created and passing
+- [ ] CSRF middleware registered in routes
+- [ ] Client includes CSRF token in requests
+- [ ] Manual test: POST without CSRF token returns 403
+- [ ] All tests pass: `npm test`
+
+---
+
+## 🟡 TASK 21: Add AI-META Headers to Server Files (2 hours) → **AGENT**
+
+**Source Pattern:** Standardized AI documentation headers from UBOS repository  
+**Priority:** P2 - Developer Experience  
+**Why Helpful:** Helps AI assistants understand code purpose, ownership, and safety constraints
+
+### 🎓 What This Means (Plain English)
+
+**Current Problem**: AI assistants analyzing your code don't have structured metadata to understand file purpose, dependencies, and change safety.
+
+**The Fix**: Add standardized AI-META headers to all server files.
+
+### 📋 AI-META Header Template
+
+Add this header to the top of each server file:
+
+```typescript
+// AI-META-BEGIN
+// AI-META: <Brief description of file purpose>
+// OWNERSHIP: <domain>/<subdomain>
+// ENTRYPOINTS: <Where this code is called from>
+// DEPENDENCIES: <Key external dependencies>
+// DANGER: <Critical risks or side effects - REQUIRED if any>
+// CHANGE-SAFETY: <Guidance on when changes are safe/unsafe>
+// TESTS: <Path to test files>
+// AI-META-END
+```
+
+### 📂 Files to Update
+
+**Priority Order:**
+
+1. **`server/auth.ts`** (authentication is security-critical):
+```typescript
+// AI-META-BEGIN
+// AI-META: JWT authentication and session management for photo gallery
+// OWNERSHIP: server/security
+// ENTRYPOINTS: server/routes.ts, server/auth-routes.ts
+// DEPENDENCIES: jsonwebtoken, bcrypt, @shared/schema
+// DANGER: Authentication bypass = full account compromise
+// CHANGE-SAFETY: Any JWT/session changes require security review
+// TESTS: server/auth.test.ts
+// AI-META-END
+```
+
+2. **`server/routes.ts`** (main routing):
+```typescript
+// AI-META-BEGIN
+// AI-META: Express route registration and API endpoint definitions
+// OWNERSHIP: server/api
+// ENTRYPOINTS: server/index.ts
+// DEPENDENCIES: express, all route handlers
+// DANGER: Route ordering matters - auth middleware must run first
+// CHANGE-SAFETY: Safe to add routes; be careful reordering middleware
+// TESTS: server/routes.test.ts
+// AI-META-END
+```
+
+3. **`server/audit.ts`** (compliance logging):
+```typescript
+// AI-META-BEGIN
+// AI-META: Comprehensive audit logging for security compliance
+// OWNERSHIP: server/security
+// ENTRYPOINTS: server/routes.ts, server/index.ts
+// DEPENDENCIES: crypto, drizzle-orm, @shared/schema
+// DANGER: Audit logs required for compliance; ensure sensitive data redacted
+// CHANGE-SAFETY: Safe to add event types; never remove existing types
+// TESTS: server/audit.test.ts
+// AI-META-END
+```
+
+4. **`server/encryption.ts`** (data protection):
+```typescript
+// AI-META-BEGIN
+// AI-META: AES-256-GCM encryption utilities for sensitive data at rest
+// OWNERSHIP: server/security
+// ENTRYPOINTS: server/storage.ts, server/backup-encryption.ts
+// DEPENDENCIES: crypto (native Node.js)
+// DANGER: Encryption key loss = permanent data loss
+// CHANGE-SAFETY: Never change encryption parameters without migration plan
+// TESTS: server/encryption.test.ts
+// AI-META-END
+```
+
+5. **Continue for**: `server/captcha.ts`, `server/db-encryption.ts`, `server/siem.ts`
+
+### ✅ Success Criteria
+
+- [ ] All server/*.ts files have AI-META headers
+- [ ] Headers accurately describe each file
+- [ ] DANGER sections highlight real risks
+- [ ] Tests pass after changes
+
+---
+
+## 🟡 TASK 22: Add Test Coverage Enforcement (1 hour) → **AGENT**
+
+**Source Pattern:** Prevent focused/skipped tests from being committed  
+**Priority:** P2 - CI/CD Quality  
+**Why Important:** Developers sometimes forget to remove `.only()` or `.skip()` before committing
+
+### 🔧 What To Do
+
+#### SUBTASK 22.1: Update Vitest Config → **AGENT**
+
+**File:** `vitest.config.ts`
+
+Add `allowOnly: false` to prevent `.only()` and `.skip()` in committed tests:
+
+```typescript
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    allowOnly: false, // ← ADD THIS LINE
+    // ... existing config
+  },
+});
+```
+
+#### SUBTASK 22.2: Add Pre-commit Check Script → **AGENT**
+
+**File:** `package.json` (add to scripts)
+
+```json
+{
+  "scripts": {
+    "test:check-focused": "grep -rn '\\.only\\|describe\\.skip\\|it\\.skip\\|test\\.skip' server/ client/src/ && exit 1 || exit 0"
+  }
+}
+```
+
+### ✅ Success Criteria
+
+- [ ] `allowOnly: false` in vitest.config.ts
+- [ ] Tests with `.only()` fail in CI
+- [ ] Check script added to package.json
+
+---
+
+## 🟡 TASK 23: Add Presigned URL Pattern (4 hours) → **AGENT**
+
+**Source Pattern:** Secure file upload/download URLs from CloudVault (secure_file) repository  
+**Priority:** P2 - Performance & Security  
+**Why Helpful:** Allows direct client-to-storage uploads without proxying through server
+
+### 🎓 What This Means (Plain English)
+
+**Current Flow**: Client → Server → Storage → Server → Client (slow, server bottleneck)
+
+**With Presigned URLs**: Client → Storage (server only signs URLs, doesn't handle file data)
+
+### 📂 Files You'll Create/Modify
+
+```
+📁 server/
+  └── presigned-urls.ts     [CREATE] URL generation and validation
+📁 .env.example             [EDIT] Add PRESIGNED_URL_SECRET
+```
+
+### 🔧 What To Do
+
+#### SUBTASK 23.1: Create Presigned URL Module → **AGENT**
+
+**File:** `server/presigned-urls.ts`
+
+```typescript
+// AI-META-BEGIN
+// AI-META: Presigned URL generation for secure file uploads/downloads
+// OWNERSHIP: server/storage
+// ENTRYPOINTS: server/upload-routes.ts
+// DEPENDENCIES: crypto (native Node.js)
+// DANGER: Weak secret = URL forgery; expired URLs must be rejected
+// CHANGE-SAFETY: Safe to add new URL types; never change signature algorithm without migration
+// TESTS: server/presigned-urls.test.ts
+// AI-META-END
+
+import { createHmac, randomBytes } from "crypto";
+
+/**
+ * Configuration for presigned URLs
+ */
+const PRESIGNED_CONFIG = {
+  DEFAULT_EXPIRY: 15 * 60, // 15 minutes in seconds
+  MAX_EXPIRY: 7 * 24 * 60 * 60, // 7 days in seconds
+  SIGNATURE_ALGORITHM: "sha256",
+} as const;
+
+/**
+ * Generate a presigned URL for file upload
+ */
+export function generateUploadUrl(
+  key: string,
+  contentType: string,
+  expirySeconds: number = PRESIGNED_CONFIG.DEFAULT_EXPIRY
+): { url: string; expiresAt: Date } {
+  const secret = process.env.PRESIGNED_URL_SECRET;
+  if (!secret) {
+    throw new Error("PRESIGNED_URL_SECRET not configured");
+  }
+
+  const expiresAt = new Date(Date.now() + expirySeconds * 1000);
+  const expiresTimestamp = Math.floor(expiresAt.getTime() / 1000);
+  
+  const dataToSign = `PUT:${key}:${contentType}:${expiresTimestamp}`;
+  const signature = createHmac(PRESIGNED_CONFIG.SIGNATURE_ALGORITHM, secret)
+    .update(dataToSign)
+    .digest("hex");
+
+  const baseUrl = process.env.STORAGE_BASE_URL || "/api/storage";
+  const params = new URLSearchParams({
+    key,
+    contentType,
+    expires: expiresTimestamp.toString(),
+    signature,
+  });
+
+  return {
+    url: `${baseUrl}/upload?${params.toString()}`,
+    expiresAt,
+  };
+}
+
+/**
+ * Generate a presigned URL for file download
+ */
+export function generateDownloadUrl(
+  key: string,
+  expirySeconds: number = PRESIGNED_CONFIG.DEFAULT_EXPIRY
+): { url: string; expiresAt: Date } {
+  const secret = process.env.PRESIGNED_URL_SECRET;
+  if (!secret) {
+    throw new Error("PRESIGNED_URL_SECRET not configured");
+  }
+
+  const expiresAt = new Date(Date.now() + expirySeconds * 1000);
+  const expiresTimestamp = Math.floor(expiresAt.getTime() / 1000);
+  
+  const dataToSign = `GET:${key}:${expiresTimestamp}`;
+  const signature = createHmac(PRESIGNED_CONFIG.SIGNATURE_ALGORITHM, secret)
+    .update(dataToSign)
+    .digest("hex");
+
+  const baseUrl = process.env.STORAGE_BASE_URL || "/api/storage";
+  const params = new URLSearchParams({
+    key,
+    expires: expiresTimestamp.toString(),
+    signature,
+  });
+
+  return {
+    url: `${baseUrl}/download?${params.toString()}`,
+    expiresAt,
+  };
+}
+
+/**
+ * Validate a presigned URL signature (constant-time comparison)
+ */
+export function validatePresignedUrl(
+  method: "GET" | "PUT",
+  key: string,
+  contentType: string | null,
+  expires: string,
+  providedSignature: string
+): boolean {
+  const secret = process.env.PRESIGNED_URL_SECRET;
+  if (!secret) return false;
+
+  // Check expiry
+  const expiresTimestamp = parseInt(expires, 10);
+  if (isNaN(expiresTimestamp) || expiresTimestamp < Math.floor(Date.now() / 1000)) {
+    return false;
+  }
+
+  // Compute expected signature
+  const dataToSign = method === "PUT"
+    ? `${method}:${key}:${contentType}:${expiresTimestamp}`
+    : `${method}:${key}:${expiresTimestamp}`;
+  
+  const expectedSignature = createHmac(PRESIGNED_CONFIG.SIGNATURE_ALGORITHM, secret)
+    .update(dataToSign)
+    .digest("hex");
+
+  // Constant-time comparison
+  if (expectedSignature.length !== providedSignature.length) {
+    return false;
+  }
+  
+  let result = 0;
+  for (let i = 0; i < expectedSignature.length; i++) {
+    result |= expectedSignature.charCodeAt(i) ^ providedSignature.charCodeAt(i);
+  }
+  return result === 0;
+}
+
+/**
+ * Generate secure share token
+ */
+export function generateShareToken(): string {
+  return randomBytes(32).toString("hex");
+}
+```
+
+#### SUBTASK 23.2: Update Environment Example → **AGENT**
+
+**File:** `.env.example` (add these lines)
+
+```bash
+# Presigned URL secret (64 hex chars)
+# Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+PRESIGNED_URL_SECRET=
+
+# Storage base URL (for presigned URL generation)
+STORAGE_BASE_URL=https://your-domain.com/api/storage
+```
+
+### ✅ Success Criteria
+
+- [ ] `server/presigned-urls.ts` created
+- [ ] URL generation works
+- [ ] URL validation rejects expired/tampered URLs
+- [ ] Constant-time comparison used for signatures
+- [ ] Environment variables documented
+
+---
+
+## 🟢 TASK 24: Add Environment Validation (2 hours) → **AGENT**
+
+**Source Pattern:** Zod-based environment validation from UBOS repository  
+**Priority:** P3 - Developer Experience  
+**Why Helpful:** Fail fast on startup if required environment variables missing
+
+### 🔧 What To Do
+
+**File:** `server/config.ts`
+
+```typescript
+import { z } from 'zod';
+
+/**
+ * Environment variable schema with validation
+ */
+export const envSchema = z.object({
+  // Required
+  DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
+  
+  // Optional with defaults
+  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+  PORT: z.coerce.number().int().positive().default(5000),
+  
+  // CSRF (required in production)
+  PRESIGNED_URL_SECRET: z.string().length(64).optional(),
+});
+
+export type Env = z.infer<typeof envSchema>;
+
+/**
+ * Validate and parse environment variables
+ * Throws on invalid configuration (fail-fast)
+ */
+export function validateEnv(): Env {
+  try {
+    return envSchema.parse(process.env);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const issues = error.issues.map(issue => 
+        `  - ${issue.path.join('.')}: ${issue.message}`
+      ).join('\n');
+      
+      console.error(`\n❌ Environment validation failed:\n${issues}\n`);
+      console.error('Check your .env file and ensure all required variables are set.\n');
+      process.exit(1);
+    }
+    throw error;
+  }
+}
+
+// Validate on import
+export const env = validateEnv();
+```
+
+### ✅ Success Criteria
+
+- [ ] `server/config.ts` created with Zod schema
+- [ ] Server fails fast on missing required env vars
+- [ ] Clear error messages for invalid values
+- [ ] All `process.env` accesses use validated config
+
+---
+
+[↑ Table of Contents](#-table-of-contents) | [→ Tasks](#-critical-foundation-fixes-do-first)
+
+---
