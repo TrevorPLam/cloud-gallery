@@ -1,622 +1,750 @@
-# Cloud Gallery Security & Compliance TODO
+# Cloud Gallery Product Roadmap
 
-**Purpose**: Comprehensive security and compliance task list for Cloud Gallery to achieve SOC2, HIPAA, PCI DSS, and other regulatory compliance.
-
-**Last Updated**: 2026-02-04  
-**Target Compliance**: SOC2 Type II, HIPAA (if handling PHI), PCI DSS (if payment processing)
+**Last Updated**: 2026-02-04
 
 ---
 
-## 🚀 **PHASE 3 ADVANCED SECURITY - SCAFFOLDING COMPLETE** ✅
+# ⚠️ **CODE QUALITY ANALYSIS — FIX BEFORE ADDING FEATURES**
 
-**Date Completed**: February 4, 2026  
-**Scope**: HIPAA + PCI DSS documentation, SIEM forwarding, pen test scaffolding, audit readiness templates
+**Analysis Date**: February 4, 2026  
+**Application Code Status**: 6/10 - Functional but needs refactoring  
+**Recommendation**: Complete all P0 fixes before implementing new features
 
-### ✅ **Phase 3.1: Compliance Frameworks (Documentation Only)**
+## 🔴 **P0 — Critical Code Quality Issues**
 
-- [x] HIPAA compliance documentation and control mapping
-- [x] PCI DSS compliance documentation and control mapping
-- [ ] HIPAA technical safeguards implementation
-- [ ] PCI DSS technical controls implementation
+### 1. **Client-Server Architecture Mismatch** 🚨 **BLOCKING**
 
-### ✅ **Phase 3.2: Monitoring & SIEM (Scaffold Only)**
+**Problem**: Client and server are disconnected
+- Client uses local `AsyncStorage` in `client/lib/storage.ts`
+- Server has authentication but **no photo/album API endpoints**
+- `server/routes.ts` only has `/api/auth` and `/api/upload` routes
+- Client screens don't make any API calls - everything is local
 
-- [x] SIEM forwarding integration in `server/siem.ts`
-- [x] Audit events forwarding from `server/audit.ts`
-- [ ] SIEM infrastructure setup and configuration
-- [ ] Real-time security dashboards and alerting
-- [ ] Security incident correlation rules
+**Impact**: Cannot sync data, no cloud storage, multi-device support impossible
 
-### ✅ **Phase 3.3: Penetration Testing & Audit Readiness (Scaffold Only)**
-
-- [x] Penetration testing program documentation
-- [x] Pen test script scaffold (`scripts/pen-test.sh`)
-- [x] Audit readiness workflow and evidence templates
-- [ ] Execute annual external penetration test
-- [ ] Execute quarterly internal penetration test
-- [ ] Implement formal audit evidence collection process
+**Fix Required**:
+```
+[ ] Create server photo CRUD endpoints (/api/photos)
+[ ] Create server album CRUD endpoints (/api/albums)
+[ ] Integrate client screens with API using React Query
+[ ] Remove or refactor local AsyncStorage to be cache layer
+[ ] Add sync logic between local and remote storage
+```
 
 ---
 
-## 🎉 **PHASE 2 SECURITY IMPLEMENTATION - PARTIALLY COMPLETED** ⚠️
+### 2. **Data Persistence Layer is Fragile** 🚨
 
-**Date Completed**: February 4, 2026  
-**Status**: App-layer security ✅ | Infrastructure-layer ❌  
-**Total Tests**: 351/351 (344 passing, 7 failing - minor test issues)  
-**Security Score**: Enterprise-Grade Plus
+**File**: `client/lib/storage.ts`
 
-### ✅ **Phase 2.1: Enhanced Authentication Security (App-layer)**
+**Problems**:
+- ❌ No data validation (corrupt data can be saved)
+- ❌ No transactions (multi-step operations can partially fail)
+- ❌ Bidirectional relationships maintained manually (albums ↔ photos)
+- ❌ Collision-prone ID generation: `Date.now().toString() + Math.random()`
+- ❌ No migration strategy for schema changes
+- ❌ No data integrity checks
+- ❌ `try-catch` with silent failures (returns empty arrays)
 
-- [x] Password breach checking using Have I Been Pwned API
-- [x] CAPTCHA system after 3 failed attempts (math-based challenges)
-- [x] Comprehensive file type and content validation
-- [x] Secure upload routes with validation integration
+**Example Issue**:
+```typescript
+// In deletePhoto() - if saveAlbums() fails, photo is deleted but albums still reference it
+await savePhotos(filtered);  // succeeds
+await saveAlbums(updatedAlbums);  // fails - data is now inconsistent!
+```
 
-### ✅ **Phase 2.2: Advanced Input Validation (App-layer)**
+**Fix Required**:
+```
+[ ] Add Zod schemas for data validation
+[ ] Implement transactional updates or rollback mechanism
+[ ] Generate UUIDs instead of timestamp+random
+[ ] Add data integrity checks on load
+[ ] Create migration system for schema changes
+[ ] Add comprehensive error handling with user feedback
+[ ] Consider using SQLite (expo-sqlite) for ACID transactions
+```
 
-- [x] File type detection using magic bytes
-- [x] Content security scanning for malicious patterns
-- [x] Filename sanitization against directory traversal
-- [x] Size limits per file type with security checks
+**Recommended Approach**:
+```typescript
+// Use proper UUIDs
+import { randomUUID } from 'expo-crypto';
 
-### ✅ **Phase 2.3: Security Configuration Updates (App-layer)**
+// Validate before saving
+const photoSchema = z.object({
+  id: z.string().uuid(),
+  uri: z.string().url(),
+  // ... other fields
+});
 
-- [x] Dependency vulnerability fixes applied
-- [x] Security scripts for ongoing monitoring
-- [x] Enhanced test coverage for security features
-- [x] Comprehensive CAPTCHA middleware implementation
-
-### ❌ **Phase 2.4: Infrastructure Security (Pending)**
-
-- [ ] Add database encryption (transparent or application-level)
-- [ ] Encrypt backup files
-- [ ] Implement TLS 1.3 only (disable TLS 1.2)
-- [ ] Add HSTS headers with preload
-- [ ] Implement certificate pinning for mobile app
-- [ ] Add forward secrecy cipher suites
-
----
-
-## 🎉 **PHASE 1 SECURITY IMPLEMENTATION - COMPLETED** ✅
-
-**Date Completed**: February 4, 2026  
-**Total Tests**: 54/54 Passing  
-**Security Score**: Enterprise-Grade
-
-### ✅ **Phase 1.1: Authentication & Access Control**
-
-- Argon2id password hashing with PBKDF2 legacy support
-- JWT token-based authentication (access + refresh tokens)
-- Rate limiting (5 attempts/15min per IP)
-- Secure password reset flow
-- Comprehensive input validation with Zod schemas
-
-### ✅ **Phase 1.2: Data Protection & Encryption**
-
-- AES-256-GCM encryption for sensitive photo metadata
-- Client-side secure storage with automatic encryption
-- Scrypt key derivation for master key management
-- Protection of location, camera, EXIF, tags, and notes
-
-### ✅ **Phase 1.3: Audit Logging & Compliance**
-
-- Comprehensive audit logging system (24 test cases)
-- SOC2, HIPAA, PCI DSS compliant audit trails
-- Automatic sensitive data sanitization
-- Real-time security event monitoring
-- Event filtering and retention policies
-
-## 🎯 **NEXT PRIORITY TASKS**
-
-### Immediate (Next 30 Days)
-
-- [ ] **Phase 2.4 Infrastructure Security**
-  - [ ] Add database encryption (transparent or application-level)
-  - [ ] Encrypt backup files
-  - [ ] Implement TLS 1.3 only (disable TLS 1.2)
-  - [ ] Add HSTS headers with preload
-  - [ ] Implement certificate pinning for mobile app
-  - [ ] Add forward secrecy cipher suites
-
-### Short-term (30-90 Days)
-
-- [ ] **Phase 3 Operational Implementation**
-  - [ ] HIPAA technical safeguards implementation
-  - [ ] PCI DSS technical controls implementation
-  - [ ] SIEM infrastructure setup and configuration
-  - [ ] Real-time security dashboards and alerting
-  - [ ] Execute quarterly internal penetration test
-
-### Medium-term (90-180 Days)
-
-- [ ] **SOC2 Type II Compliance**
-  - [ ] Implement role-based access control (RBAC)
-  - [ ] Add least privilege principle enforcement
-  - [ ] Implement access review process (quarterly)
-  - [ ] Document access control policies
-  - [ ] Implement comprehensive audit logging per [40_AUDIT_AND_LOGGING.md](docs/security/40_AUDIT_AND_LOGGING.md)
+export async function addPhoto(photo: Photo): Promise<void> {
+  // Validate
+  const validated = photoSchema.parse(photo);
+  
+  // Transactional update
+  const photos = await getPhotos();
+  photos.unshift(validated);
+  
+  try {
+    await savePhotos(photos);
+  } catch (error) {
+    // Proper error handling with user notification
+    throw new Error('Failed to save photo: ' + error.message);
+  }
+}
+```
 
 ---
 
-## ✅ **COMPLETED SECURITY TASKS**
+### 3. **Missing Environment Variable Management** 🚨
 
-### Authentication & Access Control
+**Problems**:
+- ❌ No `.env.example` file
+- ❌ No environment variable validation at startup
+- ❌ Client requires `EXPO_PUBLIC_DOMAIN` but not documented
+- ❌ Server has defaults for critical secrets (JWT_SECRET)
+- ❌ No type-safe environment variable access
 
-- [x] **IMPLEMENT AUTHENTICATION SYSTEM** ✅ **COMPLETED 2026-02-04**
-  - [x] Design user authentication flow per [11_IDENTITY_AND_ACCESS.md](docs/security/11_IDENTITY_AND_ACCESS.md)
-  - [x] Implement Argon2id password hashing (replace PBKDF2 for new passwords)
-  - [x] Add password complexity requirements (8+ chars, complexity rules)
-  - [x] Add password breach checking (Have I Been Pwned API) ✅ **COMPLETED 2026-02-04**
-  - [x] Add account lockout after failed attempts (rate limiting provides protection)
-  - [x] Implement rate limiting on auth endpoints (5 attempts/15min per IP)
-  - [x] Add CAPTCHA after 3 failed attempts ✅ **COMPLETED 2026-02-04**
-  - [x] Implement secure password reset flow (JWT token-based)
+**Current Unsafe Pattern**:
+```typescript
+// client/lib/query-client.ts
+export function getApiUrl(): string {
+  let host = process.env.EXPO_PUBLIC_DOMAIN;  // Can be undefined!
+  if (!host) {
+    throw new Error("EXPO_PUBLIC_DOMAIN is not set");  // Only fails at runtime
+  }
+  // ...
+}
+```
 
-### API Security
+**Fix Required**:
+```
+[ ] Create .env.example with all required variables
+[ ] Add environment validation at app startup
+[ ] Create type-safe env config module
+[ ] Document all environment variables in README
+[ ] Remove default secrets from code
+```
 
-- [x] **ADD RATE LIMITING** ✅ **COMPLETED 2026-02-04**
-  - [x] Implement express-rate-limit middleware
-  - [x] Configure different limits per endpoint type
-  - [x] Add rate limit headers to responses
-  - [x] Implement rate limiting bypass for authenticated users
+**Recommended Solution**:
+```typescript
+// shared/env.ts
+import { z } from 'zod';
 
-- [x] **ENHANCE INPUT VALIDATION** ✅ **COMPLETED 2026-02-04**
-  - [x] Implement Zod schemas for all API inputs per [13_APPSEC_BOUNDARIES.md](docs/security/13_APPSEC_BOUNDARIES.md)
-  - [x] Add request size limits (max 10MB for uploads)
-  - [x] Validate file types and content for uploads ✅ **COMPLETED 2026-02-04**
-  - [x] Implement content-length validation
+const envSchema = z.object({
+  EXPO_PUBLIC_DOMAIN: z.string().min(1),
+  EXPO_PUBLIC_API_URL: z.string().url().optional(),
+  NODE_ENV: z.enum(['development', 'staging', 'production']),
+});
 
-### Data Protection
+export const env = envSchema.parse(process.env);
 
-- [x] **IMPLEMENT ENCRYPTION AT REST** ✅ **COMPLETED 2026-02-04**
-  - [x] Encrypt sensitive photo metadata using AES-256-GCM
-  - [x] Implement key management system (scrypt key derivation)
-  - [ ] Add database encryption (transparent or application-level) - *Phase 2*
-  - [ ] Encrypt backup files - *Phase 2*
-
-- [x] **IMPLEMENT COMPREHENSIVE AUDIT LOGGING** ✅ **COMPLETED 2026-02-04**
-  - [x] Create audit logging system for SOC2, HIPAA, PCI DSS compliance
-  - [x] Log all authentication events (login, logout, register, failures)
-  - [x] Log data access events (photo/album CRUD operations)
-  - [x] Log security events (rate limiting, unauthorized access, encryption errors)
-  - [x] Implement sensitive data sanitization in logs
-  - [x] Add event filtering and retention policies
-  - [x] Create comprehensive test suite (24 tests passing)
-
-- [ ] **ENHANCE DATA IN TRANSIT**
-  - [ ] Implement TLS 1.3 only (disable TLS 1.2) - *Phase 2*
-  - [ ] Add HSTS headers with preload - *Phase 2*
-  - [ ] Implement certificate pinning for mobile app - *Phase 2*
-  - [ ] Add forward secrecy cipher suites - *Phase 2*
+// Now use env.EXPO_PUBLIC_DOMAIN with type safety
+```
 
 ---
 
-## 🔒 COMPLIANCE SPECIFIC TASKS
+### 4. **Type Safety Issues** 🔴
 
-### SOC2 Type II Compliance
-#### Security (Common Criteria)
-- [ ] **ACCESS CONTROL**
-  - [ ] Implement role-based access control (RBAC)
-  - [ ] Add least privilege principle enforcement
-  - [ ] Implement access review process (quarterly)
-  - [ ] Add just-in-time access for admin functions
-  - [ ] Document access control policies
+**Problems Found**:
+- 20+ instances of `as any` in server code
+- Missing explicit return types on many functions
+- Incomplete error typing throughout
+- Type assertions instead of proper type guards
 
-- [ ] **SYSTEM MONITORING**
-  - [ ] Implement comprehensive audit logging per [40_AUDIT_AND_LOGGING.md](docs/security/40_AUDIT_AND_LOGGING.md)
-  - [ ] Add real-time security monitoring
-  - [ ] Implement intrusion detection system
-  - [ ] Add security information and event management (SIEM)
-  - [ ] Create security dashboards and alerts
+**Examples**:
+```typescript
+// server/auth-routes.ts:251
+const user = findUserByEmail((decoded as any).email);  // Should type decode properly
 
-- [ ] **CHANGE MANAGEMENT**
-  - [ ] Implement formal change control process
-  - [ ] Add code review requirements for all changes
-  - [ ] Document change approval workflows
-  - [ ] Implement rollback procedures
-  - [ ] Add change logging and audit trail
+// server/audit.ts
+userId: (req as any).user?.id,  // Should extend Request type
 
-#### Availability
-- [ ] **BUSINESS CONTINUITY**
-  - [ ] Implement disaster recovery plan
-  - [ ] Add backup procedures (daily, encrypted, off-site)
-  - [ ] Create recovery time objectives (RTO < 4 hours)
-  - [ ] Implement recovery point objectives (RPO < 1 hour)
-  - [ ] Test disaster recovery procedures quarterly
+// Multiple files
+} catch (error) {
+  console.error(error);  // error is 'unknown', should be typed
+}
+```
 
-- [ ] **INFRASTRUCTURE RESILIENCE**
-  - [ ] Add load balancing for high availability
-  - [ ] Implement auto-scaling capabilities
-  - [ ] Add health checks and monitoring
-  - [ ] Implement failover mechanisms
-  - [ ] Add performance monitoring and alerting
+**Fix Required**:
+```
+[ ] Remove all "as any" casts - add proper types
+[ ] Add explicit return types to all functions
+[ ] Create proper type guards for runtime checks
+[ ] Extend Express Request type properly for custom properties
+[ ] Type all catch blocks properly
+```
 
-#### Processing Integrity
-- [ ] **DATA QUALITY**
-  - [ ] Implement data validation at all boundaries
-  - [ ] Add data integrity checks (hashing, checksums)
-  - [ ] Implement error detection and correction
-  - [ ] Add data quality monitoring
-  - [ ] Create data reconciliation procedures
+**Recommended Pattern**:
+```typescript
+// Extend Express types properly
+declare global {
+  namespace Express {
+    interface Request {
+      user?: { id: string; email: string };
+      requestId?: string;
+      audit?: AuditContext;
+    }
+  }
+}
 
-#### Confidentiality
-- [ ] **DATA CLASSIFICATION**
-  - [ ] Implement data classification scheme
-  - [ ] Add labeling for sensitive data
-  - [ ] Implement different protection levels by classification
-  - [ ] Create data handling procedures
-  - [ ] Add data loss prevention (DLP) controls
+// Proper error typing
+class AppError extends Error {
+  constructor(
+    public statusCode: number,
+    message: string,
+    public details?: unknown
+  ) {
+    super(message);
+  }
+}
 
-#### Privacy
-- [ ] **PERSONAL DATA PROTECTION**
-  - [ ] Implement privacy policy and notices
-  - [ ] Add consent management system
-  - [ ] Implement data subject rights (access, deletion, portability)
-  - [ ] Add privacy impact assessment process
-  - [ ] Create data retention and deletion policies
-
-### HIPAA Compliance (If Handling PHI)
-#### Administrative Safeguards
-- [ ] **SECURITY OFFICER**
-  - [ ] Appoint designated security officer
-  - [ ] Define security officer responsibilities
-  - [ ] Create security management structure
-  - [ ] Implement security awareness training
-  - [ ] Add security incident response team
-
-- [ ] **WORKFORCE SECURITY**
-  - [ ] Implement workforce authorization policies
-  - [ ] Add workforce clearance procedures
-  - [ ] Create termination procedures
-  - [ ] Implement workforce training program
-  - [ ] Add security awareness reminders
-
-- [ ] **INFORMATION ACCESS MANAGEMENT**
-  - [ ] Implement minimum necessary access principle
-  - [ ] Add access authorization procedures
-  - [ ] Create access review and audit process
-  - [ ] Implement emergency access procedures
-  - [ ] Add access logging and monitoring
-
-#### Physical Safeguards
-- [ ] **FACILITY ACCESS**
-  - [ ] Implement facility access controls
-  - [ ] Add visitor access procedures
-  - [ ] Create emergency access procedures
-  - [ ] Implement access maintenance and testing
-  - [ ] Add security guard procedures (if applicable)
-
-- [ ] **WORKSTATION SECURITY**
-  - [ ] Implement workstation use policies
-  - [ ] Add workstation security measures
-  - [ ] Create device and media controls
-  - [ ] Implement workstation disposal procedures
-  - [ ] Add mobile device security
-
-#### Technical Safeguards
-- [ ] **ACCESS CONTROL**
-  - [ ] Implement unique user identification
-  - [ ] Add emergency access procedures
-  - [ ] Create automatic logoff procedures
-  - [ ] Implement encryption and decryption
-  - [ ] Add audit controls
-
-- [ ] **AUDIT CONTROLS**
-  - [ ] Implement comprehensive audit logging
-  - [ ] Add log analysis and review procedures
-  - [ ] Create audit trail integrity controls
-  - [ ] Implement audit log retention (6 years)
-  - [ ] Add audit report generation
-
-- [ ] **INTEGRITY CONTROLS**
-  - [ ] Implement data authentication
-  - [ ] Add data integrity verification
-  - [ ] Create data alteration controls
-  - [ ] Implement data validation procedures
-  - [ ] Add data backup and recovery
-
-- [ ] **TRANSMISSION SECURITY**
-  - [ ] Implement encryption for all data transmission
-  - [ ] Add network security controls
-  - [ ] Create transmission integrity verification
-  - [ ] Implement authentication for transmission
-  - [ ] Add transmission security monitoring
-
-### PCI DSS Compliance (If Processing Payments)
-#### Network Security
-- [ ] **FIREWALL CONFIGURATION**
-  - [ ] Implement and maintain firewall configurations
-  - [ ] Document firewall rule sets
-  - [ ] Review firewall rules quarterly
-  - [ ] Implement network segmentation
-  - [ ] Add firewall change management
-
-- [ ] **SECURE NETWORK ARCHITECTURE**
-  - [ ] Implement network segmentation
-  - [ ] Separate cardholder data environment
-  - [ ] Add internal network controls
-  - [ ] Implement DMZ for public-facing components
-  - [ ] Add network security monitoring
-
-#### Data Protection
-- [ ] **CARDHOLDER DATA PROTECTION**
-  - [ ] Implement encryption of cardholder data
-  - [ ] Add strong cryptography controls
-  - [ ] Implement secure key management
-  - [ ] Add key storage and protection
-  - [ ] Implement key rotation procedures
-
-- [ ] **PAN MASKING**
-  - [ ] Implement PAN masking in displays
-  - [ ] Limit PAN display to authorized personnel
-  - [ ] Add PAN truncation for receipts
-  - [ ] Implement PAN storage limitations
-  - [ ] Add PAN transmission controls
-
-#### Vulnerability Management
-- [ ] **SECURE SYSTEMS AND SOFTWARE**
-  - [ ] Implement secure coding practices
-  - [ ] Add vulnerability scanning procedures
-  - [ ] Implement patch management process
-  - [ ] Add secure software development lifecycle
-  - [ ] Implement code review procedures
-
-- [ ] **VULNERABILITY TESTING**
-  - [ ] Implement quarterly vulnerability scanning
-  - [ ] Add annual penetration testing
-  - [ ] Implement internal and external testing
-  - [ ] Add network layer testing
-  - [ ] Implement application layer testing
-
-#### Access Control
-- [ ] **BUSINESS NEED TO KNOW**
-  - [ ] Implement need-to-know access principle
-  - [ ] Add access limitation procedures
-  - [ ] Implement role-based access control
-  - [ ] Add access review procedures
-  - [ ] Implement access termination
-
-- [ ] **IDENTITY AND AUTHENTICATION**
-  - [ ] Implement unique user identification
-  - [ ] Add strong authentication procedures
-  - [ ] Implement multi-factor authentication
-  - [ ] Add credential management procedures
-  - [ ] Implement session security
-
-#### Monitoring and Testing
-- [ ] **MONITORING SYSTEMS**
-  - [ ] Implement logging and monitoring
-  - [ ] Add security event monitoring
-  - [ ] Implement log review procedures
-  - [ ] Add alerting mechanisms
-  - [ ] Create incident response procedures
-
-- [ ] **SECURITY TESTING**
-  - [ ] Implement regular security testing
-  - [ ] Add penetration testing procedures
-  - [ ] Implement vulnerability assessment
-  - [ ] Add security code review
-  - [ ] Create security testing documentation
+// Type guards
+function isJWTPayload(decoded: unknown): decoded is { id: string; email: string } {
+  return (
+    typeof decoded === 'object' &&
+    decoded !== null &&
+    'id' in decoded &&
+    'email' in decoded
+  );
+}
+```
 
 ---
 
-## 🏗️ INFRASTRUCTURE SECURITY TASKS
+### 5. **Hardcoded UI Values Breaking Responsiveness** 🔴
 
-### Cloud Security
-- [ ] **CLOUD CONFIGURATION**
-  - [ ] Implement cloud security posture management
-  - [ ] Add cloud configuration monitoring
-  - [ ] Implement cloud resource tagging
-  - [ ] Add cloud access logging
-  - [ ] Create cloud security policies
+**File**: `client/components/PhotoGrid.tsx`
 
-- [ ] **CLOUD NETWORKING**
-  - [ ] Implement VPC with private subnets
-  - [ ] Add network ACLs and security groups
-  - [ ] Implement VPN or Direct Connect
-  - [ ] Add network flow logging
-  - [ ] Create network segmentation
+**Problem**:
+```typescript
+// Calculated at module load - never updates!
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const NUM_COLUMNS = 3;  // Hardcoded
+const PHOTO_SIZE = (SCREEN_WIDTH - GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
+```
 
-### Container Security
-- [ ] **CONTAINER HARDENING**
-  - [ ] Implement minimal base images
-  - [ ] Add container image scanning
-  - [ ] Implement runtime security
-  - [ ] Add container orchestration security
-  - [ ] Create container security policies
+**Impact**:
+- Doesn't respond to screen rotation
+- Breaks on tablets (3 columns too narrow)
+- Can't adjust for different screen sizes
+- Won't work for web responsive design
 
-### Database Security
-- [ ] **DATABASE PROTECTION**
-  - [ ] Implement database encryption
-  - [ ] Add database access controls
-  - [ ] Implement database activity monitoring
-  - [ ] Add database backup encryption
-  - [ ] Create database security procedures
+**Fix Required**:
+```
+[ ] Use useWindowDimensions() hook instead of static dimensions
+[ ] Make NUM_COLUMNS responsive based on screen width
+[ ] Recalculate layout on dimension changes
+[ ] Test on tablets, web, and various screen sizes
+```
 
----
-
-## 📋 DOCUMENTATION & POLICIES
-
-### Security Policies
-- [ ] **CREATE SECURITY POLICY DOCUMENTS**
-  - [ ] Information Security Policy
-  - [ ] Acceptable Use Policy
-  - [ ] Incident Response Policy
-  - [ ] Data Classification Policy
-  - [ ] Access Control Policy
-  - [ ] Password Policy
-  - [ ] Remote Access Policy
-  - [ ] Change Management Policy
-
-### Compliance Documentation
-- [ ] **COMPLIANCE EVIDENCE COLLECTION**
-  - [ ] Create compliance evidence repository
-  - [ ] Implement evidence collection procedures
-  - [ ] Add evidence retention policies
-  - [ ] Create compliance reporting templates
-  - [ ] Implement compliance monitoring
-
-### Training Materials
-- [ ] **SECURITY AWARENESS TRAINING**
-  - [ ] Create security awareness training program
-  - [ ] Add role-specific security training
-  - [ ] Implement phishing simulation program
-  - [ ] Create security training materials
-  - [ ] Add training effectiveness measurement
+**Recommended Solution**:
+```typescript
+export function PhotoGrid({ ... }: PhotoGridProps) {
+  const { width } = useWindowDimensions();
+  
+  // Responsive columns: 2 for phone portrait, 3 for landscape, 4+ for tablet
+  const numColumns = width < 500 ? 2 : width < 768 ? 3 : 4;
+  const photoSize = (width - GAP * (numColumns - 1)) / numColumns;
+  
+  return (
+    <FlashList
+      key={numColumns}  // Force re-render on column change
+      numColumns={numColumns}
+      estimatedItemSize={photoSize}
+      // ...
+    />
+  );
+}
+```
 
 ---
 
-## 🔧 TECHNICAL IMPLEMENTATION TASKS
+### 6. **Console Logs in Production Code** 🟡
 
-### Logging and Monitoring
-- [ ] **COMPREHENSIVE LOGGING**
-  - [ ] Implement structured logging (JSON format)
-  - [ ] Add log correlation and tracing
-  - [ ] Implement log aggregation and centralization
-  - [ ] Add log retention policies (90 days minimum)
-  - [ ] Create log analysis and alerting
+**Found**:
+- 7 `console.log` / `console.error` statements in client code
+- Should use proper logging service
+- Can expose sensitive information
 
-- [ ] **SECURITY MONITORING**
-  - [ ] Implement security information and event management (SIEM)
-  - [ ] Add real-time threat detection
-  - [ ] Implement security dashboards
-  - [ ] Add automated alerting
-  - [ ] Create security incident correlation
+**Files**:
+- `client/screens/PhotoDetailScreen.tsx` - Share error logging
+- `client/lib/secure-storage.ts` - Multiple decryption error logs
+- `client/components/ErrorFallback.tsx` - Restart error logging
 
-### Backup and Recovery
-- [ ] **BACKUP IMPLEMENTATION**
-  - [ ] Implement automated backup procedures
-  - [ ] Add backup encryption
-  - [ ] Implement backup verification
-  - [ ] Add off-site backup storage
-  - [ ] Create backup restoration procedures
+**Fix Required**:
+```
+[ ] Create logging service with environment-aware levels
+[ ] Replace all console.* calls with logger service
+[ ] Ensure no sensitive data logged
+[ ] Add structured logging with context
+```
 
-### Key Management
-- [ ] **CRYPTOGRAPHIC KEY MANAGEMENT**
-  - [ ] Implement key management system
-  - [ ] Add key rotation procedures
-  - [ ] Implement key escrow and recovery
-  - [ ] Add key usage logging
-  - [ ] Create key lifecycle management
+**Recommended Solution**:
+```typescript
+// client/lib/logger.ts
+const isDev = __DEV__;
 
----
-
-## 🧪 TESTING AND VALIDATION
-
-### Security Testing
-- [ ] **PENETRATION TESTING**
-  - [ ] Engage third-party penetration testing
-  - [ ] Implement internal penetration testing
-  - [ ] Add network penetration testing
-  - [ ] Implement application penetration testing
-  - [ ] Create penetration testing procedures
-
-- [ ] **VULNERABILITY ASSESSMENT**
-  - [ ] Implement regular vulnerability scanning
-  - [ ] Add dynamic application security testing (DAST)
-  - [ ] Implement static application security testing (SAST)
-  - [ ] Add dependency vulnerability scanning
-  - [ ] Create vulnerability management procedures
-
-### Compliance Testing
-- [ ] **COMPLIANCE VALIDATION**
-  - [ ] Implement SOC2 readiness assessment
-  - [ ] Add HIPAA compliance testing
-  - [ ] Implement PCI DSS compliance testing
-  - [ ] Add gap analysis procedures
-  - [ ] Create compliance testing documentation
+export const logger = {
+  debug: (message: string, data?: unknown) => {
+    if (isDev) console.debug(message, data);
+  },
+  info: (message: string, data?: unknown) => {
+    if (isDev) console.info(message, data);
+  },
+  warn: (message: string, data?: unknown) => {
+    console.warn(message, data);
+    // Send to error tracking in production
+  },
+  error: (message: string, error: Error, context?: unknown) => {
+    console.error(message, error);
+    // Send to Sentry/error tracking
+  }
+};
+```
 
 ---
 
-## 📊 REPORTING AND AUDIT
+## 🟡 **P1 — High Priority Improvements**
 
-### Audit Preparation
-- [ ] **AUDIT READINESS**
-  - [ ] Create audit evidence collection procedures
-  - [ ] Implement audit coordination processes
-  - [ ] Add audit response procedures
-  - [ ] Create audit finding remediation
-  - [ ] Implement audit follow-up procedures
+### 7. **No Centralized Error Handling**
 
-### Reporting
-- [ ] **SECURITY REPORTING**
-  - [ ] Implement security metrics dashboard
-  - [ ] Add executive security reporting
-  - [ ] Create security incident reports
-  - [ ] Implement compliance status reporting
-  - [ ] Add trend analysis reporting
+**Problem**: Errors handled inconsistently
+- Some functions return empty arrays on error
+- Some functions throw
+- Some functions fail silently
+- No user feedback for failures
 
----
-
-## 🎯 PRIORITIZED IMPLEMENTATION ROADMAP
-
-### Phase 1: Foundation (Next 30 Days)
-1. **Authentication System** - Critical for all compliance
-2. **Basic Audit Logging** - Required for monitoring
-3. **Input Validation** - Prevents common vulnerabilities
-4. **Rate Limiting** - Prevents abuse and DoS
-5. **Encryption at Rest** - Protects sensitive data
-
-### Phase 2: Compliance Framework (30-90 Days)
-1. **SOC2 Controls** - Core compliance framework
-2. **Comprehensive Logging** - Audit requirements
-3. **Access Control** - RBAC implementation
-4. **Security Policies** - Documentation requirements
-5. **Monitoring Systems** - Real-time security
-
-### Phase 3: Advanced Security (90-180 Days)
-1. **HIPAA Controls** - If handling health data
-2. **PCI DSS Controls** - If processing payments
-3. **Advanced Monitoring** - SIEM implementation
-4. **Penetration Testing** - Third-party validation
-5. **Compliance Audits** - Formal certification
+**Fix Required**:
+```
+[ ] Create centralized error handling service
+[ ] Add error boundaries for each major screen
+[ ] Show user-friendly error messages
+[ ] Add retry mechanisms for transient failures
+[ ] Log errors to monitoring service
+```
 
 ---
 
-## 📝 TRACKING METRICS
+### 8. **Performance Concerns for Large Libraries**
 
-### Security Metrics
-- [ ] **IMPLEMENT SECURITY KPIs**
-  - [ ] Mean Time to Detect (MTTD)
-  - [ ] Mean Time to Respond (MTTR)
-  - [ ] Vulnerability Remediation Time
-  - [ ] Security Incident Count
-  - [ ] Compliance Score
+**Problems**:
+- Loads all photos into memory (will crash with 10k+ photos)
+- No pagination
+- No virtual scrolling for album lists
+- No image caching strategy documented
+- FlashList `estimatedItemSize` might be inaccurate
 
-### Compliance Metrics
-- [ ] **COMPLIANCE TRACKING**
-  - [ ] Control Implementation Status
-  - [ ] Evidence Collection Progress
-  - [ ] Audit Finding Remediation
-  - [ ] Training Completion Rates
-  - [ ] Policy Compliance Rates
-
----
-
-## 🔗 RELATED DOCUMENTATION
-
-- [Security Documentation Index](docs/security/00_INDEX.md)
-- [Threat Model](docs/security/10_THREAT_MODEL.md)
-- [Identity and Access Control](docs/security/11_IDENTITY_AND_ACCESS.md)
-- [Cryptography Policy](docs/security/12_CRYPTO_POLICY.md)
-- [Application Security Boundaries](docs/security/13_APPSEC_BOUNDARIES.md)
-- [Secure SDLC](docs/security/50_SECURE_SDLC.md)
-- [Incident Response](docs/security/60_INCIDENT_RESPONSE.md)
+**Fix Required**:
+```
+[ ] Implement pagination (load 100 photos at a time)
+[ ] Add infinite scroll
+[ ] Configure expo-image caching properly
+[ ] Optimize FlashList estimatedItemSize
+[ ] Implement database query limits
+```
 
 ---
 
-## 📞 SUPPORT AND RESOURCES
+### 9. **Missing Abstraction Layers**
 
-### Security Team
-- **Security Officer**: To be appointed
-- **Compliance Manager**: To be appointed
-- **Incident Response Team**: To be formed
+**Problem**: Direct dependencies throughout codebase
+- Screens directly use `AsyncStorage` via storage.ts
+- No repository pattern
+- No service layer
+- Difficult to swap implementations
+- Hard to test
 
-### External Resources
-- **SOC2 Auditors**: To be engaged
-- **Penetration Testers**: To be contracted
-- **Compliance Consultants**: To be retained
+**Fix Required**:
+```
+[ ] Create repository interfaces
+[ ] Add service layer for business logic
+[ ] Abstract storage behind interface
+[ ] Enable dependency injection for testing
+```
+
+**Recommended Architecture**:
+```
+client/
+  services/          # Business logic
+    PhotoService.ts
+    AlbumService.ts
+  repositories/      # Data access
+    IPhotoRepository.ts (interface)
+    LocalPhotoRepository.ts
+    RemotePhotoRepository.ts
+  lib/              # Infrastructure
+    storage.ts      # Implementation detail
+```
 
 ---
 
-**Note**: This TODO list is comprehensive and may need to be prioritized based on specific business requirements, timeline, and budget constraints. Not all compliance frameworks may be applicable depending on the specific data and services Cloud Gallery handles.
+### 10. **No Offline/Online State Management**
+
+**Problem**:
+- App doesn't detect online/offline status
+- No sync queue for offline changes
+- No conflict resolution strategy
+- Client has `query-client.ts` but doesn't use React Query properly
+
+**Fix Required**:
+```
+[ ] Add NetInfo to detect connection status
+[ ] Implement offline queue for mutations
+[ ] Add sync status UI indicators
+[ ] Handle conflicts (last-write-wins or user merge)
+[ ] Use React Query's built-in offline support
+```
+
+---
+
+### 11. **Incomplete React Query Integration**
+
+**File**: `client/lib/query-client.ts`
+
+**Problems**:
+- React Query configured but not used in any screens
+- Screens use `useState` + `useCallback` instead of `useQuery`
+- Manual loading states instead of React Query's
+- No optimistic updates
+- No cache invalidation strategy
+
+**Current (Manual)**:
+```typescript
+// PhotosScreen.tsx - doing this manually!
+const [photos, setPhotos] = useState<Photo[]>([]);
+const [isLoading, setIsLoading] = useState(true);
+
+const loadPhotos = useCallback(async () => {
+  const data = await getPhotos();
+  setPhotos(data);
+  setIsLoading(false);
+}, []);
+```
+
+**Should Be**:
+```typescript
+// Using React Query properly
+const { data: photos = [], isLoading } = useQuery({
+  queryKey: ['photos'],
+  queryFn: getPhotos,
+});
+
+// Mutations with optimistic updates
+const addPhotoMutation = useMutation({
+  mutationFn: addPhoto,
+  onMutate: async (newPhoto) => {
+    // Optimistic update
+    await queryClient.cancelQueries({ queryKey: ['photos'] });
+    const previousPhotos = queryClient.getQueryData(['photos']);
+    queryClient.setQueryData(['photos'], old => [newPhoto, ...old]);
+    return { previousPhotos };
+  },
+  onError: (err, newPhoto, context) => {
+    // Rollback on error
+    queryClient.setQueryData(['photos'], context.previousPhotos);
+  },
+  onSettled: () => {
+    queryClient.invalidateQueries({ queryKey: ['photos'] });
+  },
+});
+```
+
+**Fix Required**:
+```
+[ ] Convert all data fetching to useQuery
+[ ] Convert all mutations to useMutation
+[ ] Add optimistic updates
+[ ] Remove manual loading/error states
+[ ] Add proper cache invalidation
+```
+
+---
+
+## 🟢 **P2 — Nice to Have Improvements**
+
+### 12. **Code Documentation**
+- ✅ Excellent AI-META comments on most files
+- ⚠️ Missing JSDoc on public APIs
+- ⚠️ No architecture decision records (ADRs)
+
+### 13. **Testing Gaps**
+- ✅ Test files exist for security/server code
+- ❌ No tests for client components
+- ❌ No tests for storage layer
+- ❌ No integration tests for client-server
+
+### 14. **Code Duplication**
+- Date grouping logic in storage.ts (should be separate utility)
+- Modal patterns repeated (should be reusable Modal component)
+- Loading states repeated (should use SWR pattern from React Query)
+
+---
+
+## ✅ **What's Already Good**
+
+1. **TypeScript Strict Mode** - Excellent foundation
+2. **AI-META Documentation** - Outstanding inline documentation
+3. **Security Implementation** - Server has comprehensive security
+4. **Modern Stack** - React Native, Expo, React Query, Zod
+5. **Code Style** - Consistent with Prettier + ESLint
+6. **Component Structure** - Clean separation of components
+7. **Theme System** - Good theming with hooks
+
+---
+
+## 📋 **Recommended Fix Order**
+
+**Week 1: Foundation**
+1. Fix client-server architecture mismatch (create API endpoints)
+2. Add environment variable validation
+3. Create .env.example
+
+**Week 2: Data Layer**
+4. Refactor storage.ts with validation and transactions
+5. Fix UUID generation
+6. Remove all "as any" and improve type safety
+
+**Week 3: Architecture**
+7. Integrate React Query properly in all screens
+8. Add abstraction layers (services/repositories)
+9. Implement offline/online detection
+
+**Week 4: UX & Performance**
+10. Fix responsive layout issues
+11. Add pagination for large libraries
+12. Centralize error handling with user feedback
+
+**After these fixes, the codebase will be ready for P0-P3 feature development.**
+
+---
+
+## Priority Framework
+
+* **P0 – Critical must-have (foundational trust & reliability)**
+* **P1 – High priority (organization, search, AI control, power UX)**
+* **P2 – Medium priority (editing, sharing, convenience)**
+* **P3 – Nice-to-have (delighters, premium features)**
+
+This does **NOT** omit anything. Everything found in your entire context is included and sorted logically and sentiment-driven.
+
+---
+
+# 🟥 P0 — Foundational Must-Haves
+
+*(If you fail these, consumers will NOT trust or adopt your app. Every competitor struggles here.)*
+
+## 🔥 P0.1 — Reliability, Sync, Backup (the #1 consumer pain category)
+
+* [ ] **True Backup Mode (Archive Vault)** — Write-once area separate from sync; no propagation of deletes.
+* [ ] **Sync Health Dashboard** — "Last backup time," "Pending items," "Blocked because…".
+* [ ] **Per-Item Truth Panel** — Local vs cloud copy, checksum, version, last-upload timestamp.
+* [ ] **Audit & Repair Tool** — Detects missing photos, stuck uploads, corrupt indexing, broken albums.
+* [ ] **Clear Device/Cloud States** — "Local only," "Synced," "Cloud only," "Pinned offline."
+* [ ] **Resumable Uploads** — Handles network changes, reboots, throttling.
+* [ ] **Background Upload Reliability** — No requirement to keep the app open.
+* [ ] **Upload Queue Visibility** — Real-time ingestion log.
+* [ ] **Multi-device consistency checks** — Identify devices out of sync.
+
+## 🔥 P0.2 — Deletion Semantics (2nd most common pain)
+
+* [ ] **Explicit Delete Actions**:
+  * Delete from Device
+  * Delete from Cloud
+  * Remove from Backup (keep local)
+  * Unlink Device (stop syncing)
+* [ ] **Deletion Contract UI** — "This action affects: Device / Cloud / Shared Albums / Trash".
+* [ ] **Safe Trash Retention** — Visible retention window & restore flow.
+* [ ] **Undo restore with original album context**.
+
+## 🔥 P0.3 — Duplicates & Data Integrity
+
+* [ ] **Duplicate Prevention (idempotent uploads)** — Fingerprinting + hashes.
+* [ ] **Duplicate Detection (exact + perceptual)** — Burst detection, reshares, screenshots.
+* [ ] **Duplicate Merge** — Preserve albums, favorites, edits, metadata.
+* [ ] **Auto-detect multi-folder camera paths** (Samsung/OneDrive conflicts).
+
+## 🔥 P0.4 — Export, Migration, Data Ownership
+
+* [ ] **One-Click Export (full library)** — Originals, edits, metadata, people tags, albums.
+* [ ] **Album-Preserving Export** — Albums → folders + manifest.
+* [ ] **Export Verification Report** — Count parity, missing items, date drift.
+* [ ] **Direct Import Connectors** from: Google, iCloud, OneDrive, Dropbox, Amazon.
+* [ ] **Open metadata formats** (EXIF/XMP sidecars when needed).
+* [ ] **"No lock-in" guarantee** — Long deprecation timelines.
+
+## 🔥 P0.5 — Privacy & Trust (now mandatory for mainstream)
+
+* [ ] **Privacy Dial** — Standard mode vs E2EE Vault mode.
+* [ ] **E2EE Vault** for sensitive albums (disables some AI; store locally or encrypted cloud).
+* [ ] **Transparent AI data-use disclosure** — Plain language.
+* [ ] **Moderation Appeals Flow** — Human escalation for false positives.
+* [ ] **No forced OS integration** — Always opt-in.
+
+## 🔥 P0.6 — Performance & Scalability
+
+* [ ] **Instant timeline scrolling** for 10k → 500k photos.
+* [ ] **Indexing that doesn't freeze the UI**.
+* [ ] **Predictable image preview quality** (no "corrupted-looking" low-res placeholders).
+* [ ] **Configurable local caching** — "Keep X years offline."
+
+---
+
+# 🟧 P1 — High Priority (Search, Organization, AI, UX)
+
+## 🔥 P1.1 — Search & AI (Consumer expectation, but must be fixable)
+
+* [ ] **Dual Search Modes** — Classic (filters) + Ask (semantic).
+* [ ] **Pro Filters Panel** — Date ranges, camera model, lens, location radius, file type, album intersection, filename.
+* [ ] **Explain Results** — "Matched because: dog + backyard + 2023."
+* [ ] **Offline/on-device indexing** (faces, scenes, OCR).
+* [ ] **Manual tags/keywords**.
+* [ ] **Manual face/pet management** — merge/split, override misidentification.
+* [ ] **OCR search (text in photos)**.
+* [ ] **Face/Pet recognition quality & correction tools**.
+* [ ] **Unsupervised object clustering** (food, docs, receipts, screenshots).
+* [ ] **Smart Albums** — dynamic, rule-based.
+
+## 🔥 P1.2 — Library Organization (UX friction)
+
+* [ ] **Folders + Albums + Hierarchy** (Lightroom-like DAM patterns).
+* [ ] **Multiple views** — timeline, map, folders, people, pets, docs, screenshots.
+* [ ] **High-performance web UI** (fixes iCloud/Amazon/Dropbox pain).
+* [ ] **Fix broken album references** automatically.
+* [ ] **Robust EXIF edit tools** — date/time shift, location edit.
+
+## 🔥 P1.3 — Sync / OS Model Clarity
+
+* [ ] **Explicit folder opt-in** — No auto-moving Desktop/Documents/Pictures.
+* [ ] **Device roles** — Sync source, archive source, viewer-only.
+* [ ] **Sandboxed vendor integrations** (Samsung/OneDrive-style conflicts eliminated).
+
+## 🔥 P1.4 — Offline Mode
+
+* [ ] **Pin albums for offline**.
+* [ ] **Offline editing**.
+* [ ] **Offline search** (metadata + thumbnails).
+* [ ] **Offline timeline browsing** without lag.
+
+---
+
+# 🟨 P2 — Medium Priority (Editing, Sharing, UX polish)
+
+## P2.1 — Editing Tools
+
+* [ ] Basic editor: crop, rotate, color sliders, exposure.
+* [ ] Advanced: curves, selective adjustments, noise reduction (Apple-quality).
+* [ ] AI tools:
+  * Magic Eraser / object removal
+  * Unblur/sharpen
+  * Portrait relight
+* [ ] Auto-enhance pipeline.
+* [ ] Collages, animations, GIFs.
+* [ ] Auto-generated highlight reels ("Memories" equivalent).
+* [ ] Video trim, stabilize, color adjust.
+
+*(Editing matters but does not prevent churn like sync/migration issues do.)*
+
+## P2.2 — Sharing & Collaboration
+
+* [ ] Shared albums.
+* [ ] Collaborative albums (contributors).
+* [ ] Auto-updating shared albums (person/pet-based).
+* [ ] Family Library model with private subspaces.
+* [ ] Public/private/expiring/password links.
+* [ ] Event shares via QR/URL (wedding/birthday dropbox).
+* [ ] Smart display integrations (Fire TV / Chromecast / Apple TV).
+
+## P2.3 — Multi-User & Family Features
+
+* [ ] Kid-photo auto-collection (multi-parent ingestion).
+* [ ] Private spaces for adults.
+* [ ] Shared settings overview ("Who sees what?").
+
+---
+
+# 🟩 P3 — Nice-to-Haves & Differentiators (Delighters)
+
+## P3.1 — Hybrid Local/Cloud Models
+
+* [ ] NAS/Local Drive integration (Synology/Nextcloud-style).
+* [ ] "Mirror to external drive" option.
+* [ ] Peer-to-peer device sync as backup fallback.
+
+## P3.2 — Smart Cleanup Tools
+
+* [ ] Bulk remove screenshots.
+* [ ] Remove blurry photos.
+* [ ] Remove near-duplicates but keep "best shot."
+* [ ] Identify docs, receipts, memes.
+
+## P3.3 — Creativity & Fun
+
+* [ ] Generative AI memes ("Me Meme" style).
+* [ ] Photo → stylized art transforms ("Remix").
+* [ ] Automatic photo-to-video stories.
+* [ ] Filters marketplace / community presets.
+
+## P3.4 — Premium Power Options
+
+* [ ] Pro camera upload (RAW+JPEG pairing).
+* [ ] AI caption generation.
+* [ ] Album timeline/notes (journaling).
+* [ ] Batch metadata editing.
+* [ ] Editing history + version control.
+
+---
+
+# 🟥 P0–P3 Consolidated Ranked Master Checklist (Everything)
+
+Here is the full list, sorted top → bottom by priority and consumer sentiment weight:
+
+1. **True Backup Mode (Archive Vault)**
+2. **Sync Health Dashboard**
+3. **Audit & Repair**
+4. **Per-item Truth Panel**
+5. **Deletion Contract UI**
+6. **Explicit Delete Actions**
+7. **Duplicate Prevention**
+8. **Duplicate Detection + Merge**
+9. **Export Originals + Metadata + Albums**
+10. **Export Verification Report**
+11. **Direct Import Connectors**
+12. **Privacy Dial**
+13. **E2EE Vault**
+14. **Transparent AI data use**
+15. **Moderation appeals / human review**
+16. **Offline caching + local pinning**
+17. **High-performance timeline scrolling**
+18. **Dual Search Modes: Ask + Classic**
+19. **Pro Filters Panel**
+20. **Explain Results**
+21. **Manual tagging / face editing**
+22. **OCR search**
+23. **Automatic smart albums**
+24. **Hierarchical folders/albums**
+25. **Robust web UI for huge libraries**
+26. **Advanced EXIF editing**
+27. **Explicit folder opt-in (no forced integration)**
+28. **Sandboxed vendor integrations**
+29. **Offline browsing**
+30. **Basic editing tools**
+31. **Advanced edits / AI edits**
+32. **Collages / animations / auto movies**
+33. **Shared albums & collaboration**
+34. **Auto-updating shared albums**
+35. **Family library with private zones**
+36. **Permissioned sharing (password/expire)**
+37. **Event QR upload links**
+38. **Smart display integrations**
+39. **Hybrid NAS/local modes**
+40. **External drive mirror**
+41. **Peer-to-peer sync fallback**
+42. **Screenshot/blurry cleanup**
+43. **Near-duplicate cleanup (best shot)**
+44. **Generative fun tools (memes, art)**
+45. **Photo-to-video stories**
+46. **Plugin/preset marketplace**
+47. **RAW+JPEG pairing**
+48. **AI captions**
+49. **Batch metadata editing**
+50. **Editing version history**
