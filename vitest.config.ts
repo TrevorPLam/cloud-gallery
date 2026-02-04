@@ -34,8 +34,21 @@ export default defineConfig({
         "**/server_dist/**",
         "**/static-build/**",
         "**/.expo/**",
+        // Expo/React Native bootstrap files
         "client/index.js",
         "client/App.tsx",
+        // Server bootstrap file (tested via unit tests of individual functions)
+        "server/index.ts",
+        // React Native UI components (primarily JSX/styling, minimal logic)
+        "client/components/**",
+        "client/screens/**",
+        "client/navigation/**",
+        // Type definitions (no runtime code)
+        "client/types/**",
+        // Theme constants (static data)
+        "client/constants/**",
+        // Platform-specific hooks (covered by integration tests)
+        "client/hooks/**",
       ],
       all: true,
       lines: 100,

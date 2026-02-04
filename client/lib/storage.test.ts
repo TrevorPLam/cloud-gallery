@@ -950,6 +950,24 @@ describe("Album Storage", () => {
       const savedPhotos = JSON.parse(photosCall![1]);
       expect(savedPhotos[0].albumIds).toEqual(["album2"]);
     });
+
+    it("should handle non-existent album in removePhotoFromAlbum", async () => {
+      vi.mocked(AsyncStorage.getItem).mockImplementation((key) => {
+        if (key === "@photo_vault_albums") {
+          return Promise.resolve("[]");
+        }
+        if (key === "@photo_vault_photos") {
+          return Promise.resolve("[]");
+        }
+        return Promise.resolve(null);
+      });
+
+      await removePhotoFromAlbum("nonexistent", "photo1");
+
+      // Should not throw, just return without saving
+      const setItemCalls = vi.mocked(AsyncStorage.setItem).mock.calls;
+      expect(setItemCalls).toHaveLength(0);
+    });
   });
 });
 
