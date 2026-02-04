@@ -1,12 +1,14 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import MainTabNavigator from "@/navigation/MainTabNavigator";
-import ModalScreen from "@/screens/ModalScreen";
+import PhotoDetailScreen from "@/screens/PhotoDetailScreen";
+import AlbumDetailScreen from "@/screens/AlbumDetailScreen";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
 
 export type RootStackParamList = {
   Main: undefined;
-  Modal: undefined;
+  PhotoDetail: { photoId: string; initialIndex: number };
+  AlbumDetail: { albumId: string; albumTitle: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -22,11 +24,19 @@ export default function RootStackNavigator() {
         options={{ headerShown: false }}
       />
       <Stack.Screen
-        name="Modal"
-        component={ModalScreen}
+        name="PhotoDetail"
+        component={PhotoDetailScreen}
         options={{
-          presentation: "modal",
-          headerTitle: "Modal",
+          headerShown: false,
+          presentation: "fullScreenModal",
+          animation: "fade",
+        }}
+      />
+      <Stack.Screen
+        name="AlbumDetail"
+        component={AlbumDetailScreen}
+        options={{
+          headerTitle: "Album",
         }}
       />
     </Stack.Navigator>
