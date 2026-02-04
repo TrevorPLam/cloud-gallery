@@ -10,11 +10,27 @@
 
 import type { Express } from "express";
 import { createServer, type Server } from "node:http";
+import authRoutes from "./auth-routes";
+import { authenticateToken, generalRateLimit } from "./auth";
 
 // AI-NOTE: Currently empty route registration; designed for expansion with /api prefixed routes
 export async function registerRoutes(app: Express): Promise<Server> {
   // put application routes here
   // prefix all routes with /api
+
+  // Authentication routes (with rate limiting)
+  app.use("/api/auth", authRoutes);
+
+  // Example protected route
+  app.get("/api/protected", authenticateToken, (req, res) => {
+    res.json({
+      message: "This is a protected route",
+      user: req.user,
+    });
+  });
+
+  // General API routes with rate limiting
+  app.use("/api", generalRateLimit);
 
   const httpServer = createServer(app);
 

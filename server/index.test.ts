@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import express, { type Request, type Response, type NextFunction } from "express";
+import express, {
+  type Request,
+  type Response,
+  type NextFunction,
+} from "express";
 import * as fs from "fs";
 
 // We'll need to test the individual functions by importing them
@@ -177,7 +181,10 @@ describe("Server index.ts", () => {
       expect(manifestExists).toBe(true);
 
       if (manifestExists) {
-        const manifest = fs.readFileSync("static-build/ios/manifest.json", "utf-8");
+        const manifest = fs.readFileSync(
+          "static-build/ios/manifest.json",
+          "utf-8",
+        );
         expect(JSON.parse(manifest)).toEqual({ version: "1.0.0" });
       }
     });
@@ -199,7 +206,10 @@ describe("Server index.ts", () => {
     it("should replace BASE_URL_PLACEHOLDER", () => {
       const landingPageTemplate = "Base URL: BASE_URL_PLACEHOLDER";
       const baseUrl = "https://example.com";
-      const html = landingPageTemplate.replace(/BASE_URL_PLACEHOLDER/g, baseUrl);
+      const html = landingPageTemplate.replace(
+        /BASE_URL_PLACEHOLDER/g,
+        baseUrl,
+      );
 
       expect(html).toBe("Base URL: https://example.com");
     });
@@ -207,7 +217,10 @@ describe("Server index.ts", () => {
     it("should replace EXPS_URL_PLACEHOLDER", () => {
       const landingPageTemplate = "Expo URL: EXPS_URL_PLACEHOLDER";
       const expsUrl = "example.com";
-      const html = landingPageTemplate.replace(/EXPS_URL_PLACEHOLDER/g, expsUrl);
+      const html = landingPageTemplate.replace(
+        /EXPS_URL_PLACEHOLDER/g,
+        expsUrl,
+      );
 
       expect(html).toBe("Expo URL: example.com");
     });
@@ -215,7 +228,10 @@ describe("Server index.ts", () => {
     it("should replace APP_NAME_PLACEHOLDER", () => {
       const landingPageTemplate = "App: APP_NAME_PLACEHOLDER";
       const appName = "My App";
-      const html = landingPageTemplate.replace(/APP_NAME_PLACEHOLDER/g, appName);
+      const html = landingPageTemplate.replace(
+        /APP_NAME_PLACEHOLDER/g,
+        appName,
+      );
 
       expect(html).toBe("App: My App");
     });
@@ -280,7 +296,8 @@ describe("Server index.ts", () => {
       };
 
       const platform = mockReq.header("expo-platform");
-      const shouldServeManifest = platform && (platform === "ios" || platform === "android");
+      const shouldServeManifest =
+        platform && (platform === "ios" || platform === "android");
 
       expect(shouldServeManifest).toBe(true);
     });
@@ -295,7 +312,8 @@ describe("Server index.ts", () => {
       };
 
       const platform = mockReq.header("expo-platform");
-      const shouldServeManifest = platform && (platform === "ios" || platform === "android");
+      const shouldServeManifest =
+        platform && (platform === "ios" || platform === "android");
 
       expect(shouldServeManifest).toBe(true);
     });
@@ -310,7 +328,8 @@ describe("Server index.ts", () => {
       };
 
       const platform = mockReq.header("expo-platform");
-      const shouldServeManifest = platform && (platform === "ios" || platform === "android");
+      const shouldServeManifest =
+        platform && (platform === "ios" || platform === "android");
 
       expect(shouldServeManifest).toBe(false);
     });
@@ -399,14 +418,16 @@ describe("Server index.ts", () => {
 
     it("should truncate long log lines", () => {
       const logLine = "x".repeat(100);
-      const truncated = logLine.length > 80 ? logLine.slice(0, 79) + "…" : logLine;
+      const truncated =
+        logLine.length > 80 ? logLine.slice(0, 79) + "…" : logLine;
       expect(truncated.length).toBe(80);
       expect(truncated.endsWith("…")).toBe(true);
     });
 
     it("should not truncate short log lines", () => {
       const logLine = "GET /api/users 200 in 10ms";
-      const truncated = logLine.length > 80 ? logLine.slice(0, 79) + "…" : logLine;
+      const truncated =
+        logLine.length > 80 ? logLine.slice(0, 79) + "…" : logLine;
       expect(truncated).toBe(logLine);
     });
 

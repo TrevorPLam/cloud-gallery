@@ -33,26 +33,37 @@ export function StorageBar({ usedBytes, totalBytes }: StorageBarProps) {
   const percentage = Math.min((usedBytes / totalBytes) * 100, 100);
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundDefault }]}>
+    <View
+      style={[styles.container, { backgroundColor: theme.backgroundDefault }]}
+    >
       <View style={styles.header}>
         <ThemedText type="h4">Storage</ThemedText>
         <ThemedText type="small" style={{ color: theme.textSecondary }}>
           {formatBytes(usedBytes)} of {formatBytes(totalBytes)}
         </ThemedText>
       </View>
-      <View style={[styles.barContainer, { backgroundColor: theme.backgroundTertiary }]}>
+      <View
+        style={[
+          styles.barContainer,
+          { backgroundColor: theme.backgroundTertiary },
+        ]}
+      >
         <View
           style={[
             styles.barFill,
             {
               width: `${percentage}%`,
               // AI-NOTE: Visual warning when storage > 90% full
-              backgroundColor: percentage > 90 ? theme.error : Colors.light.accent,
+              backgroundColor:
+                percentage > 90 ? theme.error : Colors.light.accent,
             },
           ]}
         />
       </View>
-      <ThemedText type="small" style={[styles.percentText, { color: theme.textSecondary }]}>
+      <ThemedText
+        type="small"
+        style={[styles.percentText, { color: theme.textSecondary }]}
+      >
         {percentage.toFixed(1)}% used
       </ThemedText>
     </View>

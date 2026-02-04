@@ -24,7 +24,8 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const NUM_COLUMNS = 3;
 const GAP = Spacing.photoGap;
-const PHOTO_SIZE = (SCREEN_WIDTH - GAP * (NUM_COLUMNS - 1) - Spacing.lg * 2) / NUM_COLUMNS;
+const PHOTO_SIZE =
+  (SCREEN_WIDTH - GAP * (NUM_COLUMNS - 1) - Spacing.lg * 2) / NUM_COLUMNS;
 
 interface SkeletonLoaderProps {
   type: "photos" | "albums";
@@ -36,11 +37,7 @@ function SkeletonItem({ delay, size }: { delay: number; size: number }) {
   const opacity = useSharedValue(0.3);
 
   useEffect(() => {
-    opacity.value = withRepeat(
-      withTiming(0.7, { duration: 800 }),
-      -1,
-      true
-    );
+    opacity.value = withRepeat(withTiming(0.7, { duration: 800 }), -1, true);
   }, []);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -68,11 +65,7 @@ function AlbumSkeletonItem({ delay }: { delay: number }) {
   const opacity = useSharedValue(0.3);
 
   useEffect(() => {
-    opacity.value = withRepeat(
-      withTiming(0.7, { duration: 800 }),
-      -1,
-      true
-    );
+    opacity.value = withRepeat(withTiming(0.7, { duration: 800 }), -1, true);
   }, []);
 
   const animatedStyle = useAnimatedStyle(() => ({

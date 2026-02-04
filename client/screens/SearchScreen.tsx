@@ -38,7 +38,8 @@ import { RootStackParamList } from "@/navigation/RootStackNavigator";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const NUM_COLUMNS = 3;
 const GAP = Spacing.photoGap;
-const PHOTO_SIZE = (SCREEN_WIDTH - GAP * (NUM_COLUMNS - 1) - Spacing.lg * 2) / NUM_COLUMNS;
+const PHOTO_SIZE =
+  (SCREEN_WIDTH - GAP * (NUM_COLUMNS - 1) - Spacing.lg * 2) / NUM_COLUMNS;
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -100,7 +101,7 @@ export default function SearchScreen() {
   useFocusEffect(
     useCallback(() => {
       loadPhotos();
-    }, [loadPhotos])
+    }, [loadPhotos]),
   );
 
   useEffect(() => {
@@ -122,7 +123,10 @@ export default function SearchScreen() {
 
   const handlePhotoPress = (photo: Photo, index: number) => {
     const photoIndex = photos.findIndex((p) => p.id === photo.id);
-    navigation.navigate("PhotoDetail", { photoId: photo.id, initialIndex: photoIndex });
+    navigation.navigate("PhotoDetail", {
+      photoId: photo.id,
+      initialIndex: photoIndex,
+    });
   };
 
   const handleSuggestion = (type: string) => {
@@ -142,11 +146,19 @@ export default function SearchScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
-      <View style={[styles.searchContainer, { paddingTop: insets.top + Spacing.lg }]}>
+      <View
+        style={[
+          styles.searchContainer,
+          { paddingTop: insets.top + Spacing.lg },
+        ]}
+      >
         <View
           style={[
             styles.searchBar,
-            { backgroundColor: theme.backgroundDefault, borderColor: theme.border },
+            {
+              backgroundColor: theme.backgroundDefault,
+              borderColor: theme.border,
+            },
           ]}
         >
           <Feather name="search" size={20} color={theme.textSecondary} />
@@ -199,8 +211,12 @@ export default function SearchScreen() {
             paddingBottom: tabBarHeight + Spacing.xl,
           }}
         >
-          <ThemedText type="small" style={[styles.resultCount, { color: theme.textSecondary }]}>
-            {filteredPhotos.length} {filteredPhotos.length === 1 ? "result" : "results"}
+          <ThemedText
+            type="small"
+            style={[styles.resultCount, { color: theme.textSecondary }]}
+          >
+            {filteredPhotos.length}{" "}
+            {filteredPhotos.length === 1 ? "result" : "results"}
           </ThemedText>
           <View style={styles.resultsGrid}>
             {filteredPhotos.map((photo, index) => (

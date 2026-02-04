@@ -70,7 +70,10 @@ export function AlbumCard({ album, onPress, onLongPress }: AlbumCardProps) {
       testID={`album-card-${album.id}`}
     >
       <View
-        style={[styles.coverContainer, { backgroundColor: theme.backgroundTertiary }]}
+        style={[
+          styles.coverContainer,
+          { backgroundColor: theme.backgroundTertiary },
+        ]}
       >
         {album.coverPhotoUri ? (
           <Image
@@ -91,7 +94,8 @@ export function AlbumCard({ album, onPress, onLongPress }: AlbumCardProps) {
           type="small"
           style={[styles.count, { color: theme.textSecondary }]}
         >
-          {album.photoIds.length} {album.photoIds.length === 1 ? "photo" : "photos"}
+          {album.photoIds.length}{" "}
+          {album.photoIds.length === 1 ? "photo" : "photos"}
         </ThemedText>
       </View>
     </AnimatedPressable>

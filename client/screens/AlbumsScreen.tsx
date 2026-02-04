@@ -59,7 +59,7 @@ export default function AlbumsScreen() {
   useFocusEffect(
     useCallback(() => {
       loadAlbums();
-    }, [loadAlbums])
+    }, [loadAlbums]),
   );
 
   const handleCreateAlbum = async () => {
@@ -76,7 +76,10 @@ export default function AlbumsScreen() {
   };
 
   const handleAlbumPress = (album: Album) => {
-    navigation.navigate("AlbumDetail", { albumId: album.id, albumTitle: album.title });
+    navigation.navigate("AlbumDetail", {
+      albumId: album.id,
+      albumTitle: album.title,
+    });
   };
 
   const handleAlbumLongPress = async (album: Album) => {
@@ -157,7 +160,10 @@ export default function AlbumsScreen() {
           onPress={() => setShowCreateModal(false)}
         >
           <Pressable
-            style={[styles.modalContent, { backgroundColor: theme.backgroundDefault }]}
+            style={[
+              styles.modalContent,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
             onPress={() => {}}
           >
             <ThemedText type="h3" style={styles.modalTitle}>

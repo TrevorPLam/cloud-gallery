@@ -19,8 +19,8 @@ export type ErrorBoundaryProps = PropsWithChildren<{
 type ErrorBoundaryState = { error: Error | null };
 
 /**
- * AI-NOTE: Error boundaries must be class components because React only provides 
- * error boundary functionality through lifecycle methods (componentDidCatch and 
+ * AI-NOTE: Error boundaries must be class components because React only provides
+ * error boundary functionality through lifecycle methods (componentDidCatch and
  * getDerivedStateFromError) which are not available in functional components.
  * https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary
  */

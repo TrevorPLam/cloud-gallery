@@ -9,7 +9,14 @@
 // AI-META-END
 
 import React, { useState, useCallback } from "react";
-import { StyleSheet, View, ScrollView, Image, Pressable, Platform } from "react-native";
+import {
+  StyleSheet,
+  View,
+  ScrollView,
+  Image,
+  Pressable,
+  Platform,
+} from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
@@ -51,7 +58,7 @@ export default function ProfileScreen() {
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [loadData])
+    }, [loadData]),
   );
 
   const handleClearData = async () => {
@@ -73,7 +80,12 @@ export default function ProfileScreen() {
       scrollIndicatorInsets={{ bottom: insets.bottom }}
     >
       <View style={styles.profileHeader}>
-        <View style={[styles.avatarContainer, { backgroundColor: theme.backgroundDefault }]}>
+        <View
+          style={[
+            styles.avatarContainer,
+            { backgroundColor: theme.backgroundDefault },
+          ]}
+        >
           {profile?.avatarUri ? (
             <Image source={{ uri: profile.avatarUri }} style={styles.avatar} />
           ) : (
@@ -86,27 +98,46 @@ export default function ProfileScreen() {
         <ThemedText type="h2" style={styles.name}>
           {profile?.name || "Guest User"}
         </ThemedText>
-        <ThemedText type="small" style={[styles.email, { color: theme.textSecondary }]}>
+        <ThemedText
+          type="small"
+          style={[styles.email, { color: theme.textSecondary }]}
+        >
           {profile?.email || "guest@example.com"}
         </ThemedText>
       </View>
 
       <View style={styles.statsRow}>
-        <View style={[styles.statCard, { backgroundColor: theme.backgroundDefault }]}>
+        <View
+          style={[
+            styles.statCard,
+            { backgroundColor: theme.backgroundDefault },
+          ]}
+        >
           <Feather name="image" size={24} color={Colors.light.accent} />
           <ThemedText type="h3" style={styles.statValue}>
             {storageInfo?.photoCount || 0}
           </ThemedText>
-          <ThemedText type="small" style={[styles.statLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            type="small"
+            style={[styles.statLabel, { color: theme.textSecondary }]}
+          >
             Photos
           </ThemedText>
         </View>
-        <View style={[styles.statCard, { backgroundColor: theme.backgroundDefault }]}>
+        <View
+          style={[
+            styles.statCard,
+            { backgroundColor: theme.backgroundDefault },
+          ]}
+        >
           <Feather name="folder" size={24} color={Colors.light.accent} />
           <ThemedText type="h3" style={styles.statValue}>
             {storageInfo?.albumCount || 0}
           </ThemedText>
-          <ThemedText type="small" style={[styles.statLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            type="small"
+            style={[styles.statLabel, { color: theme.textSecondary }]}
+          >
             Albums
           </ThemedText>
         </View>
@@ -121,7 +152,9 @@ export default function ProfileScreen() {
         ) : null}
       </View>
 
-      <View style={[styles.section, { backgroundColor: theme.backgroundDefault }]}>
+      <View
+        style={[styles.section, { backgroundColor: theme.backgroundDefault }]}
+      >
         <ThemedText
           type="small"
           style={[styles.sectionTitle, { color: theme.textSecondary }]}
@@ -139,7 +172,9 @@ export default function ProfileScreen() {
         />
       </View>
 
-      <View style={[styles.section, { backgroundColor: theme.backgroundDefault }]}>
+      <View
+        style={[styles.section, { backgroundColor: theme.backgroundDefault }]}
+      >
         <ThemedText
           type="small"
           style={[styles.sectionTitle, { color: theme.textSecondary }]}
@@ -166,7 +201,9 @@ export default function ProfileScreen() {
         />
       </View>
 
-      <View style={[styles.section, { backgroundColor: theme.backgroundDefault }]}>
+      <View
+        style={[styles.section, { backgroundColor: theme.backgroundDefault }]}
+      >
         <ThemedText
           type="small"
           style={[styles.sectionTitle, { color: theme.textSecondary }]}
@@ -183,7 +220,10 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.footer}>
-        <ThemedText type="small" style={[styles.version, { color: theme.textSecondary }]}>
+        <ThemedText
+          type="small"
+          style={[styles.version, { color: theme.textSecondary }]}
+        >
           Photo Vault v1.0.0
         </ThemedText>
       </View>

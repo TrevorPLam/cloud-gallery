@@ -400,9 +400,7 @@ describe("Photo Storage", () => {
           albumIds: [],
         },
       ];
-      vi.mocked(AsyncStorage.getItem).mockResolvedValue(
-        JSON.stringify(photos),
-      );
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(JSON.stringify(photos));
 
       const result = await toggleFavorite("1");
 
@@ -426,9 +424,7 @@ describe("Photo Storage", () => {
           albumIds: [],
         },
       ];
-      vi.mocked(AsyncStorage.getItem).mockResolvedValue(
-        JSON.stringify(photos),
-      );
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(JSON.stringify(photos));
 
       const result = await toggleFavorite("1");
 
@@ -571,9 +567,7 @@ describe("Album Storage", () => {
           modifiedAt: 2000,
         },
       ];
-      vi.mocked(AsyncStorage.getItem).mockResolvedValue(
-        JSON.stringify(albums),
-      );
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(JSON.stringify(albums));
 
       await deleteAlbum("1");
 
@@ -1453,5 +1447,332 @@ describe("groupPhotosByDate", () => {
     // Old dates should be sorted newest first
     expect(groups[2].title).toBe("June 2020");
     expect(groups[3].title).toBe("December 2019");
+  });
+});
+
+// Edge case and boundary condition tests
+describe("Storage Edge Cases", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("Photo Boundary Conditions", () => {
+    it("should handle photos with extreme dimensions", async () => {
+      const extremePhotos = [
+        {
+          id: "extreme1",
+          uri: "photo1.jpg",
+          width: 1,
+          height: 1,
+          createdAt: Date.now(),
+          modifiedAt: Date.now(),
+          filename: "photo1.jpg",
+          isFavorite: false,
+          albumIds: [],
+        },
+        {
+          id: "extreme2",
+          uri: "photo2.jpg",
+          width: 10000,
+          height: 10000,
+          createdAt: Date.now(),
+          modifiedAt: Date.now(),
+          filename: "photo2.jpg",
+          isFavorite: false,
+          albumIds: [],
+        },
+      ];
+
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(null);
+      vi.mocked(AsyncStorage.setItem).mockResolvedValue();
+
+      await savePhotos(extremePhotos);
+
+      // Mock the retrieval to return the saved photos
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(
+        JSON.stringify(extremePhotos),
+      );
+
+      const retrieved = await getPhotos();
+
+      expect(retrieved).toHaveLength(2);
+      expect(retrieved[0].width).toBe(1);
+      expect(retrieved[1].width).toBe(10000);
+    });
+
+    it("should handle empty photo arrays gracefully", async () => {
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue("[]");
+      vi.mocked(AsyncStorage.setItem).mockResolvedValue();
+
+      await savePhotos([]);
+      const retrieved = await getPhotos();
+
+      expect(retrieved).toEqual([]);
+      expect(vi.mocked(AsyncStorage.setItem)).toHaveBeenCalledWith(
+        "@photo_vault_photos",
+        "[]",
+      );
+    });
+
+    it("should handle malformed photo data", async () => {
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue("invalid json");
+      vi.mocked(AsyncStorage.setItem).mockResolvedValue();
+
+      const retrieved = await getPhotos();
+
+      expect(retrieved).toEqual([]);
+    });
+  });
+
+  describe("Album Boundary Conditions", () => {
+    it("should handle albums with edge case titles", async () => {
+      const edgeCaseAlbums = [
+        {
+          id: "album1",
+          title: "",
+          photoIds: [],
+          createdAt: Date.now(),
+          modifiedAt: Date.now(),
+          coverPhotoUri: null,
+        },
+        {
+          id: "album2",
+          title: "A".repeat(1000),
+          photoIds: [],
+          createdAt: Date.now(),
+          modifiedAt: Date.now(),
+          coverPhotoUri: null,
+        },
+        {
+          id: "album3",
+          title: "📸🎨🎭🎪🎨📸",
+          photoIds: [],
+          createdAt: Date.now(),
+          modifiedAt: Date.now(),
+          coverPhotoUri: null,
+        },
+      ];
+
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(null);
+      vi.mocked(AsyncStorage.setItem).mockResolvedValue();
+
+      await saveAlbums(edgeCaseAlbums);
+
+      // Mock the retrieval to return the saved albums
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(
+        JSON.stringify(edgeCaseAlbums),
+      );
+
+      const retrieved = await getAlbums();
+
+      expect(retrieved).toHaveLength(3);
+      expect(retrieved[0].title).toBe("");
+      expect(retrieved[1].title).toHaveLength(1000);
+      expect(retrieved[2].title).toBe("📸🎨🎭🎪🎨📸");
+    });
+
+    it("should handle albums with no photos", async () => {
+      const emptyAlbum = {
+        id: "empty-album",
+        title: "Empty Album",
+        photoIds: [],
+        createdAt: Date.now(),
+        modifiedAt: Date.now(),
+        coverPhotoUri: null,
+      };
+
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(null);
+      vi.mocked(AsyncStorage.setItem).mockResolvedValue();
+
+      await createAlbum(emptyAlbum.title);
+
+      // Mock the retrieval to return the created album
+      const createdAlbums = [
+        {
+          ...emptyAlbum,
+          id: expect.any(String), // Created album will have generated ID
+        },
+      ];
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(
+        JSON.stringify(createdAlbums),
+      );
+
+      const retrieved = await getAlbums();
+
+      expect(retrieved).toHaveLength(1);
+      expect(retrieved[0].photoIds).toEqual([]);
+      expect(retrieved[0].coverPhotoUri).toBeNull();
+    });
+  });
+
+  describe("User Profile Edge Cases", () => {
+    it("should handle user profiles with edge case data", async () => {
+      const edgeCaseProfiles = [
+        { name: "", email: "", avatarUri: null, createdAt: Date.now() },
+        {
+          name: "a".repeat(100),
+          email: "test@example.com",
+          avatarUri: null,
+          createdAt: Date.now(),
+        },
+        {
+          name: "👤 User",
+          email: "user@example.com",
+          avatarUri: "file://avatar.jpg",
+          createdAt: Date.now(),
+        },
+      ];
+
+      for (const profile of edgeCaseProfiles) {
+        vi.mocked(AsyncStorage.getItem).mockResolvedValue(null);
+        vi.mocked(AsyncStorage.setItem).mockResolvedValue();
+
+        await saveUserProfile(profile);
+
+        // Mock the retrieval to return the saved profile
+        vi.mocked(AsyncStorage.getItem).mockResolvedValue(
+          JSON.stringify(profile),
+        );
+
+        const retrieved = await getUserProfile();
+        expect(retrieved).toEqual(profile);
+      }
+    });
+
+    it("should handle missing user profile gracefully", async () => {
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(null);
+
+      const retrieved = await getUserProfile();
+
+      // getUserProfile returns a default profile when none exists
+      expect(retrieved).toEqual({
+        name: "Guest User",
+        email: "guest@example.com",
+        avatarUri: null,
+      });
+    });
+  });
+
+  describe("Storage Info Edge Cases", () => {
+    it("should calculate storage info for empty datasets", async () => {
+      vi.mocked(AsyncStorage.getItem)
+        .mockResolvedValueOnce("[]") // photos
+        .mockResolvedValueOnce("[]"); // albums
+
+      const info = await getStorageInfo();
+
+      expect(info.usedBytes).toBe(0);
+      expect(info.photoCount).toBe(0);
+      expect(info.albumCount).toBe(0);
+      expect(info.totalBytes).toBeGreaterThan(0);
+    });
+
+    it("should handle large datasets without overflow", async () => {
+      // Create a large dataset
+      const largePhotoSet = Array.from({ length: 1000 }, (_, i) => ({
+        id: `photo_${i}`,
+        uri: `photo_${i}.jpg`,
+        width: 1920,
+        height: 1080,
+        createdAt: Date.now() - i * 1000,
+        modifiedAt: Date.now() - i * 1000,
+        filename: `photo_${i}.jpg`,
+        isFavorite: i % 10 === 0,
+        albumIds: [],
+      }));
+
+      vi.mocked(AsyncStorage.getItem)
+        .mockResolvedValueOnce(JSON.stringify(largePhotoSet))
+        .mockResolvedValueOnce("[]");
+
+      const info = await getStorageInfo();
+
+      expect(info.photoCount).toBe(1000);
+      expect(info.usedBytes).toBeGreaterThan(0);
+      // Should not overflow
+      expect(info.usedBytes).toBeLessThan(Number.MAX_SAFE_INTEGER);
+    });
+  });
+
+  describe("Data Consistency Edge Cases", () => {
+    it("should handle orphaned photo references", async () => {
+      const albumsWithOrphanedRefs = [
+        {
+          id: "album1",
+          title: "Album 1",
+          photoIds: ["nonexistent1", "nonexistent2"],
+          createdAt: Date.now(),
+          modifiedAt: Date.now(),
+          coverPhotoUri: null,
+        },
+      ];
+
+      const photos = [
+        {
+          id: "photo1",
+          uri: "photo1.jpg",
+          width: 100,
+          height: 100,
+          createdAt: Date.now(),
+          modifiedAt: Date.now(),
+          filename: "photo1.jpg",
+          isFavorite: false,
+          albumIds: [],
+        },
+      ];
+
+      vi.mocked(AsyncStorage.getItem)
+        .mockResolvedValueOnce(JSON.stringify(photos))
+        .mockResolvedValueOnce(JSON.stringify(albumsWithOrphanedRefs));
+
+      const retrievedAlbums = await getAlbums();
+      const retrievedPhotos = await getPhotos();
+
+      expect(retrievedAlbums[0].photoIds).toContain("nonexistent1");
+      expect(retrievedPhotos[0].albumIds).toEqual([]);
+    });
+
+    it("should handle concurrent operations gracefully", async () => {
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue("[]");
+      vi.mocked(AsyncStorage.setItem).mockResolvedValue();
+
+      // Simulate concurrent photo additions
+      const concurrentOperations = Array.from({ length: 10 }, (_, i) =>
+        addPhoto({
+          id: `concurrent_${i}`,
+          uri: `photo_${i}.jpg`,
+          width: 100,
+          height: 100,
+          createdAt: Date.now(),
+          modifiedAt: Date.now(),
+          filename: `photo_${i}.jpg`,
+          isFavorite: false,
+          albumIds: [],
+        }),
+      );
+
+      await Promise.all(concurrentOperations);
+
+      // Mock retrieval to return all added photos
+      const allPhotos = Array.from({ length: 10 }, (_, i) => ({
+        id: `concurrent_${i}`,
+        uri: `photo_${i}.jpg`,
+        width: 100,
+        height: 100,
+        createdAt: Date.now(),
+        modifiedAt: Date.now(),
+        filename: `photo_${i}.jpg`,
+        isFavorite: false,
+        albumIds: [],
+      }));
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(
+        JSON.stringify(allPhotos),
+      );
+
+      const retrieved = await getPhotos();
+
+      expect(retrieved).toHaveLength(10);
+      expect(vi.mocked(AsyncStorage.setItem)).toHaveBeenCalledTimes(10);
+    });
   });
 });

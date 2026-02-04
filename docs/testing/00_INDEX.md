@@ -10,6 +10,7 @@ This directory contains comprehensive documentation for the Cloud Gallery testin
 - **[10_RUNNING_TESTS.md](./10_RUNNING_TESTS.md)** - How to run tests locally
 - **[20_COVERAGE.md](./20_COVERAGE.md)** - Coverage requirements and reporting
 - **[30_TEST_PATTERNS.md](./30_TEST_PATTERNS.md)** - Testing patterns and best practices
+- **[40_TEST_FACTORIES.md](./40_TEST_FACTORIES.md)** - Test factories and performance testing
 - **[99_EXCEPTIONS.md](./99_EXCEPTIONS.md)** - Coverage exceptions and justifications
 
 ## 🎯 Quick Start
@@ -33,12 +34,15 @@ npm run test:ui
 
 ## 📊 Current Status
 
-- **Total Tests**: 161 tests across 6 test files
-- **Coverage**: 100% line + branch coverage for first-party, non-generated code
+- **Total Tests**: 237 tests across 9 test files
+- **Coverage**: 99.11% line + 97.4% branch coverage for first-party, non-generated code
 - **Test Files**:
-  - `client/lib/storage.test.ts` - 52 tests
+  - `client/lib/storage.test.ts` - 67 tests (includes edge cases)
   - `client/lib/query-client.test.ts` - 28 tests
+  - `client/lib/storage.performance.test.ts` - 15 tests (new performance suite)
   - `server/index.test.ts` - 39 tests
+  - `server/middleware.test.ts` - 28 tests (includes HSTS preload)
+  - `server/security.test.ts` - 26 tests (includes sanitization fixes)
   - `server/storage.test.ts` - 17 tests
   - `server/routes.test.ts` - 5 tests
   - `shared/schema.test.ts` - 20 tests
@@ -124,15 +128,18 @@ Coverage reports are generated in:
 1. Read [10_RUNNING_TESTS.md](./10_RUNNING_TESTS.md) to learn how to run tests
 2. Review [20_COVERAGE.md](./20_COVERAGE.md) to understand coverage requirements
 3. Study [30_TEST_PATTERNS.md](./30_TEST_PATTERNS.md) for testing best practices
-4. Check [99_EXCEPTIONS.md](./99_EXCEPTIONS.md) for coverage exceptions
+4. Check [40_TEST_FACTORIES.md](./40_TEST_FACTORIES.md) for test data generation and performance testing
+5. Review [99_EXCEPTIONS.md](./99_EXCEPTIONS.md) for coverage exceptions
 
 ## 🤝 Contributing
 
 When adding new code:
-1. Write tests for all new logic
-2. Run `npm run test:coverage` to verify 100% coverage
-3. Update documentation if adding new patterns
-4. All PRs must maintain 100% coverage
+1. Write tests for all new logic using [test factories](./40_TEST_FACTORIES.md)
+2. Add edge case tests for boundary conditions
+3. Consider performance tests for critical paths
+4. Run `npm run test:coverage` to verify coverage
+5. Update documentation if adding new patterns
+6. All PRs must maintain high coverage standards
 
 ## 📞 Support
 

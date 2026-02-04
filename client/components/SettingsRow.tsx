@@ -64,11 +64,19 @@ export function SettingsRow({
       onPress={isSwitch ? undefined : handlePress}
       style={({ pressed }) => [
         styles.container,
-        { backgroundColor: pressed && !isSwitch ? theme.backgroundSecondary : "transparent" },
+        {
+          backgroundColor:
+            pressed && !isSwitch ? theme.backgroundSecondary : "transparent",
+        },
       ]}
       disabled={isSwitch}
     >
-      <View style={[styles.iconContainer, { backgroundColor: theme.backgroundTertiary }]}>
+      <View
+        style={[
+          styles.iconContainer,
+          { backgroundColor: theme.backgroundTertiary },
+        ]}
+      >
         <Feather name={icon} size={18} color={iconColor} />
       </View>
       <View style={styles.content}>
@@ -76,7 +84,10 @@ export function SettingsRow({
           {title}
         </ThemedText>
         {subtitle ? (
-          <ThemedText type="small" style={[styles.subtitle, { color: theme.textSecondary }]}>
+          <ThemedText
+            type="small"
+            style={[styles.subtitle, { color: theme.textSecondary }]}
+          >
             {subtitle}
           </ThemedText>
         ) : null}

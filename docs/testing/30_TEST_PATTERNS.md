@@ -47,6 +47,112 @@ describe("UserStorage", () => {
 });
 ```
 
+## Test Data Factories
+
+### Using Test Factories
+
+Use the centralized test factories for consistent test data:
+
+```typescript
+import { createTestPhoto, createTestAlbum, createTestData } from "../../tests/factories";
+
+describe("Photo Operations", () => {
+  it("should handle photo creation", () => {
+    // Arrange: Use factory for test data
+    const photo = createTestPhoto({
+      width: 1920,
+      height: 1080,
+      isFavorite: true,
+    });
+
+    // Act & Assert
+    expect(photo.width).toBe(1920);
+    expect(photo.isFavorite).toBe(true);
+  });
+
+  it("should handle large datasets", () => {
+    // Arrange: Use factory for bulk data
+    const { photos, albums } = createTestData(100, 10);
+
+    // Act & Assert
+    expect(photos).toHaveLength(100);
+    expect(albums).toHaveLength(10);
+  });
+});
+```
+
+### Edge Case Testing
+
+Use boundary test data for edge cases:
+
+```typescript
+import { boundaryTestData } from "../../tests/factories";
+
+describe("Edge Cases", () => {
+  it("should handle extreme photo dimensions", () => {
+    const extremePhotos = boundaryTestData.extremePhotos();
+    
+    extremePhotos.forEach(photo => {
+      expect(photo.width).toBeGreaterThan(0);
+      expect(photo.height).toBeGreaterThan(0);
+    });
+  });
+
+  it("should handle special characters in album titles", () => {
+    const edgeAlbums = boundaryTestData.extremeAlbums();
+    
+    edgeAlbums.forEach(album => {
+      expect(album.title).toBeDefined();
+      // Test Unicode, empty strings, long strings
+    });
+  });
+});
+```
+
+## Performance Testing
+
+### Performance Test Structure
+
+```typescript
+describe("Performance Tests", () => {
+  it("should handle large datasets efficiently", async () => {
+    const largeDataset = performanceTestData.largeDataset(1000, 50);
+    const startTime = performance.now();
+
+    // Act: Perform operation
+    await savePhotos(largeDataset.photos);
+    
+    const endTime = performance.now();
+    const duration = endTime - startTime;
+
+    // Assert: Performance threshold
+    expect(duration).toBeLessThan(1000); // Under 1 second
+  });
+});
+```
+
+### Memory Usage Testing
+
+```typescript
+it("should not cause memory leaks", async () => {
+  const initialMemory = (performance as any).memory?.usedJSHeapSize || 0;
+  
+  // Perform repeated operations
+  for (let i = 0; i < 100; i++) {
+    const testData = performanceTestData.largeDataset(100, 5);
+    await processPhotos(testData.photos);
+  }
+
+  // Force garbage collection if available
+  if (global.gc) global.gc();
+  
+  const finalMemory = (performance as any).memory?.usedJSHeapSize || 0;
+  const memoryIncrease = finalMemory - initialMemory;
+
+  expect(memoryIncrease).toBeLessThan(10 * 1024 * 1024); // Less than 10MB
+});
+```
+
 ## Mocking Patterns
 
 ### AsyncStorage Mock

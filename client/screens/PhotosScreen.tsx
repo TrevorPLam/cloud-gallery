@@ -49,7 +49,7 @@ export default function PhotosScreen() {
   useFocusEffect(
     useCallback(() => {
       loadPhotos();
-    }, [loadPhotos])
+    }, [loadPhotos]),
   );
 
   const handleUpload = async () => {
@@ -88,7 +88,10 @@ export default function PhotosScreen() {
   };
 
   const handlePhotoPress = (photo: Photo, index: number) => {
-    navigation.navigate("PhotoDetail", { photoId: photo.id, initialIndex: index });
+    navigation.navigate("PhotoDetail", {
+      photoId: photo.id,
+      initialIndex: index,
+    });
   };
 
   const groupedData = groupPhotosByDate(photos);

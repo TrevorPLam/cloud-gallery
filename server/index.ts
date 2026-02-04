@@ -44,26 +44,26 @@ function setupSecurityHeaders(app: express.Application) {
   const cspDirectives = isDevelopment
     ? {
         // Development: Relaxed CSP for hot reload and dev tools
-        'default-src': ["'self'"],
-        'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Allow dev tools
-        'style-src': ["'self'", "'unsafe-inline'"],
-        'img-src': ["'self'", 'data:', 'https:', 'http:'], // Allow localhost images
-        'font-src': ["'self'", 'data:'],
-        'connect-src': ["'self'", 'ws:', 'wss:', 'http:', 'https:'], // Allow hot reload
-        'frame-ancestors': ["'none'"],
+        "default-src": ["'self'"],
+        "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Allow dev tools
+        "style-src": ["'self'", "'unsafe-inline'"],
+        "img-src": ["'self'", "data:", "https:", "http:"], // Allow localhost images
+        "font-src": ["'self'", "data:"],
+        "connect-src": ["'self'", "ws:", "wss:", "http:", "https:"], // Allow hot reload
+        "frame-ancestors": ["'none'"],
       }
     : {
         // Production: Strict CSP
-        'default-src': ["'self'"],
-        'script-src': ["'self'"],
-        'style-src': ["'self'", "'unsafe-inline'"], // React Native Web needs inline styles
-        'img-src': ["'self'", 'data:', 'https:'],
-        'font-src': ["'self'", 'data:'],
-        'connect-src': ["'self'"],
-        'frame-ancestors': ["'none'"],
-        'base-uri': ["'self'"],
-        'form-action': ["'self'"],
-        'upgrade-insecure-requests': [],
+        "default-src": ["'self'"],
+        "script-src": ["'self'"],
+        "style-src": ["'self'", "'unsafe-inline'"], // React Native Web needs inline styles
+        "img-src": ["'self'", "data:", "https:"],
+        "font-src": ["'self'", "data:"],
+        "connect-src": ["'self'"],
+        "frame-ancestors": ["'none'"],
+        "base-uri": ["'self'"],
+        "form-action": ["'self'"],
+        "upgrade-insecure-requests": [],
       };
 
   app.use(
@@ -84,7 +84,7 @@ function setupSecurityHeaders(app: express.Application) {
         xXssProtection: true,
         referrerPolicy: true,
       },
-    })
+    }),
   );
 
   if (isDevelopment) {
@@ -157,7 +157,9 @@ function setupCors(app: express.Application) {
     next();
   });
 
-  log(`CORS: ${isDevelopment ? "Development" : "Production"} mode - ${allowedOrigins.size} allowed origins`);
+  log(
+    `CORS: ${isDevelopment ? "Development" : "Production"} mode - ${allowedOrigins.size} allowed origins`,
+  );
 }
 
 // PHASE 1D: Rate Limiting (production-ready configuration)
@@ -168,7 +170,7 @@ function setupRateLimiting(app: express.Application) {
       windowMs: 15 * 60 * 1000, // 15 minutes
       max: isDevelopment ? 1000 : 100, // Relaxed in dev, strict in prod
       message: "Too many requests from this IP, please try again later",
-    })
+    }),
   );
 
   // Stricter rate limit for auth endpoints (when they exist)
@@ -178,7 +180,7 @@ function setupRateLimiting(app: express.Application) {
       windowMs: 15 * 60 * 1000, // 15 minutes
       max: isDevelopment ? 100 : 10, // Very strict for auth
       message: "Too many authentication attempts, please try again later",
-    })
+    }),
   );
 
   log(`Rate limiting: ${isDevelopment ? "Relaxed (dev)" : "Strict (prod)"}`);
@@ -203,7 +205,7 @@ function setupBodyParsing(app: express.Application) {
     express.urlencoded({
       extended: false,
       limit: urlencodedLimit,
-    })
+    }),
   );
 
   // Request timeout to prevent slowloris attacks
@@ -244,7 +246,9 @@ function setupRequestLogging(app: express.Application) {
 
       // In development, log response for debugging
       if (isDevelopment && capturedJsonResponse) {
-        const sanitized = sanitizeForLogging(JSON.stringify(capturedJsonResponse));
+        const sanitized = sanitizeForLogging(
+          JSON.stringify(capturedJsonResponse),
+        );
         logLine += ` :: ${sanitized.substring(0, 100)}`;
       }
 

@@ -105,7 +105,7 @@ export async function deleteAlbum(albumId: string): Promise<void> {
 
 export async function addPhotosToAlbum(
   albumId: string,
-  photoIds: string[]
+  photoIds: string[],
 ): Promise<void> {
   const albums = await getAlbums();
   const photos = await getPhotos();
@@ -143,7 +143,7 @@ export async function addPhotosToAlbum(
 
 export async function removePhotoFromAlbum(
   albumId: string,
-  photoId: string
+  photoId: string,
 ): Promise<void> {
   const albums = await getAlbums();
   const photos = await getPhotos();
@@ -151,7 +151,7 @@ export async function removePhotoFromAlbum(
   if (albumIndex === -1) return;
 
   albums[albumIndex].photoIds = albums[albumIndex].photoIds.filter(
-    (id) => id !== photoId
+    (id) => id !== photoId,
   );
   albums[albumIndex].modifiedAt = Date.now();
 
@@ -160,7 +160,7 @@ export async function removePhotoFromAlbum(
     photos.find((p) => p.id === photoId)?.uri
   ) {
     const newCover = photos.find((p) =>
-      albums[albumIndex].photoIds.includes(p.id)
+      albums[albumIndex].photoIds.includes(p.id),
     );
     albums[albumIndex].coverPhotoUri = newCover?.uri || null;
   }
@@ -215,21 +215,23 @@ export async function clearAllData(): Promise<void> {
   await AsyncStorage.multiRemove([PHOTOS_KEY, ALBUMS_KEY, USER_KEY]);
 }
 
-export function groupPhotosByDate(photos: Photo[]): { title: string; data: Photo[] }[] {
+export function groupPhotosByDate(
+  photos: Photo[],
+): { title: string; data: Photo[] }[] {
   // AI-NOTE: Date grouping uses time ranges (today, yesterday, last week, etc.) for smart organization
   const now = Date.now();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayStart = today.getTime();
-  
+
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
   const yesterdayStart = yesterday.getTime();
-  
+
   const lastWeek = new Date(today);
   lastWeek.setDate(lastWeek.getDate() - 7);
   const lastWeekStart = lastWeek.getTime();
-  
+
   const lastMonth = new Date(today);
   lastMonth.setMonth(lastMonth.getMonth() - 1);
   const lastMonthStart = lastMonth.getTime();
@@ -264,7 +266,7 @@ export function groupPhotosByDate(photos: Photo[]): { title: string; data: Photo
 
   // AI-NOTE: Custom sort order prioritizes recent groups then falls back to chronological
   const order = ["Today", "Yesterday", "Last 7 Days", "Last Month"];
-  
+
   return Object.entries(groups)
     .sort(([a], [b]) => {
       const aIndex = order.indexOf(a);

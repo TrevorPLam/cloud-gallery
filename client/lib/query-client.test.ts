@@ -1,10 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-  getApiUrl,
-  apiRequest,
-  getQueryFn,
-  queryClient,
-} from "./query-client";
+import { getApiUrl, apiRequest, getQueryFn, queryClient } from "./query-client";
 
 describe("getApiUrl", () => {
   const originalEnv = process.env.EXPO_PUBLIC_DOMAIN;
@@ -206,7 +201,9 @@ describe("apiRequest", () => {
     await apiRequest("GET", "/api/users/123");
 
     const fetchCall = vi.mocked(global.fetch).mock.calls[0];
-    expect(fetchCall[0].toString()).toBe("https://api.example.com/api/users/123");
+    expect(fetchCall[0].toString()).toBe(
+      "https://api.example.com/api/users/123",
+    );
   });
 });
 
@@ -290,9 +287,9 @@ describe("getQueryFn", () => {
 
     const queryFn = getQueryFn({ on401: "returnNull" });
 
-    await expect(
-      queryFn({ queryKey: ["/api/error"] } as any),
-    ).rejects.toThrow("500: Server error");
+    await expect(queryFn({ queryKey: ["/api/error"] } as any)).rejects.toThrow(
+      "500: Server error",
+    );
   });
 
   it("should throw on 403 even with returnNull", async () => {

@@ -18,7 +18,12 @@ import {
   FlatList,
   Dimensions,
 } from "react-native";
-import { useRoute, useNavigation, useFocusEffect, RouteProp } from "@react-navigation/native";
+import {
+  useRoute,
+  useNavigation,
+  useFocusEffect,
+  RouteProp,
+} from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -26,7 +31,12 @@ import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 import { Photo, Album } from "@/types";
-import { getPhotos, getAlbums, addPhotosToAlbum, removePhotoFromAlbum } from "@/lib/storage";
+import {
+  getPhotos,
+  getAlbums,
+  addPhotosToAlbum,
+  removePhotoFromAlbum,
+} from "@/lib/storage";
 import { EmptyState } from "@/components/EmptyState";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
@@ -38,7 +48,8 @@ import { RootStackParamList } from "@/navigation/RootStackNavigator";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const NUM_COLUMNS = 3;
 const GAP = Spacing.photoGap;
-const PHOTO_SIZE = (SCREEN_WIDTH - GAP * (NUM_COLUMNS - 1) - Spacing.lg * 2) / NUM_COLUMNS;
+const PHOTO_SIZE =
+  (SCREEN_WIDTH - GAP * (NUM_COLUMNS - 1) - Spacing.lg * 2) / NUM_COLUMNS;
 
 type AlbumDetailRouteProp = RouteProp<RootStackParamList, "AlbumDetail">;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -65,7 +76,7 @@ export default function AlbumDetailScreen() {
 
     if (currentAlbum) {
       const photosInAlbum = photos.filter((p) =>
-        currentAlbum.photoIds.includes(p.id)
+        currentAlbum.photoIds.includes(p.id),
       );
       setAlbumPhotos(photosInAlbum);
     }
@@ -74,7 +85,7 @@ export default function AlbumDetailScreen() {
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [loadData])
+    }, [loadData]),
   );
 
   React.useLayoutEffect(() => {
@@ -97,7 +108,10 @@ export default function AlbumDetailScreen() {
 
   const handlePhotoPress = (photo: Photo) => {
     const index = allPhotos.findIndex((p) => p.id === photo.id);
-    navigation.navigate("PhotoDetail", { photoId: photo.id, initialIndex: index });
+    navigation.navigate("PhotoDetail", {
+      photoId: photo.id,
+      initialIndex: index,
+    });
   };
 
   const handlePhotoLongPress = async (photo: Photo) => {
@@ -117,7 +131,7 @@ export default function AlbumDetailScreen() {
     setSelectedPhotoIds((prev) =>
       prev.includes(photoId)
         ? prev.filter((id) => id !== photoId)
-        : [...prev, photoId]
+        : [...prev, photoId],
     );
   };
 
@@ -134,7 +148,7 @@ export default function AlbumDetailScreen() {
 
   const availablePhotos = allPhotos.filter(
     // AI-NOTE: Filter out photos already in album to prevent duplicates in add modal
-    (p) => !album?.photoIds.includes(p.id)
+    (p) => !album?.photoIds.includes(p.id),
   );
 
   return (
@@ -181,8 +195,15 @@ export default function AlbumDetailScreen() {
         presentationStyle="pageSheet"
         onRequestClose={() => setShowAddModal(false)}
       >
-        <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
-          <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
+        <View
+          style={[
+            styles.modalContainer,
+            { backgroundColor: theme.backgroundRoot },
+          ]}
+        >
+          <View
+            style={[styles.modalHeader, { borderBottomColor: theme.border }]}
+          >
             <Pressable onPress={() => setShowAddModal(false)}>
               <ThemedText type="body">Cancel</ThemedText>
             </Pressable>
@@ -222,10 +243,7 @@ export default function AlbumDetailScreen() {
                 >
                   <Image
                     source={{ uri: item.uri }}
-                    style={[
-                      styles.photo,
-                      isSelected && styles.selectedPhoto,
-                    ]}
+                    style={[styles.photo, isSelected && styles.selectedPhoto]}
                     contentFit="cover"
                     transition={200}
                   />

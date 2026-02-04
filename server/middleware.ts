@@ -1,8 +1,8 @@
 // Security headers middleware for Express
 // Implements comprehensive HTTP security headers
 
-import type { Request, Response, NextFunction } from 'express';
-import { randomBytes } from 'crypto';
+import type { Request, Response, NextFunction } from "express";
+import { randomBytes } from "crypto";
 
 /**
  * Security headers configuration
@@ -33,16 +33,16 @@ export interface SecurityHeadersConfig {
  * Default CSP directives for a secure mobile app backend
  */
 const DEFAULT_CSP_DIRECTIVES: Record<string, string[]> = {
-  'default-src': ["'self'"],
-  'script-src': ["'self'"],
-  'style-src': ["'self'", "'unsafe-inline'"], // Allow inline styles for React Native Web
-  'img-src': ["'self'", 'data:', 'https:'],
-  'font-src': ["'self'", 'data:'],
-  'connect-src': ["'self'"],
-  'frame-ancestors': ["'none'"],
-  'base-uri': ["'self'"],
-  'form-action': ["'self'"],
-  'upgrade-insecure-requests': [],
+  "default-src": ["'self'"],
+  "script-src": ["'self'"],
+  "style-src": ["'self'", "'unsafe-inline'"], // Allow inline styles for React Native Web
+  "img-src": ["'self'", "data:", "https:"],
+  "font-src": ["'self'", "data:"],
+  "connect-src": ["'self'"],
+  "frame-ancestors": ["'none'"],
+  "base-uri": ["'self'"],
+  "form-action": ["'self'"],
+  "upgrade-insecure-requests": [],
 };
 
 /**
@@ -54,14 +54,14 @@ function buildCSP(directives: Record<string, string[]>): string {
       if (values.length === 0) {
         return key;
       }
-      return `${key} ${values.join(' ')}`;
+      return `${key} ${values.join(" ")}`;
     })
-    .join('; ');
+    .join("; ");
 }
 
 /**
  * Security headers middleware
- * 
+ *
  * Adds comprehensive security headers to all responses:
  * - Content Security Policy (CSP)
  * - HTTP Strict Transport Security (HSTS)
@@ -69,13 +69,13 @@ function buildCSP(directives: Record<string, string[]>): string {
  * - X-Content-Type-Options (MIME sniffing protection)
  * - X-XSS-Protection (XSS filter)
  * - Referrer-Policy (referrer information control)
- * 
+ *
  * @param config - Optional configuration for security headers
  * @returns Express middleware function
- * 
+ *
  * @example
  * app.use(securityHeaders());
- * 
+ *
  * @example
  * // Custom CSP
  * app.use(securityHeaders({
@@ -89,7 +89,7 @@ function buildCSP(directives: Record<string, string[]>): string {
  * }));
  */
 export function securityHeaders(
-  config: SecurityHeadersConfig = {}
+  config: SecurityHeadersConfig = {},
 ): (req: Request, res: Response, next: NextFunction) => void {
   // Merge config with defaults
   const cspConfig = {
@@ -97,7 +97,7 @@ export function securityHeaders(
     directives: DEFAULT_CSP_DIRECTIVES,
     ...config.csp,
   };
-  
+
   const hstsConfig = {
     enabled: true,
     maxAge: 31536000, // 1 year
@@ -105,7 +105,7 @@ export function securityHeaders(
     preload: false,
     ...config.hsts,
   };
-  
+
   const otherHeadersConfig = {
     xFrameOptions: true,
     xContentTypeOptions: true,
@@ -113,55 +113,55 @@ export function securityHeaders(
     referrerPolicy: true,
     ...config.otherHeaders,
   };
-  
+
   return (req: Request, res: Response, next: NextFunction) => {
     // Content Security Policy
     if (cspConfig.enabled && cspConfig.directives) {
       const cspValue = buildCSP(cspConfig.directives);
-      res.setHeader('Content-Security-Policy', cspValue);
+      res.setHeader("Content-Security-Policy", cspValue);
     }
-    
+
     // HTTP Strict Transport Security
     if (hstsConfig.enabled) {
       let hstsValue = `max-age=${hstsConfig.maxAge}`;
       if (hstsConfig.includeSubDomains) {
-        hstsValue += '; includeSubDomains';
+        hstsValue += "; includeSubDomains";
       }
       if (hstsConfig.preload) {
-        hstsValue += '; preload';
+        hstsValue += "; preload";
       }
-      res.setHeader('Strict-Transport-Security', hstsValue);
+      res.setHeader("Strict-Transport-Security", hstsValue);
     }
-    
+
     // X-Frame-Options (prevent clickjacking)
     if (otherHeadersConfig.xFrameOptions) {
-      res.setHeader('X-Frame-Options', 'DENY');
+      res.setHeader("X-Frame-Options", "DENY");
     }
-    
+
     // X-Content-Type-Options (prevent MIME sniffing)
     if (otherHeadersConfig.xContentTypeOptions) {
-      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader("X-Content-Type-Options", "nosniff");
     }
-    
+
     // X-XSS-Protection (legacy XSS filter)
     if (otherHeadersConfig.xXssProtection) {
-      res.setHeader('X-XSS-Protection', '1; mode=block');
+      res.setHeader("X-XSS-Protection", "1; mode=block");
     }
-    
+
     // Referrer-Policy
     if (otherHeadersConfig.referrerPolicy) {
-      res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+      res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
     }
-    
+
     // Permissions-Policy (restrict browser features)
     res.setHeader(
-      'Permissions-Policy',
-      'geolocation=(), microphone=(), camera=()'
+      "Permissions-Policy",
+      "geolocation=(), microphone=(), camera=()",
     );
-    
+
     // Remove X-Powered-By header (information disclosure)
-    res.removeHeader('X-Powered-By');
-    
+    res.removeHeader("X-Powered-By");
+
     next();
   };
 }
@@ -169,10 +169,10 @@ export function securityHeaders(
 /**
  * Rate limiting middleware (simple in-memory implementation)
  * For production, use Redis-backed rate limiting
- * 
+ *
  * @param options - Rate limit configuration
  * @returns Express middleware function
- * 
+ *
  * @example
  * app.use('/api', rateLimit({ windowMs: 60000, max: 100 }));
  */
@@ -182,13 +182,17 @@ export function rateLimit(options: {
   message?: string;
 }): (req: Request, res: Response, next: NextFunction) => void {
   const requests = new Map<string, { count: number; resetTime: number }>();
-  
+
   return (req: Request, res: Response, next: NextFunction) => {
-    const key = req.ip || req.socket.remoteAddress || 'unknown';
+    // Get client IP, checking X-Forwarded-For header first (for proxied requests)
+    const forwardedFor = req.headers["x-forwarded-for"] as string;
+    const key = forwardedFor
+      ? forwardedFor.split(",")[0].trim() // Take first IP from X-Forwarded-For
+      : req.ip || req.socket.remoteAddress || "unknown";
     const now = Date.now();
-    
+
     let record = requests.get(key);
-    
+
     // Reset if window expired
     if (!record || now > record.resetTime) {
       record = {
@@ -197,22 +201,28 @@ export function rateLimit(options: {
       };
       requests.set(key, record);
     }
-    
+
     record.count++;
-    
+
     // Set rate limit headers
-    res.setHeader('X-RateLimit-Limit', options.max.toString());
-    res.setHeader('X-RateLimit-Remaining', Math.max(0, options.max - record.count).toString());
-    res.setHeader('X-RateLimit-Reset', new Date(record.resetTime).toISOString());
-    
+    res.setHeader("X-RateLimit-Limit", options.max.toString());
+    res.setHeader(
+      "X-RateLimit-Remaining",
+      Math.max(0, options.max - record.count).toString(),
+    );
+    res.setHeader(
+      "X-RateLimit-Reset",
+      new Date(record.resetTime).toISOString(),
+    );
+
     if (record.count > options.max) {
       res.status(429).json({
-        error: options.message || 'Too many requests, please try again later.',
+        error: options.message || "Too many requests, please try again later.",
         retryAfter: Math.ceil((record.resetTime - now) / 1000),
       });
       return;
     }
-    
+
     next();
   };
 }
@@ -220,29 +230,33 @@ export function rateLimit(options: {
 /**
  * Request ID middleware for correlation
  * Adds a unique request ID to each request for tracing
- * 
+ *
  * @returns Express middleware function
- * 
+ *
  * @example
  * app.use(requestId());
  */
-export function requestId(): (req: Request, res: Response, next: NextFunction) => void {
+export function requestId(): (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => void {
   return (req: Request, res: Response, next: NextFunction) => {
     // Use existing request ID if provided, otherwise generate a new one
-    const existingId = req.headers['x-request-id'] as string;
+    const existingId = req.headers["x-request-id"] as string;
     if (existingId) {
-      res.setHeader('X-Request-ID', existingId);
+      res.setHeader("X-Request-ID", existingId);
       next();
       return;
     }
-    
+
     // Generate cryptographically secure random ID
-    const randomPart = randomBytes(8).toString('hex');
+    const randomPart = randomBytes(8).toString("hex");
     const id = `req_${Date.now()}_${randomPart}`;
-    
-    req.headers['x-request-id'] = id;
-    res.setHeader('X-Request-ID', id);
-    
+
+    req.headers["x-request-id"] = id;
+    res.setHeader("X-Request-ID", id);
+
     next();
   };
 }

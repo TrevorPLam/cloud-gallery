@@ -32,10 +32,7 @@ import Animated, {
   withTiming,
   runOnJS,
 } from "react-native-reanimated";
-import {
-  Gesture,
-  GestureDetector,
-} from "react-native-gesture-handler";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { Photo } from "@/types";
 import { getPhotos, toggleFavorite, deletePhoto } from "@/lib/storage";
 import { ThemedText } from "@/components/ThemedText";
@@ -106,7 +103,8 @@ export default function PhotoDetailScreen() {
     if (photos.length === 1) {
       navigation.goBack();
     } else {
-      const newIndex = currentIndex === photos.length - 1 ? currentIndex - 1 : currentIndex;
+      const newIndex =
+        currentIndex === photos.length - 1 ? currentIndex - 1 : currentIndex;
       setCurrentIndex(newIndex);
       loadPhotos();
     }
@@ -153,7 +151,7 @@ export default function PhotoDetailScreen() {
         renderItem={renderPhoto}
         onMomentumScrollEnd={(event) => {
           const newIndex = Math.round(
-            event.nativeEvent.contentOffset.x / SCREEN_WIDTH
+            event.nativeEvent.contentOffset.x / SCREEN_WIDTH,
           );
           setCurrentIndex(newIndex);
         }}
@@ -179,15 +177,25 @@ export default function PhotoDetailScreen() {
             <View style={styles.headerButton} />
           </View>
 
-          <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.lg }]}>
+          <View
+            style={[
+              styles.footer,
+              { paddingBottom: insets.bottom + Spacing.lg },
+            ]}
+          >
             <Pressable onPress={handleShare} style={styles.footerButton}>
               <Feather name="share" size={24} color="#FFFFFF" />
             </Pressable>
-            <Pressable onPress={handleToggleFavorite} style={styles.footerButton}>
+            <Pressable
+              onPress={handleToggleFavorite}
+              style={styles.footerButton}
+            >
               <Feather
                 name={currentPhoto?.isFavorite ? "heart" : "heart"}
                 size={24}
-                color={currentPhoto?.isFavorite ? Colors.light.accent : "#FFFFFF"}
+                color={
+                  currentPhoto?.isFavorite ? Colors.light.accent : "#FFFFFF"
+                }
               />
             </Pressable>
             <Pressable onPress={handleDelete} style={styles.footerButton}>
