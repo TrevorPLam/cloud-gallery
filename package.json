@@ -18,7 +18,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "security:check": "./scripts/security-check.sh",
+    "security:audit": "npm audit --audit-level=moderate",
+    "security:sbom": "npx @cyclonedx/cyclonedx-npm --output-file sbom-cyclonedx.json"
   },
   "dependencies": {
     "@expo-google-fonts/nunito": "^0.4.2",

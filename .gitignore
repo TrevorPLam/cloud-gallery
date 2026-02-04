@@ -32,6 +32,7 @@ yarn-error.*
 
 # local env files
 .env*.local
+.env
 
 # typescript
 *.tsbuildinfo
@@ -44,3 +45,9 @@ app-example
 
 # test coverage
 coverage/
+
+# Security scan outputs
+npm-audit.json
+sbom-*.json
+licenses.json
+
