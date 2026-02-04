@@ -157,6 +157,9 @@ else
     print_status 0 "Security TODOs check"
 fi
 
+echo ""
+echo "🔍 Pen test scaffold available: scripts/pen-test.sh"
+
 # Summary
 echo ""
 echo "=========================================="

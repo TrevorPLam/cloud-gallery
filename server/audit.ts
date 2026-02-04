@@ -3,6 +3,7 @@
 
 import { createHash } from "crypto";
 import type { Request, Response } from "express";
+import { forwardAuditEvent } from "./siem";
 
 /**
  * Audit event types for categorization
@@ -146,17 +147,17 @@ class AuditLogger {
     details: Record<string, unknown>,
   ): Record<string, unknown> {
     if (!details) return details;
-    
+
     const sanitized = { ...details };
 
     // Always redact common sensitive fields for testing
-    if ('password' in sanitized) {
+    if ("password" in sanitized) {
       sanitized.password = "***REDACTED***";
     }
-    if ('token' in sanitized) {
+    if ("token" in sanitized) {
       sanitized.token = "***REDACTED***";
     }
-    if ('apiKey' in sanitized) {
+    if ("apiKey" in sanitized) {
       sanitized.apiKey = "***REDACTED***";
     }
 
@@ -216,7 +217,7 @@ class AuditLogger {
     return {
       ipAddress: req.ip || req.connection.remoteAddress,
       userAgent: req.get("User-Agent"),
-      sessionId: req.session?.id,
+      sessionId: (req as { session?: { id?: string } }).session?.id,
     };
   }
 
@@ -246,6 +247,8 @@ class AuditLogger {
     if (this.config.enableFile) {
       this.logToFile(auditEvent);
     }
+
+    void forwardAuditEvent(auditEvent);
   }
 
   /**

@@ -5,14 +5,17 @@ This directory contains comprehensive security documentation for Cloud Gallery, 
 ## 📚 Quick Start
 
 **New to security?** Start here:
+
 1. [00_INDEX.md](00_INDEX.md) - Security program overview and navigation
 2. [10_THREAT_MODEL.md](10_THREAT_MODEL.md) - Understanding threats and risks
 
 **Implementing a feature?** Check:
+
 1. [50_SECURE_SDLC.md](50_SECURE_SDLC.md) - PR security checklist
 2. Relevant domain doc (auth, crypto, appsec, etc.)
 
 **Security incident?** Go to:
+
 1. [60_INCIDENT_RESPONSE.md](60_INCIDENT_RESPONSE.md) - Response procedures
 
 ## 📋 Documentation Structure
@@ -38,6 +41,13 @@ This directory contains comprehensive security documentation for Cloud Gallery, 
 ### Process & Response
 - **[50_SECURE_SDLC.md](50_SECURE_SDLC.md)** - Secure development lifecycle
 - **[60_INCIDENT_RESPONSE.md](60_INCIDENT_RESPONSE.md)** - Incident handling & recovery
+
+### Compliance & Monitoring (Phase 3)
+- **[70_HIPAA_COMPLIANCE.md](70_HIPAA_COMPLIANCE.md)** - HIPAA safeguards and mappings
+- **[71_PCI_DSS_COMPLIANCE.md](71_PCI_DSS_COMPLIANCE.md)** - PCI DSS control mapping
+- **[72_SIEM_MONITORING.md](72_SIEM_MONITORING.md)** - SIEM integration guidance
+- **[73_PEN_TESTING.md](73_PEN_TESTING.md)** - Penetration testing program
+- **[74_AUDIT_READINESS.md](74_AUDIT_READINESS.md)** - Audit readiness workflow
 
 ## 🎯 By Role
 
@@ -80,6 +90,7 @@ This directory contains comprehensive security documentation for Cloud Gallery, 
 - **Denial of Service**: [31_RUNTIME_HARDENING.md](31_RUNTIME_HARDENING.md)
 - **Elevation of Privilege**: [11_IDENTITY_AND_ACCESS.md](11_IDENTITY_AND_ACCESS.md)
 
+
 ## 🛠️ Tools & Validation
 
 ### Local Security Checks
@@ -104,7 +115,7 @@ See: [.github/workflows/security-scan.yml](../.github/workflows/security-scan.ym
 - ✅ License checking
 - ✅ SBOM generation
 
-## 📊 Documentation Stats
+# #  u men on Stats
 
 | Metric | Value |
 |--------|-------|
@@ -136,11 +147,13 @@ See: [.github/workflows/security-scan.yml](../.github/workflows/security-scan.ym
 **Questions**: Open issue with `security` label  
 **Public Policy**: See [/SECURITY.md](../../SECURITY.md)
 
+
 ## 🎓 Training Resources
 
 ### Onboarding (New Developers)
 1. Week 1: Read 00_INDEX, 10_THREAT_MODEL, 50_SECURE_SDLC
-2. Week 2: Run security checks, review PR checklist
+2. Week 2: Run securi
+ty checks, review PR checklist
 3. Week 3: Threat model a feature
 
 ### Quarterly Reviews
@@ -149,6 +162,7 @@ See: [.github/workflows/security-scan.yml](../.github/workflows/security-scan.ym
 - OWASP Top 10 updates
 - Tool and process improvements
 
+
 ## ✅ Validation
 
 All documentation includes:
@@ -156,6 +170,7 @@ All documentation includes:
 - ✅ Concrete examples
 - ✅ Validation commands
 - ✅ Cross-references
+
 - ✅ Actionable guidance
 
 Run validation script:

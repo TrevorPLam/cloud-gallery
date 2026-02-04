@@ -106,6 +106,13 @@ Security must not depend on secrecy of implementation:
 - [**12_CRYPTO_POLICY.md**](./12_CRYPTO_POLICY.md) - Encryption, key management, TLS requirements
 - [**13_APPSEC_BOUNDARIES.md**](./13_APPSEC_BOUNDARIES.md) - Input validation, injection prevention, secure coding
 
+### Compliance & Monitoring (Phase 3)
+- [**70_HIPAA_COMPLIANCE.md**](./70_HIPAA_COMPLIANCE.md) - HIPAA safeguards and mappings
+- [**71_PCI_DSS_COMPLIANCE.md**](./71_PCI_DSS_COMPLIANCE.md) - PCI DSS control mapping
+- [**72_SIEM_MONITORING.md**](./72_SIEM_MONITORING.md) - SIEM integration guidance
+- [**73_PEN_TESTING.md**](./73_PEN_TESTING.md) - Penetration testing program
+- [**74_AUDIT_READINESS.md**](./74_AUDIT_READINESS.md) - Audit readiness workflow
+
 ### Related Documentation
 - [**Architecture Overview**](../architecture/10_OVERVIEW.md) - System design
 - [**Testing Guide**](../testing/00_INDEX.md) - Quality assurance

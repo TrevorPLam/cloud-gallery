@@ -1,6 +1,4 @@
-// Authentication routes for Cloud Gallery
-
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import { z } from "zod";
 import {
   hashPassword,
@@ -8,8 +6,16 @@ import {
   generateAccessToken,
   verifyAccessToken,
   generateRefreshToken,
+  checkPasswordBreach,
+  validatePasswordStrength,
 } from "./security";
 import { authenticateToken, authRateLimit } from "./auth";
+import { 
+  checkCaptchaRequirement, 
+  verifyCaptchaMiddleware, 
+  recordAuthFailure, 
+  recordAuthSuccess 
+} from "./auth-captcha-routes";
 import { logAuthEvent, logSecurityEvent, AuditEventType } from "./audit";
 
 const router = Router();
@@ -82,6 +88,15 @@ router.post("/register", authRateLimit, async (req: Request, res: Response) => {
       });
     }
 
+    // Check if password has been breached
+    const isBreached = await checkPasswordBreach(validatedData.password);
+    if (isBreached) {
+      return res.status(400).json({
+        error: "Breached password",
+        message: "This password has been found in known data breaches. Please choose a different password.",
+      });
+    }
+
     // Hash password
     const passwordHash = await hashPassword(validatedData.password);
 
@@ -132,7 +147,12 @@ router.post("/register", authRateLimit, async (req: Request, res: Response) => {
  * POST /api/auth/login
  * Authenticate user and return tokens
  */
-router.post("/login", authRateLimit, async (req: Request, res: Response) => {
+router.post(
+  "/login", 
+  authRateLimit, 
+  checkCaptchaRequirement,
+  verifyCaptchaMiddleware,
+  async (req: Request, res: Response) => {
   try {
     // Validate input
     const validatedData = loginSchema.parse(req.body);
@@ -140,6 +160,7 @@ router.post("/login", authRateLimit, async (req: Request, res: Response) => {
     // Find user
     const user = findUserByEmail(validatedData.email);
     if (!user) {
+      recordAuthFailure(req);
       return res.status(401).json({
         error: "Invalid credentials",
         message: "Email or password is incorrect",
@@ -152,11 +173,15 @@ router.post("/login", authRateLimit, async (req: Request, res: Response) => {
       user.passwordHash,
     );
     if (!isValidPassword) {
+      recordAuthFailure(req);
       return res.status(401).json({
         error: "Invalid credentials",
         message: "Email or password is incorrect",
       });
     }
+
+    // Record successful authentication
+    recordAuthSuccess(req);
 
     // Generate tokens
     const accessToken = generateAccessToken(

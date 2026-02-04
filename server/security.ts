@@ -5,6 +5,7 @@ import { createHash, randomBytes, pbkdf2 } from "crypto";
 import { promisify } from "util";
 import argon2 from "argon2";
 import jwt from "jsonwebtoken";
+import CryptoJS from "crypto-js";
 
 const pbkdf2Async = promisify(pbkdf2);
 
@@ -338,4 +339,64 @@ export function validatePasswordStrength(password: string): {
     isValid: errors.length === 0,
     errors,
   };
+}
+
+/**
+ * Check if password has been breached using Have I Been Pwned API
+ * Uses k-anonymity model to protect password privacy
+ *
+ * @param password - Plain text password to check
+ * @returns Promise resolving to true if password is breached, false otherwise
+ *
+ * @example
+ * const isBreached = await checkPasswordBreach('password123');
+ * if (isBreached) {
+ *   console.error('Password has been found in data breaches');
+ * }
+ */
+export async function checkPasswordBreach(password: string): Promise<boolean> {
+  try {
+    // Hash the password using SHA-1 (required by HIBP API)
+    const hash = CryptoJS.SHA1(password)
+      .toString(CryptoJS.enc.Hex)
+      .toUpperCase();
+
+    // Get first 5 characters (prefix) and remaining characters (suffix)
+    const prefix = hash.substring(0, 5);
+    const suffix = hash.substring(5);
+
+    // Query HIBP API with just the prefix (k-anonymity)
+    const response = await fetch(
+      `https://api.pwnedpasswords.com/range/${prefix}`,
+      {
+        method: "GET",
+        headers: {
+          "Add-Padding": "true", // Enable response padding to protect against side-channel attacks
+          "User-Agent": "Cloud-Gallery-Security-Check",
+        },
+      },
+    );
+
+    if (!response.ok) {
+      console.warn("HIBP API unavailable, skipping breach check");
+      return false; // Fail safe - don't block registration if API is down
+    }
+
+    const data = await response.text();
+    const lines = data.split("\n");
+
+    // Check if our suffix exists in the response
+    for (const line of lines) {
+      const [lineSuffix, count] = line.split(":");
+      if (lineSuffix === suffix) {
+        const breachCount = parseInt(count.trim(), 10);
+        return breachCount > 0; // Password found in breaches
+      }
+    }
+
+    return false; // Password not found in any breaches
+  } catch (error) {
+    console.warn("Password breach check failed:", error);
+    return false; // Fail safe - don't block registration if check fails
+  }
 }
