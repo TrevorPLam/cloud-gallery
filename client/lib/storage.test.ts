@@ -1,0 +1,1457 @@
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  getPhotos,
+  savePhotos,
+  addPhoto,
+  deletePhoto,
+  toggleFavorite,
+  getAlbums,
+  saveAlbums,
+  createAlbum,
+  deleteAlbum,
+  addPhotosToAlbum,
+  removePhotoFromAlbum,
+  getStorageInfo,
+  getUserProfile,
+  saveUserProfile,
+  clearAllData,
+  groupPhotosByDate,
+  type UserProfile,
+} from "./storage";
+import type { Photo, Album } from "@/types";
+
+describe("Photo Storage", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("getPhotos", () => {
+    it("should return empty array when no photos exist", async () => {
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(null);
+
+      const photos = await getPhotos();
+      expect(photos).toEqual([]);
+    });
+
+    it("should return parsed photos from AsyncStorage", async () => {
+      const mockPhotos: Photo[] = [
+        {
+          id: "1",
+          uri: "photo1.jpg",
+          width: 100,
+          height: 100,
+          createdAt: Date.now(),
+          isFavorite: false,
+          albumIds: [],
+        },
+      ];
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(
+        JSON.stringify(mockPhotos),
+      );
+
+      const photos = await getPhotos();
+      expect(photos).toEqual(mockPhotos);
+    });
+
+    it("should return empty array on parse error", async () => {
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue("invalid json");
+
+      const photos = await getPhotos();
+      expect(photos).toEqual([]);
+    });
+
+    it("should handle AsyncStorage errors", async () => {
+      vi.mocked(AsyncStorage.getItem).mockRejectedValue(
+        new Error("Storage error"),
+      );
+
+      const photos = await getPhotos();
+      expect(photos).toEqual([]);
+    });
+  });
+
+  describe("savePhotos", () => {
+    it("should save photos to AsyncStorage", async () => {
+      const mockPhotos: Photo[] = [
+        {
+          id: "1",
+          uri: "photo1.jpg",
+          width: 100,
+          height: 100,
+          createdAt: Date.now(),
+          isFavorite: false,
+          albumIds: [],
+        },
+      ];
+
+      await savePhotos(mockPhotos);
+
+      expect(AsyncStorage.setItem).toHaveBeenCalledWith(
+        "@photo_vault_photos",
+        JSON.stringify(mockPhotos),
+      );
+    });
+
+    it("should save empty array", async () => {
+      await savePhotos([]);
+
+      expect(AsyncStorage.setItem).toHaveBeenCalledWith(
+        "@photo_vault_photos",
+        "[]",
+      );
+    });
+  });
+
+  describe("addPhoto", () => {
+    it("should add photo to beginning of list", async () => {
+      const existingPhotos: Photo[] = [
+        {
+          id: "1",
+          uri: "photo1.jpg",
+          width: 100,
+          height: 100,
+          createdAt: 1000,
+          isFavorite: false,
+          albumIds: [],
+        },
+      ];
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(
+        JSON.stringify(existingPhotos),
+      );
+
+      const newPhoto: Photo = {
+        id: "2",
+        uri: "photo2.jpg",
+        width: 200,
+        height: 200,
+        createdAt: 2000,
+        isFavorite: false,
+        albumIds: [],
+      };
+
+      await addPhoto(newPhoto);
+
+      expect(AsyncStorage.setItem).toHaveBeenCalledWith(
+        "@photo_vault_photos",
+        JSON.stringify([newPhoto, ...existingPhotos]),
+      );
+    });
+
+    it("should add photo to empty list", async () => {
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(null);
+
+      const newPhoto: Photo = {
+        id: "1",
+        uri: "photo1.jpg",
+        width: 100,
+        height: 100,
+        createdAt: Date.now(),
+        isFavorite: false,
+        albumIds: [],
+      };
+
+      await addPhoto(newPhoto);
+
+      expect(AsyncStorage.setItem).toHaveBeenCalledWith(
+        "@photo_vault_photos",
+        JSON.stringify([newPhoto]),
+      );
+    });
+  });
+
+  describe("deletePhoto", () => {
+    it("should remove photo from list", async () => {
+      const photos: Photo[] = [
+        {
+          id: "1",
+          uri: "photo1.jpg",
+          width: 100,
+          height: 100,
+          createdAt: 1000,
+          isFavorite: false,
+          albumIds: [],
+        },
+        {
+          id: "2",
+          uri: "photo2.jpg",
+          width: 200,
+          height: 200,
+          createdAt: 2000,
+          isFavorite: false,
+          albumIds: [],
+        },
+      ];
+      vi.mocked(AsyncStorage.getItem).mockImplementation((key) => {
+        if (key === "@photo_vault_photos") {
+          return Promise.resolve(JSON.stringify(photos));
+        }
+        if (key === "@photo_vault_albums") {
+          return Promise.resolve("[]");
+        }
+        return Promise.resolve(null);
+      });
+
+      await deletePhoto("1");
+
+      const savedPhotosCall = vi
+        .mocked(AsyncStorage.setItem)
+        .mock.calls.find((call) => call[0] === "@photo_vault_photos");
+      expect(savedPhotosCall).toBeDefined();
+      const savedPhotos = JSON.parse(savedPhotosCall![1]);
+      expect(savedPhotos).toHaveLength(1);
+      expect(savedPhotos[0].id).toBe("2");
+    });
+
+    it("should remove photo from albums", async () => {
+      const photos: Photo[] = [
+        {
+          id: "1",
+          uri: "photo1.jpg",
+          width: 100,
+          height: 100,
+          createdAt: 1000,
+          isFavorite: false,
+          albumIds: ["album1"],
+        },
+      ];
+      const albums: Album[] = [
+        {
+          id: "album1",
+          title: "Album 1",
+          photoIds: ["1", "2"],
+          coverPhotoUri: "photo1.jpg",
+          createdAt: 1000,
+          modifiedAt: 1000,
+        },
+      ];
+      vi.mocked(AsyncStorage.getItem).mockImplementation((key) => {
+        if (key === "@photo_vault_photos") {
+          return Promise.resolve(JSON.stringify(photos));
+        }
+        if (key === "@photo_vault_albums") {
+          return Promise.resolve(JSON.stringify(albums));
+        }
+        return Promise.resolve(null);
+      });
+
+      await deletePhoto("1");
+
+      const savedAlbumsCall = vi
+        .mocked(AsyncStorage.setItem)
+        .mock.calls.find((call) => call[0] === "@photo_vault_albums");
+      expect(savedAlbumsCall).toBeDefined();
+      const savedAlbums = JSON.parse(savedAlbumsCall![1]);
+      expect(savedAlbums[0].photoIds).toEqual(["2"]);
+    });
+
+    it("should update album cover when deleted photo is cover", async () => {
+      const photos: Photo[] = [
+        {
+          id: "1",
+          uri: "photo1.jpg",
+          width: 100,
+          height: 100,
+          createdAt: 1000,
+          isFavorite: false,
+          albumIds: ["album1"],
+        },
+        {
+          id: "2",
+          uri: "photo2.jpg",
+          width: 200,
+          height: 200,
+          createdAt: 2000,
+          isFavorite: false,
+          albumIds: ["album1"],
+        },
+      ];
+      const albums: Album[] = [
+        {
+          id: "album1",
+          title: "Album 1",
+          photoIds: ["1", "2"],
+          coverPhotoUri: "photo1.jpg",
+          createdAt: 1000,
+          modifiedAt: 1000,
+        },
+      ];
+      vi.mocked(AsyncStorage.getItem).mockImplementation((key) => {
+        if (key === "@photo_vault_photos") {
+          return Promise.resolve(JSON.stringify(photos));
+        }
+        if (key === "@photo_vault_albums") {
+          return Promise.resolve(JSON.stringify(albums));
+        }
+        return Promise.resolve(null);
+      });
+
+      await deletePhoto("1");
+
+      const savedAlbumsCall = vi
+        .mocked(AsyncStorage.setItem)
+        .mock.calls.find((call) => call[0] === "@photo_vault_albums");
+      const savedAlbums = JSON.parse(savedAlbumsCall![1]);
+      expect(savedAlbums[0].coverPhotoUri).toBe("photo2.jpg");
+    });
+
+    it("should set cover to null when no photos left", async () => {
+      const photos: Photo[] = [
+        {
+          id: "1",
+          uri: "photo1.jpg",
+          width: 100,
+          height: 100,
+          createdAt: 1000,
+          isFavorite: false,
+          albumIds: ["album1"],
+        },
+      ];
+      const albums: Album[] = [
+        {
+          id: "album1",
+          title: "Album 1",
+          photoIds: ["1"],
+          coverPhotoUri: "photo1.jpg",
+          createdAt: 1000,
+          modifiedAt: 1000,
+        },
+      ];
+      vi.mocked(AsyncStorage.getItem).mockImplementation((key) => {
+        if (key === "@photo_vault_photos") {
+          return Promise.resolve(JSON.stringify(photos));
+        }
+        if (key === "@photo_vault_albums") {
+          return Promise.resolve(JSON.stringify(albums));
+        }
+        return Promise.resolve(null);
+      });
+
+      await deletePhoto("1");
+
+      const savedAlbumsCall = vi
+        .mocked(AsyncStorage.setItem)
+        .mock.calls.find((call) => call[0] === "@photo_vault_albums");
+      const savedAlbums = JSON.parse(savedAlbumsCall![1]);
+      expect(savedAlbums[0].coverPhotoUri).toBe(null);
+    });
+
+    it("should not change cover when deleted photo is not cover", async () => {
+      const photos: Photo[] = [
+        {
+          id: "1",
+          uri: "photo1.jpg",
+          width: 100,
+          height: 100,
+          createdAt: 1000,
+          isFavorite: false,
+          albumIds: ["album1"],
+        },
+        {
+          id: "2",
+          uri: "photo2.jpg",
+          width: 200,
+          height: 200,
+          createdAt: 2000,
+          isFavorite: false,
+          albumIds: ["album1"],
+        },
+      ];
+      const albums: Album[] = [
+        {
+          id: "album1",
+          title: "Album 1",
+          photoIds: ["1", "2"],
+          coverPhotoUri: "photo1.jpg",
+          createdAt: 1000,
+          modifiedAt: 1000,
+        },
+      ];
+      vi.mocked(AsyncStorage.getItem).mockImplementation((key) => {
+        if (key === "@photo_vault_photos") {
+          return Promise.resolve(JSON.stringify(photos));
+        }
+        if (key === "@photo_vault_albums") {
+          return Promise.resolve(JSON.stringify(albums));
+        }
+        return Promise.resolve(null);
+      });
+
+      await deletePhoto("2");
+
+      const savedAlbumsCall = vi
+        .mocked(AsyncStorage.setItem)
+        .mock.calls.find((call) => call[0] === "@photo_vault_albums");
+      const savedAlbums = JSON.parse(savedAlbumsCall![1]);
+      expect(savedAlbums[0].coverPhotoUri).toBe("photo1.jpg");
+    });
+  });
+
+  describe("toggleFavorite", () => {
+    it("should toggle photo favorite status", async () => {
+      const photos: Photo[] = [
+        {
+          id: "1",
+          uri: "photo1.jpg",
+          width: 100,
+          height: 100,
+          createdAt: 1000,
+          isFavorite: false,
+          albumIds: [],
+        },
+      ];
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(
+        JSON.stringify(photos),
+      );
+
+      const result = await toggleFavorite("1");
+
+      expect(result).not.toBeNull();
+      expect(result?.isFavorite).toBe(true);
+
+      const savedPhotosCall = vi.mocked(AsyncStorage.setItem).mock.calls[0];
+      const savedPhotos = JSON.parse(savedPhotosCall[1]);
+      expect(savedPhotos[0].isFavorite).toBe(true);
+    });
+
+    it("should toggle from true to false", async () => {
+      const photos: Photo[] = [
+        {
+          id: "1",
+          uri: "photo1.jpg",
+          width: 100,
+          height: 100,
+          createdAt: 1000,
+          isFavorite: true,
+          albumIds: [],
+        },
+      ];
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(
+        JSON.stringify(photos),
+      );
+
+      const result = await toggleFavorite("1");
+
+      expect(result?.isFavorite).toBe(false);
+    });
+
+    it("should return null for non-existent photo", async () => {
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue("[]");
+
+      const result = await toggleFavorite("nonexistent");
+
+      expect(result).toBeNull();
+    });
+  });
+});
+
+describe("Album Storage", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("getAlbums", () => {
+    it("should return empty array when no albums exist", async () => {
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(null);
+
+      const albums = await getAlbums();
+      expect(albums).toEqual([]);
+    });
+
+    it("should return parsed albums from AsyncStorage", async () => {
+      const mockAlbums: Album[] = [
+        {
+          id: "1",
+          title: "Album 1",
+          photoIds: [],
+          coverPhotoUri: null,
+          createdAt: Date.now(),
+          modifiedAt: Date.now(),
+        },
+      ];
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(
+        JSON.stringify(mockAlbums),
+      );
+
+      const albums = await getAlbums();
+      expect(albums).toEqual(mockAlbums);
+    });
+
+    it("should return empty array on error", async () => {
+      vi.mocked(AsyncStorage.getItem).mockRejectedValue(
+        new Error("Storage error"),
+      );
+
+      const albums = await getAlbums();
+      expect(albums).toEqual([]);
+    });
+  });
+
+  describe("saveAlbums", () => {
+    it("should save albums to AsyncStorage", async () => {
+      const mockAlbums: Album[] = [
+        {
+          id: "1",
+          title: "Album 1",
+          photoIds: [],
+          coverPhotoUri: null,
+          createdAt: 1000,
+          modifiedAt: 1000,
+        },
+      ];
+
+      await saveAlbums(mockAlbums);
+
+      expect(AsyncStorage.setItem).toHaveBeenCalledWith(
+        "@photo_vault_albums",
+        JSON.stringify(mockAlbums),
+      );
+    });
+  });
+
+  describe("createAlbum", () => {
+    it("should create new album with generated ID", async () => {
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue("[]");
+      const dateSpy = vi.spyOn(Date, "now").mockReturnValue(12345);
+
+      const album = await createAlbum("My Album");
+
+      expect(album.title).toBe("My Album");
+      expect(album.id).toBe("12345");
+      expect(album.photoIds).toEqual([]);
+      expect(album.coverPhotoUri).toBe(null);
+      expect(album.createdAt).toBe(12345);
+      expect(album.modifiedAt).toBe(12345);
+
+      dateSpy.mockRestore();
+    });
+
+    it("should add album to beginning of list", async () => {
+      const existing: Album[] = [
+        {
+          id: "1",
+          title: "Existing",
+          photoIds: [],
+          coverPhotoUri: null,
+          createdAt: 1000,
+          modifiedAt: 1000,
+        },
+      ];
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(
+        JSON.stringify(existing),
+      );
+
+      await createAlbum("New Album");
+
+      const savedCall = vi.mocked(AsyncStorage.setItem).mock.calls[0];
+      const saved = JSON.parse(savedCall[1]);
+      expect(saved).toHaveLength(2);
+      expect(saved[0].title).toBe("New Album");
+      expect(saved[1].title).toBe("Existing");
+    });
+  });
+
+  describe("deleteAlbum", () => {
+    it("should remove album from list", async () => {
+      const albums: Album[] = [
+        {
+          id: "1",
+          title: "Album 1",
+          photoIds: [],
+          coverPhotoUri: null,
+          createdAt: 1000,
+          modifiedAt: 1000,
+        },
+        {
+          id: "2",
+          title: "Album 2",
+          photoIds: [],
+          coverPhotoUri: null,
+          createdAt: 2000,
+          modifiedAt: 2000,
+        },
+      ];
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(
+        JSON.stringify(albums),
+      );
+
+      await deleteAlbum("1");
+
+      const savedCall = vi.mocked(AsyncStorage.setItem).mock.calls[0];
+      const saved = JSON.parse(savedCall[1]);
+      expect(saved).toHaveLength(1);
+      expect(saved[0].id).toBe("2");
+    });
+  });
+
+  describe("addPhotosToAlbum", () => {
+    it("should add photos to album and update modifiedAt", async () => {
+      const albums: Album[] = [
+        {
+          id: "album1",
+          title: "Album 1",
+          photoIds: [],
+          coverPhotoUri: null,
+          createdAt: 1000,
+          modifiedAt: 1000,
+        },
+      ];
+      const photos: Photo[] = [
+        {
+          id: "photo1",
+          uri: "photo1.jpg",
+          width: 100,
+          height: 100,
+          createdAt: 1000,
+          isFavorite: false,
+          albumIds: [],
+        },
+      ];
+      vi.mocked(AsyncStorage.getItem).mockImplementation((key) => {
+        if (key === "@photo_vault_albums") {
+          return Promise.resolve(JSON.stringify(albums));
+        }
+        if (key === "@photo_vault_photos") {
+          return Promise.resolve(JSON.stringify(photos));
+        }
+        return Promise.resolve(null);
+      });
+      const dateSpy = vi.spyOn(Date, "now").mockReturnValue(5000);
+
+      await addPhotosToAlbum("album1", ["photo1"]);
+
+      const albumsCall = vi
+        .mocked(AsyncStorage.setItem)
+        .mock.calls.find((call) => call[0] === "@photo_vault_albums");
+      const savedAlbums = JSON.parse(albumsCall![1]);
+      expect(savedAlbums[0].photoIds).toEqual(["photo1"]);
+      expect(savedAlbums[0].modifiedAt).toBe(5000);
+
+      dateSpy.mockRestore();
+    });
+
+    it("should set cover photo if album has none", async () => {
+      const albums: Album[] = [
+        {
+          id: "album1",
+          title: "Album 1",
+          photoIds: [],
+          coverPhotoUri: null,
+          createdAt: 1000,
+          modifiedAt: 1000,
+        },
+      ];
+      const photos: Photo[] = [
+        {
+          id: "photo1",
+          uri: "photo1.jpg",
+          width: 100,
+          height: 100,
+          createdAt: 1000,
+          isFavorite: false,
+          albumIds: [],
+        },
+      ];
+      vi.mocked(AsyncStorage.getItem).mockImplementation((key) => {
+        if (key === "@photo_vault_albums") {
+          return Promise.resolve(JSON.stringify(albums));
+        }
+        if (key === "@photo_vault_photos") {
+          return Promise.resolve(JSON.stringify(photos));
+        }
+        return Promise.resolve(null);
+      });
+
+      await addPhotosToAlbum("album1", ["photo1"]);
+
+      const albumsCall = vi
+        .mocked(AsyncStorage.setItem)
+        .mock.calls.find((call) => call[0] === "@photo_vault_albums");
+      const savedAlbums = JSON.parse(albumsCall![1]);
+      expect(savedAlbums[0].coverPhotoUri).toBe("photo1.jpg");
+    });
+
+    it("should not add duplicate photos", async () => {
+      const albums: Album[] = [
+        {
+          id: "album1",
+          title: "Album 1",
+          photoIds: ["photo1"],
+          coverPhotoUri: "photo1.jpg",
+          createdAt: 1000,
+          modifiedAt: 1000,
+        },
+      ];
+      const photos: Photo[] = [
+        {
+          id: "photo1",
+          uri: "photo1.jpg",
+          width: 100,
+          height: 100,
+          createdAt: 1000,
+          isFavorite: false,
+          albumIds: ["album1"],
+        },
+      ];
+      vi.mocked(AsyncStorage.getItem).mockImplementation((key) => {
+        if (key === "@photo_vault_albums") {
+          return Promise.resolve(JSON.stringify(albums));
+        }
+        if (key === "@photo_vault_photos") {
+          return Promise.resolve(JSON.stringify(photos));
+        }
+        return Promise.resolve(null);
+      });
+
+      await addPhotosToAlbum("album1", ["photo1"]);
+
+      const albumsCall = vi
+        .mocked(AsyncStorage.setItem)
+        .mock.calls.find((call) => call[0] === "@photo_vault_albums");
+      const savedAlbums = JSON.parse(albumsCall![1]);
+      expect(savedAlbums[0].photoIds).toEqual(["photo1"]);
+    });
+
+    it("should update photo.albumIds bidirectionally", async () => {
+      const albums: Album[] = [
+        {
+          id: "album1",
+          title: "Album 1",
+          photoIds: [],
+          coverPhotoUri: null,
+          createdAt: 1000,
+          modifiedAt: 1000,
+        },
+      ];
+      const photos: Photo[] = [
+        {
+          id: "photo1",
+          uri: "photo1.jpg",
+          width: 100,
+          height: 100,
+          createdAt: 1000,
+          isFavorite: false,
+          albumIds: [],
+        },
+      ];
+      vi.mocked(AsyncStorage.getItem).mockImplementation((key) => {
+        if (key === "@photo_vault_albums") {
+          return Promise.resolve(JSON.stringify(albums));
+        }
+        if (key === "@photo_vault_photos") {
+          return Promise.resolve(JSON.stringify(photos));
+        }
+        return Promise.resolve(null);
+      });
+
+      await addPhotosToAlbum("album1", ["photo1"]);
+
+      const photosCall = vi
+        .mocked(AsyncStorage.setItem)
+        .mock.calls.find((call) => call[0] === "@photo_vault_photos");
+      const savedPhotos = JSON.parse(photosCall![1]);
+      expect(savedPhotos[0].albumIds).toEqual(["album1"]);
+    });
+
+    it("should handle non-existent album", async () => {
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue("[]");
+
+      await addPhotosToAlbum("nonexistent", ["photo1"]);
+
+      // Should not throw, just return without saving
+      const setItemCalls = vi.mocked(AsyncStorage.setItem).mock.calls;
+      expect(setItemCalls).toHaveLength(0);
+    });
+  });
+
+  describe("removePhotoFromAlbum", () => {
+    it("should remove photo from album", async () => {
+      const albums: Album[] = [
+        {
+          id: "album1",
+          title: "Album 1",
+          photoIds: ["photo1", "photo2"],
+          coverPhotoUri: "photo1.jpg",
+          createdAt: 1000,
+          modifiedAt: 1000,
+        },
+      ];
+      const photos: Photo[] = [
+        {
+          id: "photo1",
+          uri: "photo1.jpg",
+          width: 100,
+          height: 100,
+          createdAt: 1000,
+          isFavorite: false,
+          albumIds: ["album1"],
+        },
+        {
+          id: "photo2",
+          uri: "photo2.jpg",
+          width: 200,
+          height: 200,
+          createdAt: 2000,
+          isFavorite: false,
+          albumIds: ["album1"],
+        },
+      ];
+      vi.mocked(AsyncStorage.getItem).mockImplementation((key) => {
+        if (key === "@photo_vault_albums") {
+          return Promise.resolve(JSON.stringify(albums));
+        }
+        if (key === "@photo_vault_photos") {
+          return Promise.resolve(JSON.stringify(photos));
+        }
+        return Promise.resolve(null);
+      });
+      const dateSpy = vi.spyOn(Date, "now").mockReturnValue(5000);
+
+      await removePhotoFromAlbum("album1", "photo1");
+
+      const albumsCall = vi
+        .mocked(AsyncStorage.setItem)
+        .mock.calls.find((call) => call[0] === "@photo_vault_albums");
+      const savedAlbums = JSON.parse(albumsCall![1]);
+      expect(savedAlbums[0].photoIds).toEqual(["photo2"]);
+      expect(savedAlbums[0].modifiedAt).toBe(5000);
+
+      dateSpy.mockRestore();
+    });
+
+    it("should update cover photo when removed photo is cover", async () => {
+      const albums: Album[] = [
+        {
+          id: "album1",
+          title: "Album 1",
+          photoIds: ["photo1", "photo2"],
+          coverPhotoUri: "photo1.jpg",
+          createdAt: 1000,
+          modifiedAt: 1000,
+        },
+      ];
+      const photos: Photo[] = [
+        {
+          id: "photo1",
+          uri: "photo1.jpg",
+          width: 100,
+          height: 100,
+          createdAt: 1000,
+          isFavorite: false,
+          albumIds: ["album1"],
+        },
+        {
+          id: "photo2",
+          uri: "photo2.jpg",
+          width: 200,
+          height: 200,
+          createdAt: 2000,
+          isFavorite: false,
+          albumIds: ["album1"],
+        },
+      ];
+      vi.mocked(AsyncStorage.getItem).mockImplementation((key) => {
+        if (key === "@photo_vault_albums") {
+          return Promise.resolve(JSON.stringify(albums));
+        }
+        if (key === "@photo_vault_photos") {
+          return Promise.resolve(JSON.stringify(photos));
+        }
+        return Promise.resolve(null);
+      });
+
+      await removePhotoFromAlbum("album1", "photo1");
+
+      const albumsCall = vi
+        .mocked(AsyncStorage.setItem)
+        .mock.calls.find((call) => call[0] === "@photo_vault_albums");
+      const savedAlbums = JSON.parse(albumsCall![1]);
+      expect(savedAlbums[0].coverPhotoUri).toBe("photo2.jpg");
+    });
+
+    it("should set cover to null when no photos remain", async () => {
+      const albums: Album[] = [
+        {
+          id: "album1",
+          title: "Album 1",
+          photoIds: ["photo1"],
+          coverPhotoUri: "photo1.jpg",
+          createdAt: 1000,
+          modifiedAt: 1000,
+        },
+      ];
+      const photos: Photo[] = [
+        {
+          id: "photo1",
+          uri: "photo1.jpg",
+          width: 100,
+          height: 100,
+          createdAt: 1000,
+          isFavorite: false,
+          albumIds: ["album1"],
+        },
+      ];
+      vi.mocked(AsyncStorage.getItem).mockImplementation((key) => {
+        if (key === "@photo_vault_albums") {
+          return Promise.resolve(JSON.stringify(albums));
+        }
+        if (key === "@photo_vault_photos") {
+          return Promise.resolve(JSON.stringify(photos));
+        }
+        return Promise.resolve(null);
+      });
+
+      await removePhotoFromAlbum("album1", "photo1");
+
+      const albumsCall = vi
+        .mocked(AsyncStorage.setItem)
+        .mock.calls.find((call) => call[0] === "@photo_vault_albums");
+      const savedAlbums = JSON.parse(albumsCall![1]);
+      expect(savedAlbums[0].coverPhotoUri).toBe(null);
+    });
+
+    it("should update photo.albumIds bidirectionally", async () => {
+      const albums: Album[] = [
+        {
+          id: "album1",
+          title: "Album 1",
+          photoIds: ["photo1"],
+          coverPhotoUri: "photo1.jpg",
+          createdAt: 1000,
+          modifiedAt: 1000,
+        },
+      ];
+      const photos: Photo[] = [
+        {
+          id: "photo1",
+          uri: "photo1.jpg",
+          width: 100,
+          height: 100,
+          createdAt: 1000,
+          isFavorite: false,
+          albumIds: ["album1", "album2"],
+        },
+      ];
+      vi.mocked(AsyncStorage.getItem).mockImplementation((key) => {
+        if (key === "@photo_vault_albums") {
+          return Promise.resolve(JSON.stringify(albums));
+        }
+        if (key === "@photo_vault_photos") {
+          return Promise.resolve(JSON.stringify(photos));
+        }
+        return Promise.resolve(null);
+      });
+
+      await removePhotoFromAlbum("album1", "photo1");
+
+      const photosCall = vi
+        .mocked(AsyncStorage.setItem)
+        .mock.calls.find((call) => call[0] === "@photo_vault_photos");
+      const savedPhotos = JSON.parse(photosCall![1]);
+      expect(savedPhotos[0].albumIds).toEqual(["album2"]);
+    });
+
+    it("should handle non-existent album in removePhotoFromAlbum", async () => {
+      vi.mocked(AsyncStorage.getItem).mockImplementation((key) => {
+        if (key === "@photo_vault_albums") {
+          return Promise.resolve("[]");
+        }
+        if (key === "@photo_vault_photos") {
+          return Promise.resolve("[]");
+        }
+        return Promise.resolve(null);
+      });
+
+      await removePhotoFromAlbum("nonexistent", "photo1");
+
+      // Should not throw, just return without saving
+      const setItemCalls = vi.mocked(AsyncStorage.setItem).mock.calls;
+      expect(setItemCalls).toHaveLength(0);
+    });
+  });
+});
+
+describe("Storage Info", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("getStorageInfo", () => {
+    it("should calculate storage from photos", async () => {
+      const photos: Photo[] = [
+        {
+          id: "1",
+          uri: "photo1.jpg",
+          width: 100,
+          height: 100,
+          createdAt: 1000,
+          isFavorite: false,
+          albumIds: [],
+        },
+      ];
+      vi.mocked(AsyncStorage.getItem).mockImplementation((key) => {
+        if (key === "@photo_vault_photos") {
+          return Promise.resolve(JSON.stringify(photos));
+        }
+        if (key === "@photo_vault_albums") {
+          return Promise.resolve("[]");
+        }
+        return Promise.resolve(null);
+      });
+
+      const info = await getStorageInfo();
+
+      expect(info.photoCount).toBe(1);
+      expect(info.albumCount).toBe(0);
+      expect(info.usedBytes).toBe((100 * 100 * 3) / 10);
+      expect(info.totalBytes).toBe(15 * 1024 * 1024 * 1024);
+    });
+
+    it("should count multiple photos and albums", async () => {
+      const photos: Photo[] = [
+        {
+          id: "1",
+          uri: "photo1.jpg",
+          width: 100,
+          height: 100,
+          createdAt: 1000,
+          isFavorite: false,
+          albumIds: [],
+        },
+        {
+          id: "2",
+          uri: "photo2.jpg",
+          width: 200,
+          height: 200,
+          createdAt: 2000,
+          isFavorite: false,
+          albumIds: [],
+        },
+      ];
+      const albums: Album[] = [
+        {
+          id: "1",
+          title: "Album 1",
+          photoIds: [],
+          coverPhotoUri: null,
+          createdAt: 1000,
+          modifiedAt: 1000,
+        },
+      ];
+      vi.mocked(AsyncStorage.getItem).mockImplementation((key) => {
+        if (key === "@photo_vault_photos") {
+          return Promise.resolve(JSON.stringify(photos));
+        }
+        if (key === "@photo_vault_albums") {
+          return Promise.resolve(JSON.stringify(albums));
+        }
+        return Promise.resolve(null);
+      });
+
+      const info = await getStorageInfo();
+
+      expect(info.photoCount).toBe(2);
+      expect(info.albumCount).toBe(1);
+    });
+
+    it("should return zeros for empty storage", async () => {
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(null);
+
+      const info = await getStorageInfo();
+
+      expect(info.photoCount).toBe(0);
+      expect(info.albumCount).toBe(0);
+      expect(info.usedBytes).toBe(0);
+      expect(info.totalBytes).toBe(15 * 1024 * 1024 * 1024);
+    });
+  });
+});
+
+describe("User Profile", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("getUserProfile", () => {
+    it("should return default profile when none exists", async () => {
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(null);
+
+      const profile = await getUserProfile();
+
+      expect(profile).toEqual({
+        name: "Guest User",
+        email: "guest@example.com",
+        avatarUri: null,
+      });
+    });
+
+    it("should return saved profile", async () => {
+      const savedProfile: UserProfile = {
+        name: "John Doe",
+        email: "john@example.com",
+        avatarUri: "avatar.jpg",
+      };
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(
+        JSON.stringify(savedProfile),
+      );
+
+      const profile = await getUserProfile();
+
+      expect(profile).toEqual(savedProfile);
+    });
+
+    it("should return default on error", async () => {
+      vi.mocked(AsyncStorage.getItem).mockRejectedValue(
+        new Error("Storage error"),
+      );
+
+      const profile = await getUserProfile();
+
+      expect(profile).toEqual({
+        name: "Guest User",
+        email: "guest@example.com",
+        avatarUri: null,
+      });
+    });
+  });
+
+  describe("saveUserProfile", () => {
+    it("should save profile to AsyncStorage", async () => {
+      const profile: UserProfile = {
+        name: "Jane Doe",
+        email: "jane@example.com",
+        avatarUri: "avatar.jpg",
+      };
+
+      await saveUserProfile(profile);
+
+      expect(AsyncStorage.setItem).toHaveBeenCalledWith(
+        "@photo_vault_user",
+        JSON.stringify(profile),
+      );
+    });
+
+    it("should save profile with null avatar", async () => {
+      const profile: UserProfile = {
+        name: "User",
+        email: "user@example.com",
+        avatarUri: null,
+      };
+
+      await saveUserProfile(profile);
+
+      expect(AsyncStorage.setItem).toHaveBeenCalledWith(
+        "@photo_vault_user",
+        JSON.stringify(profile),
+      );
+    });
+  });
+});
+
+describe("clearAllData", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should remove all data keys", async () => {
+    await clearAllData();
+
+    expect(AsyncStorage.multiRemove).toHaveBeenCalledWith([
+      "@photo_vault_photos",
+      "@photo_vault_albums",
+      "@photo_vault_user",
+    ]);
+  });
+});
+
+describe("groupPhotosByDate", () => {
+  it("should group photos by Today", () => {
+    const now = Date.now();
+    const photos: Photo[] = [
+      {
+        id: "1",
+        uri: "photo1.jpg",
+        width: 100,
+        height: 100,
+        createdAt: now,
+        isFavorite: false,
+        albumIds: [],
+      },
+    ];
+
+    const groups = groupPhotosByDate(photos);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].title).toBe("Today");
+    expect(groups[0].data).toHaveLength(1);
+  });
+
+  it("should group photos by Yesterday", () => {
+    const yesterday = Date.now() - 24 * 60 * 60 * 1000;
+    const photos: Photo[] = [
+      {
+        id: "1",
+        uri: "photo1.jpg",
+        width: 100,
+        height: 100,
+        createdAt: yesterday,
+        isFavorite: false,
+        albumIds: [],
+      },
+    ];
+
+    const groups = groupPhotosByDate(photos);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].title).toBe("Yesterday");
+  });
+
+  it("should group photos by Last 7 Days", () => {
+    const fiveDaysAgo = Date.now() - 5 * 24 * 60 * 60 * 1000;
+    const photos: Photo[] = [
+      {
+        id: "1",
+        uri: "photo1.jpg",
+        width: 100,
+        height: 100,
+        createdAt: fiveDaysAgo,
+        isFavorite: false,
+        albumIds: [],
+      },
+    ];
+
+    const groups = groupPhotosByDate(photos);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].title).toBe("Last 7 Days");
+  });
+
+  it("should group photos by Last Month", () => {
+    const twentyDaysAgo = Date.now() - 20 * 24 * 60 * 60 * 1000;
+    const photos: Photo[] = [
+      {
+        id: "1",
+        uri: "photo1.jpg",
+        width: 100,
+        height: 100,
+        createdAt: twentyDaysAgo,
+        isFavorite: false,
+        albumIds: [],
+      },
+    ];
+
+    const groups = groupPhotosByDate(photos);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].title).toBe("Last Month");
+  });
+
+  it("should group old photos by month/year", () => {
+    const oldDate = new Date(2020, 5, 15).getTime();
+    const photos: Photo[] = [
+      {
+        id: "1",
+        uri: "photo1.jpg",
+        width: 100,
+        height: 100,
+        createdAt: oldDate,
+        isFavorite: false,
+        albumIds: [],
+      },
+    ];
+
+    const groups = groupPhotosByDate(photos);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].title).toBe("June 2020");
+  });
+
+  it("should sort groups in correct order", () => {
+    const now = Date.now();
+    const yesterday = now - 24 * 60 * 60 * 1000;
+    const lastWeek = now - 5 * 24 * 60 * 60 * 1000;
+    const lastMonth = now - 20 * 24 * 60 * 60 * 1000;
+    const oldDate = new Date(2020, 5, 15).getTime();
+
+    const photos: Photo[] = [
+      {
+        id: "5",
+        uri: "photo5.jpg",
+        width: 100,
+        height: 100,
+        createdAt: oldDate,
+        isFavorite: false,
+        albumIds: [],
+      },
+      {
+        id: "1",
+        uri: "photo1.jpg",
+        width: 100,
+        height: 100,
+        createdAt: now,
+        isFavorite: false,
+        albumIds: [],
+      },
+      {
+        id: "4",
+        uri: "photo4.jpg",
+        width: 100,
+        height: 100,
+        createdAt: lastMonth,
+        isFavorite: false,
+        albumIds: [],
+      },
+      {
+        id: "2",
+        uri: "photo2.jpg",
+        width: 100,
+        height: 100,
+        createdAt: yesterday,
+        isFavorite: false,
+        albumIds: [],
+      },
+      {
+        id: "3",
+        uri: "photo3.jpg",
+        width: 100,
+        height: 100,
+        createdAt: lastWeek,
+        isFavorite: false,
+        albumIds: [],
+      },
+    ];
+
+    const groups = groupPhotosByDate(photos);
+
+    expect(groups.map((g) => g.title)).toEqual([
+      "Today",
+      "Yesterday",
+      "Last 7 Days",
+      "Last Month",
+      "June 2020",
+    ]);
+  });
+
+  it("should handle empty photo array", () => {
+    const groups = groupPhotosByDate([]);
+    expect(groups).toEqual([]);
+  });
+
+  it("should group multiple photos in same category", () => {
+    const now = Date.now();
+    const photos: Photo[] = [
+      {
+        id: "1",
+        uri: "photo1.jpg",
+        width: 100,
+        height: 100,
+        createdAt: now,
+        isFavorite: false,
+        albumIds: [],
+      },
+      {
+        id: "2",
+        uri: "photo2.jpg",
+        width: 100,
+        height: 100,
+        createdAt: now - 1000,
+        isFavorite: false,
+        albumIds: [],
+      },
+    ];
+
+    const groups = groupPhotosByDate(photos);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].title).toBe("Today");
+    expect(groups[0].data).toHaveLength(2);
+  });
+
+  it("should sort old date groups chronologically (newest first)", () => {
+    const date1 = new Date(2020, 0, 15).getTime(); // January 2020
+    const date2 = new Date(2020, 5, 15).getTime(); // June 2020
+
+    const photos: Photo[] = [
+      {
+        id: "1",
+        uri: "photo1.jpg",
+        width: 100,
+        height: 100,
+        createdAt: date1,
+        isFavorite: false,
+        albumIds: [],
+      },
+      {
+        id: "2",
+        uri: "photo2.jpg",
+        width: 100,
+        height: 100,
+        createdAt: date2,
+        isFavorite: false,
+        albumIds: [],
+      },
+    ];
+
+    const groups = groupPhotosByDate(photos);
+
+    expect(groups).toHaveLength(2);
+    // Should be sorted with newer month first (June before January)
+    expect(groups[0].title).toBe("June 2020");
+    expect(groups[1].title).toBe("January 2020");
+  });
+
+  it("should handle mix of recent and old groups correctly", () => {
+    const now = Date.now();
+    const lastWeek = now - 5 * 24 * 60 * 60 * 1000;
+    const oldDate1 = new Date(2019, 11, 15).getTime(); // December 2019
+    const oldDate2 = new Date(2020, 5, 15).getTime(); // June 2020
+
+    const photos: Photo[] = [
+      {
+        id: "1",
+        uri: "photo1.jpg",
+        width: 100,
+        height: 100,
+        createdAt: now,
+        isFavorite: false,
+        albumIds: [],
+      },
+      {
+        id: "2",
+        uri: "photo2.jpg",
+        width: 100,
+        height: 100,
+        createdAt: lastWeek,
+        isFavorite: false,
+        albumIds: [],
+      },
+      {
+        id: "3",
+        uri: "photo3.jpg",
+        width: 100,
+        height: 100,
+        createdAt: oldDate1,
+        isFavorite: false,
+        albumIds: [],
+      },
+      {
+        id: "4",
+        uri: "photo4.jpg",
+        width: 100,
+        height: 100,
+        createdAt: oldDate2,
+        isFavorite: false,
+        albumIds: [],
+      },
+    ];
+
+    const groups = groupPhotosByDate(photos);
+
+    expect(groups).toHaveLength(4);
+    expect(groups[0].title).toBe("Today");
+    expect(groups[1].title).toBe("Last 7 Days");
+    // Old dates should be sorted newest first
+    expect(groups[2].title).toBe("June 2020");
+    expect(groups[3].title).toBe("December 2019");
+  });
+});
