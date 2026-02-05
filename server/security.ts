@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Security utilities for hashing, token generation, and crypto helpers
+// OWNERSHIP: server/security
+// ENTRYPOINTS: server/auth.ts, server/auth-routes.ts, server/middleware.ts
+// DEPENDENCIES: crypto, argon2, jsonwebtoken, crypto-js
+// DANGER: Weak parameter changes can reduce authentication security
+// CHANGE-SAFETY: Only change algorithms/parameters with security review
+// TESTS: server/security.test.ts, server/security.breach.test.ts
+// AI-META-END
+
 // Security utilities for Cloud Gallery
 // Provides cryptographic functions for password hashing, token generation, etc.
 

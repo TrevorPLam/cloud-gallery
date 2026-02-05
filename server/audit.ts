@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Comprehensive audit logging for security compliance
+// OWNERSHIP: server/security
+// ENTRYPOINTS: server/routes.ts, server/index.ts
+// DEPENDENCIES: crypto, drizzle-orm, @shared/schema
+// DANGER: Audit logs required for compliance; ensure sensitive data redacted
+// CHANGE-SAFETY: Safe to add event types; never remove existing types
+// TESTS: server/audit.test.ts
+// AI-META-END
+
 // Comprehensive audit logging system for security compliance
 // Tracks all security-relevant events for SOC2, HIPAA, PCI DSS compliance
 

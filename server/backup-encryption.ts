@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Encrypted backup creation and restore helpers for database exports
+// OWNERSHIP: server/security
+// ENTRYPOINTS: admin/ops workflows, server/index.ts (future)
+// DEPENDENCIES: fs, crypto, zlib, path, server/encrypted-storage, @shared/schema
+// DANGER: Backup key loss = unrecoverable backups; large backups can impact disk usage
+// CHANGE-SAFETY: Avoid changing backup format without migration tooling
+// TESTS: server/backup-encryption.test.ts
+// AI-META-END
+
 // Backup encryption utilities for Cloud Gallery
 // Provides encrypted database backup functionality
 

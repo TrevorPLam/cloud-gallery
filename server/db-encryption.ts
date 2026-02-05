@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Field-level encryption for sensitive database values
+// OWNERSHIP: server/security
+// ENTRYPOINTS: server/storage.ts, server/encrypted-storage.ts
+// DEPENDENCIES: crypto (node), server/security
+// DANGER: Key changes or format changes can break decryption
+// CHANGE-SAFETY: Do not change algorithm/format without migration plan
+// TESTS: server/db-encryption.test.ts
+// AI-META-END
+
 // Database encryption utilities for Cloud Gallery
 // Provides field-level encryption for sensitive data
 
