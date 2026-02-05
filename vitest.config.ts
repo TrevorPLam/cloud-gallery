@@ -1,8 +1,13 @@
+// Meta: Vitest configuration for Cloud Gallery.
+// Inputs: Vitest config options + path aliases for module resolution.
+// Outputs: Exported Vitest configuration object consumed by test runner.
+// Invariants: Coverage thresholds remain at 100%; focused tests are disallowed.
 import { defineConfig } from "vitest/config";
 import path from "path";
 
 export default defineConfig({
   test: {
+    allowOnly: false,
     globals: true,
     environment: "happy-dom",
     setupFiles: ["./vitest.setup.ts"],

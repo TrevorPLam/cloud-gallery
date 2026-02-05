@@ -2,6 +2,12 @@
 
 [← Back to Architecture Index](../architecture/00_INDEX.md)
 
+## Meta
+- **Purpose**: Describe current and planned API structure for Cloud Gallery.
+- **Inputs**: API routes, environment assumptions, auth model.
+- **Outputs**: Reference for backend/client integration planning.
+- **Invariants**: `/api` prefix for all routes; auth required for protected resources.
+
 ## Current State: No Active API
 
 **MVP Status**: The mobile app operates entirely with local AsyncStorage. No API calls are made to the backend server.
@@ -33,6 +39,14 @@ All API routes will be prefixed with `/api`:
 - ❌ Wrong: `/photos`, `/login`
 
 **Evidence**: `/server/routes.ts` comment "prefix all routes with /api"
+
+---
+
+## Presigned URLs (Planned)
+
+Presigned URLs enable direct client-to-storage uploads/downloads. See
+[Presigned URL API](./presigned-urls.md) for signing, validation rules, and required environment
+variables.
 
 ---
 

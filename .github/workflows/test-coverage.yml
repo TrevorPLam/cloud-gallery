@@ -43,6 +43,9 @@ jobs:
     - name: Check code formatting
       run: npm run check:format
 
+    - name: Check focused/skipped tests
+      run: npm run test:check-focused
+
     - name: Run tests with coverage
       run: npm run test:coverage
 

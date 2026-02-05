@@ -1,10 +1,14 @@
-// Upload routes for Cloud Gallery
-// Provides secure file upload with comprehensive validation
+// Meta: Upload routes for Cloud Gallery.
+// Inputs: Authenticated requests with files or presigned URL parameters.
+// Outputs: JSON responses for upload metadata or signed URLs.
+// Invariants: Auth required for uploads; validation must run before accepting files.
 
 import { Router, Request, Response } from "express";
 import multer from "multer";
+import { z } from "zod";
 import { validateFile, sanitizeFilename, getAllowedFileTypes } from "./file-validation";
 import { authenticateToken } from "./auth";
+import { generateDownloadUrl, generateUploadUrl } from "./presigned-urls";
 
 const router = Router();
 
@@ -20,6 +24,17 @@ const upload = multer({
     file.originalname = sanitizeFilename(file.originalname);
     cb(null, true);
   },
+});
+
+const presignedUploadSchema = z.object({
+  key: z.string().min(1),
+  contentType: z.string().min(1),
+  expiresInSeconds: z.number().int().positive().optional(),
+});
+
+const presignedDownloadSchema = z.object({
+  key: z.string().min(1),
+  expiresInSeconds: z.number().int().positive().optional(),
 });
 
 /**
@@ -39,6 +54,66 @@ router.get("/allowed-types", (req: Request, res: Response) => {
     res.status(500).json({
       error: "Internal server error",
       message: "Failed to get allowed file types",
+    });
+  }
+});
+
+/**
+ * POST /api/upload/presigned/upload
+ * Request a presigned upload URL
+ */
+router.post("/presigned/upload", authenticateToken, (req: Request, res: Response) => {
+  try {
+    const parsed = presignedUploadSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: "Invalid request",
+        message: "key and contentType are required",
+        details: parsed.error.flatten(),
+      });
+    }
+
+    const { key, contentType, expiresInSeconds } = parsed.data;
+    const { url, expiresAt } = generateUploadUrl(
+      key,
+      contentType,
+      expiresInSeconds,
+    );
+
+    res.json({ url, expiresAt });
+  } catch (error) {
+    console.error("Presigned upload error:", error);
+    res.status(500).json({
+      error: "Internal server error",
+      message: "Failed to generate presigned upload URL",
+    });
+  }
+});
+
+/**
+ * POST /api/upload/presigned/download
+ * Request a presigned download URL
+ */
+router.post("/presigned/download", authenticateToken, (req: Request, res: Response) => {
+  try {
+    const parsed = presignedDownloadSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: "Invalid request",
+        message: "key is required",
+        details: parsed.error.flatten(),
+      });
+    }
+
+    const { key, expiresInSeconds } = parsed.data;
+    const { url, expiresAt } = generateDownloadUrl(key, expiresInSeconds);
+
+    res.json({ url, expiresAt });
+  } catch (error) {
+    console.error("Presigned download error:", error);
+    res.status(500).json({
+      error: "Internal server error",
+      message: "Failed to generate presigned download URL",
     });
   }
 });

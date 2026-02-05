@@ -19,6 +19,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
+    "test:check-focused": "rg --line-number \"\\.only\\b|describe\\.skip\\b|it\\.skip\\b|test\\.skip\\b\" server client shared tests && exit 1 || exit 0",
     "security:check": "./scripts/security-check.sh",
     "security:audit": "npm audit --audit-level=moderate",
     "security:sbom": "npx @cyclonedx/cyclonedx-npm --output-file sbom-cyclonedx.json"
