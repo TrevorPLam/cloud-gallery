@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Authentication endpoints for register/login/token refresh/profile
+// OWNERSHIP: server/auth
+// ENTRYPOINTS: mounted at /api/auth via server/routes.ts
+// DEPENDENCIES: zod validation, ./security, ./auth, ./audit, ./auth-captcha-routes
+// DANGER: Changes affect account security, token issuance, and brute-force protections
+// CHANGE-SAFETY: Preserve response contracts and auth/captcha event logging side effects
+// TESTS: server/auth-routes.test.ts
+// AI-META-END
+
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import {

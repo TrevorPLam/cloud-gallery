@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Field-level encrypted user persistence helpers on top of Postgres
+// OWNERSHIP: server/security
+// ENTRYPOINTS: imported by auth/account services needing encrypted storage
+// DEPENDENCIES: drizzle-orm/postgres-js, ../shared/schema, ./db-encryption
+// DANGER: Incorrect encryption/decryption can corrupt or expose sensitive user data
+// CHANGE-SAFETY: Keep encrypted field list and return shapes stable for callers
+// TESTS: server/db-encryption.test.ts, npm run check:types
+// AI-META-END
+
 // Encrypted storage layer for Cloud Gallery
 // Provides database operations with field-level encryption
 

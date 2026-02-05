@@ -4,5 +4,5 @@ This list contains promoted, high-leverage tasks ready for execution.
 
 ## 2026-02-05
 
-- Wire `npm run test:check-focused` into CI and/or a pre-commit hook to block focused/skipped tests from merging.
-- Add/refresh `server/routes.test.ts` to validate route registration and match documented test references.
+- Add AI-META headers to remaining server test files for consistent module metadata coverage.
+- Add a SIEM forwarding timeout/abort unit test that explicitly verifies the request signal is aborted when fetch hangs.

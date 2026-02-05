@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Authenticated photo CRUD/list endpoints backed by the database
+// OWNERSHIP: server/api
+// ENTRYPOINTS: mounted at /api/photos via server/routes.ts
+// DEPENDENCIES: express, zod, drizzle queries, ./auth, ./db, ../shared/schema
+// DANGER: Authorization filtering and pagination controls protect data isolation/performance
+// CHANGE-SAFETY: Maintain user scoping in queries and stable API response structures
+// TESTS: npm run check:types, route integration tests
+// AI-META-END
+
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { db } from "./db";
