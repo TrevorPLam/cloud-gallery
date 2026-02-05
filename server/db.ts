@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Drizzle/Postgres database connection singleton and lifecycle helpers
+// OWNERSHIP: server/data
+// ENTRYPOINTS: imported by route modules and data services
+// DEPENDENCIES: drizzle-orm/postgres-js, postgres, ../shared/schema
+// DANGER: Misconfiguration can break all persistence paths or exhaust DB connections
+// CHANGE-SAFETY: Maintain singleton exports and graceful shutdown helper semantics
+// TESTS: npm run check:types, integration tests touching DB-backed routes
+// AI-META-END
+
 // ═══════════════════════════════════════════════════════════
 // DATABASE CONNECTION SINGLETON
 // ═══════════════════════════════════════════════════════════

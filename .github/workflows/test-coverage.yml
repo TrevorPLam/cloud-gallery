@@ -37,6 +37,9 @@ jobs:
     - name: Run linter
       run: npm run lint
 
+    - name: Block focused/skipped tests
+      run: npm run test:check-focused
+
     - name: Type check
       run: npm run check:types
     

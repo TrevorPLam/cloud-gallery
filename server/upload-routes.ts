@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Authenticated upload endpoints with file validation and multipart handling
+// OWNERSHIP: server/uploads
+// ENTRYPOINTS: mounted at /api/upload via server/routes.ts
+// DEPENDENCIES: express, multer, ./file-validation, ./auth
+// DANGER: File handling paths are security-sensitive and can be abused for DoS/malware upload
+// CHANGE-SAFETY: Preserve multer limits, validation checks, and sanitized filename behavior
+// TESTS: server/file-validation.test.ts, integration tests for upload flows
+// AI-META-END
+
 // Upload routes for Cloud Gallery
 // Provides secure file upload with comprehensive validation
 
