@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Express middleware for security headers (CSP, HSTS, etc.)
+// OWNERSHIP: server/security
+// ENTRYPOINTS: server/index.ts
+// DEPENDENCIES: express, crypto
+// DANGER: Incorrect headers can break client behavior or weaken protection
+// CHANGE-SAFETY: Safe to add headers; validate CSP changes in staging
+// TESTS: server/middleware.test.ts
+// AI-META-END
+
 // Security headers middleware for Express
 // Implements comprehensive HTTP security headers
 

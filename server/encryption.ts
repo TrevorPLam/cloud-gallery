@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: AES-256-GCM encryption utilities for sensitive data at rest
+// OWNERSHIP: server/security
+// ENTRYPOINTS: server/storage.ts, server/backup-encryption.ts, server/db-encryption.ts
+// DEPENDENCIES: crypto (node), util
+// DANGER: Key loss or parameter changes can permanently lock data
+// CHANGE-SAFETY: Never change algorithms/params without a migration plan
+// TESTS: server/encryption.test.ts
+// AI-META-END
+
 // Encryption utilities for sensitive data at rest
 // Implements AES-256-GCM for authenticated encryption
 

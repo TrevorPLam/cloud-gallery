@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Forward audit events to a configured SIEM webhook
+// OWNERSHIP: server/security
+// ENTRYPOINTS: server/audit.ts
+// DEPENDENCIES: fetch, AbortController
+// DANGER: Misconfigured endpoints can leak audit data offsite
+// CHANGE-SAFETY: Safe to adjust timeouts; preserve payload shape
+// TESTS: server/audit.test.ts
+// AI-META-END
+
 // SIEM forwarding utility for audit events
 
 import type { AuditEvent } from "./audit";

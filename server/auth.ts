@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: JWT authentication and session management for photo gallery
+// OWNERSHIP: server/security
+// ENTRYPOINTS: server/routes.ts, server/auth-routes.ts
+// DEPENDENCIES: jsonwebtoken, bcrypt, @shared/schema
+// DANGER: Authentication bypass = full account compromise
+// CHANGE-SAFETY: Any JWT/session changes require security review
+// TESTS: server/auth.test.ts
+// AI-META-END
+
 // Authentication middleware and utilities for Cloud Gallery
 
 import { Request, Response, NextFunction } from "express";

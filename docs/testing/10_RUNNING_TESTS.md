@@ -159,6 +159,22 @@ it.only("should do something", () => {
 
 ⚠️ **Remember to remove `.only` before committing!**
 
+## Focused Test Guardrails
+
+To prevent accidentally committing focused or skipped tests, run:
+
+```bash
+npm run test:check-focused
+```
+
+This command fails if it finds any of the following patterns in the codebase:
+- `.only`
+- `describe.skip`
+- `it.skip`
+- `test.skip`
+
+The CI configuration also enforces this by disallowing focused tests in Vitest.
+
 ### Skip a Test Temporarily
 
 ```typescript

@@ -1,8 +1,17 @@
+/**
+ * Vitest configuration for Cloud Gallery.
+ *
+ * Purpose: define test runtime, coverage, and module resolution behavior.
+ * Inputs: test files under client/server/shared, runtime env (happy-dom).
+ * Outputs: test execution configuration used by vitest CLI.
+ * Invariants: coverage thresholds stay at 100% and focused tests are disallowed.
+ */
 import { defineConfig } from "vitest/config";
 import path from "path";
 
 export default defineConfig({
   test: {
+    allowOnly: false,
     globals: true,
     environment: "happy-dom",
     setupFiles: ["./vitest.setup.ts"],
