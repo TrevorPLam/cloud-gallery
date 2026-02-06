@@ -26,6 +26,7 @@
 - [**Security**](../security/00_INDEX.md) - Threat model, authentication, cryptography, secure coding
 - [**Integrations**](../integrations/00_INDEX.md) - Third-party services, secrets
 - [**Architecture Decision Records**](../adr/README.md) - Why we made key decisions
+- [**AI-META Headers**](./AI_META_HEADERS.md) - Metadata standard for server modules
 
 ## 🎯 Quick Links
 

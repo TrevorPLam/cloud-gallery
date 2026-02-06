@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: CAPTCHA challenge generation and verification routes for authentication hardening
+// OWNERSHIP: server/security
+// ENTRYPOINTS: mounted by server/index.ts and security workflows
+// DEPENDENCIES: express, zod, ./captcha
+// DANGER: Weak validation or permissive attempt tracking can enable brute-force bypasses
+// CHANGE-SAFETY: Keep response shape stable for clients and preserve attempt throttling semantics
+// TESTS: server/captcha.test.ts
+// AI-META-END
+
 // CAPTCHA routes for Cloud Gallery authentication
 
 import { Router, Request, Response } from "express";

@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Upload file validation, MIME sniffing, and filename sanitization utilities
+// OWNERSHIP: server/uploads
+// ENTRYPOINTS: consumed by server/upload-routes.ts
+// DEPENDENCIES: file-type, crypto
+// DANGER: Validation regressions can enable malicious file uploads or oversized payloads
+// CHANGE-SAFETY: Preserve MIME policy constants and validation result contract
+// TESTS: server/file-validation.test.ts
+// AI-META-END
+
 // File validation utilities for Cloud Gallery
 // Provides comprehensive file type and content validation for uploads
 

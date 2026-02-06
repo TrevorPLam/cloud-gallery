@@ -1,11 +1,11 @@
 // AI-META-BEGIN
-// AI-META: Route registration and HTTP server creation for Cloud Gallery API
-// OWNERSHIP: server/routes
-// ENTRYPOINTS: called by server/index.ts during bootstrap
-// DEPENDENCIES: express, node:http
-// DANGER: all routes must be prefixed with /api for proper CORS and logging
-// CHANGE-SAFETY: safe to add new routes; httpServer creation should not change
-// TESTS: npm run check:types, integration tests for new routes
+// AI-META: Express route registration and API endpoint definitions
+// OWNERSHIP: server/api
+// ENTRYPOINTS: server/index.ts
+// DEPENDENCIES: express, all route handlers
+// DANGER: Route ordering matters - auth middleware must run first
+// CHANGE-SAFETY: Safe to add routes; be careful reordering middleware
+// TESTS: server/routes.test.ts
 // AI-META-END
 
 import type { Express } from "express";

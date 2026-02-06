@@ -1,3 +1,13 @@
+// AI-META-BEGIN
+// AI-META: Math-based CAPTCHA generation and verification to throttle bots
+// OWNERSHIP: server/security
+// ENTRYPOINTS: server/auth-captcha-routes.ts
+// DEPENDENCIES: crypto (node)
+// DANGER: Weak CAPTCHA logic increases automated abuse risk
+// CHANGE-SAFETY: Safe to tune expiry/complexity; avoid breaking challenge format
+// TESTS: server/captcha.test.ts
+// AI-META-END
+
 // Simple CAPTCHA system for Cloud Gallery
 // Provides math-based CAPTCHA to prevent automated attacks
 
