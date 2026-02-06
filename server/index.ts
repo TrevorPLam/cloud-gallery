@@ -8,6 +8,8 @@
 // TESTS: server/index.test.ts, integration tests
 // AI-META-END
 
+import "dotenv/config";
+
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
@@ -96,29 +98,30 @@ function setupSecurityHeaders(app: express.Application) {
 
 // PHASE 1C: CORS with Strict Origin Validation (no wildcards with credentials)
 function setupCors(app: express.Application) {
+  const allowedOrigins = new Set<string>();
+
+  // Production domains from environment
+  if (process.env.REPLIT_DEV_DOMAIN) {
+    allowedOrigins.add(`https://${process.env.REPLIT_DEV_DOMAIN}`);
+  }
+
+  if (process.env.REPLIT_DOMAINS) {
+    process.env.REPLIT_DOMAINS.split(",").forEach((d) => {
+      allowedOrigins.add(`https://${d.trim()}`);
+    });
+  }
+
+  // Localhost only in development
+  if (isDevelopment) {
+    // Explicit localhost ports for Expo dev
+    const localhostPorts = [19000, 19001, 19002, 8081, 3000];
+    localhostPorts.forEach((port) => {
+      allowedOrigins.add(`http://localhost:${port}`);
+      allowedOrigins.add(`http://127.0.0.1:${port}`);
+    });
+  }
+
   app.use((req, res, next) => {
-    const allowedOrigins = new Set<string>();
-
-    // Production domains from environment
-    if (process.env.REPLIT_DEV_DOMAIN) {
-      allowedOrigins.add(`https://${process.env.REPLIT_DEV_DOMAIN}`);
-    }
-
-    if (process.env.REPLIT_DOMAINS) {
-      process.env.REPLIT_DOMAINS.split(",").forEach((d) => {
-        allowedOrigins.add(`https://${d.trim()}`);
-      });
-    }
-
-    // Localhost only in development
-    if (isDevelopment) {
-      // Explicit localhost ports for Expo dev
-      const localhostPorts = [19000, 19001, 19002, 8081, 3000];
-      localhostPorts.forEach((port) => {
-        allowedOrigins.add(`http://localhost:${port}`);
-        allowedOrigins.add(`http://127.0.0.1:${port}`);
-      });
-    }
 
     const origin = req.header("origin");
 
@@ -452,20 +455,22 @@ function setupErrorHandler(app: express.Application) {
 
   // Start server
   const port = parseInt(process.env.PORT || "5000", 10);
-  server.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
-    () => {
-      log(`✓ Server ready on port ${port}`);
-      log(`✓ Health check: http://localhost:${port}/`);
-      if (isDevelopment) {
-        log(`✓ API endpoints: http://localhost:${port}/api/*`);
-      }
-    },
-  );
+  const host = process.env.HOST || "0.0.0.0";
+
+  const onListening = () => {
+    log(`✓ Server ready on port ${port}`);
+    log(`✓ Health check: http://localhost:${port}/`);
+    if (isDevelopment) {
+      log(`✓ API endpoints: http://localhost:${port}/api/*`);
+    }
+  };
+
+  // `reusePort` is not supported on all platforms (notably Windows).
+  if (process.platform === "win32") {
+    server.listen(port, host, onListening);
+  } else {
+    server.listen({ port, host, reusePort: true }, onListening);
+  }
 
   // Graceful shutdown
   const gracefulShutdown = () => {
