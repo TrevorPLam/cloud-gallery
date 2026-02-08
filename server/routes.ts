@@ -13,6 +13,7 @@ import { createServer, type Server } from "node:http";
 import authRoutes from "./auth-routes";
 import uploadRoutes from "./upload-routes";
 import photoRoutes from "./photo-routes";
+import albumRoutes from "./album-routes";
 import { authenticateToken, generalRateLimit } from "./auth";
 
 // AI-NOTE: Currently empty route registration; designed for expansion with /api prefixed routes
@@ -25,6 +26,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Photo routes (with authentication)
   app.use("/api/photos", photoRoutes);
+
+  // Album routes (with authentication)
+  app.use("/api/albums", albumRoutes);
 
   // Upload routes (with authentication)
   app.use("/api/upload", uploadRoutes);

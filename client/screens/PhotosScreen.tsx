@@ -9,7 +9,7 @@
 // AI-META-END
 
 import React, { useCallback } from "react";
-import { StyleSheet, View, Platform, Pressable } from "react-native";
+import { StyleSheet, View, Platform, Pressable, Text } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useHeaderHeight } from "@react-navigation/elements";
@@ -21,7 +21,7 @@ import * as Haptics from "expo-haptics";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Photo } from "@/types";
 import { groupPhotosByDate } from "@/lib/storage";
-import { apiRequest } from "@/lib/query-client";
+import { apiRequest, AuthenticationError, ValidationError, NetworkError, ServerError } from "@/lib/query-client";
 import { PhotoGrid } from "@/components/PhotoGrid";
 import { FloatingActionButton } from "@/components/FloatingActionButton";
 import { EmptyState } from "@/components/EmptyState";
@@ -39,6 +39,45 @@ export default function PhotosScreen() {
   const tabBarHeight = useBottomTabBarHeight();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
+
+  // ═══════════════════════════════════════════════════════════
+  // ERROR MESSAGE FORMATTING
+  // ═══════════════════════════════════════════════════════════
+  
+  const getErrorMessage = (error: unknown): string => {
+    if (error instanceof AuthenticationError) {
+      return "Session expired. Please log in again.";
+    }
+    if (error instanceof NetworkError) {
+      return "No internet connection. Showing cached data.";
+    }
+    if (error instanceof ServerError) {
+      return "Server error. Please try again later.";
+    }
+    if (error instanceof ValidationError) {
+      return `Validation error: ${error.validationDetails.map(d => d.message).join(', ')}`;
+    }
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return "An unexpected error occurred";
+  };
+
+  const getErrorTitle = (error: unknown): string => {
+    if (error instanceof AuthenticationError) {
+      return "Authentication Required";
+    }
+    if (error instanceof NetworkError) {
+      return "Connection Error";
+    }
+    if (error instanceof ServerError) {
+      return "Server Error";
+    }
+    if (error instanceof ValidationError) {
+      return "Invalid Data";
+    }
+    return "Failed to load photos";
+  };
 
   // ═══════════════════════════════════════════════════════════
   // FETCH PHOTOS (React Query)
@@ -108,8 +147,24 @@ export default function PhotosScreen() {
         queryClient.setQueryData(['photos'], context.previousPhotos);
       }
       
-      // Show error to user
+      // Log error for debugging
       console.error('Failed to upload photo:', err);
+      
+      // Show user-friendly error message
+      let errorMessage = 'Failed to upload photo';
+      if (err instanceof ValidationError) {
+        errorMessage = `Upload failed: ${err.validationDetails.map(d => d.message).join(', ')}`;
+      } else if (err instanceof NetworkError) {
+        errorMessage = 'Cannot upload while offline. Please check your connection.';
+      } else if (err instanceof ServerError) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (err instanceof Error) {
+        errorMessage = `Upload failed: ${err.message}`;
+      }
+      
+      // TODO: Show toast notification with errorMessage
+      // For now, just log it
+      console.warn(errorMessage);
     },
     
     // After API call completes (success OR failure)
@@ -179,14 +234,15 @@ export default function PhotosScreen() {
         <View style={styles.errorContainer}>
           <EmptyState
             image={require("../../assets/images/empty-photos.png")}
-            title="Failed to load photos"
-            subtitle={error instanceof Error ? error.message : "An error occurred"}
+            title={getErrorTitle(error)}
+            subtitle={getErrorMessage(error)}
           />
           <Pressable 
             style={[styles.retryButton, { backgroundColor: theme.accent }]}
             onPress={() => refetch()}
           >
-            <Feather name="refresh-cw" size={20} color={theme.buttonText} />
+            <Feather name="refresh-cw" size={20} color={theme.buttonText} style={{ marginRight: Spacing.sm }} />
+            <Text style={{ color: theme.buttonText, fontWeight: '600' }}>Retry</Text>
           </Pressable>
         </View>
       ) : (

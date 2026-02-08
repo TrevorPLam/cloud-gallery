@@ -8,7 +8,7 @@
 // TESTS: Test album creation, deletion, navigation, verify haptics, check empty state
 // AI-META-END
 
-import React, { useState, useCallback } from "react";
+import React, { useState } from "react";
 import {
   StyleSheet,
   View,
@@ -18,15 +18,16 @@ import {
   Pressable,
   Platform,
 } from "react-native";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { Album } from "@/types";
-import { getAlbums, createAlbum, deleteAlbum } from "@/lib/storage";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Album, Photo } from "@/types";
+import { apiRequest } from "@/lib/query-client";
 import { AlbumCard } from "@/components/AlbumCard";
 import { EmptyState } from "@/components/EmptyState";
 import { SkeletonLoader } from "@/components/SkeletonLoader";
@@ -44,31 +45,119 @@ export default function AlbumsScreen() {
   const headerHeight = useHeaderHeight();
   const tabBarHeight = useBottomTabBarHeight();
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
 
-  const [albums, setAlbums] = useState<Album[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newAlbumTitle, setNewAlbumTitle] = useState("");
 
-  const loadAlbums = useCallback(async () => {
-    const data = await getAlbums();
-    setAlbums(data);
-    setIsLoading(false);
-  }, []);
+  // ═══════════════════════════════════════════════════════════
+  // FETCH ALBUMS (React Query)
+  // ═══════════════════════════════════════════════════════════
+  // useQuery automatically:
+  //   • Fetches data when component mounts
+  //   • Handles loading/error states
+  //   • Caches results
+  //   • Refetches when needed
+  
+  const { 
+    data: albums = [], 
+    isLoading, 
+    error,
+    refetch 
+  } = useQuery<Album[]>({
+    queryKey: ['albums'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/albums');
+      const data = await res.json();
+      return data.albums;
+    },
+    // Refetch when screen focused
+    refetchOnWindowFocus: true,
+  });
 
-  useFocusEffect(
-    useCallback(() => {
-      loadAlbums();
-    }, [loadAlbums]),
-  );
+  // Fetch photos to compute cover URIs
+  const { data: photos = [] } = useQuery<Photo[]>({
+    queryKey: ['photos'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/photos');
+      const data = await res.json();
+      return data.photos;
+    },
+  });
+
+  // Task 5.5: Enrich albums with cover photo URIs
+  // For each album, set coverPhotoUri to the first photo's URI
+  const enrichedAlbums = albums.map(album => {
+    if (!album.coverPhotoUri && album.photoIds && album.photoIds.length > 0) {
+      const firstPhoto = photos.find(p => p.id === album.photoIds[0]);
+      return {
+        ...album,
+        coverPhotoUri: firstPhoto?.uri || null,
+      };
+    }
+    return album;
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // CREATE ALBUM MUTATION (React Query)
+  // ═══════════════════════════════════════════════════════════
+  // Task 5.2: Album creation with optimistic update
+  
+  const createAlbumMutation = useMutation({
+    mutationFn: async (albumData: { title: string; description?: string }) => {
+      const res = await apiRequest('POST', '/api/albums', albumData);
+      return res.json();
+    },
+    
+    // BEFORE sending to server (optimistic update)
+    onMutate: async (newAlbum) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['albums'] });
+      
+      // Save current state for rollback
+      const previousAlbums = queryClient.getQueryData(['albums']);
+      
+      // Optimistically update UI (show album immediately with temp ID)
+      queryClient.setQueryData(['albums'], (old: Album[] = []) => [
+        {
+          id: 'temp-' + Date.now(),
+          title: newAlbum.title,
+          description: newAlbum.description,
+          coverPhotoUri: null,
+          photoIds: [],
+          createdAt: Date.now(),
+          modifiedAt: Date.now(),
+        } as Album,
+        ...old,
+      ]);
+      
+      return { previousAlbums };
+    },
+    
+    // If API call FAILS
+    onError: (err, newAlbum, context) => {
+      // Rollback to previous state
+      if (context?.previousAlbums) {
+        queryClient.setQueryData(['albums'], context.previousAlbums);
+      }
+      console.error('Failed to create album:', err);
+    },
+    
+    // After API call completes (success OR failure)
+    onSettled: () => {
+      // Refetch from server to get accurate data
+      queryClient.invalidateQueries({ queryKey: ['albums'] });
+    },
+  });
 
   const handleCreateAlbum = async () => {
     if (!newAlbumTitle.trim()) return;
 
-    await createAlbum(newAlbumTitle.trim());
+    // Use mutation to create album
+    createAlbumMutation.mutate({ title: newAlbumTitle.trim() });
+    
     setNewAlbumTitle("");
     setShowCreateModal(false);
-    loadAlbums();
 
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -82,13 +171,58 @@ export default function AlbumsScreen() {
     });
   };
 
+  // ═══════════════════════════════════════════════════════════
+  // DELETE ALBUM MUTATION (React Query)
+  // ═══════════════════════════════════════════════════════════
+  // Task 5.4: Album deletion with optimistic update
+  
+  const deleteAlbumMutation = useMutation({
+    mutationFn: async (albumId: string) => {
+      const res = await apiRequest('DELETE', `/api/albums/${albumId}`);
+      return res.json();
+    },
+    
+    // BEFORE sending to server (optimistic update)
+    onMutate: async (albumId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['albums'] });
+      
+      // Save current state for rollback
+      const previousAlbums = queryClient.getQueryData(['albums']);
+      
+      // Optimistically remove album from UI
+      queryClient.setQueryData(['albums'], (old: Album[] = []) =>
+        old.filter(album => album.id !== albumId)
+      );
+      
+      return { previousAlbums };
+    },
+    
+    // If API call FAILS
+    onError: (err, albumId, context) => {
+      // Rollback to previous state
+      if (context?.previousAlbums) {
+        queryClient.setQueryData(['albums'], context.previousAlbums);
+      }
+      console.error('Failed to delete album:', err);
+    },
+    
+    // After API call completes (success OR failure)
+    onSettled: () => {
+      // Refetch both albums and photos (photos may have albumIds updated)
+      queryClient.invalidateQueries({ queryKey: ['albums'] });
+      queryClient.invalidateQueries({ queryKey: ['photos'] });
+    },
+  });
+
   const handleAlbumLongPress = async (album: Album) => {
     // AI-NOTE: Heavy haptic for destructive delete; no confirmation dialog for speed
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     }
-    await deleteAlbum(album.id);
-    loadAlbums();
+    
+    // Use mutation to delete album
+    deleteAlbumMutation.mutate(album.id);
   };
 
   const openCreateModal = () => {
@@ -119,9 +253,23 @@ export default function AlbumsScreen() {
         <View style={{ paddingTop: headerHeight + Spacing.xl }}>
           <SkeletonLoader type="albums" count={4} />
         </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <EmptyState
+            image={require("../../assets/images/empty-albums.png")}
+            title="Failed to load albums"
+            subtitle={error instanceof Error ? error.message : "An error occurred"}
+          />
+          <Pressable 
+            style={[styles.retryButton, { backgroundColor: theme.accent }]}
+            onPress={() => refetch()}
+          >
+            <Feather name="refresh-cw" size={20} color={theme.buttonText} />
+          </Pressable>
+        </View>
       ) : (
         <FlatList
-          data={albums}
+          data={enrichedAlbums}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <AlbumCard
@@ -216,6 +364,21 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  errorContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: Spacing.xl,
+  },
+  retryButton: {
+    marginTop: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
   },
   modalOverlay: {
     flex: 1,

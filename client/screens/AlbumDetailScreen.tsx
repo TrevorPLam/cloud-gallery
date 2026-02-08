@@ -8,7 +8,7 @@
 // TESTS: Test adding/removing photos, verify modal interaction, check haptics, handle edge cases
 // AI-META-END
 
-import React, { useState, useCallback } from "react";
+import React, { useState } from "react";
 import {
   StyleSheet,
   View,
@@ -21,7 +21,6 @@ import {
 import {
   useRoute,
   useNavigation,
-  useFocusEffect,
   RouteProp,
 } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -30,13 +29,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Photo, Album } from "@/types";
-import {
-  getPhotos,
-  getAlbums,
-  addPhotosToAlbum,
-  removePhotoFromAlbum,
-} from "@/lib/storage";
+import { apiRequest } from "@/lib/query-client";
 import { EmptyState } from "@/components/EmptyState";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
@@ -60,33 +55,138 @@ export default function AlbumDetailScreen() {
   const { theme } = useTheme();
   const headerHeight = useHeaderHeight();
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
 
   const { albumId, albumTitle } = route.params;
-  const [album, setAlbum] = useState<Album | null>(null);
-  const [albumPhotos, setAlbumPhotos] = useState<Photo[]>([]);
-  const [allPhotos, setAllPhotos] = useState<Photo[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<string[]>([]);
 
-  const loadData = useCallback(async () => {
-    const [albums, photos] = await Promise.all([getAlbums(), getPhotos()]);
-    const currentAlbum = albums.find((a) => a.id === albumId);
-    setAlbum(currentAlbum || null);
-    setAllPhotos(photos);
+  // ═══════════════════════════════════════════════════════════
+  // FETCH ALBUM DATA (React Query)
+  // ═══════════════════════════════════════════════════════════
+  
+  const { data: album } = useQuery<Album>({
+    queryKey: ['albums', albumId],
+    queryFn: async () => {
+      const res = await apiRequest('GET', `/api/albums/${albumId}`);
+      const data = await res.json();
+      return data.album;
+    },
+  });
 
-    if (currentAlbum) {
-      const photosInAlbum = photos.filter((p) =>
-        currentAlbum.photoIds.includes(p.id),
-      );
-      setAlbumPhotos(photosInAlbum);
-    }
-  }, [albumId]);
+  const { data: allPhotos = [] } = useQuery<Photo[]>({
+    queryKey: ['photos'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/photos');
+      const data = await res.json();
+      return data.photos;
+    },
+  });
 
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData]),
+  // Filter photos that are in this album
+  const albumPhotos = allPhotos.filter((p) =>
+    album?.photoIds?.includes(p.id)
   );
+
+  // ═══════════════════════════════════════════════════════════
+  // ADD PHOTO TO ALBUM MUTATION (React Query)
+  // ═══════════════════════════════════════════════════════════
+  // Task 5.3: Add photos to album with optimistic update
+  
+  const addPhotosMutation = useMutation({
+    mutationFn: async (photoIds: string[]) => {
+      // Add each photo to the album
+      await Promise.all(
+        photoIds.map(photoId =>
+          apiRequest('POST', `/api/albums/${albumId}/photos`, { photoId })
+        )
+      );
+    },
+    
+    // BEFORE sending to server (optimistic update)
+    onMutate: async (photoIds) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['albums', albumId] });
+      
+      // Save current state for rollback
+      const previousAlbum = queryClient.getQueryData(['albums', albumId]);
+      
+      // Optimistically update album to include new photos
+      queryClient.setQueryData(['albums', albumId], (old: Album | undefined) => {
+        if (!old) return old;
+        return {
+          ...old,
+          photoIds: [...old.photoIds, ...photoIds],
+        };
+      });
+      
+      return { previousAlbum };
+    },
+    
+    // If API call FAILS
+    onError: (err, photoIds, context) => {
+      // Rollback to previous state
+      if (context?.previousAlbum) {
+        queryClient.setQueryData(['albums', albumId], context.previousAlbum);
+      }
+      console.error('Failed to add photos to album:', err);
+    },
+    
+    // After API call completes (success OR failure)
+    onSettled: () => {
+      // Refetch both albums and photos (dual cache invalidation)
+      queryClient.invalidateQueries({ queryKey: ['albums'] });
+      queryClient.invalidateQueries({ queryKey: ['photos'] });
+    },
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // REMOVE PHOTO FROM ALBUM MUTATION (React Query)
+  // ═══════════════════════════════════════════════════════════
+  // Task 5.3: Remove photo from album with optimistic update
+  
+  const removePhotoMutation = useMutation({
+    mutationFn: async (photoId: string) => {
+      const res = await apiRequest('DELETE', `/api/albums/${albumId}/photos/${photoId}`);
+      return res.json();
+    },
+    
+    // BEFORE sending to server (optimistic update)
+    onMutate: async (photoId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['albums', albumId] });
+      
+      // Save current state for rollback
+      const previousAlbum = queryClient.getQueryData(['albums', albumId]);
+      
+      // Optimistically remove photo from album
+      queryClient.setQueryData(['albums', albumId], (old: Album | undefined) => {
+        if (!old) return old;
+        return {
+          ...old,
+          photoIds: old.photoIds.filter(id => id !== photoId),
+        };
+      });
+      
+      return { previousAlbum };
+    },
+    
+    // If API call FAILS
+    onError: (err, photoId, context) => {
+      // Rollback to previous state
+      if (context?.previousAlbum) {
+        queryClient.setQueryData(['albums', albumId], context.previousAlbum);
+      }
+      console.error('Failed to remove photo from album:', err);
+    },
+    
+    // After API call completes (success OR failure)
+    onSettled: () => {
+      // Refetch both albums and photos (dual cache invalidation)
+      queryClient.invalidateQueries({ queryKey: ['albums'] });
+      queryClient.invalidateQueries({ queryKey: ['photos'] });
+    },
+  });
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
@@ -119,8 +219,7 @@ export default function AlbumDetailScreen() {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     }
-    await removePhotoFromAlbum(albumId, photo.id);
-    loadData();
+    removePhotoMutation.mutate(photo.id);
   };
 
   const handleToggleSelect = (photoId: string) => {
@@ -137,10 +236,9 @@ export default function AlbumDetailScreen() {
 
   const handleAddPhotos = async () => {
     if (selectedPhotoIds.length === 0) return;
-    await addPhotosToAlbum(albumId, selectedPhotoIds);
+    addPhotosMutation.mutate(selectedPhotoIds);
     setShowAddModal(false);
     setSelectedPhotoIds([]);
-    loadData();
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }

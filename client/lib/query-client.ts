@@ -73,13 +73,95 @@ export async function clearAuthToken(): Promise<void> {
 }
 
 // ═══════════════════════════════════════════════════════════
+// API ERROR TYPES
+// ═══════════════════════════════════════════════════════════
+
+export class APIError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public details?: unknown
+  ) {
+    super(message);
+    this.name = 'APIError';
+  }
+}
+
+export class AuthenticationError extends APIError {
+  constructor(message: string = "Authentication required. Please log in again.") {
+    super(message, 401);
+    this.name = 'AuthenticationError';
+  }
+}
+
+export class ValidationError extends APIError {
+  constructor(
+    message: string,
+    public validationDetails: Array<{ path: string[]; message: string }>
+  ) {
+    super(message, 400, validationDetails);
+    this.name = 'ValidationError';
+  }
+}
+
+export class NetworkError extends Error {
+  constructor(message: string = "Network request failed. Please check your connection.") {
+    super(message);
+    this.name = 'NetworkError';
+  }
+}
+
+export class ServerError extends APIError {
+  constructor(message: string = "Server error. Please try again later.") {
+    super(message, 500);
+    this.name = 'ServerError';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
 // API REQUEST HELPER
 // ═══════════════════════════════════════════════════════════
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    const contentType = res.headers.get('content-type');
+    let errorData: any;
+    
+    // Try to parse JSON error response
+    if (contentType?.includes('application/json')) {
+      try {
+        errorData = await res.json();
+      } catch {
+        errorData = { message: res.statusText };
+      }
+    } else {
+      const text = await res.text();
+      errorData = { message: text || res.statusText };
+    }
+
+    // Handle specific error types
+    if (res.status === 401) {
+      throw new AuthenticationError(errorData.message);
+    }
+    
+    if (res.status === 400 && errorData.details) {
+      throw new ValidationError(
+        errorData.error || errorData.message || 'Validation failed',
+        errorData.details
+      );
+    }
+    
+    if (res.status >= 500) {
+      console.error('Server error:', res.status, errorData);
+      throw new ServerError(errorData.message || 'Server error. Please try again later.');
+    }
+    
+    // Generic API error
+    throw new APIError(
+      errorData.message || `Request failed with status ${res.status}`,
+      res.status,
+      errorData
+    );
   }
 }
 
@@ -89,45 +171,66 @@ async function throwIfResNotOk(res: Response) {
  * @param endpoint - API endpoint (e.g., '/api/photos')
  * @param body - Request body (optional)
  * @returns Promise<Response>
- * @throws Error if request fails or authentication required
+ * @throws AuthenticationError if 401
+ * @throws ValidationError if 400 with validation details
+ * @throws ServerError if 500+
+ * @throws NetworkError if network failure
+ * @throws APIError for other HTTP errors
  */
 export async function apiRequest(
   method: "GET" | "POST" | "PUT" | "DELETE",
   endpoint: string,
   body?: unknown | undefined,
 ): Promise<Response> {
-  const baseUrl = getApiUrl();
-  const url = new URL(endpoint, baseUrl);
+  try {
+    const baseUrl = getApiUrl();
+    const url = new URL(endpoint, baseUrl);
 
-  // Get authentication token from storage
-  const token = await getAuthToken();
+    // Get authentication token from storage
+    const token = await getAuthToken();
 
-  // Build headers
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
+    // Build headers
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
 
-  // Add Authorization header if token exists
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
+    // Add Authorization header if token exists
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    // Make request
+    const res = await fetch(url, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      credentials: "include",
+    });
+
+    // Handle 401 Unauthorized - clear token and throw
+    if (res.status === 401) {
+      await clearAuthToken();
+      throw new AuthenticationError();
+    }
+
+    await throwIfResNotOk(res);
+    return res;
+  } catch (error) {
+    // Re-throw our custom errors
+    if (error instanceof APIError || error instanceof NetworkError) {
+      throw error;
+    }
+    
+    // Handle network errors (fetch failures)
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      console.error('Network error:', error);
+      throw new NetworkError();
+    }
+    
+    // Log and re-throw unexpected errors
+    console.error('Unexpected API error:', error);
+    throw error;
   }
-
-  // Make request
-  const res = await fetch(url, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-    credentials: "include",
-  });
-
-  // Handle 401 Unauthorized - clear token and throw
-  if (res.status === 401) {
-    await clearAuthToken();
-    throw new Error("Authentication required. Please log in again.");
-  }
-
-  await throwIfResNotOk(res);
-  return res;
 }
 
 // ═══════════════════════════════════════════════════════════
