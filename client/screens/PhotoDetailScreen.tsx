@@ -8,7 +8,7 @@
 // TESTS: Test swipe navigation, photo deletion, sharing, verify haptics, check controls toggle
 // AI-META-END
 
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -16,6 +16,7 @@ import {
   Pressable,
   Platform,
   StatusBar,
+  Alert,
 } from "react-native";
 import { useRoute, useNavigation, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -33,8 +34,9 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Photo } from "@/types";
-import { getPhotos, toggleFavorite, deletePhoto } from "@/lib/storage";
+import { apiRequest } from "@/lib/query-client";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, Colors } from "@/constants/theme";
@@ -50,31 +52,219 @@ export default function PhotoDetailScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
 
   const { photoId, initialIndex } = route.params;
-  const [photos, setPhotos] = useState<Photo[]>([]);
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [showControls, setShowControls] = useState(true);
-  const listRef = useRef<FlashList<Photo>>(null);
+  const listRef = useRef<FlashList<Photo> | null>(null);
 
-  const loadPhotos = useCallback(async () => {
-    const data = await getPhotos();
-    setPhotos(data);
-  }, []);
-
-  React.useEffect(() => {
-    loadPhotos();
-  }, [loadPhotos]);
+  // Fetch photos using React Query
+  const { data: photos = [] } = useQuery<Photo[]>({
+    queryKey: ['photos'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/photos');
+      const data = await res.json();
+      return data.photos;
+    },
+  });
 
   const currentPhoto = photos[currentIndex];
+
+  // ═══════════════════════════════════════════════════════════
+  // METADATA UPDATE MUTATIONS
+  // ═══════════════════════════════════════════════════════════
+
+  // Mutation for favorite toggle
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: async ({ photoId, isFavorite }: { photoId: string; isFavorite: boolean }) => {
+      const res = await apiRequest('PUT', `/api/photos/${photoId}`, { isFavorite });
+      return res.json();
+    },
+    onMutate: async ({ photoId, isFavorite }) => {
+      await queryClient.cancelQueries({ queryKey: ['photos'] });
+      const previousPhotos = queryClient.getQueryData(['photos']);
+      
+      // Optimistic update
+      queryClient.setQueryData(['photos'], (old: Photo[] = []) =>
+        old.map(photo => 
+          photo.id === photoId ? { ...photo, isFavorite, modifiedAt: Date.now() } : photo
+        )
+      );
+      
+      return { previousPhotos };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousPhotos) {
+        queryClient.setQueryData(['photos'], context.previousPhotos);
+      }
+      console.error('Failed to toggle favorite:', err);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['photos'] });
+    },
+  });
+
+  // Mutation for tags update
+  const updateTagsMutation = useMutation({
+    mutationFn: async ({ photoId, tags }: { photoId: string; tags: string[] }) => {
+      const res = await apiRequest('PUT', `/api/photos/${photoId}`, { tags });
+      return res.json();
+    },
+    onMutate: async ({ photoId, tags }) => {
+      await queryClient.cancelQueries({ queryKey: ['photos'] });
+      const previousPhotos = queryClient.getQueryData(['photos']);
+      
+      queryClient.setQueryData(['photos'], (old: Photo[] = []) =>
+        old.map(photo => 
+          photo.id === photoId ? { ...photo, tags, modifiedAt: Date.now() } : photo
+        )
+      );
+      
+      return { previousPhotos };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousPhotos) {
+        queryClient.setQueryData(['photos'], context.previousPhotos);
+      }
+      console.error('Failed to update tags:', err);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['photos'] });
+    },
+  });
+
+  // Mutation for notes update
+  const updateNotesMutation = useMutation({
+    mutationFn: async ({ photoId, notes }: { photoId: string; notes: string }) => {
+      const res = await apiRequest('PUT', `/api/photos/${photoId}`, { notes });
+      return res.json();
+    },
+    onMutate: async ({ photoId, notes }) => {
+      await queryClient.cancelQueries({ queryKey: ['photos'] });
+      const previousPhotos = queryClient.getQueryData(['photos']);
+      
+      queryClient.setQueryData(['photos'], (old: Photo[] = []) =>
+        old.map(photo => 
+          photo.id === photoId ? { ...photo, notes, modifiedAt: Date.now() } : photo
+        )
+      );
+      
+      return { previousPhotos };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousPhotos) {
+        queryClient.setQueryData(['photos'], context.previousPhotos);
+      }
+      console.error('Failed to update notes:', err);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['photos'] });
+    },
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // DEBOUNCED METADATA UPDATES (Requirement 4.7)
+  // ═══════════════════════════════════════════════════════════
+  // Debounce text input updates by 500ms to avoid excessive API calls
+
+  const tagsDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const notesDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  /**
+   * Debounced tags update handler
+   * Waits 500ms after last change before sending to server
+   */
+  const handleTagsUpdate = useCallback((photoId: string, tags: string[]) => {
+    // Clear existing timer
+    if (tagsDebounceTimer.current) {
+      clearTimeout(tagsDebounceTimer.current);
+    }
+
+    // Set new timer
+    tagsDebounceTimer.current = setTimeout(() => {
+      updateTagsMutation.mutate({ photoId, tags });
+    }, 500);
+  }, [updateTagsMutation]);
+
+  /**
+   * Debounced notes update handler
+   * Waits 500ms after last change before sending to server
+   */
+  const handleNotesUpdate = useCallback((photoId: string, notes: string) => {
+    // Clear existing timer
+    if (notesDebounceTimer.current) {
+      clearTimeout(notesDebounceTimer.current);
+    }
+
+    // Set new timer
+    notesDebounceTimer.current = setTimeout(() => {
+      updateNotesMutation.mutate({ photoId, notes });
+    }, 500);
+  }, [updateNotesMutation]);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (tagsDebounceTimer.current) {
+        clearTimeout(tagsDebounceTimer.current);
+      }
+      if (notesDebounceTimer.current) {
+        clearTimeout(notesDebounceTimer.current);
+      }
+    };
+  }, []);
+
+  // ═══════════════════════════════════════════════════════════
+  // DELETE PHOTO MUTATION
+  // ═══════════════════════════════════════════════════════════
+  // Implements Requirements 5.1, 5.2, 5.3, 5.4, 5.5, 5.6
+
+  const deletePhotoMutation = useMutation({
+    // Requirement 5.1: Send DELETE /api/photos/:id to the Server
+    mutationFn: async (photoId: string) => {
+      const res = await apiRequest('DELETE', `/api/photos/${photoId}`);
+      return res.json();
+    },
+    // Requirement 5.2: Remove photo from UI immediately (Optimistic_Update)
+    onMutate: async (photoId) => {
+      await queryClient.cancelQueries({ queryKey: ['photos'] });
+      const previousPhotos = queryClient.getQueryData(['photos']);
+      
+      // Optimistic deletion - remove from UI immediately
+      queryClient.setQueryData(['photos'], (old: Photo[] = []) =>
+        old.filter(photo => photo.id !== photoId)
+      );
+      
+      return { previousPhotos };
+    },
+    // Requirement 5.4: Restore photo in UI and display error message on failure
+    onError: (err, photoId, context) => {
+      // Rollback on error - restore photo
+      if (context?.previousPhotos) {
+        queryClient.setQueryData(['photos'], context.previousPhotos);
+      }
+      console.error('Failed to delete photo:', err);
+      // Error message displayed via console (could add toast notification)
+    },
+    // Requirement 5.3: Remove photo from React_Query cache on success
+    // Requirement 5.6: Trigger Cache_Invalidation for affected albums
+    onSettled: () => {
+      // Invalidate both photos and albums caches
+      queryClient.invalidateQueries({ queryKey: ['photos'] });
+      queryClient.invalidateQueries({ queryKey: ['albums'] });
+    },
+  });
 
   const handleToggleFavorite = async () => {
     if (!currentPhoto) return;
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    await toggleFavorite(currentPhoto.id);
-    loadPhotos();
+    toggleFavoriteMutation.mutate({
+      photoId: currentPhoto.id,
+      isFavorite: !currentPhoto.isFavorite,
+    });
   };
 
   const handleShare = async () => {
@@ -93,20 +283,53 @@ export default function PhotoDetailScreen() {
     }
   };
 
-  const handleDelete = async () => {
+  const performDelete = () => {
     if (!currentPhoto) return;
+    
     // AI-NOTE: Warning haptic for destructive delete; adjusts index if deleting last photo
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     }
-    await deletePhoto(currentPhoto.id);
+    
+    // Requirement 5.2: Remove photo from UI immediately (Optimistic_Update)
+    // Requirement 5.1: Send DELETE request to server
+    deletePhotoMutation.mutate(currentPhoto.id);
+    
+    // Navigate back if this was the last photo, otherwise adjust index
     if (photos.length === 1) {
       navigation.goBack();
     } else {
       const newIndex =
         currentIndex === photos.length - 1 ? currentIndex - 1 : currentIndex;
       setCurrentIndex(newIndex);
-      loadPhotos();
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!currentPhoto) return;
+    
+    // Requirement 5.5: Show confirmation dialog before proceeding
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm("Are you sure you want to delete this photo? This action cannot be undone.");
+      if (!confirmed) return;
+      performDelete();
+    } else {
+      // For native platforms, use Alert
+      Alert.alert(
+        "Delete Photo",
+        "Are you sure you want to delete this photo? This action cannot be undone.",
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: performDelete,
+          },
+        ]
+      );
     }
   };
 
