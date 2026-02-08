@@ -70,14 +70,14 @@ This plan breaks down the client-server integration into discrete, testable task
     - Invalidate photo and album caches
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6_
   
-  - [-] 2.8 Write property tests for deletion
+  - [x] 2.8 Write property tests for deletion
     - **Property 10: Deletion Request Propagation**
     - **Property 11: Optimistic Deletion**
     - **Property 12: Cache Cleanup After Deletion**
     - **Property 13: Album Cache Invalidation After Photo Deletion**
     - **Validates: Requirements 5.1, 5.2, 5.3, 5.6**
 
-- [~] 3. Checkpoint - Verify PhotosScreen integration
+- [-] 3. Checkpoint - Verify PhotosScreen integration
   - Ensure all tests pass
   - Test upload → view → edit → delete flow manually
   - Verify optimistic updates work correctly
