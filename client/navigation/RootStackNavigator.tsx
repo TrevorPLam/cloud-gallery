@@ -13,12 +13,16 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import MainTabNavigator from "@/navigation/MainTabNavigator";
 import PhotoDetailScreen from "@/screens/PhotoDetailScreen";
 import AlbumDetailScreen from "@/screens/AlbumDetailScreen";
+import EditPhotoScreen from "@/screens/EditPhotoScreen";
+import TrashScreen from "@/screens/TrashScreen";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
 
 export type RootStackParamList = {
   Main: undefined;
   PhotoDetail: { photoId: string; initialIndex: number };
   AlbumDetail: { albumId: string; albumTitle: string };
+  EditPhoto: { photoId: string; initialUri: string };
+  Trash: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -48,6 +52,21 @@ export default function RootStackNavigator() {
         component={AlbumDetailScreen}
         options={{
           headerTitle: "Album",
+        }}
+      />
+      <Stack.Screen
+        name="EditPhoto"
+        component={EditPhotoScreen}
+        options={{
+          headerShown: false,
+          presentation: "modal", // Full screen modal for editing
+        }}
+      />
+      <Stack.Screen
+        name="Trash"
+        component={TrashScreen}
+        options={{
+          headerShown: false,
         }}
       />
     </Stack.Navigator>

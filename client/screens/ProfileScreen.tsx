@@ -17,7 +17,7 @@ import {
   Pressable,
   Platform,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -37,6 +37,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, Colors } from "@/constants/theme";
 
 export default function ProfileScreen() {
+  const navigation = useNavigation<any>();
   const { theme, isDark } = useTheme();
   const headerHeight = useHeaderHeight();
   const tabBarHeight = useBottomTabBarHeight();
@@ -185,19 +186,19 @@ export default function ProfileScreen() {
           icon={isDark ? "moon" : "sun"}
           title="Appearance"
           subtitle={isDark ? "Dark mode" : "Light mode"}
-          onPress={() => {}}
+          onPress={() => { }}
         />
         <SettingsRow
           icon="bell"
           title="Notifications"
           subtitle="Manage notification settings"
-          onPress={() => {}}
+          onPress={() => { }}
         />
         <SettingsRow
           icon="lock"
           title="Privacy"
           subtitle="Control your data and privacy"
-          onPress={() => {}}
+          onPress={() => { }}
         />
       </View>
 
@@ -216,6 +217,12 @@ export default function ProfileScreen() {
           subtitle="Delete all photos and albums"
           onPress={handleClearData}
           isDestructive
+        />
+        <SettingsRow
+          icon="trash"
+          title="Recently Deleted"
+          subtitle="View and restore deleted photos"
+          onPress={() => navigation.navigate("Trash")}
         />
       </View>
 

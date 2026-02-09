@@ -30,11 +30,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, Colors } from "@/constants/theme";
 
-// AI-NOTE: Column count and sizing calculated at module load; won't respond to orientation changes
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const NUM_COLUMNS = 3;
-const GAP = Spacing.photoGap;
-const PHOTO_SIZE = (SCREEN_WIDTH - GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
+
 
 interface PhotoGridProps {
   photos: Photo[];
@@ -53,9 +49,10 @@ interface PhotoItemProps {
   index: number;
   onPress: (photo: Photo, index: number) => void;
   onLongPress?: (photo: Photo) => void;
+  style?: any;
 }
 
-function PhotoItem({ photo, index, onPress, onLongPress }: PhotoItemProps) {
+function PhotoItem({ photo, index, onPress, onLongPress, style }: PhotoItemProps) {
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -86,7 +83,7 @@ function PhotoItem({ photo, index, onPress, onLongPress }: PhotoItemProps) {
       onPressOut={handlePressOut}
       onLongPress={handleLongPress}
       delayLongPress={300}
-      style={[styles.photoContainer, animatedStyle]}
+      style={[style, animatedStyle]}
       testID={`photo-item-${photo.id}`}
     >
       <Image
@@ -104,6 +101,11 @@ function PhotoItem({ photo, index, onPress, onLongPress }: PhotoItemProps) {
   );
 }
 
+import { useWindowDimensions } from "react-native";
+
+// Constants
+const GAP = Spacing.photoGap;
+
 export function PhotoGrid({
   photos,
   onPhotoPress,
@@ -116,8 +118,50 @@ export function PhotoGrid({
   scrollIndicatorInsets,
 }: PhotoGridProps) {
   const { theme } = useTheme();
+  const { width } = useWindowDimensions();
 
-  // AI-NOTE: Grouped mode flattens sections into single array with header items for FlashList efficiency
+  // Responsive column calculation
+  // Mobile: 3, Large Mobile/Tablet Portrait: 4, Tablet Landscape: 6, Desktop: 8
+  const numColumns =
+    width > 1200 ? 8 : width > 900 ? 6 : width > 600 ? 4 : 3;
+
+  const photoSize = (width - GAP * (numColumns - 1)) / numColumns;
+
+  // Dynamic style for photo container
+  const photoContainerStyle = {
+    width: photoSize,
+    height: photoSize,
+    marginRight: GAP,
+    marginBottom: GAP,
+    position: "relative" as const,
+  };
+
+  // Memoize overrideItemLayout to avoid re-renders if dimensions don't change
+  // But since dimensions change on rotate/resize, we need to recalculate.
+
+  const renderItem = ({ item, index }: { item: any, index: number }) => {
+    if ("type" in item && item.type === "header") {
+      return (
+        <View style={[styles.sectionHeader, { width }]}>
+          <ThemedText type="h4" style={{ color: theme.text }}>
+            {item.title}
+          </ThemedText>
+        </View>
+      );
+    }
+    const photo = item as Photo;
+    const photoIndex = photos.findIndex((p) => p.id === photo.id);
+    return (
+      <PhotoItem
+        photo={photo}
+        index={photoIndex}
+        onPress={onPhotoPress}
+        onLongPress={onPhotoLongPress}
+        style={photoContainerStyle}
+      />
+    );
+  };
+
   if (groupedData && showSectionHeaders) {
     const flatData: (Photo | { type: "header"; title: string })[] = [];
     groupedData.forEach((group) => {
@@ -128,47 +172,27 @@ export function PhotoGrid({
     return (
       <FlashList
         data={flatData}
-        numColumns={NUM_COLUMNS}
-        estimatedItemSize={PHOTO_SIZE}
+        numColumns={numColumns}
+        estimatedItemSize={photoSize}
         contentContainerStyle={contentContainerStyle}
         scrollIndicatorInsets={scrollIndicatorInsets}
         ListHeaderComponent={ListHeaderComponent}
         ListEmptyComponent={ListEmptyComponent}
-        renderItem={({ item, index }) => {
-          if ("type" in item && item.type === "header") {
-            return (
-              <View style={styles.sectionHeader}>
-                <ThemedText type="h4" style={{ color: theme.text }}>
-                  {item.title}
-                </ThemedText>
-              </View>
-            );
-          }
-          const photo = item as Photo;
-          const photoIndex = photos.findIndex((p) => p.id === photo.id);
-          return (
-            <PhotoItem
-              photo={photo}
-              index={photoIndex}
-              onPress={onPhotoPress}
-              onLongPress={onPhotoLongPress}
-            />
-          );
-        }}
+        renderItem={renderItem}
         getItemType={(item) => {
-          // AI-NOTE: Type discrimination allows FlashList to optimize layout per item type
           if ("type" in item && item.type === "header") return "header";
           return "photo";
         }}
         overrideItemLayout={(layout, item) => {
-          // AI-NOTE: Headers span all columns; photos maintain grid sizing for perf
           if ("type" in item && item.type === "header") {
-            layout.span = NUM_COLUMNS;
+            layout.span = numColumns;
             layout.size = 48;
           } else {
-            layout.size = PHOTO_SIZE + GAP;
+            layout.size = photoSize + GAP;
           }
         }}
+        // Refresh flashlist when columns change
+        key={`grid-${numColumns}`}
       />
     );
   }
@@ -176,8 +200,8 @@ export function PhotoGrid({
   return (
     <FlashList
       data={photos}
-      numColumns={NUM_COLUMNS}
-      estimatedItemSize={PHOTO_SIZE}
+      numColumns={numColumns}
+      estimatedItemSize={photoSize}
       contentContainerStyle={contentContainerStyle}
       scrollIndicatorInsets={scrollIndicatorInsets}
       ListHeaderComponent={ListHeaderComponent}
@@ -188,20 +212,15 @@ export function PhotoGrid({
           index={index}
           onPress={onPhotoPress}
           onLongPress={onPhotoLongPress}
+          style={photoContainerStyle}
         />
       )}
+      key={`grid-${numColumns}`}
     />
   );
 }
 
 const styles = StyleSheet.create({
-  photoContainer: {
-    width: PHOTO_SIZE,
-    height: PHOTO_SIZE,
-    marginRight: GAP,
-    marginBottom: GAP,
-    position: "relative",
-  },
   photo: {
     width: "100%",
     height: "100%",
@@ -216,9 +235,8 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   sectionHeader: {
-    width: SCREEN_WIDTH,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    marginLeft: -Spacing.lg,
+    // marginLeft: -Spacing.lg, // Removed negative margin logic as it was confusing
   },
 });

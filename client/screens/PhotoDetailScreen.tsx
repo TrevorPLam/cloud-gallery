@@ -41,6 +41,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, Colors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
+import { PhotoMetadataEditor } from "@/components/PhotoMetadataEditor";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -54,16 +55,19 @@ export default function PhotoDetailScreen() {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
 
-  const { photoId, initialIndex } = route.params;
+  const { photoId, initialIndex, context } = route.params as any; // Cast to any to generic param access
+  const isTrash = context === "trash";
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [showControls, setShowControls] = useState(true);
-  const listRef = useRef<FlashList<Photo> | null>(null);
+  const [isMetadataEditorVisible, setIsMetadataEditorVisible] = useState(false);
+  const listRef = useRef<any>(null);
 
   // Fetch photos using React Query
   const { data: photos = [] } = useQuery<Photo[]>({
-    queryKey: ['photos'],
+    queryKey: isTrash ? ['trash-photos'] : ['photos'],
     queryFn: async () => {
-      const res = await apiRequest('GET', '/api/photos');
+      const endpoint = isTrash ? '/api/photos/user/trash' : '/api/photos';
+      const res = await apiRequest('GET', endpoint);
       const data = await res.json();
       return data.photos;
     },
@@ -84,14 +88,14 @@ export default function PhotoDetailScreen() {
     onMutate: async ({ photoId, isFavorite }) => {
       await queryClient.cancelQueries({ queryKey: ['photos'] });
       const previousPhotos = queryClient.getQueryData(['photos']);
-      
+
       // Optimistic update
       queryClient.setQueryData(['photos'], (old: Photo[] = []) =>
-        old.map(photo => 
+        old.map(photo =>
           photo.id === photoId ? { ...photo, isFavorite, modifiedAt: Date.now() } : photo
         )
       );
-      
+
       return { previousPhotos };
     },
     onError: (err, variables, context) => {
@@ -114,13 +118,13 @@ export default function PhotoDetailScreen() {
     onMutate: async ({ photoId, tags }) => {
       await queryClient.cancelQueries({ queryKey: ['photos'] });
       const previousPhotos = queryClient.getQueryData(['photos']);
-      
+
       queryClient.setQueryData(['photos'], (old: Photo[] = []) =>
-        old.map(photo => 
+        old.map(photo =>
           photo.id === photoId ? { ...photo, tags, modifiedAt: Date.now() } : photo
         )
       );
-      
+
       return { previousPhotos };
     },
     onError: (err, variables, context) => {
@@ -143,13 +147,13 @@ export default function PhotoDetailScreen() {
     onMutate: async ({ photoId, notes }) => {
       await queryClient.cancelQueries({ queryKey: ['photos'] });
       const previousPhotos = queryClient.getQueryData(['photos']);
-      
+
       queryClient.setQueryData(['photos'], (old: Photo[] = []) =>
-        old.map(photo => 
+        old.map(photo =>
           photo.id === photoId ? { ...photo, notes, modifiedAt: Date.now() } : photo
         )
       );
-      
+
       return { previousPhotos };
     },
     onError: (err, variables, context) => {
@@ -168,8 +172,8 @@ export default function PhotoDetailScreen() {
   // ═══════════════════════════════════════════════════════════
   // Debounce text input updates by 500ms to avoid excessive API calls
 
-  const tagsDebounceTimer = useRef<NodeJS.Timeout | null>(null);
-  const notesDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const tagsDebounceTimer = useRef<any>(null);
+  const notesDebounceTimer = useRef<any>(null);
 
   /**
    * Debounced tags update handler
@@ -230,31 +234,106 @@ export default function PhotoDetailScreen() {
     onMutate: async (photoId) => {
       await queryClient.cancelQueries({ queryKey: ['photos'] });
       const previousPhotos = queryClient.getQueryData(['photos']);
-      
+
       // Optimistic deletion - remove from UI immediately
       queryClient.setQueryData(['photos'], (old: Photo[] = []) =>
         old.filter(photo => photo.id !== photoId)
       );
-      
+
       return { previousPhotos };
     },
-    // Requirement 5.4: Restore photo in UI and display error message on failure
     onError: (err, photoId, context) => {
-      // Rollback on error - restore photo
       if (context?.previousPhotos) {
         queryClient.setQueryData(['photos'], context.previousPhotos);
       }
       console.error('Failed to delete photo:', err);
-      // Error message displayed via console (could add toast notification)
     },
-    // Requirement 5.3: Remove photo from React_Query cache on success
-    // Requirement 5.6: Trigger Cache_Invalidation for affected albums
     onSettled: () => {
-      // Invalidate both photos and albums caches
       queryClient.invalidateQueries({ queryKey: ['photos'] });
       queryClient.invalidateQueries({ queryKey: ['albums'] });
+      // Also invalidate trash
+      queryClient.invalidateQueries({ queryKey: ['trash-photos'] });
     },
   });
+
+  const restorePhotoMutation = useMutation({
+    mutationFn: async (photoId: string) => {
+      const res = await apiRequest('PUT', `/api/photos/${photoId}/restore`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['photos'] });
+      queryClient.invalidateQueries({ queryKey: ['trash-photos'] });
+
+      // Navigate back if only one photo (or remove from list logic below)
+      if (photos.length === 1) {
+        navigation.goBack();
+      } else {
+        // Remove locally
+        // But simpler to just let re-render handle it if we invalidate?
+        // Actually FlashList might need index update.
+        // If we restore, it should disappear from Trash list.
+        // Similar logic to delete.
+        // But we need to update state.
+      }
+    }
+  });
+
+  const permanentDeleteMutation = useMutation({
+    mutationFn: async (photoId: string) => {
+      const res = await apiRequest('DELETE', `/api/photos/${photoId}/permanent`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trash-photos'] });
+    }
+  });
+
+  const handleRestore = () => {
+    if (!currentPhoto) return;
+    restorePhotoMutation.mutate(currentPhoto.id);
+
+    // Remove from current view
+    if (photos.length === 1) {
+      navigation.goBack();
+    } else {
+      // Optimistic removed from list? 
+      // For now rely on invalidate. But we need to update index if item disappears.
+      // Actually, if we invalidate, the data changes, re-render happens.
+      // But FlashList needs care.
+    }
+  };
+
+  const handlePermanentDelete = () => {
+    if (!currentPhoto) return;
+
+    if (Platform.OS === "web") {
+      if (window.confirm("Permanently delete this photo? This cannot be undone.")) {
+        permanentDeleteMutation.mutate(currentPhoto.id);
+        if (photos.length === 1) {
+          navigation.goBack();
+        }
+      }
+    } else {
+      Alert.alert(
+        "Delete Permanently",
+        "This cannot be undone.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: () => {
+              permanentDeleteMutation.mutate(currentPhoto.id);
+              if (photos.length === 1) {
+                navigation.goBack();
+              }
+            }
+          }
+        ]
+      );
+    }
+  };
 
   const handleToggleFavorite = async () => {
     if (!currentPhoto) return;
@@ -285,16 +364,16 @@ export default function PhotoDetailScreen() {
 
   const performDelete = () => {
     if (!currentPhoto) return;
-    
+
     // AI-NOTE: Warning haptic for destructive delete; adjusts index if deleting last photo
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     }
-    
+
     // Requirement 5.2: Remove photo from UI immediately (Optimistic_Update)
     // Requirement 5.1: Send DELETE request to server
     deletePhotoMutation.mutate(currentPhoto.id);
-    
+
     // Navigate back if this was the last photo, otherwise adjust index
     if (photos.length === 1) {
       navigation.goBack();
@@ -307,7 +386,7 @@ export default function PhotoDetailScreen() {
 
   const handleDelete = async () => {
     if (!currentPhoto) return;
-    
+
     // Requirement 5.5: Show confirmation dialog before proceeding
     if (Platform.OS === "web") {
       const confirmed = window.confirm("Are you sure you want to delete this photo? This action cannot be undone.");
@@ -332,6 +411,14 @@ export default function PhotoDetailScreen() {
       );
     }
   };
+
+  const handleValidation = useCallback((tags: string[], notes: string) => {
+    if (!currentPhoto) return;
+    // Mutate directly - debouncing handled in component if needed, or we just save immediately on "Save" press
+    // The Editor component calls this on "Save" click, so we want immediate update
+    updateTagsMutation.mutate({ photoId: currentPhoto.id, tags });
+    updateNotesMutation.mutate({ photoId: currentPhoto.id, notes });
+  }, [currentPhoto, updateTagsMutation, updateNotesMutation]);
 
   const toggleControls = () => {
     setShowControls(!showControls);
@@ -369,6 +456,7 @@ export default function PhotoDetailScreen() {
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
+        // @ts-ignore
         estimatedItemSize={SCREEN_WIDTH}
         initialScrollIndex={initialIndex}
         renderItem={renderPhoto}
@@ -406,24 +494,57 @@ export default function PhotoDetailScreen() {
               { paddingBottom: insets.bottom + Spacing.lg },
             ]}
           >
-            <Pressable onPress={handleShare} style={styles.footerButton}>
-              <Feather name="share" size={24} color="#FFFFFF" />
-            </Pressable>
-            <Pressable
-              onPress={handleToggleFavorite}
-              style={styles.footerButton}
-            >
-              <Feather
-                name={currentPhoto?.isFavorite ? "heart" : "heart"}
-                size={24}
-                color={
-                  currentPhoto?.isFavorite ? Colors.light.accent : "#FFFFFF"
-                }
-              />
-            </Pressable>
-            <Pressable onPress={handleDelete} style={styles.footerButton}>
-              <Feather name="trash-2" size={24} color="#FFFFFF" />
-            </Pressable>
+            {isTrash ? (
+              /* TRASH MODE BUTTONS */
+              <>
+                <Pressable onPress={handleRestore} style={styles.footerButton}>
+                  <Feather name="refresh-ccw" size={24} color="#FFFFFF" />
+                  <ThemedText type="small" style={{ color: "#FFFFFF", fontSize: 10 }}>Restore</ThemedText>
+                </Pressable>
+                <Pressable onPress={handlePermanentDelete} style={styles.footerButton}>
+                  <Feather name="trash-2" size={24} color={Colors.light.error} />
+                  <ThemedText type="small" style={{ color: Colors.light.error, fontSize: 10 }}>Delete</ThemedText>
+                </Pressable>
+              </>
+            ) : (
+              /* NORMAL MODE BUTTONS */
+              <>
+                <Pressable onPress={handleShare} style={styles.footerButton}>
+                  <Feather name="share" size={24} color="#FFFFFF" />
+                </Pressable>
+                <Pressable
+                  onPress={handleToggleFavorite}
+                  style={styles.footerButton}
+                >
+                  <Feather
+                    name={currentPhoto?.isFavorite ? "heart" : "heart"}
+                    size={24}
+                    color={
+                      currentPhoto?.isFavorite ? Colors.light.accent : "#FFFFFF"
+                    }
+                  />
+                </Pressable>
+                <Pressable onPress={handleDelete} style={styles.footerButton}>
+                  <Feather name="trash-2" size={24} color="#FFFFFF" />
+                </Pressable>
+                <Pressable
+                  onPress={() => setIsMetadataEditorVisible(true)}
+                  style={styles.footerButton}
+                >
+                  <Feather name="info" size={24} color="#FFFFFF" />
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    if (currentPhoto) {
+                      navigation.navigate("EditPhoto", { photoId: currentPhoto.id, initialUri: currentPhoto.uri });
+                    }
+                  }}
+                  style={styles.footerButton}
+                >
+                  <Feather name="edit-2" size={24} color="#FFFFFF" />
+                </Pressable>
+              </>
+            )}
           </View>
 
           <View style={styles.counter}>
@@ -433,6 +554,16 @@ export default function PhotoDetailScreen() {
           </View>
         </>
       ) : null}
+
+      {currentPhoto && (
+        <PhotoMetadataEditor
+          visible={isMetadataEditorVisible}
+          onClose={() => setIsMetadataEditorVisible(false)}
+          onSave={handleValidation}
+          initialTags={currentPhoto.tags || []}
+          initialNotes={currentPhoto.notes || ""}
+        />
+      )}
     </View>
   );
 }

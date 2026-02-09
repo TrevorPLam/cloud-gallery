@@ -101,6 +101,9 @@ export const photos = pgTable("photos", {
 
   // Privacy flag - should this be hidden?
   isPrivate: boolean("is_private").default(false).notNull(),
+
+  // Soft delete timestamp
+  deletedAt: timestamp("deleted_at"),
 });
 
 // ─────────────────────────────────────────────────────────

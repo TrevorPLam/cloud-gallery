@@ -18,11 +18,9 @@ describe("Password Hashing", () => {
     const hash = await hashPassword(password);
 
     expect(hash).toBeTruthy();
-    expect(hash).toContain(":"); // Should contain salt:hash format
-
-    const parts = hash.split(":");
-    expect(parts).toHaveLength(2);
-    expect(parts[0]).toHaveLength(SECURITY_CONFIG.SALT_LENGTH * 2); // Hex encoding doubles length
+    expect(hash).toBeTruthy();
+    // Argon2 hashes start with $argon2
+    expect(hash.startsWith("$argon2")).toBe(true);
   });
 
   it("should produce different hashes for same password", async () => {

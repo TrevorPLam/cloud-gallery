@@ -12,7 +12,7 @@ import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { db } from "./db";
 import { photos, insertPhotoSchema } from "../shared/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, isNull, isNotNull } from "drizzle-orm";
 import { authenticateToken } from "./auth";
 
 const router = Router();
@@ -42,7 +42,7 @@ router.get("/", async (req: Request, res: Response) => {
     let query = db
       .select()
       .from(photos)
-      .where(eq(photos.userId, userId))
+      .where(and(eq(photos.userId, userId), isNull(photos.deletedAt)))
       .orderBy(desc(photos.createdAt))
       .limit(limit)
       .offset(offset);
@@ -52,7 +52,13 @@ router.get("/", async (req: Request, res: Response) => {
       query = db
         .select()
         .from(photos)
-        .where(and(eq(photos.userId, userId), eq(photos.isFavorite, true)))
+        .where(
+          and(
+            eq(photos.userId, userId),
+            eq(photos.isFavorite, true),
+            isNull(photos.deletedAt)
+          )
+        )
         .orderBy(desc(photos.createdAt))
         .limit(limit)
         .offset(offset);
@@ -79,7 +85,7 @@ router.get("/", async (req: Request, res: Response) => {
 // ═══════════════════════════════════════════════════════════
 router.get("/:id", async (req: Request, res: Response) => {
   try {
-    const photoId = req.params.id;
+    const photoId = req.params.id as string;
     const userId = req.user?.id;
 
     if (!userId) {
@@ -145,7 +151,7 @@ router.post("/", async (req: Request, res: Response) => {
 // ═══════════════════════════════════════════════════════════
 router.put("/:id", async (req: Request, res: Response) => {
   try {
-    const photoId = req.params.id;
+    const photoId = req.params.id as string;
     const userId = req.user?.id;
 
     if (!userId) {
@@ -196,7 +202,7 @@ router.put("/:id", async (req: Request, res: Response) => {
 // ═══════════════════════════════════════════════════════════
 router.put("/:id/favorite", async (req: Request, res: Response) => {
   try {
-    const photoId = req.params.id;
+    const photoId = req.params.id as string;
     const userId = req.user?.id;
 
     if (!userId) {
@@ -218,14 +224,14 @@ router.put("/:id/favorite", async (req: Request, res: Response) => {
     const newFavoriteStatus = !existingPhoto[0].isFavorite;
     const [updatedPhoto] = await db
       .update(photos)
-      .set({ 
+      .set({
         isFavorite: newFavoriteStatus,
         modifiedAt: new Date(),
       })
       .where(and(eq(photos.id, photoId), eq(photos.userId, userId)))
       .returning();
 
-    res.json({ 
+    res.json({
       photo: updatedPhoto,
       message: `Photo ${newFavoriteStatus ? "added to" : "removed from"} favorites`,
     });
@@ -235,19 +241,42 @@ router.put("/:id/favorite", async (req: Request, res: Response) => {
   }
 });
 
+
 // ═══════════════════════════════════════════════════════════
-// DELETE /api/photos/:id - Delete a photo
+// GET /api/photos/trash - Get deleted photos
 // ═══════════════════════════════════════════════════════════
-router.delete("/:id", async (req: Request, res: Response) => {
+router.get("/user/trash", async (req: Request, res: Response) => {
   try {
-    const photoId = req.params.id;
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    const trashPhotos = await db
+      .select()
+      .from(photos)
+      .where(and(eq(photos.userId, userId), isNotNull(photos.deletedAt)))
+      .orderBy(desc(photos.deletedAt));
+
+    res.json({ photos: trashPhotos });
+  } catch (error) {
+    console.error("Error fetching trash:", error);
+    res.status(500).json({ error: "Failed to fetch trash" });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// PUT /api/photos/:id/restore - Restore a deleted photo
+// ═══════════════════════════════════════════════════════════
+router.put("/:id/restore", async (req: Request, res: Response) => {
+  try {
+    const photoId = req.params.id as string;
     const userId = req.user?.id;
 
     if (!userId) {
       return res.status(401).json({ error: "User not authenticated" });
     }
 
-    // Check if photo exists and belongs to user
     const existingPhoto = await db
       .select()
       .from(photos)
@@ -258,13 +287,79 @@ router.delete("/:id", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Photo not found" });
     }
 
-    // Delete photo
-    await db
-      .delete(photos)
-      .where(and(eq(photos.id, photoId), eq(photos.userId, userId)));
+    const [restoredPhoto] = await db
+      .update(photos)
+      .set({ deletedAt: null, modifiedAt: new Date() })
+      .where(and(eq(photos.id, photoId), eq(photos.userId, userId)))
+      .returning();
 
-    res.json({ 
-      message: "Photo deleted successfully",
+    res.json({ photo: restoredPhoto, message: "Photo restored" });
+  } catch (error) {
+    console.error("Error restoring photo:", error);
+    res.status(500).json({ error: "Failed to restore photo" });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// DELETE /api/photos/:id/permanent - Permanently delete a photo
+// ═══════════════════════════════════════════════════════════
+router.delete("/:id/permanent", async (req: Request, res: Response) => {
+  try {
+    const photoId = req.params.id as string;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    const result = await db
+      .delete(photos)
+      .where(and(eq(photos.id, photoId), eq(photos.userId, userId)))
+      .returning();
+
+    if (result.length === 0) {
+      return res.status(404).json({ error: "Photo not found" });
+    }
+
+    res.json({ message: "Photo permanently deleted", photoId });
+  } catch (error) {
+    console.error("Error permanently deleting photo:", error);
+    res.status(500).json({ error: "Failed to delete photo" });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// DELETE /api/photos/:id - Soft delete a photo
+// ═══════════════════════════════════════════════════════════
+router.delete("/:id", async (req: Request, res: Response) => {
+  try {
+    const photoId = req.params.id as string;
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    // Check if photo exists and belongs to user
+    const existingPhoto = await db
+      .select()
+      .from(photos)
+      .where(and(eq(photos.id, photoId), eq(photos.userId, userId), isNull(photos.deletedAt))) // Only soft delete if not already deleted
+      .limit(1);
+
+    if (existingPhoto.length === 0) {
+      return res.status(404).json({ error: "Photo not found or already deleted" });
+    }
+
+    // Soft delete photo
+    // Set deletedAt timestamp
+    await db
+      .update(photos)
+      .set({ deletedAt: new Date(), modifiedAt: new Date() })
+      .where(and(eq(photos.id, photoId), eq(photos.userId, userId)))
+      .returning(); // Added returning() to get the updated photo if needed, though not used here.
+
+    res.json({
+      message: "Photo moved to trash",
       photoId,
     });
   } catch (error) {

@@ -3,7 +3,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import request from "supertest";
 import express from "express";
-import authRoutes from "./auth-routes";
+
 
 // Mock the security functions
 vi.mock("./security", () => ({
@@ -20,6 +20,7 @@ vi.mock("./security", () => ({
   verifyAccessToken: vi
     .fn()
     .mockReturnValue({ id: "user123", email: "test@example.com" }),
+  checkPasswordBreach: vi.fn().mockResolvedValue(false),
 }));
 
 // Mock rate limiting to avoid 429 errors in tests
@@ -41,12 +42,40 @@ vi.mock("./auth", () => ({
   generalRateLimit: vi.fn((req, res, next) => next()),
 }));
 
+// Mock the database
+const { mockDb, mockUser } = vi.hoisted(() => {
+  const mockUser = {
+    id: "user123",
+    username: "test@example.com",
+    password: "$argon2id$v=19$m=65536,t=3,p=4$hash",
+    createdAt: new Date(),
+  };
+
+  const mockDb = {
+    select: vi.fn().mockReturnThis(),
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockResolvedValue([mockUser]),
+    insert: vi.fn().mockReturnThis(),
+    values: vi.fn().mockReturnThis(),
+    returning: vi.fn().mockResolvedValue([mockUser]),
+  };
+
+  return { mockDb, mockUser };
+});
+
+vi.mock("./db", () => ({
+  db: mockDb,
+}));
+
 describe("Authentication Routes", () => {
   let app: express.Application;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Clear the mock users array by re-importing the module
     vi.resetModules();
+    const { default: authRoutes } = await import("./auth-routes");
+
     app = express();
     app.use(express.json());
     app.use("/api/auth", authRoutes);
@@ -54,6 +83,9 @@ describe("Authentication Routes", () => {
 
   describe("POST /api/auth/register", () => {
     it("should register a new user successfully", async () => {
+      // Mock user not existing
+      mockDb.limit.mockResolvedValueOnce([]);
+
       const userData = {
         email: "test@example.com",
         password: "StrongPassword123!",
@@ -113,6 +145,9 @@ describe("Authentication Routes", () => {
 
   describe("POST /api/auth/login", () => {
     it("should login successfully with valid credentials", async () => {
+      // Mock user existing
+      mockDb.limit.mockResolvedValue([mockUser]);
+
       const loginData = {
         email: "test@example.com",
         password: "StrongPassword123!",
@@ -158,6 +193,7 @@ describe("Authentication Routes", () => {
 
   describe("POST /api/auth/refresh", () => {
     it("should refresh access token with valid refresh token", async () => {
+      mockDb.limit.mockResolvedValue([mockUser]);
       const refreshToken = "mock-refresh-token";
 
       const response = await request(app)
@@ -201,6 +237,7 @@ describe("Authentication Routes", () => {
 
   describe("GET /api/auth/me", () => {
     it("should return user info with valid token", async () => {
+      mockDb.limit.mockResolvedValue([mockUser]);
       const response = await request(app)
         .get("/api/auth/me")
         .set("Authorization", "Bearer valid-token")

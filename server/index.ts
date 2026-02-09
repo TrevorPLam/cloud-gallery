@@ -45,34 +45,34 @@ function setupSecurityHeaders(app: express.Application) {
   // Environment-aware CSP configuration
   const cspDirectives = isDevelopment
     ? {
-        // Development: Relaxed CSP for hot reload and dev tools
-        "default-src": ["'self'"],
-        "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Allow dev tools
-        "style-src": ["'self'", "'unsafe-inline'"],
-        "img-src": ["'self'", "data:", "https:", "http:"], // Allow localhost images
-        "font-src": ["'self'", "data:"],
-        "connect-src": ["'self'", "ws:", "wss:", "http:", "https:"], // Allow hot reload
-        "frame-ancestors": ["'none'"],
-      }
+      // Development: Relaxed CSP for hot reload and dev tools
+      "default-src": ["'self'"],
+      "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Allow dev tools
+      "style-src": ["'self'", "'unsafe-inline'"],
+      "img-src": ["'self'", "data:", "https:", "http:"], // Allow localhost images
+      "font-src": ["'self'", "data:"],
+      "connect-src": ["'self'", "ws:", "wss:", "http:", "https:"], // Allow hot reload
+      "frame-ancestors": ["'none'"],
+    }
     : {
-        // Production: Strict CSP
-        "default-src": ["'self'"],
-        "script-src": ["'self'"],
-        "style-src": ["'self'", "'unsafe-inline'"], // React Native Web needs inline styles
-        "img-src": ["'self'", "data:", "https:"],
-        "font-src": ["'self'", "data:"],
-        "connect-src": ["'self'"],
-        "frame-ancestors": ["'none'"],
-        "base-uri": ["'self'"],
-        "form-action": ["'self'"],
-        "upgrade-insecure-requests": [],
-      };
+      // Production: Strict CSP
+      "default-src": ["'self'"],
+      "script-src": ["'self'"],
+      "style-src": ["'self'", "'unsafe-inline'"], // React Native Web needs inline styles
+      "img-src": ["'self'", "data:", "https:"],
+      "font-src": ["'self'", "data:"],
+      "connect-src": ["'self'"],
+      "frame-ancestors": ["'none'"],
+      "base-uri": ["'self'"],
+      "form-action": ["'self'"],
+      "upgrade-insecure-requests": [],
+    };
 
   app.use(
     securityHeaders({
       csp: {
         enabled: true,
-        directives: cspDirectives,
+        directives: cspDirectives as any,
       },
       hsts: {
         enabled: isProduction, // Only enable HSTS in production over HTTPS
@@ -365,6 +365,7 @@ function configureExpoAndLanding(app: express.Application) {
   });
 
   app.use("/assets", express.static(path.resolve(process.cwd(), "assets")));
+  app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
   app.use(express.static(path.resolve(process.cwd(), "static-build")));
 
   log("Expo routing: Checking expo-platform header on / and /manifest");

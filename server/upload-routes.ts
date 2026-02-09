@@ -15,6 +15,8 @@ import { Router, Request, Response } from "express";
 import multer from "multer";
 import { validateFile, sanitizeFilename, getAllowedFileTypes } from "./file-validation";
 import { authenticateToken } from "./auth";
+import * as fs from "fs";
+import * as path from "path";
 
 const router = Router();
 
@@ -89,25 +91,28 @@ router.post(
         });
       }
 
-      // In a real implementation, you would:
-      // 1. Save the file to storage (S3, local filesystem, etc.)
-      // 2. Create database record
-      // 3. Return file metadata
+      // Save the file to disk
+      const fileId = Math.random().toString(36).substr(2, 9);
+      const filename = `${fileId}-${sanitizeFilename(req.file.originalname)}`;
+      const uploadPath = path.resolve(process.cwd(), "uploads", filename);
+
+      await fs.promises.writeFile(uploadPath, req.file.buffer);
 
       const fileMetadata = {
-        id: Math.random().toString(36).substr(2, 9), // Temporary ID
+        id: fileId,
         originalName: req.file.originalname,
-        sanitizedFilename: sanitizeFilename(req.file.originalname),
+        sanitizedFilename: filename,
         mimeType: validationResult.mimeType,
         extension: validationResult.extension,
         size: validationResult.size,
         hash: validationResult.hash,
         uploadedAt: new Date().toISOString(),
         uploadedBy: req.user?.id,
+        uri: `/uploads/${filename}`, // Public URI
       };
 
       // Log successful upload
-      console.log(`File uploaded successfully: ${fileMetadata.originalName} (${fileMetadata.size} bytes)`);
+      console.log(`File uploaded successfully: ${fileMetadata.originalName} (${fileMetadata.size} bytes) -> ${fileMetadata.uri}`);
 
       res.status(201).json({
         message: "File uploaded successfully",
@@ -134,7 +139,7 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const files = req.files as Express.Multer.File[];
-      
+
       if (!files || files.length === 0) {
         return res.status(400).json({
           error: "No files provided",
@@ -211,7 +216,7 @@ router.post("/validate", async (req: Request, res: Response) => {
 
     // Basic validation without actual file content
     const allowedTypes = getAllowedFileTypes();
-    
+
     if (!(mimeType in allowedTypes)) {
       return res.status(400).json({
         valid: false,

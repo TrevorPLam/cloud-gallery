@@ -20,11 +20,11 @@ import {
   validatePasswordStrength,
 } from "./security";
 import { authenticateToken, authRateLimit } from "./auth";
-import { 
-  checkCaptchaRequirement, 
-  verifyCaptchaMiddleware, 
-  recordAuthFailure, 
-  recordAuthSuccess 
+import {
+  checkCaptchaRequirement,
+  verifyCaptchaMiddleware,
+  recordAuthFailure,
+  recordAuthSuccess
 } from "./auth-captcha-routes";
 import { logAuthEvent, logSecurityEvent, AuditEventType } from "./audit";
 
@@ -45,28 +45,29 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-// Mock user database (replace with real database)
-const users: {
-  id: string;
-  email: string;
-  passwordHash: string;
-  createdAt: Date;
-}[] = [];
+import { db } from "./db";
+import { users } from "../shared/schema";
+import { eq } from "drizzle-orm";
 
 // Helper function to find user by email
-function findUserByEmail(email: string) {
-  return users.find((user) => user.email === email);
+async function findUserByEmail(email: string) {
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.username, email))
+    .limit(1);
+  return result[0];
 }
 
 // Helper function to create user
-function createUser(email: string, passwordHash: string) {
-  const user = {
-    id: Math.random().toString(36).substr(2, 9),
-    email,
-    passwordHash,
-    createdAt: new Date(),
-  };
-  users.push(user);
+async function createUser(email: string, passwordHash: string) {
+  const [user] = await db
+    .insert(users)
+    .values({
+      password: passwordHash,
+      username: email, // Use email as username for now since schema requires it
+    })
+    .returning();
   return user;
 }
 
@@ -80,7 +81,7 @@ router.post("/register", authRateLimit, async (req: Request, res: Response) => {
     const validatedData = registerSchema.parse(req.body);
 
     // Check if user already exists
-    const existingUser = findUserByEmail(validatedData.email);
+    const existingUser = await findUserByEmail(validatedData.email);
     if (existingUser) {
       return res.status(409).json({
         error: "User already exists",
@@ -111,15 +112,15 @@ router.post("/register", authRateLimit, async (req: Request, res: Response) => {
     const passwordHash = await hashPassword(validatedData.password);
 
     // Create user
-    const user = createUser(validatedData.email, passwordHash);
+    const user = await createUser(validatedData.email, passwordHash);
 
     // Generate tokens
     const accessToken = generateAccessToken(
-      { id: user.id, email: user.email },
+      { id: user.id, email: user.username },
       JWT_SECRET,
     );
     const refreshToken = generateRefreshToken(
-      { id: user.id, email: user.email },
+      { id: user.id, email: user.username },
       JWT_SECRET,
     );
 
@@ -128,8 +129,8 @@ router.post("/register", authRateLimit, async (req: Request, res: Response) => {
       message: "User registered successfully",
       user: {
         id: user.id,
-        email: user.email,
-        createdAt: user.createdAt,
+        email: user.username,
+        // createdAt: user.createdAt,
       },
       tokens: {
         accessToken,
@@ -158,80 +159,80 @@ router.post("/register", authRateLimit, async (req: Request, res: Response) => {
  * Authenticate user and return tokens
  */
 router.post(
-  "/login", 
-  authRateLimit, 
+  "/login",
+  authRateLimit,
   checkCaptchaRequirement,
   verifyCaptchaMiddleware,
   async (req: Request, res: Response) => {
-  try {
-    // Validate input
-    const validatedData = loginSchema.parse(req.body);
+    try {
+      // Validate input
+      const validatedData = loginSchema.parse(req.body);
 
-    // Find user
-    const user = findUserByEmail(validatedData.email);
-    if (!user) {
-      recordAuthFailure(req);
-      return res.status(401).json({
-        error: "Invalid credentials",
-        message: "Email or password is incorrect",
+      // Find user
+      const user = await findUserByEmail(validatedData.email);
+      if (!user) {
+        recordAuthFailure(req);
+        return res.status(401).json({
+          error: "Invalid credentials",
+          message: "Email or password is incorrect",
+        });
+      }
+
+      // Verify password
+      const isValidPassword = await verifyPassword(
+        validatedData.password,
+        user.password, // Schema uses 'password' column
+      );
+      if (!isValidPassword) {
+        recordAuthFailure(req);
+        return res.status(401).json({
+          error: "Invalid credentials",
+          message: "Email or password is incorrect",
+        });
+      }
+
+      // Record successful authentication
+      recordAuthSuccess(req);
+
+      // Generate tokens
+      const accessToken = generateAccessToken(
+        { id: user.id, email: user.username },
+        JWT_SECRET,
+      );
+      const refreshToken = generateRefreshToken(
+        { id: user.id, email: user.username },
+        JWT_SECRET,
+      );
+
+      // Return user info and tokens
+      res.json({
+        message: "Login successful",
+        user: {
+          id: user.id,
+          email: user.username,
+          // createdAt: user.createdAt,
+        },
+        tokens: {
+          accessToken,
+          refreshToken,
+        },
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          error: "Validation error",
+          message: "Invalid input data",
+          details: error.errors,
+        });
+      }
+
+      console.error("Login error:", error);
+      res.status(500).json({
+        error: "Internal server error",
+        message: "Failed to authenticate user",
       });
     }
-
-    // Verify password
-    const isValidPassword = await verifyPassword(
-      validatedData.password,
-      user.passwordHash,
-    );
-    if (!isValidPassword) {
-      recordAuthFailure(req);
-      return res.status(401).json({
-        error: "Invalid credentials",
-        message: "Email or password is incorrect",
-      });
-    }
-
-    // Record successful authentication
-    recordAuthSuccess(req);
-
-    // Generate tokens
-    const accessToken = generateAccessToken(
-      { id: user.id, email: user.email },
-      JWT_SECRET,
-    );
-    const refreshToken = generateRefreshToken(
-      { id: user.id, email: user.email },
-      JWT_SECRET,
-    );
-
-    // Return user info and tokens
-    res.json({
-      message: "Login successful",
-      user: {
-        id: user.id,
-        email: user.email,
-        createdAt: user.createdAt,
-      },
-      tokens: {
-        accessToken,
-        refreshToken,
-      },
-    });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({
-        error: "Validation error",
-        message: "Invalid input data",
-        details: error.errors,
-      });
-    }
-
-    console.error("Login error:", error);
-    res.status(500).json({
-      error: "Internal server error",
-      message: "Failed to authenticate user",
-    });
-  }
-});
+  });
 
 /**
  * POST /api/auth/refresh
@@ -258,7 +259,7 @@ router.post("/refresh", async (req: Request, res: Response) => {
     }
 
     // Find user
-    const user = findUserByEmail((decoded as any).email);
+    const user = await findUserByEmail((decoded as any).email);
     if (!user) {
       return res.status(403).json({
         error: "User not found",
@@ -268,7 +269,7 @@ router.post("/refresh", async (req: Request, res: Response) => {
 
     // Generate new access token
     const newAccessToken = generateAccessToken(
-      { id: user.id, email: user.email },
+      { id: user.id, email: user.username },
       JWT_SECRET,
     );
 
@@ -292,7 +293,7 @@ router.post("/refresh", async (req: Request, res: Response) => {
 router.get("/me", authenticateToken, async (req: Request, res: Response) => {
   try {
     // Find user
-    const user = findUserByEmail(req.user!.email);
+    const user = await findUserByEmail(req.user!.email);
     if (!user) {
       return res.status(404).json({
         error: "User not found",
@@ -303,8 +304,8 @@ router.get("/me", authenticateToken, async (req: Request, res: Response) => {
     res.json({
       user: {
         id: user.id,
-        email: user.email,
-        createdAt: user.createdAt,
+        email: user.username,
+        // createdAt: user.createdAt,
       },
     });
   } catch (error) {

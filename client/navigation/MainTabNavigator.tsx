@@ -17,6 +17,7 @@ import PhotosStackNavigator from "@/navigation/PhotosStackNavigator";
 import AlbumsStackNavigator from "@/navigation/AlbumsStackNavigator";
 import SearchStackNavigator from "@/navigation/SearchStackNavigator";
 import ProfileStackNavigator from "@/navigation/ProfileStackNavigator";
+import MapScreen from "@/screens/MapScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { Colors } from "@/constants/theme";
 
@@ -24,6 +25,7 @@ export type MainTabParamList = {
   PhotosTab: undefined;
   AlbumsTab: undefined;
   SearchTab: undefined;
+  MapTab: undefined;
   ProfileTab: undefined;
 };
 
@@ -87,6 +89,16 @@ export default function MainTabNavigator() {
           title: "Search",
           tabBarIcon: ({ color, size }) => (
             <Feather name="search" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="MapTab"
+        component={MapScreen}
+        options={{
+          title: "Map",
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="map" size={size} color={color} />
           ),
         }}
       />
