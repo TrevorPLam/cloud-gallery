@@ -23,26 +23,38 @@ import { apiRequest } from "@/lib/query-client";
 import { Album, Photo } from "@/types";
 
 // Mock the API request function
-jest.mock("@/lib/query-client", () => ({
-  apiRequest: jest.fn(),
+vi.mock("@/lib/query-client", () => ({
+  apiRequest: vi.fn(),
 }));
 
 // Mock expo-haptics
-jest.mock("expo-haptics", () => ({
-  notificationAsync: jest.fn(),
+vi.mock("expo-haptics", () => ({
+  notificationAsync: vi.fn(),
 }));
 
 // Mock expo-clipboard
-jest.mock("expo-clipboard", () => ({
-  setStringAsync: jest.fn(),
+vi.mock("expo-clipboard", () => ({
+  setStringAsync: vi.fn(),
 }));
 
 // Mock Alert
-jest.mock("react-native/Libraries/Alert/Alert", () => ({
-  alert: jest.fn(),
+vi.mock("react-native/Libraries/Alert/Alert", () => ({
+  alert: vi.fn(),
 }));
 
-const mockApiRequest = apiRequest as jest.MockedFunction<typeof apiRequest>;
+const mockApiRequest = vi.mocked(apiRequest);
+
+// Mock navigation at module level
+const mockNavigate = vi.fn();
+const mockSetOptions = vi.fn();
+
+vi.mock("@react-navigation/native", () => ({
+  useNavigation: () => ({
+    navigate: mockNavigate,
+    setOptions: mockSetOptions,
+  }),
+  useRoute: () => mockRoute,
+}));
 
 // Test data
 const mockAlbum: Album = {
@@ -111,41 +123,31 @@ const mockRoute = {
 
 describe("AlbumDetailScreen Sharing", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Mock successful API responses
     mockApiRequest
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({ album: mockAlbum }),
-      } as Response)
+        album: mockAlbum,
+      })
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({ photos: mockPhotos }),
-      } as Response);
+        photos: mockPhotos,
+      });
   });
 
   describe("Share Button", () => {
     it("displays share button in header", async () => {
-      // Mock navigation
-      const mockSetOptions = jest.fn();
-      jest.mock("@react-navigation/native", () => ({
-        useNavigation: () => ({
-          setOptions: mockSetOptions,
-          navigate: jest.fn(),
-        }),
-        useRoute: () => mockRoute,
-      }));
-
       render(
         <TestWrapper>
           <AlbumDetailScreen />
-        </TestWrapper>,
+        </TestWrapper>
       );
 
       await waitFor(() => {
         expect(mockSetOptions).toHaveBeenCalledWith(
           expect.objectContaining({
             headerRight: expect.any(Function),
-          }),
+          })
         );
       });
 
@@ -158,22 +160,14 @@ describe("AlbumDetailScreen Sharing", () => {
     });
 
     it("opens share modal when share button is pressed", async () => {
-      // Mock navigation with headerRight function
-      const mockSetOptions = jest.fn();
       let headerRightFunction: (() => React.ReactElement) | null = null;
 
-      jest.mock("@react-navigation/native", () => ({
-        useNavigation: () => ({
-          setOptions: (options) => {
-            if (options.headerRight) {
-              headerRightFunction = options.headerRight;
-            }
-            mockSetOptions(options);
-          },
-          navigate: jest.fn(),
-        }),
-        useRoute: () => mockRoute,
-      }));
+      // Update the navigation mock to capture headerRight
+      vi.mocked(mockSetOptions).mockImplementation((options) => {
+        if (options.headerRight) {
+          headerRightFunction = options.headerRight;
+        }
+      });
 
       render(
         <TestWrapper>
@@ -274,8 +268,10 @@ describe("AlbumDetailScreen Sharing", () => {
     });
 
     it("copies share link to clipboard on success", async () => {
-      const mockSetString = jest.fn();
-      jest.mock("expo-clipboard", () => ({
+      const mockSetString = vi.fn();
+      
+      // Update clipboard mock
+      vi.doMock("expo-clipboard", () => ({
         setStringAsync: mockSetString,
       }));
 

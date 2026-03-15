@@ -273,6 +273,28 @@ export default function AlbumsScreen() {
         <FlatList
           data={enrichedAlbums}
           keyExtractor={(item) => item.id}
+          ListHeaderComponent={
+            <Pressable
+              style={[
+                styles.hiddenAlbumCard,
+                { backgroundColor: theme.backgroundDefault },
+              ]}
+              onPress={() => navigation.navigate("HiddenAlbum")}
+            >
+              <View style={styles.hiddenAlbumIcon}>
+                <Feather name="eye-off" size={28} color={theme.textSecondary} />
+              </View>
+              <ThemedText type="h3" style={styles.hiddenAlbumTitle}>
+                Hidden
+              </ThemedText>
+              <ThemedText
+                type="small"
+                style={[styles.hiddenAlbumSubtitle, { color: theme.textSecondary }]}
+              >
+                Unlock to view
+              </ThemedText>
+            </Pressable>
+          }
           renderItem={({ item }) => (
             <AlbumCard
               album={item}
@@ -361,6 +383,28 @@ export default function AlbumsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  hiddenAlbumCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.sm,
+    marginBottom: Spacing.lg,
+  },
+  hiddenAlbumIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "rgba(0,0,0,0.06)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: Spacing.lg,
+  },
+  hiddenAlbumTitle: {
+    flex: 1,
+  },
+  hiddenAlbumSubtitle: {
+    opacity: 0.8,
   },
   emptyContainer: {
     flex: 1,

@@ -19,13 +19,14 @@ import { Alert } from "react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { NavigationContainer } from "@react-navigation/native";
 import DuplicatesScreen from "./DuplicatesScreen";
+import { apiRequest } from "@/lib/query-client";
 
 // Mock dependencies
-jest.mock("@expo/vector-icons", () => ({
+vi.mock("@expo/vector-icons", () => ({
   Feather: "Feather",
 }));
 
-jest.mock("@/hooks/useTheme", () => ({
+vi.mock("@/hooks/useTheme", () => ({
   useTheme: () => ({
     theme: {
       text: "#1A202C",
@@ -37,7 +38,7 @@ jest.mock("@/hooks/useTheme", () => ({
   }),
 }));
 
-jest.mock("@/components/ThemedText", () => {
+vi.mock("@/components/ThemedText", () => {
   const { Text } = require("react-native");
   return {
     ThemedText: ({ children, style, ...props }) => (
@@ -48,7 +49,7 @@ jest.mock("@/components/ThemedText", () => {
   };
 });
 
-jest.mock("@/components/Button", () => {
+vi.mock("@/components/Button", () => {
   const { Pressable, Text } = require("react-native");
   return {
     Button: ({ children, onPress, disabled, ...props }) => (
@@ -59,7 +60,7 @@ jest.mock("@/components/Button", () => {
   };
 });
 
-jest.mock("@/components/Card", () => {
+vi.mock("@/components/Card", () => {
   const { View } = require("react-native");
   return {
     Card: ({ children, style, ...props }) => (
@@ -70,8 +71,10 @@ jest.mock("@/components/Card", () => {
   };
 });
 
-// Mock fetch for API calls
-global.fetch = jest.fn();
+// Mock fetch for API calls - FIX 6: Mock API abstraction instead of global fetch
+vi.mock("@/lib/query-client", () => ({
+  apiRequest: vi.fn(),
+}));
 
 // Test data
 const mockDuplicateData = {
@@ -216,29 +219,23 @@ const renderWithProviders = (component) => {
 
 describe("DuplicatesScreen", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
-    // Mock successful fetch for duplicates
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: async () => mockDuplicateData,
-    });
+    // Mock successful API call for duplicates
+    vi.mocked(apiRequest).mockResolvedValue(mockDuplicateData);
   });
 
   describe("Loading and Data Display", () => {
     it("should display loading indicator initially", async () => {
       // Mock delayed response
-      (global.fetch as jest.Mock).mockImplementation(
+      vi.mocked(apiRequest).mockImplementation(
         () =>
           new Promise((resolve) =>
             setTimeout(
               () =>
-                resolve({
-                  ok: true,
-                  json: async () => mockDuplicateData,
-                }),
-              100,
-            ),
+                resolve(mockDuplicateData),
+              1000
+            )
           ),
       );
 

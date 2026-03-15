@@ -16,23 +16,22 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ThemeProvider } from "@/hooks/useTheme";
+import { ThemeProvider, defaultTheme } from "../constants/theme";
 import SearchScreen from "./SearchScreen";
 import { Photo } from "@/types";
-import { getPhotos } from "@/lib/storage";
-import { apiClient } from "@/lib/api";
+import { apiRequest } from "@/lib/query-client";
 
 // Mock dependencies
-jest.mock("@/lib/storage");
-jest.mock("@/lib/api");
-jest.mock("@react-native-async-storage/async-storage", () => ({
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
+vi.mock("@/lib/storage");
+vi.mock("@/lib/query-client");
+vi.mock("@react-native-async-storage/async-storage", () => ({
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
 }));
 
-const mockGetPhotos = getPhotos as jest.MockedFunction<typeof getPhotos>;
-const mockApiClient = apiClient as jest.Mocked<typeof apiClient>;
+const mockGetPhotos = vi.mocked(getPhotos);
+const mockApiRequest = vi.mocked(apiRequest);
 
 // Test data
 const mockPhotos: Photo[] = [
@@ -94,14 +93,14 @@ const mockTheme = {
 
 // Mock navigation
 const mockNavigation = {
-  navigate: jest.fn(),
-  goBack: jest.fn(),
-  reset: jest.fn(),
-  setOptions: jest.fn(),
-  isFocused: jest.fn(() => true),
-  addListener: jest.fn(),
-  removeListener: jest.fn(),
-  dispatch: jest.fn(),
+  navigate: vi.fn(),
+  goBack: vi.fn(),
+  reset: vi.fn(),
+  setOptions: vi.fn(),
+  isFocused: vi.fn(() => true),
+  addListener: vi.fn(),
+  removeListener: vi.fn(),
+  dispatch: vi.fn(),
 };
 
 // Create test query client
@@ -122,7 +121,7 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider
-        value={{ theme: mockTheme, isDark: false, toggleTheme: jest.fn() }}
+        value={{ theme: mockTheme, isDark: false, toggleTheme: vi.fn() }}
       >
         {children}
       </ThemeProvider>
@@ -131,7 +130,7 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => {
 };
 
 // Mock safe area insets
-jest.mock("react-native-safe-area-context", () => ({
+vi.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({
     top: 44,
     bottom: 34,
@@ -141,17 +140,17 @@ jest.mock("react-native-safe-area-context", () => ({
 }));
 
 // Mock bottom tab bar height
-jest.mock("@react-navigation/bottom-tabs", () => ({
+vi.mock("@react-navigation/bottom-tabs", () => ({
   useBottomTabBarHeight: () => 80,
 }));
 
 describe("SearchScreen", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockGetPhotos.mockResolvedValue(mockPhotos);
 
     // Mock API responses
-    mockApiClient.post.mockResolvedValue({
+    mockApiRequest.mockResolvedValue({
       data: {
         photos: [mockPhotos[0]],
         total: 1,

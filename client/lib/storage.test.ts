@@ -1279,6 +1279,18 @@ describe("groupPhotosByDate", () => {
     expect(groups).toEqual([]);
   });
 
+  it("should include photos with isPrivate in grouping (filtering is done at UI)", () => {
+    const now = Date.now();
+    const photos: Photo[] = [
+      createPhoto({ id: "1", createdAt: now, isPrivate: false }),
+      createPhoto({ id: "2", createdAt: now - 1000, isPrivate: true }),
+    ];
+    const groups = groupPhotosByDate(photos);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].data).toHaveLength(2);
+    expect(groups[0].data.some((p) => p.isPrivate)).toBe(true);
+  });
+
   it("should group multiple photos in same category", () => {
     const now = Date.now();
     const photos: Photo[] = [

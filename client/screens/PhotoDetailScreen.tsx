@@ -58,6 +58,7 @@ export default function PhotoDetailScreen() {
 
   const { photoId, initialIndex, context } = route.params as any; // Cast to any to generic param access
   const isTrash = context === "trash";
+  const isHidden = context === "hidden";
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [showControls, setShowControls] = useState(true);
   const [isMetadataEditorVisible, setIsMetadataEditorVisible] = useState(false);
@@ -77,7 +78,12 @@ export default function PhotoDetailScreen() {
     },
   });
 
-  const currentPhoto = photos[currentIndex];
+  const effectivePhotos = isTrash
+    ? photos
+    : isHidden
+      ? photos.filter((p) => p.isPrivate)
+      : photos;
+  const currentPhoto = effectivePhotos[currentIndex];
 
   // ═══════════════════════════════════════════════════════════
   // METADATA UPDATE MUTATIONS
@@ -234,6 +240,48 @@ export default function PhotoDetailScreen() {
     },
   });
 
+  const toggleHiddenMutation = useMutation({
+    mutationFn: async ({
+      photoId,
+      isPrivate,
+    }: {
+      photoId: string;
+      isPrivate: boolean;
+    }) => {
+      const res = await apiRequest("PUT", `/api/photos/${photoId}`, {
+        isPrivate,
+      });
+      return res.json();
+    },
+    onMutate: async ({ photoId, isPrivate }) => {
+      await queryClient.cancelQueries({ queryKey: ["photos"] });
+      const previousPhotos = queryClient.getQueryData(["photos"]);
+      queryClient.setQueryData(["photos"], (old: Photo[] = []) =>
+        old.map((p) =>
+          p.id === photoId ? { ...p, isPrivate, modifiedAt: Date.now() } : p,
+        ),
+      );
+      return { previousPhotos };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousPhotos) {
+        queryClient.setQueryData(["photos"], context.previousPhotos);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["photos"] });
+    },
+  });
+
+  const handleToggleHidden = () => {
+    if (!currentPhoto) return;
+    const nextPrivate = !currentPhoto.isPrivate;
+    toggleHiddenMutation.mutate({
+      photoId: currentPhoto.id,
+      isPrivate: nextPrivate,
+    });
+  };
+
   // ═══════════════════════════════════════════════════════════
   // DEBOUNCED METADATA UPDATES (Requirement 4.7)
   // ═══════════════════════════════════════════════════════════
@@ -339,7 +387,7 @@ export default function PhotoDetailScreen() {
       queryClient.invalidateQueries({ queryKey: ["trash-photos"] });
 
       // Navigate back if only one photo (or remove from list logic below)
-      if (photos.length === 1) {
+      if (effectivePhotos.length === 1) {
         navigation.goBack();
       } else {
         // Remove locally
@@ -370,7 +418,7 @@ export default function PhotoDetailScreen() {
     restorePhotoMutation.mutate(currentPhoto.id);
 
     // Remove from current view
-    if (photos.length === 1) {
+    if (effectivePhotos.length === 1) {
       navigation.goBack();
     } else {
       // Optimistic removed from list?
@@ -388,7 +436,7 @@ export default function PhotoDetailScreen() {
         window.confirm("Permanently delete this photo? This cannot be undone.")
       ) {
         permanentDeleteMutation.mutate(currentPhoto.id);
-        if (photos.length === 1) {
+        if (effectivePhotos.length === 1) {
           navigation.goBack();
         }
       }
@@ -400,7 +448,7 @@ export default function PhotoDetailScreen() {
           style: "destructive",
           onPress: () => {
             permanentDeleteMutation.mutate(currentPhoto.id);
-            if (photos.length === 1) {
+            if (effectivePhotos.length === 1) {
               navigation.goBack();
             }
           },
@@ -445,7 +493,7 @@ export default function PhotoDetailScreen() {
   }, []);
 
   const getSelectedPhotos = useCallback((): Photo[] => {
-    return photos.filter((photo) => selectedPhotos.has(photo.id));
+    return effectivePhotos.filter((photo) => selectedPhotos.has(photo.id));
   }, [photos, selectedPhotos]);
 
   const isPhotoSelected = useCallback(
@@ -505,11 +553,11 @@ export default function PhotoDetailScreen() {
     deletePhotoMutation.mutate(currentPhoto.id);
 
     // Navigate back if this was the last photo, otherwise adjust index
-    if (photos.length === 1) {
+    if (effectivePhotos.length === 1) {
       navigation.goBack();
     } else {
       const newIndex =
-        currentIndex === photos.length - 1 ? currentIndex - 1 : currentIndex;
+        currentIndex === effectivePhotos.length - 1 ? currentIndex - 1 : currentIndex;
       setCurrentIndex(newIndex);
     }
   };
@@ -618,7 +666,7 @@ export default function PhotoDetailScreen() {
 
       <FlashList
         ref={listRef}
-        data={photos}
+        data={effectivePhotos}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
@@ -770,6 +818,16 @@ export default function PhotoDetailScreen() {
                     }
                   />
                 </Pressable>
+                <Pressable
+                  onPress={handleToggleHidden}
+                  style={styles.footerButton}
+                >
+                  <Feather
+                    name={currentPhoto?.isPrivate ? "eye-off" : "eye"}
+                    size={24}
+                    color="#FFFFFF"
+                  />
+                </Pressable>
                 <Pressable onPress={handleDelete} style={styles.footerButton}>
                   <Feather name="trash-2" size={24} color="#FFFFFF" />
                 </Pressable>
@@ -798,7 +856,7 @@ export default function PhotoDetailScreen() {
 
           <View style={styles.counter}>
             <ThemedText type="small" style={styles.counterText}>
-              {currentIndex + 1} / {photos.length}
+              {currentIndex + 1} / {effectivePhotos.length}
             </ThemedText>
           </View>
         </>

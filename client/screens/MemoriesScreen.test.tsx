@@ -18,10 +18,10 @@ import {
 import React from "react";
 import MemoriesScreen from "./MemoriesScreen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ThemeProvider } from "@/hooks/useTheme";
+import { ThemeProvider, defaultTheme } from "../constants/theme";
 
 // Mock dependencies
-vi.mock("@/lib/api", () => ({
+vi.mock("@/lib/query-client", () => ({
   apiRequest: vi.fn(),
 }));
 

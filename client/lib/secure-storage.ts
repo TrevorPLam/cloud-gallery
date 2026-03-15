@@ -1,16 +1,28 @@
-// Secure storage with encryption for sensitive metadata
-// Encrypts sensitive photo metadata while keeping basic info accessible
+// Secure storage with AES-256-GCM encryption for sensitive metadata.
+// Key is stored in SecureStore when available (iOS/Android), else AsyncStorage.
+// Encrypts location, camera, exif, tags, notes, isPrivate at rest.
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Photo, Album } from "@/types";
+import * as SecureStore from "expo-secure-store";
+import { Photo, Album, StorageInfo } from "@/types";
+import {
+  encryptMetadata,
+  decryptMetadata,
+  generateEncryptionKeyHex,
+} from "./client-crypto";
 
-// Storage keys
 const PHOTOS_KEY = "@photo_vault_photos";
 const ALBUMS_KEY = "@photo_vault_albums";
-const ENCRYPTION_KEY = "@photo_vault_encryption_key";
+const USER_KEY = "@photo_vault_user";
+const ENCRYPTION_KEY_STORAGE = "photo_vault_metadata_key";
 const METADATA_KEY = "@photo_vault_metadata";
 
-// Sensitive fields that should be encrypted
+export interface UserProfile {
+  name: string;
+  email: string;
+  avatarUri: string | null;
+}
+
 interface SensitivePhotoMetadata {
   location?: {
     latitude: number;
@@ -33,154 +45,50 @@ interface SensitivePhotoMetadata {
   isPrivate?: boolean;
 }
 
+/** New format: single base64 blob (nonce + ciphertext + auth tag). */
 interface EncryptedMetadata {
-  encrypted: string;
-  iv: string;
-  authTag: string;
-  salt: string;
+  data: string;
 }
 
 interface SecurePhoto extends Omit<Photo, "albumIds"> {
   albumIds: string[];
-  metadata?: EncryptedMetadata; // Encrypted sensitive data
+  metadata?: EncryptedMetadata;
 }
 
-interface SecureAlbum extends Album {
-  metadata?: EncryptedMetadata; // Encrypted sensitive data
-}
-
-// Simple encryption for client-side (not as secure as server-side)
-// In production, this should use platform-specific secure storage
-class ClientEncryption {
-  private key: string | null = null;
-
-  async getKey(): Promise<string> {
-    if (!this.key) {
-      this.key = await AsyncStorage.getItem(ENCRYPTION_KEY);
-      if (!this.key) {
-        // Generate a new key for this installation
-        this.key = this.generateKey();
-        await AsyncStorage.setItem(ENCRYPTION_KEY, this.key);
-      }
-    }
-    return this.key;
-  }
-
-  private generateKey(): string {
-    // Simple key generation for demo
-    // In production, use platform-specific secure key generation
-    const chars =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    let result = "";
-    for (let i = 0; i < 64; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  }
-
-  async encrypt(data: SensitivePhotoMetadata): Promise<EncryptedMetadata> {
-    const key = await this.getKey();
-    const plaintext = JSON.stringify(data);
-
-    // Simple XOR encryption for demo (NOT SECURE for production)
-    // In production, use proper AES encryption via native modules
-    const encrypted = this.xorEncrypt(plaintext, key);
-    const iv = this.generateKey().substring(0, 24); // Mock IV
-    const authTag = this.generateKey().substring(0, 32); // Mock auth tag
-    const salt = this.generateKey().substring(0, 32); // Mock salt
-
-    return {
-      encrypted,
-      iv,
-      authTag,
-      salt,
-    };
-  }
-
-  async decrypt(
-    encryptedData: EncryptedMetadata,
-  ): Promise<SensitivePhotoMetadata> {
-    const key = await this.getKey();
-
-    // Simple XOR decryption for demo (NOT SECURE for production)
-    const plaintext = this.xorDecrypt(encryptedData.encrypted, key);
-
+async function getEncryptionKey(): Promise<string> {
+  try {
+    let key = await SecureStore.getItemAsync(ENCRYPTION_KEY_STORAGE);
+    if (key) return key;
+    key = await AsyncStorage.getItem(`@${ENCRYPTION_KEY_STORAGE}`);
+    if (key) return key;
+    key = generateEncryptionKeyHex();
     try {
-      return JSON.parse(plaintext);
-    } catch (error) {
-      console.error("Failed to decrypt metadata:", error);
-      return {};
+      await SecureStore.setItemAsync(ENCRYPTION_KEY_STORAGE, key, {
+        keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+      });
+    } catch {
+      await AsyncStorage.setItem(`@${ENCRYPTION_KEY_STORAGE}`, key);
     }
-  }
-
-  private xorEncrypt(text: string, key: string): string {
-    let result = "";
-    for (let i = 0; i < text.length; i++) {
-      result += String.fromCharCode(
-        text.charCodeAt(i) ^ key.charCodeAt(i % key.length),
-      );
-    }
-    return btoa(result); // Base64 encode
-  }
-
-  private xorDecrypt(encrypted: string, key: string): string {
-    const text = atob(encrypted); // Base64 decode
-    let result = "";
-    for (let i = 0; i < text.length; i++) {
-      result += String.fromCharCode(
-        text.charCodeAt(i) ^ key.charCodeAt(i % key.length),
-      );
-    }
-    return result;
+    return key;
+  } catch (error) {
+    console.error("Failed to get encryption key:", error);
+    throw error;
   }
 }
 
-const encryption = new ClientEncryption();
-
-// Extract sensitive metadata from a photo
-function extractSensitiveMetadata(
-  photo: Partial<Photo>,
-): SensitivePhotoMetadata {
+function extractSensitiveMetadata(photo: Partial<Photo>): SensitivePhotoMetadata {
   const metadata: SensitivePhotoMetadata = {};
-
-  // Extract location data if present
-  if (photo.location) {
-    metadata.location = photo.location;
-  }
-
-  // Extract camera data if present
-  if (photo.camera) {
-    metadata.camera = photo.camera;
-  }
-
-  // Extract EXIF data if present
-  if (photo.exif) {
-    metadata.exif = photo.exif;
-  }
-
-  // Extract tags if present
-  if (photo.tags) {
-    metadata.tags = photo.tags;
-  }
-
-  // Extract notes if present
-  if (photo.notes) {
-    metadata.notes = photo.notes;
-  }
-
-  // Extract privacy flag if present
-  if (photo.isPrivate !== undefined) {
-    metadata.isPrivate = photo.isPrivate;
-  }
-
+  if (photo.location) metadata.location = photo.location;
+  if (photo.camera) metadata.camera = photo.camera;
+  if (photo.exif) metadata.exif = photo.exif;
+  if (photo.tags) metadata.tags = photo.tags;
+  if (photo.notes) metadata.notes = photo.notes;
+  if (photo.isPrivate !== undefined) metadata.isPrivate = photo.isPrivate;
   return metadata;
 }
 
-// Create a secure photo object with encrypted metadata
 async function createSecurePhoto(photo: Photo): Promise<SecurePhoto> {
   const sensitiveMetadata = extractSensitiveMetadata(photo);
-
-  // Remove sensitive fields from the main photo object
   const securePhoto: SecurePhoto = {
     id: photo.id,
     uri: photo.uri,
@@ -192,16 +100,14 @@ async function createSecurePhoto(photo: Photo): Promise<SecurePhoto> {
     isFavorite: photo.isFavorite,
     albumIds: photo.albumIds,
   };
-
-  // Encrypt sensitive metadata if present
   if (Object.keys(sensitiveMetadata).length > 0) {
-    securePhoto.metadata = await encryption.encrypt(sensitiveMetadata);
+    const key = await getEncryptionKey();
+    const plaintext = JSON.stringify(sensitiveMetadata);
+    securePhoto.metadata = { data: encryptMetadata(plaintext, key) };
   }
-
   return securePhoto;
 }
 
-// Restore full photo object with decrypted metadata
 async function restorePhoto(securePhoto: SecurePhoto): Promise<Photo> {
   const photo: Photo = {
     id: securePhoto.id,
@@ -214,37 +120,28 @@ async function restorePhoto(securePhoto: SecurePhoto): Promise<Photo> {
     isFavorite: securePhoto.isFavorite,
     albumIds: securePhoto.albumIds,
   };
-
-  // Decrypt and restore sensitive metadata if present
-  if (securePhoto.metadata) {
+  if (securePhoto.metadata?.data) {
     try {
-      const sensitiveMetadata = await encryption.decrypt(securePhoto.metadata);
-
-      // Merge sensitive metadata back into photo
+      const key = await getEncryptionKey();
+      const plaintext = decryptMetadata(securePhoto.metadata.data, key);
+      const sensitiveMetadata = JSON.parse(plaintext) as SensitivePhotoMetadata;
       Object.assign(photo, sensitiveMetadata);
     } catch (error) {
       console.error("Failed to decrypt photo metadata:", error);
-      // Continue without sensitive metadata
     }
   }
-
   return photo;
 }
 
-// Secure photo operations
 export async function getPhotos(): Promise<Photo[]> {
   try {
     const data = await AsyncStorage.getItem(PHOTOS_KEY);
     if (!data) return [];
-
     const securePhotos: SecurePhoto[] = JSON.parse(data);
     const photos: Photo[] = [];
-
     for (const securePhoto of securePhotos) {
-      const photo = await restorePhoto(securePhoto);
-      photos.push(photo);
+      photos.push(await restorePhoto(securePhoto));
     }
-
     return photos;
   } catch (error) {
     console.error("Failed to get photos:", error);
@@ -253,19 +150,11 @@ export async function getPhotos(): Promise<Photo[]> {
 }
 
 export async function savePhotos(photos: Photo[]): Promise<void> {
-  try {
-    const securePhotos: SecurePhoto[] = [];
-
-    for (const photo of photos) {
-      const securePhoto = await createSecurePhoto(photo);
-      securePhotos.push(securePhoto);
-    }
-
-    await AsyncStorage.setItem(PHOTOS_KEY, JSON.stringify(securePhotos));
-  } catch (error) {
-    console.error("Failed to save photos:", error);
-    throw error;
+  const securePhotos: SecurePhoto[] = [];
+  for (const photo of photos) {
+    securePhotos.push(await createSecurePhoto(photo));
   }
+  await AsyncStorage.setItem(PHOTOS_KEY, JSON.stringify(securePhotos));
 }
 
 export async function addPhoto(photo: Photo): Promise<void> {
@@ -287,21 +176,18 @@ export async function deletePhoto(photoId: string): Promise<void> {
   const photos = await getPhotos();
   const filtered = photos.filter((p) => p.id !== photoId);
   await savePhotos(filtered);
-
-  // Remove photo from all albums
   const albums = await getAlbums();
   const updatedAlbums = albums.map((album) => ({
     ...album,
     photoIds: album.photoIds.filter((id) => id !== photoId),
     coverPhotoUri:
-      album.coverPhotoUri && album.photoIds.length === 0
-        ? null
+      album.photoIds[0] === photoId
+        ? filtered.find((p) => album.photoIds.includes(p.id))?.uri || null
         : album.coverPhotoUri,
   }));
   await saveAlbums(updatedAlbums);
 }
 
-// Album operations (can be extended with encryption for album metadata)
 export async function getAlbums(): Promise<Album[]> {
   try {
     const data = await AsyncStorage.getItem(ALBUMS_KEY);
@@ -335,8 +221,6 @@ export async function deleteAlbum(albumId: string): Promise<void> {
   const albums = await getAlbums();
   const filtered = albums.filter((a) => a.id !== albumId);
   await saveAlbums(filtered);
-
-  // Remove album from all photos
   const photos = await getPhotos();
   const updatedPhotos = photos.map((photo) => ({
     ...photo,
@@ -345,21 +229,177 @@ export async function deleteAlbum(albumId: string): Promise<void> {
   await savePhotos(updatedPhotos);
 }
 
-// Utility functions
+export async function toggleFavorite(photoId: string): Promise<Photo | null> {
+  const photos = await getPhotos();
+  const photoIndex = photos.findIndex((p) => p.id === photoId);
+  if (photoIndex === -1) return null;
+  photos[photoIndex].isFavorite = !photos[photoIndex].isFavorite;
+  await savePhotos(photos);
+  return photos[photoIndex];
+}
+
+export async function createAlbum(title: string): Promise<Album> {
+  const albums = await getAlbums();
+  const newAlbum: Album = {
+    id: Date.now().toString(),
+    title,
+    coverPhotoUri: null,
+    photoIds: [],
+    createdAt: Date.now(),
+    modifiedAt: Date.now(),
+  };
+  albums.unshift(newAlbum);
+  await saveAlbums(albums);
+  return newAlbum;
+}
+
+export async function addPhotosToAlbum(
+  albumId: string,
+  photoIds: string[],
+): Promise<void> {
+  const albums = await getAlbums();
+  const photos = await getPhotos();
+  const albumIndex = albums.findIndex((a) => a.id === albumId);
+  if (albumIndex === -1) return;
+  const existingIds = new Set(albums[albumIndex].photoIds);
+  const newIds = photoIds.filter((id) => !existingIds.has(id));
+  albums[albumIndex].photoIds = [...albums[albumIndex].photoIds, ...newIds];
+  albums[albumIndex].modifiedAt = Date.now();
+  if (!albums[albumIndex].coverPhotoUri && newIds.length > 0) {
+    const coverPhoto = photos.find((p) => p.id === newIds[0]);
+    if (coverPhoto) albums[albumIndex].coverPhotoUri = coverPhoto.uri;
+  }
+  await saveAlbums(albums);
+  const updatedPhotos = photos.map((photo) => {
+    if (newIds.includes(photo.id)) {
+      return { ...photo, albumIds: [...photo.albumIds, albumId] };
+    }
+    return photo;
+  });
+  await savePhotos(updatedPhotos);
+}
+
+export async function removePhotoFromAlbum(
+  albumId: string,
+  photoId: string,
+): Promise<void> {
+  const albums = await getAlbums();
+  const photos = await getPhotos();
+  const albumIndex = albums.findIndex((a) => a.id === albumId);
+  if (albumIndex === -1) return;
+  albums[albumIndex].photoIds = albums[albumIndex].photoIds.filter(
+    (id) => id !== photoId,
+  );
+  albums[albumIndex].modifiedAt = Date.now();
+  if (
+    albums[albumIndex].coverPhotoUri ===
+    photos.find((p) => p.id === photoId)?.uri
+  ) {
+    const newCover = photos.find((p) =>
+      albums[albumIndex].photoIds.includes(p.id),
+    );
+    albums[albumIndex].coverPhotoUri = newCover?.uri || null;
+  }
+  await saveAlbums(albums);
+  const updatedPhotos = photos.map((photo) => {
+    if (photo.id === photoId) {
+      return {
+        ...photo,
+        albumIds: photo.albumIds.filter((id) => id !== albumId),
+      };
+    }
+    return photo;
+  });
+  await savePhotos(updatedPhotos);
+}
+
+export async function getStorageInfo(): Promise<StorageInfo> {
+  const photos = await getPhotos();
+  const albums = await getAlbums();
+  const usedBytes = photos.reduce(
+    (acc, photo) => acc + (photo.width * photo.height * 3) / 10,
+    0,
+  );
+  return {
+    usedBytes,
+    totalBytes: 15 * 1024 * 1024 * 1024,
+    photoCount: photos.length,
+    albumCount: albums.length,
+  };
+}
+
+export async function getUserProfile(): Promise<UserProfile> {
+  try {
+    const data = await AsyncStorage.getItem(USER_KEY);
+    return data
+      ? JSON.parse(data)
+      : { name: "Guest User", email: "guest@example.com", avatarUri: null };
+  } catch {
+    return { name: "Guest User", email: "guest@example.com", avatarUri: null };
+  }
+}
+
+export async function saveUserProfile(profile: UserProfile): Promise<void> {
+  await AsyncStorage.setItem(USER_KEY, JSON.stringify(profile));
+}
+
+export function groupPhotosByDate(
+  photos: Photo[],
+): { title: string; data: Photo[] }[] {
+  const now = Date.now();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStart = today.getTime();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStart = yesterday.getTime();
+  const lastWeek = new Date(today);
+  lastWeek.setDate(lastWeek.getDate() - 7);
+  const lastWeekStart = lastWeek.getTime();
+  const lastMonth = new Date(today);
+  lastMonth.setMonth(lastMonth.getMonth() - 1);
+  const lastMonthStart = lastMonth.getTime();
+  const groups: Record<string, Photo[]> = {};
+  photos.forEach((photo) => {
+    let groupTitle: string;
+    const photoTime = photo.createdAt;
+    if (photoTime >= todayStart) groupTitle = "Today";
+    else if (photoTime >= yesterdayStart) groupTitle = "Yesterday";
+    else if (photoTime >= lastWeekStart) groupTitle = "Last 7 Days";
+    else if (photoTime >= lastMonthStart) groupTitle = "Last Month";
+    else {
+      const date = new Date(photoTime);
+      groupTitle = date.toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+      });
+    }
+    if (!groups[groupTitle]) groups[groupTitle] = [];
+    groups[groupTitle].push(photo);
+  });
+  const order = ["Today", "Yesterday", "Last 7 Days", "Last Month"];
+  return Object.entries(groups)
+    .sort(([a], [b]) => {
+      const aIndex = order.indexOf(a);
+      const bIndex = order.indexOf(b);
+      if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+      if (aIndex !== -1) return -1;
+      if (bIndex !== -1) return 1;
+      return b.localeCompare(a);
+    })
+    .map(([title, data]) => ({ title, data }));
+}
+
 export async function clearAllData(): Promise<void> {
-  await AsyncStorage.multiRemove([
-    PHOTOS_KEY,
-    ALBUMS_KEY,
-    METADATA_KEY,
-    // Don't remove encryption key - it should persist
-  ]);
+  await AsyncStorage.multiRemove([PHOTOS_KEY, ALBUMS_KEY, METADATA_KEY, USER_KEY]);
 }
 
 export async function resetEncryption(): Promise<void> {
-  // Generate new encryption key and re-encrypt all data
-  await AsyncStorage.removeItem(ENCRYPTION_KEY);
-
-  // This would require re-encrypting all existing data
-  // For now, just clear metadata
+  try {
+    await SecureStore.deleteItemAsync(ENCRYPTION_KEY_STORAGE);
+  } catch {
+    // ignore
+  }
+  await AsyncStorage.removeItem(`@${ENCRYPTION_KEY_STORAGE}`);
   await AsyncStorage.removeItem(METADATA_KEY);
 }

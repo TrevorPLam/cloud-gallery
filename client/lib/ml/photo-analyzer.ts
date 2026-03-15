@@ -109,38 +109,30 @@ export class PhotoAnalyzer {
 
   private async _initializeModelsInternal(): Promise<void> {
     try {
-      // Load object detection model
       await this.loadObjectDetectionModel();
-
       this.isInitialized = true;
       console.log("PhotoAnalyzer: ML models initialized successfully");
     } catch (error) {
-      console.error("PhotoAnalyzer: Failed to initialize models:", error);
-      throw error;
+      console.error(
+        "PhotoAnalyzer: Object detection model unavailable, continuing without it:",
+        error,
+      );
+      this.objectDetectionModel = null;
+      this.isInitialized = true;
     }
   }
 
   /**
-   * Load object detection model using factory pattern
-   * Supports loading from app assets or remote URLs
+   * Load object detection model when available (e.g. from app assets).
+   * Optional: OCR and perceptual hash work without it.
    */
   private async loadObjectDetectionModel(): Promise<void> {
     try {
-      // Try loading from app assets first
       const modelPath = this.getModelPath("mobilenet_v3");
-
       this.objectDetectionModel = await loadTensorflowModel(modelPath);
-
-      if (!this.objectDetectionModel) {
-        throw new Error("Failed to load object detection model");
-      }
-
+      if (!this.objectDetectionModel) throw new Error("Failed to load model");
       console.log("PhotoAnalyzer: Object detection model loaded");
     } catch (error) {
-      console.error(
-        "PhotoAnalyzer: Error loading object detection model:",
-        error,
-      );
       throw error;
     }
   }
@@ -243,18 +235,25 @@ export class PhotoAnalyzer {
   }
 
   /**
-   * Extract text using ML Kit OCR
+   * Extract text using ML Kit OCR (on-device, privacy-preserving).
    */
   private async extractText(imageUri: string): Promise<TextRecognitionResult> {
     try {
-      // Use the correct API method for react-native-mlkit-ocr
-      // TODO: Verify the correct API method name from the library documentation
-      // For now, implement placeholder functionality
-      console.log(
-        "PhotoAnalyzer: OCR extraction not yet implemented - placeholder",
-      );
-
-      return { text: "" }; // Placeholder result
+      const blocks = await RNMlkitOcr.detectFromUri(imageUri);
+      if (!blocks || blocks.length === 0) return { text: "" };
+      const text = blocks.map((b) => b.text).filter(Boolean).join("\n");
+      const resultBlocks = blocks.map((block) => ({
+        text: block.text,
+        boundingBox: block.bounding
+          ? {
+              x: block.bounding.left,
+              y: block.bounding.top,
+              width: block.bounding.width,
+              height: block.bounding.height,
+            }
+          : undefined,
+      }));
+      return { text, blocks: resultBlocks };
     } catch (error) {
       console.error("PhotoAnalyzer: OCR failed:", error);
       return { text: "" };
@@ -314,18 +313,20 @@ export class PhotoAnalyzer {
   }
 
   /**
-   * Compute difference hash (dHash) for image
+   * Compute a deterministic hash for the image (content-addressable).
+   * Uses a hash of the URI so same image URI yields same hash for duplicate detection.
+   * Full perceptual (dHash) would require pixel access (native module or image decoder).
    */
   private async computeDifferenceHash(imageUri: string): Promise<string> {
-    // This is a placeholder implementation
-    // In production, would implement the dHash algorithm:
-    // 1. Convert to grayscale
-    // 2. Resize to (hash_size+1, hash_size)
-    // 3. Calculate horizontal gradient
-    // 4. Generate binary hash
-
-    // TODO: Implement actual difference hashing
-    return "placeholder_hash";
+    const input = imageUri.trim();
+    let h = 0;
+    for (let i = 0; i < input.length; i++) {
+      const c = input.charCodeAt(i);
+      h = (h << 5) - h + c;
+      h = h & 0xffffffff;
+    }
+    const hex = Math.abs(h).toString(16);
+    return hex.padStart(16, "0").slice(0, 16);
   }
 
   /**
@@ -417,4 +418,12 @@ export async function cleanupPhotoAnalyzer(): Promise<void> {
     await photoAnalyzerInstance.cleanup();
     photoAnalyzerInstance = null;
   }
+}
+
+/**
+ * Reset singleton instance (testing only)
+ * This function should only be used in tests to prevent memory leaks
+ */
+export function resetPhotoAnalyzerForTesting(): void {
+  photoAnalyzerInstance = null;
 }

@@ -10,7 +10,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import fc from "fast-check";
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react-native";
 import {
   QueryClient,
   QueryClientProvider,
@@ -34,8 +34,15 @@ vi.mock("@/lib/query-client", () => ({
 function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
+      queries: { 
+        retry: false,
+        gcTime: 0, // v5: was cacheTime in v4
+        staleTime: 0,
+      },
+      mutations: { 
+        retry: false,
+        gcTime: 0,
+      },
     },
   });
   return ({ children }: { children: React.ReactNode }) => (
@@ -292,9 +299,16 @@ describe("Property 14: Album Operation Requests", () => {
 // query caches SHALL be invalidated.
 
 describe("Property 15: Dual Cache Invalidation for Albums", () => {
+  const originalEnv = process.env;
+  
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.EXPO_PUBLIC_DOMAIN = "api.example.com";
+    vi.stubEnv("EXPO_PUBLIC_DOMAIN", "api.example.com");
+  });
+  
+  afterEach(() => {
+    process.env = originalEnv;
+    vi.unstubAllEnvs();
   });
 
   it("should invalidate both albums and photos caches after any album operation", async () => {

@@ -15,6 +15,11 @@ export default defineConfig({
     globals: true,
     environment: "happy-dom",
     setupFiles: ["./vitest.setup.ts"],
+    server: {
+      deps: {
+        inline: ["react-native-reanimated"],
+      },
+    },
     include: ["**/*.{test,spec}.{ts,tsx}"],
     clearMocks: true,
     exclude: [
@@ -27,6 +32,8 @@ export default defineConfig({
       "**/.git/**",
       "**/research/**",
     ],
+    // Transform React Native files to handle Flow types
+    transformMode: 'ssr',
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html", "lcov"],
@@ -79,5 +86,15 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./client"),
       "@shared": path.resolve(__dirname, "./shared"),
     },
+  },
+  define: {
+    'process.env.NODE_ENV': '"test"',
+  },
+  optimizeDeps: {
+    exclude: ['react-native', 'expo-blur', '@expo/vector-icons'],
+  },
+  // Handle React Native Flow types
+  esbuild: {
+    target: 'esnext',
   },
 });

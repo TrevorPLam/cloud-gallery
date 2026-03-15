@@ -1,4 +1,4 @@
-// Tests for secure storage with encryption
+// Tests for secure storage with AES-256-GCM encryption
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -18,7 +18,9 @@ import {
 } from "./secure-storage";
 import { Photo, Album } from "../types";
 
-// Mock AsyncStorage
+const TEST_KEY_HEX =
+  "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+
 vi.mock("@react-native-async-storage/async-storage", () => ({
   default: {
     getItem: vi.fn(),
@@ -28,11 +30,29 @@ vi.mock("@react-native-async-storage/async-storage", () => ({
   },
 }));
 
-const mockAsyncStorage = AsyncStorage as any;
+vi.mock("expo-secure-store", () => ({
+  getItemAsync: vi.fn(),
+  setItemAsync: vi.fn(),
+  deleteItemAsync: vi.fn(),
+  WHEN_UNLOCKED_THIS_DEVICE_ONLY: 1,
+}));
+
+const mockAsyncStorage = AsyncStorage as ReturnType<typeof vi.fn> & {
+  getItem: ReturnType<typeof vi.fn>;
+  setItem: ReturnType<typeof vi.fn>;
+  removeItem: ReturnType<typeof vi.fn>;
+  multiRemove: ReturnType<typeof vi.fn>;
+};
+
+async function setupSecureStoreKey() {
+  const SecureStore = await import("expo-secure-store");
+  (SecureStore.getItemAsync as ReturnType<typeof vi.fn>).mockResolvedValue(TEST_KEY_HEX);
+}
 
 describe("Secure Storage", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    await setupSecureStoreKey();
   });
 
   describe("Photo Operations", () => {
@@ -78,34 +98,23 @@ describe("Secure Storage", () => {
       let storedData: string | null = null;
 
       mockAsyncStorage.getItem.mockImplementation((key: string) => {
-        if (key === "@photo_vault_photos") {
-          return Promise.resolve(storedData);
-        }
-        if (key === "@photo_vault_encryption_key") {
-          return Promise.resolve(
-            "test-key-1234567890123456789012345678901234567890123456789012345678901234",
-          );
-        }
+        if (key === "@photo_vault_photos") return Promise.resolve(storedData);
         return Promise.resolve(null);
       });
 
       mockAsyncStorage.setItem.mockImplementation(
         (key: string, value: string) => {
-          if (key === "@photo_vault_photos") {
-            storedData = value;
-          }
+          if (key === "@photo_vault_photos") storedData = value;
           return Promise.resolve();
         },
       );
 
-      // Save photos
       await savePhotos(photos);
       expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(
         "@photo_vault_photos",
         expect.any(String),
       );
 
-      // Retrieve photos
       const retrievedPhotos = await getPhotos();
       expect(retrievedPhotos).toHaveLength(1);
       expect(retrievedPhotos[0].id).toBe(mockPhoto.id);
@@ -134,22 +143,13 @@ describe("Secure Storage", () => {
       let storedData = JSON.stringify(existingPhotos);
 
       mockAsyncStorage.getItem.mockImplementation((key: string) => {
-        if (key === "@photo_vault_photos") {
-          return Promise.resolve(storedData);
-        }
-        if (key === "@photo_vault_encryption_key") {
-          return Promise.resolve(
-            "test-key-1234567890123456789012345678901234567890123456789012345678901234",
-          );
-        }
+        if (key === "@photo_vault_photos") return Promise.resolve(storedData);
         return Promise.resolve(null);
       });
 
       mockAsyncStorage.setItem.mockImplementation(
         (key: string, value: string) => {
-          if (key === "@photo_vault_photos") {
-            storedData = value;
-          }
+          if (key === "@photo_vault_photos") storedData = value;
           return Promise.resolve();
         },
       );
@@ -158,7 +158,7 @@ describe("Secure Storage", () => {
 
       const photos = await getPhotos();
       expect(photos).toHaveLength(2);
-      expect(photos[0].id).toBe(mockPhoto.id); // New photo should be first
+      expect(photos[0].id).toBe(mockPhoto.id);
       expect(photos[1].id).toBe("photo-2");
     });
 
@@ -172,22 +172,13 @@ describe("Secure Storage", () => {
       let storedData = JSON.stringify([originalPhoto]);
 
       mockAsyncStorage.getItem.mockImplementation((key: string) => {
-        if (key === "@photo_vault_photos") {
-          return Promise.resolve(storedData);
-        }
-        if (key === "@photo_vault_encryption_key") {
-          return Promise.resolve(
-            "test-key-1234567890123456789012345678901234567890123456789012345678901234",
-          );
-        }
+        if (key === "@photo_vault_photos") return Promise.resolve(storedData);
         return Promise.resolve(null);
       });
 
       mockAsyncStorage.setItem.mockImplementation(
         (key: string, value: string) => {
-          if (key === "@photo_vault_photos") {
-            storedData = value;
-          }
+          if (key === "@photo_vault_photos") storedData = value;
           return Promise.resolve();
         },
       );
@@ -209,10 +200,7 @@ describe("Secure Storage", () => {
     });
 
     it("should delete photo and remove from albums", async () => {
-      const photoToDelete: Photo = {
-        ...mockPhoto,
-        id: "photo-1",
-      };
+      const photoToDelete: Photo = { ...mockPhoto, id: "photo-1" };
       const album: Album = {
         id: "album-1",
         title: "Test Album",
@@ -226,28 +214,15 @@ describe("Secure Storage", () => {
       let storedAlbums = JSON.stringify([album]);
 
       mockAsyncStorage.getItem.mockImplementation((key: string) => {
-        if (key === "@photo_vault_photos") {
-          return Promise.resolve(storedPhotos);
-        }
-        if (key === "@photo_vault_albums") {
-          return Promise.resolve(storedAlbums);
-        }
-        if (key === "@photo_vault_encryption_key") {
-          return Promise.resolve(
-            "test-key-1234567890123456789012345678901234567890123456789012345678901234",
-          );
-        }
+        if (key === "@photo_vault_photos") return Promise.resolve(storedPhotos);
+        if (key === "@photo_vault_albums") return Promise.resolve(storedAlbums);
         return Promise.resolve(null);
       });
 
       mockAsyncStorage.setItem.mockImplementation(
         (key: string, value: string) => {
-          if (key === "@photo_vault_photos") {
-            storedPhotos = value;
-          }
-          if (key === "@photo_vault_albums") {
-            storedAlbums = value;
-          }
+          if (key === "@photo_vault_photos") storedPhotos = value;
+          if (key === "@photo_vault_albums") storedAlbums = value;
           return Promise.resolve();
         },
       );
@@ -405,7 +380,7 @@ describe("Secure Storage", () => {
   });
 
   describe("Utility Functions", () => {
-    it("should clear all data except encryption key", async () => {
+    it("should clear all data", async () => {
       mockAsyncStorage.multiRemove.mockResolvedValue();
 
       await clearAllData();
@@ -414,10 +389,8 @@ describe("Secure Storage", () => {
         "@photo_vault_photos",
         "@photo_vault_albums",
         "@photo_vault_metadata",
+        "@photo_vault_user",
       ]);
-      expect(mockAsyncStorage.multiRemove).not.toHaveBeenCalledWith(
-        expect.arrayContaining(["@photo_vault_encryption_key"]),
-      );
     });
 
     it("should reset encryption", async () => {
@@ -426,7 +399,7 @@ describe("Secure Storage", () => {
       await resetEncryption();
 
       expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith(
-        "@photo_vault_encryption_key",
+        "@photo_vault_metadata_key",
       );
       expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith(
         "@photo_vault_metadata",
@@ -452,7 +425,7 @@ describe("Secure Storage", () => {
     });
 
     it("should handle encryption errors gracefully", async () => {
-      const photoWithEncryptedData: Photo = {
+      const securePhoto = {
         id: "photo-1",
         uri: "file://photo.jpg",
         width: 1920,
@@ -461,26 +434,13 @@ describe("Secure Storage", () => {
         modifiedAt: Date.now(),
         filename: "photo.jpg",
         isFavorite: false,
-        albumIds: [],
-      };
-
-      // Mock encrypted data that will fail to decrypt
-      const securePhoto = {
-        ...photoWithEncryptedData,
-        metadata: {
-          encrypted: "invalid-encrypted-data",
-          iv: "invalid-iv",
-          authTag: "invalid-authTag",
-          salt: "invalid-salt",
-        },
+        albumIds: [] as string[],
+        metadata: { data: "invalid-base64-not-valid-ciphertext" },
       };
 
       mockAsyncStorage.getItem.mockImplementation((key: string) => {
         if (key === "@photo_vault_photos") {
           return Promise.resolve(JSON.stringify([securePhoto]));
-        }
-        if (key === "@photo_vault_encryption_key") {
-          return Promise.resolve("test-key");
         }
         return Promise.resolve(null);
       });
@@ -489,7 +449,6 @@ describe("Secure Storage", () => {
 
       expect(photos).toHaveLength(1);
       expect(photos[0].id).toBe("photo-1");
-      // Sensitive metadata should be missing due to decryption error
       expect(photos[0].location).toBeUndefined();
       expect(photos[0].camera).toBeUndefined();
       expect(photos[0].tags).toBeUndefined();

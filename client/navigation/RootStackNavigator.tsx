@@ -16,6 +16,7 @@ import AlbumDetailScreen from "@/screens/AlbumDetailScreen";
 import EditPhotoScreen from "@/screens/EditPhotoScreen";
 import DuplicatesScreen from "@/screens/DuplicatesScreen";
 import TrashScreen from "@/screens/TrashScreen";
+import HiddenAlbumScreen from "@/screens/HiddenAlbumScreen";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
 
 export type RootStackParamList = {
@@ -25,6 +26,7 @@ export type RootStackParamList = {
   EditPhoto: { photoId: string; initialUri: string };
   Duplicates: undefined;
   Trash: undefined;
+  HiddenAlbum: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -76,6 +78,13 @@ export default function RootStackNavigator() {
         component={TrashScreen}
         options={{
           headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="HiddenAlbum"
+        component={HiddenAlbumScreen}
+        options={{
+          headerTitle: "Hidden",
         }}
       />
     </Stack.Navigator>

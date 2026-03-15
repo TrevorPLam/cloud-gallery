@@ -182,6 +182,24 @@ const api = {
       throw new Error("Failed to cancel scheduled backup");
     }
   },
+
+  async restoreBackup(cloudKey: string): Promise<{ restoreJob: string }> {
+    const response = await fetch("/api/backup/restore", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${await getToken()}`,
+      },
+      body: JSON.stringify({ cloudKey }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.message || data.error || "Failed to start restore");
+    }
+
+    return response.json();
+  },
 };
 
 // Mock token function - in real implementation this would get the auth token
@@ -243,10 +261,43 @@ export const BackupScreen: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["backups"] });
       queryClient.invalidateQueries({ queryKey: ["backup-stats"] });
     },
-    onError: (error) => {
+    onError: () => {
       Alert.alert("Error", "Failed to delete backup");
     },
   });
+
+  const restoreBackupMutation = useMutation({
+    mutationFn: api.restoreBackup,
+    onSuccess: (data) => {
+      Alert.alert(
+        "Restore started",
+        "Your library will be restored from this backup. This may take a few minutes.",
+      );
+      queryClient.invalidateQueries({ queryKey: ["backups"] });
+      queryClient.invalidateQueries({ queryKey: ["backup-stats"] });
+    },
+    onError: (error) => {
+      Alert.alert(
+        "Restore failed",
+        error instanceof Error ? error.message : "Failed to start restore",
+      );
+    },
+  });
+
+  const handleRestoreBackup = (backup: BackupMetadata) => {
+    Alert.alert(
+      "Restore from backup",
+      "This will overwrite your current library with the selected backup. Continue?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Restore",
+          style: "destructive",
+          onPress: () => restoreBackupMutation.mutate(backup.cloudKey),
+        },
+      ],
+    );
+  };
 
   const scheduleBackupMutation = useMutation({
     mutationFn: api.scheduleBackup,
@@ -415,17 +466,34 @@ export const BackupScreen: React.FC = () => {
       )}
 
       {backup.status === "completed" && (
-        <TouchableOpacity
-          style={[styles.deleteButton, { borderColor: theme.colors.error }]}
-          onPress={() => handleDeleteBackup(backup.id)}
-        >
-          <Ionicons name="trash" size={16} color={theme.colors.error} />
-          <Text
-            style={[styles.deleteButtonText, { color: theme.colors.error }]}
+        <View style={styles.backupActionsRow}>
+          <TouchableOpacity
+            style={[
+              styles.restoreButton,
+              { borderColor: theme.colors.primary },
+            ]}
+            onPress={() => handleRestoreBackup(backup)}
+            disabled={restoreBackupMutation.isPending}
           >
-            Delete
-          </Text>
-        </TouchableOpacity>
+            <Ionicons name="cloud-download" size={16} color={theme.colors.primary} />
+            <Text
+              style={[styles.restoreButtonText, { color: theme.colors.primary }]}
+            >
+              Restore
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.deleteButton, { borderColor: theme.colors.error }]}
+            onPress={() => handleDeleteBackup(backup.id)}
+          >
+            <Ionicons name="trash" size={16} color={theme.colors.error} />
+            <Text
+              style={[styles.deleteButtonText, { color: theme.colors.error }]}
+            >
+              Delete
+            </Text>
+          </TouchableOpacity>
+        </View>
       )}
     </Card>
   );
@@ -796,6 +864,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 8,
   },
+  backupActionsRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 8,
+  },
+  restoreButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderRadius: 8,
+  },
+  restoreButtonText: {
+    fontSize: 14,
+    marginLeft: 4,
+  },
   deleteButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -804,7 +890,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderWidth: 1,
     borderRadius: 8,
-    alignSelf: "flex-start",
   },
   deleteButtonText: {
     fontSize: 14,

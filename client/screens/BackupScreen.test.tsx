@@ -10,43 +10,32 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Alert } from "react-native";
 import { BackupScreen } from "./BackupScreen";
 import { ThemeProvider, defaultTheme } from "../constants/theme";
+import { apiRequest } from "@/lib/query-client";
+import { createTestQueryClient } from "../test-utils";
 
-// Mock the API functions
-jest.mock("./BackupScreen", () => {
-  const originalModule = jest.requireActual("./BackupScreen");
-  return {
-    ...originalModule,
-    api: {
-      startBackup: jest.fn(),
-      getBackupStatus: jest.fn(),
-      listBackups: jest.fn(),
-      deleteBackup: jest.fn(),
-      getBackupStats: jest.fn(),
-      getBackupConfig: jest.fn(),
-      scheduleBackup: jest.fn(),
-      cancelScheduledBackup: jest.fn(),
-    },
-  };
-});
+// Mock the API client instead of the component itself
+vi.mock("@/lib/query-client", () => ({
+  apiRequest: vi.fn(),
+}));
 
 // Mock Alert
-jest.mock("react-native", () => {
-  const ReactNative = jest.requireActual("react-native");
+vi.mock("react-native", () => {
+  const ReactNative = vi.importActual("react-native");
   return {
-    ...ReactNative,
+    ...ReactNative as any,
     Alert: {
-      alert: jest.fn(),
+      alert: vi.fn(),
     },
   };
 });
 
 // Mock date-fns
-jest.mock("date-fns", () => ({
-  formatDistanceToNow: jest.fn((date, options) => "2 hours ago"),
+vi.mock("date-fns", () => ({
+  formatDistanceToNow: vi.fn((date, options) => "2 hours ago"),
 }));
 
 // Mock expo-vector-icons
-jest.mock("@expo/vector-icons", () => ({
+vi.mock("@expo/vector-icons", () => ({
   Ionicons: {
     glyphMap: {
       "checkmark-circle": "checkmark-circle",
@@ -81,11 +70,10 @@ const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 
 describe("BackupScreen", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
-    // Mock successful API responses
-    const { api } = require("./BackupScreen");
-    api.listBackups.mockResolvedValue([
+    // Mock successful API responses using apiRequest
+    vi.mocked(apiRequest).mockResolvedValue([
       {
         id: "backup-1",
         userId: "user-1",
@@ -209,7 +197,7 @@ describe("BackupScreen", () => {
       });
 
       // Confirm the alert
-      const alertCalls = (Alert.alert as jest.Mock).mock.calls;
+      const alertCalls = vi.mocked(Alert.alert).mock.calls;
       const confirmCallback = alertCalls[alertCalls.length - 1][2][1].onPress;
       confirmCallback();
 
@@ -239,7 +227,7 @@ describe("BackupScreen", () => {
       });
 
       // Confirm the alert
-      const alertCalls = (Alert.alert as jest.Mock).mock.calls;
+      const alertCalls = vi.mocked(Alert.alert).mock.calls;
       const confirmCallback = alertCalls[alertCalls.length - 1][2][1].onPress;
       confirmCallback();
 
@@ -269,7 +257,7 @@ describe("BackupScreen", () => {
       });
 
       // Confirm the alert
-      const alertCalls = (Alert.alert as jest.Mock).mock.calls;
+      const alertCalls = vi.mocked(Alert.alert).mock.calls;
       const confirmCallback = alertCalls[alertCalls.length - 1][2][1].onPress;
       confirmCallback();
 
@@ -302,7 +290,7 @@ describe("BackupScreen", () => {
       });
 
       // Confirm the alert
-      const alertCalls = (Alert.alert as jest.Mock).mock.calls;
+      const alertCalls = vi.mocked(Alert.alert).mock.calls;
       const confirmCallback = alertCalls[alertCalls.length - 1][2][1].onPress;
       confirmCallback();
 
@@ -345,7 +333,7 @@ describe("BackupScreen", () => {
       });
 
       // Confirm the alert
-      const alertCalls = (Alert.alert as jest.Mock).mock.calls;
+      const alertCalls = vi.mocked(Alert.alert).mock.calls;
       const confirmCallback = alertCalls[alertCalls.length - 1][2][1].onPress;
       confirmCallback();
 
@@ -375,7 +363,7 @@ describe("BackupScreen", () => {
       });
 
       // Confirm the alert
-      const alertCalls = (Alert.alert as jest.Mock).mock.calls;
+      const alertCalls = vi.mocked(Alert.alert).mock.calls;
       const confirmCallback = alertCalls[alertCalls.length - 1][2][1].onPress;
       confirmCallback();
 
@@ -524,7 +512,7 @@ describe("BackupScreen", () => {
       });
 
       // Confirm the alert
-      const alertCalls = (Alert.alert as jest.Mock).mock.calls;
+      const alertCalls = vi.mocked(Alert.alert).mock.calls;
       const confirmCallback = alertCalls[alertCalls.length - 1][2][1].onPress;
       confirmCallback();
 

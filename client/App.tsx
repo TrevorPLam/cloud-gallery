@@ -19,7 +19,8 @@ import { StatusBar } from "expo-status-bar";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/query-client";
 
-import RootStackNavigator from "@/navigation/RootStackNavigator";
+import { AuthProvider } from "@/contexts/AuthContext";
+import NavigatorSwitch from "@/navigation/NavigatorSwitch";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // AI-NOTE: Provider nesting order ensures gesture handlers and keyboard are available throughout navigation tree
@@ -31,7 +32,9 @@ export default function App() {
           <GestureHandlerRootView style={styles.root}>
             <KeyboardProvider>
               <NavigationContainer>
-                <RootStackNavigator />
+                <AuthProvider>
+                  <NavigatorSwitch />
+                </AuthProvider>
               </NavigationContainer>
               <StatusBar style="auto" />
             </KeyboardProvider>

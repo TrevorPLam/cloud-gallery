@@ -34,11 +34,13 @@ import { StorageBar } from "@/components/StorageBar";
 import { SettingsRow } from "@/components/SettingsRow";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
+import { useAuth } from "@/contexts/AuthContext";
 import { Spacing, BorderRadius, Colors } from "@/constants/theme";
 
 export default function ProfileScreen() {
   const navigation = useNavigation<any>();
   const { theme, isDark } = useTheme();
+  const { logout } = useAuth();
   const headerHeight = useHeaderHeight();
   const tabBarHeight = useBottomTabBarHeight();
   const insets = useSafeAreaInsets();
@@ -199,6 +201,23 @@ export default function ProfileScreen() {
           title="Privacy"
           subtitle="Control your data and privacy"
           onPress={() => {}}
+        />
+      </View>
+
+      <View
+        style={[styles.section, { backgroundColor: theme.backgroundDefault }]}
+      >
+        <ThemedText
+          type="small"
+          style={[styles.sectionTitle, { color: theme.textSecondary }]}
+        >
+          ACCOUNT
+        </ThemedText>
+        <SettingsRow
+          icon="log-out"
+          title="Log out"
+          subtitle="Sign out of your account"
+          onPress={() => logout()}
         />
       </View>
 

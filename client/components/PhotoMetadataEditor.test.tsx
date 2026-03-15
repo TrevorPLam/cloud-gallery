@@ -8,24 +8,40 @@
 // TESTS: npm run test
 // AI-META-END
 
-// FIX 4: Add React import for JSX
+import { describe, it, expect, vi, beforeEach, waitFor } from "vitest";
 import React from "react";
 import { render, fireEvent } from "@testing-library/react-native";
 import { PhotoMetadataEditor } from "./PhotoMetadataEditor";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
+import { Text, View } from "react-native";
 
 // Mock dependencies
-jest.mock("@/hooks/useTheme");
-// FIX 10: Inlined require('react-native') inside the factory so Text is self-contained
-jest.mock("@/components/ThemedText", () => {
-  const { Text } = require("react-native");
+vi.mock("@/hooks/useTheme");
+vi.mock("@/components/ThemedText", () => {
   return {
-    ThemedText: ({ children, ...props }: any) => (
+    ThemedText: ({ children, ...props }: React.ComponentProps<typeof Text>) => (
       <Text {...props}>{children}</Text>
     ),
   };
 });
+
+vi.mock("@/components/ThemedView", () => {
+  return {
+    ThemedView: ({ children, ...props }: React.ComponentProps<typeof View>) => (
+      <View {...props}>{children}</View>
+    ),
+  };
+});
+
+// Mock the native modules that PhotoMetadataEditor uses
+vi.mock("expo-blur", () => ({
+  BlurView: ({ children, ...props }: any) => <View {...props}>{children}</View>,
+}));
+
+vi.mock("@expo/vector-icons", () => ({
+  Feather: ({ name, ...props }: any) => <Text {...props}>{name}</Text>,
+}));
 
 const mockTheme = {
   backgroundSecondary: "#ffffff",
@@ -37,13 +53,13 @@ const mockTheme = {
 };
 
 describe("PhotoMetadataEditor ML Labels", () => {
-  const mockOnSave = jest.fn();
-  const mockOnClose = jest.fn();
-  const mockOnMlLabelsUpdate = jest.fn();
+  const mockOnSave = vi.fn();
+  const mockOnClose = vi.fn();
+  const mockOnMlLabelsUpdate = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    (useTheme as jest.Mock).mockReturnValue({
+    vi.clearAllMocks();
+    vi.mocked(useTheme).mockReturnValue({
       theme: mockTheme,
       isDark: false,
     });
@@ -96,71 +112,71 @@ describe("PhotoMetadataEditor ML Labels", () => {
   });
 
   describe("ML Labels Editing", () => {
-    it("should allow editing ML labels", () => {
+    it("should allow editing ML labels", async () => {
       const { getByPlaceholderText } = renderEditor();
 
       const mlLabelsInput = getByPlaceholderText(
         "AI labels will appear here...",
       );
-      fireEvent.changeText(mlLabelsInput, "mountain, forest, hiking");
+      await fireEvent.changeText(mlLabelsInput, "mountain, forest, hiking");
 
       expect(mlLabelsInput.props.value).toBe("mountain, forest, hiking");
     });
 
-    it("should call onMlLabelsUpdate when saving with ML label changes", () => {
+    it("should call onMlLabelsUpdate when saving with ML label changes", async () => {
       const { getByPlaceholderText, getByText } = renderEditor();
 
       // Change ML labels
       const mlLabelsInput = getByPlaceholderText(
         "AI labels will appear here...",
       );
-      fireEvent.changeText(mlLabelsInput, "mountain, forest");
+      await fireEvent.changeText(mlLabelsInput, "mountain, forest");
 
       // Save
       const saveButton = getByText("Save");
-      fireEvent.press(saveButton);
+      await fireEvent.press(saveButton);
 
       expect(mockOnMlLabelsUpdate).toHaveBeenCalledWith(["mountain", "forest"]);
     });
 
-    it("should not call onMlLabelsUpdate when ML labels unchanged", () => {
+    it("should not call onMlLabelsUpdate when ML labels unchanged", async () => {
       const { getByText } = renderEditor();
 
       // Save without changing ML labels
       const saveButton = getByText("Save");
-      fireEvent.press(saveButton);
+      await fireEvent.press(saveButton);
 
       expect(mockOnMlLabelsUpdate).not.toHaveBeenCalled();
     });
 
-    it("should handle empty ML labels correctly", () => {
+    it("should handle empty ML labels correctly", async () => {
       const { getByPlaceholderText, getByText } = renderEditor();
 
       // Clear ML labels
       const mlLabelsInput = getByPlaceholderText(
         "AI labels will appear here...",
       );
-      fireEvent.changeText(mlLabelsInput, "");
+      await fireEvent.changeText(mlLabelsInput, "");
 
       // Save
       const saveButton = getByText("Save");
-      fireEvent.press(saveButton);
+      await fireEvent.press(saveButton);
 
       expect(mockOnMlLabelsUpdate).toHaveBeenCalledWith([]);
     });
 
-    it("should trim whitespace and filter empty strings from ML labels", () => {
+    it("should trim whitespace and filter empty strings from ML labels", async () => {
       const { getByPlaceholderText, getByText } = renderEditor();
 
       // Add labels with extra whitespace and empty entries
       const mlLabelsInput = getByPlaceholderText(
         "AI labels will appear here...",
       );
-      fireEvent.changeText(mlLabelsInput, " mountain , , forest ,  , hiking ");
+      await fireEvent.changeText(mlLabelsInput, " mountain , , forest ,  , hiking ");
 
       // Save
       const saveButton = getByText("Save");
-      fireEvent.press(saveButton);
+      await fireEvent.press(saveButton);
 
       expect(mockOnMlLabelsUpdate).toHaveBeenCalledWith([
         "mountain",
@@ -171,7 +187,7 @@ describe("PhotoMetadataEditor ML Labels", () => {
   });
 
   describe("State Management", () => {
-    it("should reset ML labels when modal opens with new data", () => {
+    it("should reset ML labels when modal opens with new data", async () => {
       const { rerender, getByPlaceholderText } = renderEditor({
         initialMlLabels: ["outdoor", "sunset"],
       });
@@ -181,7 +197,7 @@ describe("PhotoMetadataEditor ML Labels", () => {
       expect(mlLabelsInput.props.value).toBe("outdoor, sunset");
 
       // Change labels
-      fireEvent.changeText(mlLabelsInput, "mountain, forest");
+      await fireEvent.changeText(mlLabelsInput, "mountain, forest");
 
       // Reopen with different initial labels
       rerender(
@@ -232,7 +248,7 @@ describe("PhotoMetadataEditor ML Labels", () => {
   });
 
   describe("Integration with Save Function", () => {
-    it("should call onSave with tags and notes along with ML labels update", () => {
+    it("should call onSave with tags and notes along with ML labels update", async () => {
       const { getByPlaceholderText, getByText } = renderEditor();
 
       // Change all fields
@@ -242,13 +258,13 @@ describe("PhotoMetadataEditor ML Labels", () => {
         "AI labels will appear here...",
       );
 
-      fireEvent.changeText(tagsInput, "family, fun");
-      fireEvent.changeText(notesInput, "Amazing trip!");
-      fireEvent.changeText(mlLabelsInput, "mountain, hiking");
+      await fireEvent.changeText(tagsInput, "family, fun");
+      await fireEvent.changeText(notesInput, "Amazing trip!");
+      await fireEvent.changeText(mlLabelsInput, "mountain, hiking");
 
       // Save
       const saveButton = getByText("Save");
-      fireEvent.press(saveButton);
+      await fireEvent.press(saveButton);
 
       expect(mockOnSave).toHaveBeenCalledWith(
         ["family", "fun"],
@@ -258,7 +274,7 @@ describe("PhotoMetadataEditor ML Labels", () => {
       expect(mockOnClose).toHaveBeenCalled();
     });
 
-    it("should work without onMlLabelsUpdate callback", () => {
+    it("should work without onMlLabelsUpdate callback", async () => {
       const { getByPlaceholderText, getByText } = renderEditor({
         onMlLabelsUpdate: undefined,
       });
@@ -267,10 +283,10 @@ describe("PhotoMetadataEditor ML Labels", () => {
       const mlLabelsInput = getByPlaceholderText(
         "AI labels will appear here...",
       );
-      fireEvent.changeText(mlLabelsInput, "mountain, forest");
+      await fireEvent.changeText(mlLabelsInput, "mountain, forest");
 
       const saveButton = getByText("Save");
-      fireEvent.press(saveButton);
+      await fireEvent.press(saveButton);
 
       expect(mockOnSave).toHaveBeenCalled();
       expect(mockOnClose).toHaveBeenCalled();

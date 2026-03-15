@@ -17,6 +17,7 @@ import {
   existsSync,
   mkdirSync,
   statSync,
+  readdirSync,
 } from "fs";
 import {
   createCipheriv,
@@ -28,7 +29,12 @@ import { gzip, gunzip } from "zlib";
 import { promisify } from "util";
 import { join } from "path";
 import { db } from "./encrypted-storage";
-import { users as usersTable } from "../shared/schema";
+import {
+  users as usersTable,
+  photos as photosTable,
+  albums as albumsTable,
+  albumPhotos as albumPhotosTable,
+} from "../shared/schema";
 
 const gzipAsync = promisify(gzip);
 const gunzipAsync = promisify(gunzip);
@@ -243,60 +249,139 @@ async function readBackupFile(filePath: string): Promise<Buffer> {
 }
 
 /**
- * Export database data (simplified implementation)
- * In production, use pg_dump or similar tool
+ * Export database data for backup (users, photos, albums, album_photos).
+ * Order respects foreign keys for restore.
  */
-async function exportDatabaseData(): any {
-  try {
-    // This is a simplified implementation
-    // In production, you would use pg_dump or query all tables
-
-    // For now, return mock data structure
-    const users = await db.select().from(usersTable);
-
-    return {
-      version: "1.0",
-      timestamp: new Date().toISOString(),
-      tables: {
-        users,
-      },
-    };
-  } catch (error) {
-    console.error("Error exporting database data:", error);
-    throw error;
-  }
+async function exportDatabaseData(): Promise<{
+  version: string;
+  timestamp: string;
+  tables: {
+    users: unknown[];
+    photos: unknown[];
+    albums: unknown[];
+    albumPhotos: unknown[];
+  };
+}> {
+  const [users, photos, albums, albumPhotos] = await Promise.all([
+    db.select().from(usersTable),
+    db.select().from(photosTable),
+    db.select().from(albumsTable),
+    db.select().from(albumPhotosTable),
+  ]);
+  return {
+    version: "1.0",
+    timestamp: new Date().toISOString(),
+    tables: {
+      users: users as unknown[],
+      photos: photos as unknown[],
+      albums: albums as unknown[],
+      albumPhotos: albumPhotos as unknown[],
+    },
+  };
 }
 
 /**
- * Import database data (simplified implementation)
+ * Import database data from backup inside a transaction.
+ * Restore order: clear child tables first, then parent; insert users, albums, photos, albumPhotos.
  */
-async function importDatabaseData(dbData: any): Promise<number> {
-  try {
-    // This is a simplified implementation
-    // In production, you would properly handle foreign keys, transactions, etc.
+async function importDatabaseData(dbData: {
+  tables?: {
+    users?: unknown[];
+    photos?: unknown[];
+    albums?: unknown[];
+    albumPhotos?: unknown[];
+  };
+}): Promise<number> {
+  const tables = dbData.tables ?? {};
+  let recordsRestored = 0;
 
-    let recordsRestored = 0;
+  await db.transaction(async (tx) => {
+    // Clear in reverse FK order
+    await tx.delete(albumPhotosTable);
+    await tx.delete(photosTable);
+    await tx.delete(albumsTable);
+    await tx.delete(usersTable);
 
-    if (dbData.tables?.users) {
-      // Clear existing users (in production, handle this more carefully)
-      await db.delete("users");
-
-      // Insert users
-      for (const user of dbData.tables.users) {
-        await db.insert("users").values(user);
+    if (tables.users?.length) {
+      for (const row of tables.users as Record<string, unknown>[]) {
+        await tx.insert(usersTable).values({
+          id: row.id as string,
+          username: row.username as string,
+          password: row.password as string,
+        });
         recordsRestored++;
       }
     }
+    if (tables.albums?.length) {
+      for (const row of tables.albums as Record<string, unknown>[]) {
+        await tx.insert(albumsTable).values({
+          id: row.id as string,
+          userId: row.userId as string,
+          title: row.title as string,
+          description: (row.description as string) ?? null,
+          coverPhotoUri: (row.coverPhotoUri as string) ?? null,
+          createdAt: row.createdAt ? new Date(row.createdAt as string) : new Date(),
+          modifiedAt: row.modifiedAt ? new Date(row.modifiedAt as string) : new Date(),
+        });
+        recordsRestored++;
+      }
+    }
+    if (tables.photos?.length) {
+      for (const row of tables.photos as Record<string, unknown>[]) {
+        const toDate = (v: unknown) => (v ? new Date(v as string) : null);
+        await tx.insert(photosTable).values({
+          id: row.id as string,
+          userId: row.userId as string,
+          uri: row.uri as string,
+          width: row.width as number,
+          height: row.height as number,
+          filename: row.filename as string,
+          isFavorite: Boolean(row.isFavorite),
+          isPrivate: Boolean(row.isPrivate),
+          location: row.location ?? null,
+          camera: row.camera ?? null,
+          exif: row.exif ?? null,
+          tags: (row.tags as string[]) ?? null,
+          notes: (row.notes as string) ?? null,
+          mlLabels: (row.mlLabels as string[]) ?? null,
+          mlProcessedAt: toDate(row.mlProcessedAt),
+          mlVersion: (row.mlVersion as string) ?? null,
+          ocrText: (row.ocrText as string) ?? null,
+          ocrLanguage: (row.ocrLanguage as string) ?? null,
+          perceptualHash: (row.perceptualHash as string) ?? null,
+          duplicateGroupId: (row.duplicateGroupId as string) ?? null,
+          isVideo: Boolean(row.isVideo),
+          videoDuration: (row.videoDuration as number) ?? null,
+          videoThumbnailUri: (row.videoThumbnailUri as string) ?? null,
+          backupStatus: (row.backupStatus as string) ?? null,
+          backupCompletedAt: toDate(row.backupCompletedAt),
+          originalSize: (row.originalSize as number) ?? null,
+          compressedSize: (row.compressedSize as number) ?? null,
+          createdAt: toDate(row.createdAt) ?? new Date(),
+          modifiedAt: toDate(row.modifiedAt) ?? new Date(),
+          deletedAt: toDate(row.deletedAt),
+        } as typeof photosTable.$inferInsert);
+        recordsRestored++;
+      }
+    }
+    if (tables.albumPhotos?.length) {
+      for (const row of tables.albumPhotos as Record<string, unknown>[]) {
+        await tx.insert(albumPhotosTable).values({
+          albumId: row.albumId as string,
+          photoId: row.photoId as string,
+          addedAt: row.addedAt ? new Date(row.addedAt as string) : new Date(),
+          position: (row.position as number) ?? 0,
+        });
+        recordsRestored++;
+      }
+    }
+  });
 
-    return recordsRestored;
-  } catch (error) {
-    console.error("Error importing database data:", error);
-    throw error;
-  }
+  return recordsRestored;
 }
 
 /**
- * List all encrypted backups
+ * List all encrypted backup files in the backup directory.
  */
 export function listEncryptedBackups(): {
   fileName: string;
@@ -306,11 +391,22 @@ export function listEncryptedBackups(): {
 }[] {
   try {
     ensureBackupDir();
-
-    // This is a simplified implementation
-    // In production, you would read the backup directory and parse headers
-
-    return [];
+    const files = readdirSync(BACKUP_CONFIG.BACKUP_DIR);
+    const results: { fileName: string; filePath: string; size: number; timestamp: string }[] = [];
+    for (const fileName of files) {
+      if (!fileName.endsWith(".enc")) continue;
+      const filePath = join(BACKUP_CONFIG.BACKUP_DIR, fileName);
+      const stat = statSync(filePath);
+      results.push({
+        fileName,
+        filePath,
+        size: stat.size,
+        timestamp: stat.mtime.toISOString(),
+      });
+    }
+    return results.sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    );
   } catch (error) {
     console.error("Error listing backups:", error);
     return [];

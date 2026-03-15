@@ -236,7 +236,8 @@ export default function PhotosScreen() {
     navigation.navigate("MemoryDetailScreen", { memoryId: memory.id });
   };
 
-  const groupedData = groupPhotosByDate(photos);
+  const visiblePhotos = photos.filter((p) => !p.isPrivate);
+  const groupedData = groupPhotosByDate(visiblePhotos);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
@@ -270,7 +271,7 @@ export default function PhotosScreen() {
         <>
           <MemoriesBanner onPress={handleMemoryPress} />
           <PhotoGrid
-            photos={photos}
+            photos={visiblePhotos}
             groupedData={groupedData}
             onPhotoPress={handlePhotoPress}
             showSectionHeaders={true}

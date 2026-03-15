@@ -15,6 +15,9 @@ import type { Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { securityHeaders, requestId, rateLimit } from "./middleware";
 import { sanitizeForLogging } from "./security";
+import { auditLogger } from "./audit";
+import { validateBackupConfig } from "./backup-encryption";
+import { validateEncryptionConfig } from "./db-encryption";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -446,6 +449,21 @@ function setupErrorHandler(app: express.Application) {
     // 6. Request logging (after body parsing)
     setupRequestLogging(app);
 
+    // 6b. Production: fail fast if backup or DB encryption use default keys
+    if (isProduction) {
+      const backupValidation = validateBackupConfig();
+      const dbEncValidation = validateEncryptionConfig();
+      if (!backupValidation.isValid || !dbEncValidation.isValid) {
+        log("Production startup aborted: secure keys required.");
+        backupValidation.warnings.forEach((w) => log(w));
+        dbEncValidation.warnings.forEach((w) => log(w));
+        process.exit(1);
+      }
+    }
+
+    // 6c. Audit logging for all API requests (auth, backup, sharing, data)
+    app.use(auditLogger.middleware());
+
     // 7. Expo static serving and routing
     configureExpoAndLanding(app);
 
@@ -499,13 +517,12 @@ export { app };
 
 // Setup middleware for testing
 export async function setupTestApp() {
-  // Set up middleware for testing (skip rate limiting)
   app.use(requestId());
   setupSecurityHeaders(app);
   setupCors(app);
-  // setupRateLimiting(app); // Skip rate limiting for tests
   setupBodyParsing(app);
   setupRequestLogging(app);
+  app.use(auditLogger.middleware());
   configureExpoAndLanding(app);
   await registerRoutes(app);
   setupErrorHandler(app);
