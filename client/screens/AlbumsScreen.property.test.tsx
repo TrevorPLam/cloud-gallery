@@ -11,17 +11,21 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import fc from "fast-check";
 import { renderHook, waitFor } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import React from "react";
 import type { Album, Photo } from "@/types";
+
+import { apiRequest } from "@/lib/query-client";
 
 // Mock the API client
 vi.mock("@/lib/query-client", () => ({
   apiRequest: vi.fn(),
 }));
-
-import { apiRequest } from "@/lib/query-client";
 
 // ═══════════════════════════════════════════════════════════
 // TEST SETUP

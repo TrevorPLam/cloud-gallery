@@ -10,8 +10,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import request from "supertest";
-import { Express } from "express";
-import express from "express";
+import express, { Express } from "express";
 import { registerRoutes } from "./routes";
 import { createServer } from "node:http";
 

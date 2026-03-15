@@ -1,1 +1,0 @@
-          keyExtractor={([type]) => type}

@@ -40,8 +40,8 @@ vi.mock("crypto", async (importOriginal) => {
 // Mock argon2 for testing
 vi.mock("argon2", () => ({
   hash: vi.fn(async (password: string) => `hashed_${password}`),
-  verify: vi.fn(async (hash: string, password: string) => 
-    hash === `hashed_${password}`
+  verify: vi.fn(
+    async (hash: string, password: string) => hash === `hashed_${password}`,
   ),
 }));
 
@@ -67,13 +67,15 @@ describe("SharingService Tests", () => {
     // Mock basic database responses
     const mockDbSelect = vi.fn().mockReturnThis();
     const mockDbLimit = vi.fn().mockReturnThis();
-    const mockDbInsert = vi.fn().mockResolvedValue([{ 
-      id: "share-1", 
-      shareToken: "mock-token", 
-      permissions: Permission.VIEW,
-      expiresAt: null,
-    }]);
-    
+    const mockDbInsert = vi.fn().mockResolvedValue([
+      {
+        id: "share-1",
+        shareToken: "mock-token",
+        permissions: Permission.VIEW,
+        expiresAt: null,
+      },
+    ]);
+
     const { db } = await import("../db");
     (db.select as any).mockReturnValue(mockDbSelect);
     mockDbSelect.limit.mockReturnValue(mockDbLimit);
@@ -85,7 +87,7 @@ describe("SharingService Tests", () => {
       userId: "user-1",
       permissions: Permission.VIEW,
     });
-    
+
     // Token should be 64 characters (32 bytes hex encoded)
     expect(result.shareToken).toHaveLength(64);
     // Token should be hex characters only
@@ -94,11 +96,11 @@ describe("SharingService Tests", () => {
 
   it("should validate share token format", async () => {
     const invalidToken = "invalid-token";
-    
+
     const mockDbSelect = vi.fn().mockReturnThis();
     const mockDbWhere = vi.fn().mockReturnThis();
     const mockDbLimit = vi.fn().mockReturnThis();
-    
+
     const { db } = await import("../db");
     (db.select as any).mockReturnValue(mockDbSelect);
     mockDbSelect.where.mockReturnValue(mockDbWhere);
@@ -106,7 +108,7 @@ describe("SharingService Tests", () => {
     mockDbLimit.mockResolvedValue([]); // Token not found
 
     const validation = await sharingService.validateShareToken(invalidToken);
-    
+
     expect(validation.valid).toBe(false);
     expect(validation.expired).toBe(false);
     expect(validation.passwordRequired).toBe(false);
@@ -116,13 +118,15 @@ describe("SharingService Tests", () => {
     // Mock basic database responses
     const mockDbSelect = vi.fn().mockReturnThis();
     const mockDbLimit = vi.fn().mockReturnThis();
-    const mockDbInsert = vi.fn().mockResolvedValue([{ 
-      id: "share-1", 
-      shareToken: "mock-token", 
-      permissions: Permission.VIEW,
-      expiresAt: null,
-    }]);
-    
+    const mockDbInsert = vi.fn().mockResolvedValue([
+      {
+        id: "share-1",
+        shareToken: "mock-token",
+        permissions: Permission.VIEW,
+        expiresAt: null,
+      },
+    ]);
+
     const { db } = await import("../db");
     (db.select as any).mockReturnValue(mockDbSelect);
     mockDbSelect.limit.mockReturnValue(mockDbLimit);

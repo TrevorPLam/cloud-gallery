@@ -92,10 +92,10 @@ export class SearchService {
 
     // Process with NLP for entity extraction - temporarily disabled
     // const doc = nlp.readDoc(normalizedQuery);
-    
+
     // Temporary fallback for NLP processing
     const entities: string[] = [];
-    const tokens = normalizedQuery.split(/\s+/).filter(t => t.length > 0);
+    const tokens = normalizedQuery.split(/\s+/).filter((t) => t.length > 0);
 
     // Photo/video detection
     if (

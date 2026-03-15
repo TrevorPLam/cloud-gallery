@@ -9,7 +9,12 @@
 // AI-META-END
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react-native";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from "@testing-library/react-native";
 import React from "react";
 import MemoriesScreen from "./MemoriesScreen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -103,7 +108,7 @@ describe("MemoriesScreen", () => {
         <ThemeProvider theme={mockTheme}>
           <MemoriesScreen navigation={{ navigate: vi.fn() }} />
         </ThemeProvider>
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
   };
 
@@ -127,8 +132,12 @@ describe("MemoriesScreen", () => {
 
       await waitFor(() => {
         expect(screen.getByTestId("empty-state")).toBeTruthy();
-        expect(screen.getByTestId("empty-title")).toHaveTextContent("No Memories Yet");
-        expect(screen.getByTestId("empty-action")).toHaveTextContent("Generate Memories");
+        expect(screen.getByTestId("empty-title")).toHaveTextContent(
+          "No Memories Yet",
+        );
+        expect(screen.getByTestId("empty-action")).toHaveTextContent(
+          "Generate Memories",
+        );
       });
     });
 
@@ -139,7 +148,9 @@ describe("MemoriesScreen", () => {
 
       await waitFor(() => {
         expect(screen.getByTestId("empty-state")).toBeTruthy();
-        expect(screen.getByTestId("empty-title")).toHaveTextContent("Error Loading Memories");
+        expect(screen.getByTestId("empty-title")).toHaveTextContent(
+          "Error Loading Memories",
+        );
       });
     });
   });
@@ -299,7 +310,9 @@ describe("MemoriesScreen", () => {
       mockApiRequest.mockImplementation((url, options) => {
         if (url === "/api/memories/generate" && options?.method === "POST") {
           return Promise.resolve({
-            json: vi.fn().mockResolvedValue({ count: 3, memories: mockMemories }),
+            json: vi
+              .fn()
+              .mockResolvedValue({ count: 3, memories: mockMemories }),
           });
         }
         return Promise.resolve({
@@ -343,7 +356,7 @@ describe("MemoriesScreen", () => {
           <ThemeProvider theme={mockTheme}>
             <MemoriesScreen navigation={mockNavigation} />
           </ThemeProvider>
-        </QueryClientProvider>
+        </QueryClientProvider>,
       );
 
       await waitFor(() => {
@@ -352,9 +365,12 @@ describe("MemoriesScreen", () => {
 
       fireEvent.press(screen.getByTestId("memory-card-memory1"));
 
-      expect(mockNavigation.navigate).toHaveBeenCalledWith("MemoryDetailScreen", {
-        memoryId: "memory1",
-      });
+      expect(mockNavigation.navigate).toHaveBeenCalledWith(
+        "MemoryDetailScreen",
+        {
+          memoryId: "memory1",
+        },
+      );
     });
 
     it("should handle memory favorite toggle", async () => {
@@ -400,7 +416,7 @@ describe("MemoriesScreen", () => {
       // Get the MemoryCard component and trigger favorite toggle
       const MemoryCard = require("@/components/MemoryCard").MemoryCard;
       const mockOnFavoriteToggle = vi.fn();
-      
+
       MemoryCard.mock.calls[0][0].onFavoriteToggle();
 
       expect(mockOnFavoriteToggle).toHaveBeenCalled();
@@ -422,7 +438,7 @@ describe("MemoriesScreen", () => {
       // Mock refresh control
       const { RefreshControl } = require("react-native");
       const mockRefreshControl = vi.fn();
-      
+
       // This would typically be tested with gesture simulation
       // For now, we'll test the refresh function exists
       expect(typeof mockRefreshControl).toBe("function");
@@ -437,7 +453,9 @@ describe("MemoriesScreen", () => {
 
       await waitFor(() => {
         expect(screen.getByTestId("empty-state")).toBeTruthy();
-        expect(screen.getByTestId("empty-title")).toHaveTextContent("Error Loading Memories");
+        expect(screen.getByTestId("empty-title")).toHaveTextContent(
+          "Error Loading Memories",
+        );
         expect(screen.getByTestId("empty-action")).toHaveTextContent("Retry");
       });
     });

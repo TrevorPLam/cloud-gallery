@@ -75,7 +75,7 @@ export function MemoryCard({
   const formatDateRange = (startDate: string, endDate: string) => {
     const start = new Date(startDate);
     const end = new Date(endDate);
-    
+
     if (start.toDateString() === end.toDateString()) {
       return start.toLocaleDateString("en-US", {
         month: "short",
@@ -138,7 +138,9 @@ export function MemoryCard({
     : null;
 
   return (
-    <Animated.View style={[styles.container, { transform: [{ scale: animatedValue }] }]}>
+    <Animated.View
+      style={[styles.container, { transform: [{ scale: animatedValue }] }]}
+    >
       <TouchableOpacity
         style={[
           styles.card,
@@ -176,14 +178,28 @@ export function MemoryCard({
               />
             </View>
           )}
-          
+
           {/* Memory Type Badge */}
-          <View style={[styles.typeBadge, { backgroundColor: getMemoryTypeColor(memory.memoryType) }]}>
-            <Feather name={getMemoryTypeIcon(memory.memoryType)} size={12} color="white" />
+          <View
+            style={[
+              styles.typeBadge,
+              { backgroundColor: getMemoryTypeColor(memory.memoryType) },
+            ]}
+          >
+            <Feather
+              name={getMemoryTypeIcon(memory.memoryType)}
+              size={12}
+              color="white"
+            />
           </View>
-          
+
           {/* Photo Count Badge */}
-          <View style={[styles.photoCountBadge, { backgroundColor: "rgba(0,0,0,0.7)" }]}>
+          <View
+            style={[
+              styles.photoCountBadge,
+              { backgroundColor: "rgba(0,0,0,0.7)" },
+            ]}
+          >
             <Feather name="image" size={10} color="white" />
             <Text style={styles.photoCountText}>{memory.photoCount}</Text>
           </View>
@@ -244,7 +260,11 @@ export function MemoryCard({
             </Text>
             {memory.score && (
               <View style={styles.scoreContainer}>
-                <Feather name="trending-up" size={10} color={theme.textTertiary} />
+                <Feather
+                  name="trending-up"
+                  size={10}
+                  color={theme.textTertiary}
+                />
                 <Text style={[styles.scoreText, { color: theme.textTertiary }]}>
                   {Math.round(memory.score * 100)}%
                 </Text>

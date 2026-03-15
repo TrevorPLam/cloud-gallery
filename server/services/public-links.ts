@@ -16,16 +16,7 @@ import {
   albumPhotos,
   users,
 } from "../../shared/schema";
-import {
-  eq,
-  and,
-  isNull,
-  isNotNull,
-  desc,
-  lt,
-  gt,
-  or,
-} from "drizzle-orm";
+import { eq, and, isNull, isNotNull, desc, lt, gt, or } from "drizzle-orm";
 import { randomBytes } from "crypto";
 import { sharingService, Permission } from "./sharing";
 
@@ -90,7 +81,7 @@ export interface PublicLinkAccess {
     photoCount: number;
   };
   /** Photos in album (paginated) */
-  photos: Array<{
+  photos: {
     id: string;
     uri: string;
     width: number;
@@ -98,7 +89,7 @@ export interface PublicLinkAccess {
     filename: string;
     isFavorite: boolean;
     createdAt: Date;
-  }>;
+  }[];
   /** Pagination info */
   pagination: {
     page: number;
@@ -121,7 +112,10 @@ const DEFAULT_CONFIG: PublicLinksConfig = {
 /**
  * Rate limiting tracker for public links
  */
-const rateLimitTracker = new Map<string, { count: number; resetTime: number }>();
+const rateLimitTracker = new Map<
+  string,
+  { count: number; resetTime: number }
+>();
 
 /**
  * Public links service for anonymous album access
@@ -176,7 +170,14 @@ export class PublicLinksService {
     showMetadata: boolean;
     url: string;
   }> {
-    const { albumId, userId, password, expiresAt, allowDownload = true, showMetadata = false } = options;
+    const {
+      albumId,
+      userId,
+      password,
+      expiresAt,
+      allowDownload = true,
+      showMetadata = false,
+    } = options;
 
     // Verify album belongs to user
     const album = await db
@@ -242,7 +243,10 @@ export class PublicLinksService {
     if (page < 1) page = 1;
 
     // Use existing sharing service to access the album
-    const shareAccess = await sharingService.accessSharedAlbum(publicToken, password);
+    const shareAccess = await sharingService.accessSharedAlbum(
+      publicToken,
+      password,
+    );
 
     // Calculate pagination
     const totalPhotos = shareAccess.photos.length;
@@ -361,16 +365,21 @@ export class PublicLinksService {
 
     const now = new Date();
     const totalPublicLinks = userShares.length;
-    const activePublicLinks = userShares.filter(share => 
-      share.shared_albums.isActive && 
-      (!share.shared_albums.expiresAt || share.shared_albums.expiresAt > now)
+    const activePublicLinks = userShares.filter(
+      (share) =>
+        share.shared_albums.isActive &&
+        (!share.shared_albums.expiresAt || share.shared_albums.expiresAt > now),
     ).length;
-    const expiredPublicLinks = userShares.filter(share => 
-      share.shared_albums.expiresAt && share.shared_albums.expiresAt < now
+    const expiredPublicLinks = userShares.filter(
+      (share) =>
+        share.shared_albums.expiresAt && share.shared_albums.expiresAt < now,
     ).length;
-    const totalViews = userShares.reduce((sum, share) => sum + share.shared_albums.viewCount, 0);
-    const protectedLinks = userShares.filter(share => 
-      share.shared_albums.passwordHash
+    const totalViews = userShares.reduce(
+      (sum, share) => sum + share.shared_albums.viewCount,
+      0,
+    );
+    const protectedLinks = userShares.filter(
+      (share) => share.shared_albums.passwordHash,
     ).length;
 
     return {
@@ -421,7 +430,7 @@ export class PublicLinksService {
     };
 
     // Remove undefined values
-    Object.keys(publicUpdates).forEach(key => {
+    Object.keys(publicUpdates).forEach((key) => {
       if (publicUpdates[key] === undefined) {
         delete publicUpdates[key];
       }
@@ -475,6 +484,9 @@ export class PublicLinksService {
 export const publicLinksService = new PublicLinksService();
 
 // Clean up rate limits every 5 minutes
-setInterval(() => {
-  publicLinksService.cleanupRateLimit();
-}, 5 * 60 * 1000);
+setInterval(
+  () => {
+    publicLinksService.cleanupRateLimit();
+  },
+  5 * 60 * 1000,
+);

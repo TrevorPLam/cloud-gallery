@@ -67,7 +67,7 @@ describe("PublicLinksService Property Tests", () => {
     await db.delete(albumPhotos).where(eq(albumPhotos.albumId, testAlbum.id));
     await db.delete(albums).where(eq(albums.id, testAlbum.id));
     await db.delete(users).where(eq(users.id, testUser.id));
-    
+
     // Clear rate limit tracker
     (service as any).cleanupRateLimit();
   });
@@ -91,20 +91,20 @@ describe("PublicLinksService Property Tests", () => {
     it("Property 2: Token entropy - Tokens should have sufficient entropy", () => {
       fc.assert(
         fc.property(fc.integer({ min: 1, max: 1000 }), (count) => {
-          const tokens = Array.from({ length: count }, () => 
-            (service as any).generatePublicToken()
+          const tokens = Array.from({ length: count }, () =>
+            (service as any).generatePublicToken(),
           );
-          
+
           // All tokens should be different
           const uniqueTokens = new Set(tokens);
           expect(uniqueTokens.size).toBe(count);
-          
+
           // All tokens should be valid hex
-          tokens.forEach(token => {
+          tokens.forEach((token) => {
             expect(token).toMatch(/^[a-f0-9]{64}$/);
           });
         }),
-        { numRuns: 100 }
+        { numRuns: 100 },
       );
     });
   });
@@ -124,7 +124,9 @@ describe("PublicLinksService Property Tests", () => {
       expect((limitedService as any).checkRateLimit(testIp)).toBe(false);
 
       // Different IP should still work
-      expect((limitedService as any).checkRateLimit("192.168.1.101")).toBe(true);
+      expect((limitedService as any).checkRateLimit("192.168.1.101")).toBe(
+        true,
+      );
     });
 
     it("Property 2: Rate limit reset - Should allow requests after time window", () => {
@@ -152,7 +154,7 @@ describe("PublicLinksService Property Tests", () => {
       const ips = ["192.168.1.100", "192.168.1.101", "192.168.1.102"];
 
       // Each IP should be able to make the full number of requests
-      ips.forEach(ip => {
+      ips.forEach((ip) => {
         for (let i = 0; i < 3; i++) {
           expect((limitedService as any).checkRateLimit(ip)).toBe(true);
         }
@@ -177,7 +179,7 @@ describe("PublicLinksService Property Tests", () => {
       expect(link1.id).not.toBe(link2.id);
       expect(link1.publicToken).not.toBe(link2.publicToken);
       expect(link1.url).not.toBe(link2.url);
-      
+
       // But same settings
       expect(link1.allowDownload).toBe(link2.allowDownload);
       expect(link1.showMetadata).toBe(link2.showMetadata);
@@ -237,7 +239,7 @@ describe("PublicLinksService Property Tests", () => {
         publicLink.publicToken,
         undefined,
         1,
-        "127.0.0.1"
+        "127.0.0.1",
       );
       expect(access1.share.viewCount).toBe(1);
 
@@ -247,7 +249,7 @@ describe("PublicLinksService Property Tests", () => {
         publicLink.publicToken,
         undefined,
         1,
-        "127.0.0.2"
+        "127.0.0.2",
       );
       expect(access2.share.viewCount).toBe(2);
     });
@@ -277,7 +279,7 @@ describe("PublicLinksService Property Tests", () => {
         publicLink.publicToken,
         undefined,
         1,
-        "127.0.0.1"
+        "127.0.0.1",
       );
       expect(page1.photos).toHaveLength(50);
       expect(page1.pagination.page).toBe(1);
@@ -289,7 +291,7 @@ describe("PublicLinksService Property Tests", () => {
         publicLink.publicToken,
         undefined,
         2,
-        "127.0.0.1"
+        "127.0.0.1",
       );
       expect(page2.photos).toHaveLength(50);
       expect(page2.pagination.page).toBe(2);
@@ -301,7 +303,7 @@ describe("PublicLinksService Property Tests", () => {
         publicLink.publicToken,
         undefined,
         3,
-        "127.0.0.1"
+        "127.0.0.1",
       );
       expect(page3.photos).toHaveLength(50);
       expect(page3.pagination.page).toBe(3);
@@ -313,7 +315,7 @@ describe("PublicLinksService Property Tests", () => {
         publicLink.publicToken,
         undefined,
         0,
-        "127.0.0.1"
+        "127.0.0.1",
       );
       expect(pageInvalid.pagination.page).toBe(1);
     });
@@ -333,12 +335,27 @@ describe("PublicLinksService Property Tests", () => {
       mockSharingService.accessSharedAlbum.mockResolvedValue(mockShareAccess);
 
       // First two requests should work
-      await limitedService.accessPublicLink(publicLink.publicToken, undefined, 1, testIp);
-      await limitedService.accessPublicLink(publicLink.publicToken, undefined, 1, testIp);
+      await limitedService.accessPublicLink(
+        publicLink.publicToken,
+        undefined,
+        1,
+        testIp,
+      );
+      await limitedService.accessPublicLink(
+        publicLink.publicToken,
+        undefined,
+        1,
+        testIp,
+      );
 
       // Third request should fail
       await expect(
-        limitedService.accessPublicLink(publicLink.publicToken, undefined, 1, testIp)
+        limitedService.accessPublicLink(
+          publicLink.publicToken,
+          undefined,
+          1,
+          testIp,
+        ),
       ).rejects.toThrow("Rate limit exceeded");
     });
   });
@@ -361,7 +378,9 @@ describe("PublicLinksService Property Tests", () => {
         passwordRequired: false,
       });
 
-      const validResult = await service.validatePublicLink(publicLink.publicToken);
+      const validResult = await service.validatePublicLink(
+        publicLink.publicToken,
+      );
       expect(validResult.valid).toBe(true);
       expect(validResult.expired).toBe(false);
       expect(validResult.passwordRequired).toBe(false);
@@ -385,7 +404,9 @@ describe("PublicLinksService Property Tests", () => {
         passwordRequired: false,
       });
 
-      const expiredResult = await service.validatePublicLink(publicLink.publicToken);
+      const expiredResult = await service.validatePublicLink(
+        publicLink.publicToken,
+      );
       expect(expiredResult.valid).toBe(false);
       expect(expiredResult.expired).toBe(true);
     });
@@ -398,7 +419,9 @@ describe("PublicLinksService Property Tests", () => {
         passwordRequired: true,
       });
 
-      const passwordResult = await service.validatePublicLink(publicLink.publicToken);
+      const passwordResult = await service.validatePublicLink(
+        publicLink.publicToken,
+      );
       expect(passwordResult.valid).toBe(true);
       expect(passwordResult.expired).toBe(false);
       expect(passwordResult.passwordRequired).toBe(true);
@@ -430,7 +453,11 @@ describe("PublicLinksService Property Tests", () => {
         customDescription: "Custom description",
       };
 
-      const result = await service.updatePublicLink(publicLink.id, testUser.id, updates);
+      const result = await service.updatePublicLink(
+        publicLink.id,
+        testUser.id,
+        updates,
+      );
 
       expect(result.allowDownload).toBe(false);
       expect(result.showMetadata).toBe(true);
@@ -451,7 +478,11 @@ describe("PublicLinksService Property Tests", () => {
         // Other fields should remain unchanged
       };
 
-      const result = await service.updatePublicLink(publicLink.id, testUser.id, updates);
+      const result = await service.updatePublicLink(
+        publicLink.id,
+        testUser.id,
+        updates,
+      );
 
       expect(result.allowDownload).toBe(false);
       // Other fields should retain their default values
@@ -461,13 +492,15 @@ describe("PublicLinksService Property Tests", () => {
     it("Property 3: Authorization - Should reject updates from unauthorized users", async () => {
       // Mock sharing service to throw authorization error
       mockSharingService.updateShare.mockRejectedValue(
-        new Error("Share not found or access denied")
+        new Error("Share not found or access denied"),
       );
 
       const otherUserId = "other-user-id";
-      
+
       await expect(
-        service.updatePublicLink(publicLink.id, otherUserId, { allowDownload: false })
+        service.updatePublicLink(publicLink.id, otherUserId, {
+          allowDownload: false,
+        }),
       ).rejects.toThrow("Share not found or access denied");
     });
   });
@@ -542,7 +575,7 @@ describe("PublicLinksService Property Tests", () => {
         service.createPublicLink({
           albumId: "non-existent-album-id",
           userId: testUser.id,
-        })
+        }),
       ).rejects.toThrow("Album not found or access denied");
     });
 
@@ -551,7 +584,7 @@ describe("PublicLinksService Property Tests", () => {
         service.createPublicLink({
           albumId: testAlbum.id,
           userId: "non-existent-user-id",
-        })
+        }),
       ).rejects.toThrow("Album not found or access denied");
     });
 
@@ -604,7 +637,7 @@ describe("PublicLinksService Property Tests", () => {
         publicLink.publicToken,
         undefined,
         999,
-        "127.0.0.1"
+        "127.0.0.1",
       );
 
       expect(result.pagination.page).toBe(1); // Should default to 1
@@ -616,25 +649,25 @@ describe("PublicLinksService Property Tests", () => {
     it("Property 1: Token randomness - Tokens should be cryptographically random", () => {
       fc.assert(
         fc.property(fc.integer({ min: 10, max: 100 }), (count) => {
-          const tokens = Array.from({ length: count }, () => 
-            (service as any).generatePublicToken()
+          const tokens = Array.from({ length: count }, () =>
+            (service as any).generatePublicToken(),
           );
-          
+
           // Check for patterns that would indicate poor randomness
           const tokenSet = new Set(tokens);
           expect(tokenSet.size).toBe(count); // All unique
-          
+
           // No obvious patterns (all tokens should be different)
           for (let i = 1; i < tokens.length; i++) {
             const hammingDistance = tokens[i]
-              .split('')
+              .split("")
               .filter((char, idx) => char !== tokens[0][idx]).length;
-            
+
             // Should have significant differences (not just last few chars)
             expect(hammingDistance).toBeGreaterThan(10);
           }
         }),
-        { numRuns: 50 }
+        { numRuns: 50 },
       );
     });
 
@@ -645,7 +678,7 @@ describe("PublicLinksService Property Tests", () => {
 
       // Add some rate limit entries
       (limitedService as any).checkRateLimit(testIp);
-      
+
       // Verify tracker has the entry
       expect((limitedService as any).rateLimitTracker.has(testIp)).toBe(true);
 
@@ -655,7 +688,7 @@ describe("PublicLinksService Property Tests", () => {
 
       // Cleanup should remove expired entries
       (limitedService as any).cleanupRateLimit();
-      
+
       expect((limitedService as any).rateLimitTracker.has(testIp)).toBe(false);
     });
   });

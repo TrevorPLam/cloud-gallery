@@ -15,6 +15,7 @@ import {
   Dimensions,
   View,
   Platform,
+  useWindowDimensions,
 } from "react-native";
 import { Image } from "expo-image";
 import { FlashList } from "@shopify/flash-list";
@@ -104,8 +105,6 @@ function PhotoItem({
     </AnimatedPressable>
   );
 }
-
-import { useWindowDimensions } from "react-native";
 
 // Constants
 const GAP = Spacing.photoGap;

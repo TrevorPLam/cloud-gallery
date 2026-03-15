@@ -68,9 +68,11 @@ router.post("/create", async (req: Request, res: Response) => {
 
     // Validate request body
     const validatedData = createShareSchema.parse(req.body);
-    
+
     // Parse expiration date if provided
-    const expiresAt = validatedData.expiresAt ? new Date(validatedData.expiresAt) : null;
+    const expiresAt = validatedData.expiresAt
+      ? new Date(validatedData.expiresAt)
+      : null;
 
     // Create share using service
     const result = await sharingService.createShare({
@@ -113,7 +115,10 @@ router.post("/access/:token", async (req: Request, res: Response) => {
     const validatedData = accessShareSchema.parse(req.body);
 
     // Access shared album using service
-    const result = await sharingService.accessSharedAlbum(token, validatedData.password);
+    const result = await sharingService.accessSharedAlbum(
+      token,
+      validatedData.password,
+    );
 
     res.json({
       message: "Shared album accessed successfully",
@@ -132,7 +137,9 @@ router.post("/access/:token", async (req: Request, res: Response) => {
         return res.status(404).json({ error: error.message });
       }
       if (error.message === "Password required") {
-        return res.status(401).json({ error: error.message, passwordRequired: true });
+        return res
+          .status(401)
+          .json({ error: error.message, passwordRequired: true });
       }
       if (error.message === "Invalid password") {
         return res.status(401).json({ error: error.message });
@@ -204,9 +211,11 @@ router.put("/:shareId", async (req: Request, res: Response) => {
 
     // Validate request body
     const validatedData = updateShareSchema.parse(req.body);
-    
+
     // Parse expiration date if provided
-    const expiresAt = validatedData.expiresAt ? new Date(validatedData.expiresAt) : null;
+    const expiresAt = validatedData.expiresAt
+      ? new Date(validatedData.expiresAt)
+      : null;
 
     // Update share using service
     const result = await sharingService.updateShare(shareId, userId, {
@@ -313,7 +322,10 @@ router.get("/:shareId/collaborators", async (req: Request, res: Response) => {
     }
 
     // Get collaborators using service
-    const collaborators = await sharingService.getCollaborators(shareId, userId);
+    const collaborators = await sharingService.getCollaborators(
+      shareId,
+      userId,
+    );
 
     res.json({ collaborators });
   } catch (error) {
@@ -331,45 +343,54 @@ router.get("/:shareId/collaborators", async (req: Request, res: Response) => {
 // ═══════════════════════════════════════════════════════════
 // DELETE /api/sharing/:shareId/collaborators/:userId - Remove collaborator
 // ═══════════════════════════════════════════════════════════
-router.delete("/:shareId/collaborators/:userId", async (req: Request, res: Response) => {
-  try {
-    const shareId = Array.isArray(req.params.shareId)
-      ? req.params.shareId[0]
-      : req.params.shareId;
-    const userIdToRemove = Array.isArray(req.params.userId)
-      ? req.params.userId[0]
-      : req.params.userId;
-    const requestUserId = req.user?.id;
+router.delete(
+  "/:shareId/collaborators/:userId",
+  async (req: Request, res: Response) => {
+    try {
+      const shareId = Array.isArray(req.params.shareId)
+        ? req.params.shareId[0]
+        : req.params.shareId;
+      const userIdToRemove = Array.isArray(req.params.userId)
+        ? req.params.userId[0]
+        : req.params.userId;
+      const requestUserId = req.user?.id;
 
-    if (!requestUserId) {
-      return res.status(401).json({ error: "User not authenticated" });
+      if (!requestUserId) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+
+      // Remove collaborator using service
+      await sharingService.removeCollaborator(
+        shareId,
+        userIdToRemove,
+        requestUserId,
+      );
+
+      res.json({
+        message: "Collaborator removed successfully",
+        shareId,
+        userId: userIdToRemove,
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === "Shared album not found") {
+          return res.status(404).json({ error: error.message });
+        }
+        if (
+          error.message === "Insufficient permissions to remove collaborators"
+        ) {
+          return res.status(403).json({ error: error.message });
+        }
+        if (error.message === "Cannot remove album owner") {
+          return res.status(400).json({ error: error.message });
+        }
+      }
+
+      console.error("Error removing collaborator:", error);
+      res.status(500).json({ error: "Failed to remove collaborator" });
     }
-
-    // Remove collaborator using service
-    await sharingService.removeCollaborator(shareId, userIdToRemove, requestUserId);
-
-    res.json({
-      message: "Collaborator removed successfully",
-      shareId,
-      userId: userIdToRemove,
-    });
-  } catch (error) {
-    if (error instanceof Error) {
-      if (error.message === "Shared album not found") {
-        return res.status(404).json({ error: error.message });
-      }
-      if (error.message === "Insufficient permissions to remove collaborators") {
-        return res.status(403).json({ error: error.message });
-      }
-      if (error.message === "Cannot remove album owner") {
-        return res.status(400).json({ error: error.message });
-      }
-    }
-
-    console.error("Error removing collaborator:", error);
-    res.status(500).json({ error: "Failed to remove collaborator" });
-  }
-});
+  },
+);
 
 // ═══════════════════════════════════════════════════════════
 // GET /api/sharing/stats - Get sharing statistics for user
@@ -386,12 +407,15 @@ router.get("/stats", async (req: Request, res: Response) => {
 
     // Calculate statistics
     const totalShares = result.owned.length;
-    const activeShares = result.owned.filter(share => share.isActive).length;
-    const expiredShares = result.owned.filter(share => 
-      share.expiresAt && share.expiresAt < new Date()
+    const activeShares = result.owned.filter((share) => share.isActive).length;
+    const expiredShares = result.owned.filter(
+      (share) => share.expiresAt && share.expiresAt < new Date(),
     ).length;
     const totalCollaborations = result.collaborated.length;
-    const totalViews = result.owned.reduce((sum, share) => sum + share.viewCount, 0);
+    const totalViews = result.owned.reduce(
+      (sum, share) => sum + share.viewCount,
+      0,
+    );
 
     res.json({
       totalShares,
@@ -399,8 +423,8 @@ router.get("/stats", async (req: Request, res: Response) => {
       expiredShares,
       totalCollaborations,
       totalViews,
-      sharesWithPassword: result.owned.filter(share => 
-        share.shareToken && share.shareToken.length > 0 // This would need to be enhanced to check passwordRequired
+      sharesWithPassword: result.owned.filter(
+        (share) => share.shareToken && share.shareToken.length > 0, // This would need to be enhanced to check passwordRequired
       ).length,
     });
   } catch (error) {

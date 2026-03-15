@@ -8,11 +8,24 @@
 // TESTS: server/services/memories.test.ts (property tests)
 // AI-META-END
 
-import { db, eq, and, desc, count, sql, gt, isNull, or, lt, gte, lte } from "drizzle-orm";
-import { 
-  photos, 
-  people, 
-  faces, 
+import {
+  db,
+  eq,
+  and,
+  desc,
+  count,
+  sql,
+  gt,
+  isNull,
+  or,
+  lt,
+  gte,
+  lte,
+} from "drizzle-orm";
+import {
+  photos,
+  people,
+  faces,
   memories,
   type Memory,
   type Photo,
@@ -21,13 +34,13 @@ import { z } from "zod";
 
 // Types for memory generation
 export interface MemoryGeneration {
-  type: 'on_this_day' | 'monthly_highlights' | 'year_in_review';
+  type: "on_this_day" | "monthly_highlights" | "year_in_review";
   title: string;
   description: string;
   startDate: Date;
   endDate: Date;
   photoIds: string[];
-  coverPhotoStrategy: 'newest' | 'highest_score' | 'random';
+  coverPhotoStrategy: "newest" | "highest_score" | "random";
 }
 
 export interface PhotoScore {
@@ -88,7 +101,7 @@ export class MemoriesService {
     const today = new Date();
     const currentDay = today.getDate();
     const currentMonth = today.getMonth();
-    
+
     const generations: MemoryGeneration[] = [];
 
     // Get photos from today's date in previous years
@@ -100,15 +113,15 @@ export class MemoriesService {
           eq(photos.userId, userId),
           sql`EXTRACT(MONTH FROM ${photos.createdAt}) = ${currentMonth + 1}`,
           sql`EXTRACT(DAY FROM ${photos.createdAt}) = ${currentDay}`,
-          lt(photos.createdAt, today) // Not including today
-        )
+          lt(photos.createdAt, today), // Not including today
+        ),
       )
       .orderBy(desc(photos.createdAt));
 
     if (photosFromThisDay.length > 0) {
       // Group by year
       const photosByYear = new Map<number, typeof photosFromThisDay>();
-      
+
       for (const photo of photosFromThisDay) {
         const year = photo.createdAt.getFullYear();
         if (!photosByYear.has(year)) {
@@ -121,16 +134,17 @@ export class MemoriesService {
       for (const [year, yearPhotos] of photosByYear) {
         if (yearPhotos.length > 0) {
           const yearsAgo = today.getFullYear() - year;
-          const yearText = yearsAgo === 1 ? "1 year ago" : `${yearsAgo} years ago`;
-          
+          const yearText =
+            yearsAgo === 1 ? "1 year ago" : `${yearsAgo} years ago`;
+
           generations.push({
-            type: 'on_this_day',
+            type: "on_this_day",
             title: `On This Day ${yearText}`,
             description: `Photos from ${year} taken on this day`,
             startDate: new Date(year, currentMonth, currentDay),
             endDate: new Date(year, currentMonth, currentDay),
-            photoIds: yearPhotos.map(p => p.id),
-            coverPhotoStrategy: 'highest_score'
+            photoIds: yearPhotos.map((p) => p.id),
+            coverPhotoStrategy: "highest_score",
           });
         }
       }
@@ -142,7 +156,9 @@ export class MemoriesService {
   /**
    * Generate monthly highlights
    */
-  async getMonthlyHighlightGenerations(userId: string): Promise<MemoryGeneration[]> {
+  async getMonthlyHighlightGenerations(
+    userId: string,
+  ): Promise<MemoryGeneration[]> {
     const today = new Date();
     const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
     const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
@@ -157,8 +173,8 @@ export class MemoriesService {
         and(
           eq(photos.userId, userId),
           gte(photos.createdAt, lastMonth),
-          lt(photos.createdAt, today)
-        )
+          lt(photos.createdAt, today),
+        ),
       )
       .orderBy(desc(photos.createdAt));
 
@@ -166,20 +182,23 @@ export class MemoriesService {
       // Score photos and get top highlights
       const scoredPhotos = await this.scorePhotos(userId, lastMonthPhotos);
       const highlights = scoredPhotos
-        .filter(p => p.score > 0.5) // Only include good photos
+        .filter((p) => p.score > 0.5) // Only include good photos
         .slice(0, Math.min(20, scoredPhotos.length)); // Limit to 20 best photos
 
       if (highlights.length > 0) {
-        const monthName = lastMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-        
+        const monthName = lastMonth.toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric",
+        });
+
         generations.push({
-          type: 'monthly_highlights',
+          type: "monthly_highlights",
           title: `${monthName} Highlights`,
           description: `Best moments from ${monthName}`,
           startDate: lastMonth,
           endDate: endOfLastMonth,
-          photoIds: highlights.map(h => h.photoId),
-          coverPhotoStrategy: 'highest_score'
+          photoIds: highlights.map((h) => h.photoId),
+          coverPhotoStrategy: "highest_score",
         });
       }
     }
@@ -190,7 +209,9 @@ export class MemoriesService {
   /**
    * Generate year in review memories
    */
-  async getYearInReviewGenerations(userId: string): Promise<MemoryGeneration[]> {
+  async getYearInReviewGenerations(
+    userId: string,
+  ): Promise<MemoryGeneration[]> {
     const today = new Date();
     const lastYear = today.getFullYear() - 1;
     const startOfYear = new Date(lastYear, 0, 1);
@@ -206,8 +227,8 @@ export class MemoriesService {
         and(
           eq(photos.userId, userId),
           gte(photos.createdAt, startOfYear),
-          lt(photos.createdAt, new Date(lastYear + 1, 0, 1))
-        )
+          lt(photos.createdAt, new Date(lastYear + 1, 0, 1)),
+        ),
       )
       .orderBy(desc(photos.createdAt));
 
@@ -215,18 +236,18 @@ export class MemoriesService {
       // Score photos and get best of the year
       const scoredPhotos = await this.scorePhotos(userId, yearPhotos);
       const bestPhotos = scoredPhotos
-        .filter(p => p.score > 0.6) // Higher threshold for year in review
+        .filter((p) => p.score > 0.6) // Higher threshold for year in review
         .slice(0, Math.min(50, scoredPhotos.length)); // Limit to 50 best photos
 
       if (bestPhotos.length > 0) {
         generations.push({
-          type: 'year_in_review',
+          type: "year_in_review",
           title: `${lastYear} Year in Review`,
           description: `Best moments from ${lastYear}`,
           startDate: startOfYear,
           endDate: endOfYear,
-          photoIds: bestPhotos.map(b => b.photoId),
-          coverPhotoStrategy: 'highest_score'
+          photoIds: bestPhotos.map((b) => b.photoId),
+          coverPhotoStrategy: "highest_score",
         });
       }
     }
@@ -241,25 +262,33 @@ export class MemoriesService {
     const scoredPhotos: PhotoScore[] = [];
 
     // Get face counts for each photo
-    const photoIds = photos.map(p => p.id);
+    const photoIds = photos.map((p) => p.id);
     const faceCounts = await db
       .select({
         photoId: faces.photoId,
-        count: count(faces.id)
+        count: count(faces.id),
       })
       .from(faces)
       .where(
         and(
           eq(faces.userId, userId),
-          sql`${faces.photoId} IN ${sql.join(photoIds.map(id => sql`${id}`), sql`, `)}`
-        )
+          sql`${faces.photoId} IN ${sql.join(
+            photoIds.map((id) => sql`${id}`),
+            sql`, `,
+          )}`,
+        ),
       )
       .groupBy(faces.photoId);
 
-    const faceCountMap = new Map(faceCounts.map(fc => [fc.photoId, fc.count]));
+    const faceCountMap = new Map(
+      faceCounts.map((fc) => [fc.photoId, fc.count]),
+    );
 
     for (const photo of photos) {
-      const score = await this.calculatePhotoScore(photo, faceCountMap.get(photo.id) || 0);
+      const score = await this.calculatePhotoScore(
+        photo,
+        faceCountMap.get(photo.id) || 0,
+      );
       scoredPhotos.push(score);
     }
 
@@ -269,13 +298,16 @@ export class MemoriesService {
   /**
    * Calculate individual photo score
    */
-  private async calculatePhotoScore(photo: Photo, faceCount: number): Promise<PhotoScore> {
+  private async calculatePhotoScore(
+    photo: Photo,
+    faceCount: number,
+  ): Promise<PhotoScore> {
     const factors = {
       faces: 0,
       labels: 0,
       favorites: 0,
       location: 0,
-      recency: 0
+      recency: 0,
     };
 
     // Face detection factor (30% weight)
@@ -285,7 +317,11 @@ export class MemoriesService {
 
     // ML labels factor (20% weight)
     if (photo.mlLabels && photo.mlLabels.length > 0) {
-      const avgConfidence = photo.mlLabels.reduce((sum: number, label: any) => sum + (label.confidence || 0), 0) / photo.mlLabels.length;
+      const avgConfidence =
+        photo.mlLabels.reduce(
+          (sum: number, label: any) => sum + (label.confidence || 0),
+          0,
+        ) / photo.mlLabels.length;
       factors.labels = Math.min(avgConfidence * 0.2, 0.2);
     }
 
@@ -295,27 +331,40 @@ export class MemoriesService {
     }
 
     // Location factor (15% weight)
-    if (photo.location && (photo.location as any).latitude && (photo.location as any).longitude) {
+    if (
+      photo.location &&
+      (photo.location as any).latitude &&
+      (photo.location as any).longitude
+    ) {
       factors.location = 0.15;
     }
 
     // Recency factor (15% weight) - newer photos get higher scores
-    const daysSinceCreated = (Date.now() - photo.createdAt.getTime()) / (1000 * 60 * 60 * 24);
+    const daysSinceCreated =
+      (Date.now() - photo.createdAt.getTime()) / (1000 * 60 * 60 * 24);
     factors.recency = Math.max(0, 0.15 - (daysSinceCreated / 365) * 0.15);
 
-    const totalScore = factors.faces + factors.labels + factors.favorites + factors.location + factors.recency;
+    const totalScore =
+      factors.faces +
+      factors.labels +
+      factors.favorites +
+      factors.location +
+      factors.recency;
 
     return {
       photoId: photo.id,
       score: Math.min(totalScore, 1.0),
-      factors
+      factors,
     };
   }
 
   /**
    * Generate a single memory
    */
-  async generateMemory(userId: string, generation: MemoryGeneration): Promise<Memory | null> {
+  async generateMemory(
+    userId: string,
+    generation: MemoryGeneration,
+  ): Promise<Memory | null> {
     if (generation.photoIds.length === 0) {
       return null;
     }
@@ -323,25 +372,34 @@ export class MemoriesService {
     // Select cover photo based on strategy
     let coverPhotoId: string | undefined;
 
-    if (generation.coverPhotoStrategy === 'highest_score') {
-      const scoredPhotos = await this.scorePhotos(userId, generation.photoIds.map(id => ({ id } as Photo)));
+    if (generation.coverPhotoStrategy === "highest_score") {
+      const scoredPhotos = await this.scorePhotos(
+        userId,
+        generation.photoIds.map((id) => ({ id }) as Photo),
+      );
       coverPhotoId = scoredPhotos[0]?.photoId;
-    } else if (generation.coverPhotoStrategy === 'newest') {
+    } else if (generation.coverPhotoStrategy === "newest") {
       const newestPhoto = await db
         .select()
         .from(photos)
         .where(
           and(
             eq(photos.userId, userId),
-            sql`${photos.id} IN ${sql.join(generation.photoIds.map(id => sql`${id}`), sql`, `)}`
-          )
+            sql`${photos.id} IN ${sql.join(
+              generation.photoIds.map((id) => sql`${id}`),
+              sql`, `,
+            )}`,
+          ),
         )
         .orderBy(desc(photos.createdAt))
         .limit(1);
-      
+
       coverPhotoId = newestPhoto[0]?.id;
-    } else if (generation.coverPhotoStrategy === 'random') {
-      coverPhotoId = generation.photoIds[Math.floor(Math.random() * generation.photoIds.length)];
+    } else if (generation.coverPhotoStrategy === "random") {
+      coverPhotoId =
+        generation.photoIds[
+          Math.floor(Math.random() * generation.photoIds.length)
+        ];
     }
 
     // Check if memory already exists
@@ -352,8 +410,8 @@ export class MemoriesService {
         and(
           eq(memories.userId, userId),
           eq(memories.memoryType, generation.type),
-          eq(memories.startDate, generation.startDate)
-        )
+          eq(memories.startDate, generation.startDate),
+        ),
       )
       .limit(1);
 
@@ -367,7 +425,7 @@ export class MemoriesService {
           endDate: generation.endDate,
           coverPhotoId,
           photoCount: generation.photoIds.length,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(memories.id, existingMemory[0].id))
         .returning();
@@ -386,7 +444,7 @@ export class MemoriesService {
           endDate: generation.endDate,
           coverPhotoId,
           photoCount: generation.photoIds.length,
-          score: 0.8 // Default score for memories
+          score: 0.8, // Default score for memories
         })
         .returning();
 
@@ -397,16 +455,15 @@ export class MemoriesService {
   /**
    * Get memories for a user with pagination
    */
-  async getUserMemories(userId: string, limit = 50, offset = 0): Promise<Memory[]> {
+  async getUserMemories(
+    userId: string,
+    limit = 50,
+    offset = 0,
+  ): Promise<Memory[]> {
     return db
       .select()
       .from(memories)
-      .where(
-        and(
-          eq(memories.userId, userId),
-          eq(memories.isHidden, false)
-        )
-      )
+      .where(and(eq(memories.userId, userId), eq(memories.isHidden, false)))
       .orderBy(desc(memories.startDate))
       .limit(limit)
       .offset(offset);
@@ -415,16 +472,15 @@ export class MemoriesService {
   /**
    * Favorite or hide a memory
    */
-  async updateMemory(userId: string, memoryId: string, updates: { isFavorite?: boolean; isHidden?: boolean }): Promise<Memory | null> {
+  async updateMemory(
+    userId: string,
+    memoryId: string,
+    updates: { isFavorite?: boolean; isHidden?: boolean },
+  ): Promise<Memory | null> {
     const memory = await db
       .select()
       .from(memories)
-      .where(
-        and(
-          eq(memories.id, memoryId),
-          eq(memories.userId, userId)
-        )
-      )
+      .where(and(eq(memories.id, memoryId), eq(memories.userId, userId)))
       .limit(1);
 
     if (memory.length === 0) {
@@ -435,7 +491,7 @@ export class MemoriesService {
       .update(memories)
       .set({
         ...updates,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(memories.id, memoryId))
       .returning();
@@ -446,16 +502,16 @@ export class MemoriesService {
   /**
    * Get photos in a memory
    */
-  async getMemoryPhotos(userId: string, memoryId: string, limit = 50, offset = 0): Promise<Photo[]> {
+  async getMemoryPhotos(
+    userId: string,
+    memoryId: string,
+    limit = 50,
+    offset = 0,
+  ): Promise<Photo[]> {
     const memory = await db
       .select()
       .from(memories)
-      .where(
-        and(
-          eq(memories.id, memoryId),
-          eq(memories.userId, userId)
-        )
-      )
+      .where(and(eq(memories.id, memoryId), eq(memories.userId, userId)))
       .limit(1);
 
     if (memory.length === 0) {
@@ -470,8 +526,8 @@ export class MemoriesService {
         and(
           eq(photos.userId, userId),
           gte(photos.createdAt, memory[0].startDate),
-          lte(photos.createdAt, memory[0].endDate)
-        )
+          lte(photos.createdAt, memory[0].endDate),
+        ),
       )
       .orderBy(desc(photos.createdAt))
       .limit(limit)

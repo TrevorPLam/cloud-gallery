@@ -38,7 +38,9 @@ export async function cleanupTestDatabase(): Promise<void> {
 /**
  * Generate test user
  */
-export async function generateTestUser(overrides: Partial<any> = {}): Promise<any> {
+export async function generateTestUser(
+  overrides: Partial<any> = {},
+): Promise<any> {
   const now = Date.now();
   return {
     id: `user_${now}_${Math.random().toString(36).substr(2, 9)}`,
@@ -52,7 +54,10 @@ export async function generateTestUser(overrides: Partial<any> = {}): Promise<an
 /**
  * Generate test photo (server version)
  */
-export async function generateTestPhoto(userId: string, overrides: Partial<any> = {}): Promise<any> {
+export async function generateTestPhoto(
+  userId: string,
+  overrides: Partial<any> = {},
+): Promise<any> {
   const now = Date.now();
   return {
     id: `photo_${now}_${Math.random().toString(36).substr(2, 9)}`,
@@ -71,7 +76,10 @@ export async function generateTestPhoto(userId: string, overrides: Partial<any> 
 /**
  * Generate test person
  */
-export async function generateTestPerson(userId: string, overrides: Partial<any> = {}): Promise<any> {
+export async function generateTestPerson(
+  userId: string,
+  overrides: Partial<any> = {},
+): Promise<any> {
   const now = Date.now();
   return {
     id: `person_${now}_${Math.random().toString(36).substr(2, 9)}`,

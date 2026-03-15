@@ -36,12 +36,20 @@ const updateMemorySchema = z.object({
 });
 
 const getMemoriesSchema = z.object({
-  limit: z.string().transform(Number).pipe(z.number().min(1).max(100)).default("50"),
+  limit: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().min(1).max(100))
+    .default("50"),
   offset: z.string().transform(Number).pipe(z.number().min(0)).default("0"),
 });
 
 const getMemoryPhotosSchema = z.object({
-  limit: z.string().transform(Number).pipe(z.number().min(1).max(100)).default("50"),
+  limit: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().min(1).max(100))
+    .default("50"),
   offset: z.string().transform(Number).pipe(z.number().min(0)).default("0"),
 });
 
@@ -50,29 +58,33 @@ router.get("/", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
     const { limit, offset } = getMemoriesSchema.parse(req.query);
-    
+
     // Get all memories for the user
-    const memories = await memoriesService.getUserMemories(userId, limit, offset);
-    
+    const memories = await memoriesService.getUserMemories(
+      userId,
+      limit,
+      offset,
+    );
+
     res.json({
       memories,
       pagination: {
         limit,
         offset,
-        hasMore: memories.length === limit
-      }
+        hasMore: memories.length === limit,
+      },
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         error: "Invalid query parameters",
-        details: error.errors
+        details: error.errors,
       });
     }
-    
+
     console.error("Error fetching memories:", error);
     res.status(500).json({
-      error: "Failed to fetch memories"
+      error: "Failed to fetch memories",
     });
   }
 });
@@ -81,19 +93,19 @@ router.get("/", async (req: Request, res: Response) => {
 router.post("/generate", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
-    
+
     // Generate all memories for the user
     const memories = await memoriesService.generateAllMemories(userId);
-    
+
     res.json({
       memories,
       count: memories.length,
-      message: `Generated ${memories.length} memories`
+      message: `Generated ${memories.length} memories`,
     });
   } catch (error) {
     console.error("Error generating memories:", error);
     res.status(500).json({
-      error: "Failed to generate memories"
+      error: "Failed to generate memories",
     });
   }
 });
@@ -103,32 +115,34 @@ router.put("/:id/favorite", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
     const memoryId = req.params.id;
-    
+
     const { isFavorite } = updateMemorySchema.parse(req.body);
-    
-    const memory = await memoriesService.updateMemory(userId, memoryId, { isFavorite });
-    
+
+    const memory = await memoriesService.updateMemory(userId, memoryId, {
+      isFavorite,
+    });
+
     if (!memory) {
       return res.status(404).json({
-        error: "Memory not found"
+        error: "Memory not found",
       });
     }
-    
+
     res.json({
       memory,
-      message: isFavorite ? "Memory favorited" : "Memory unfavorited"
+      message: isFavorite ? "Memory favorited" : "Memory unfavorited",
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         error: "Invalid request body",
-        details: error.errors
+        details: error.errors,
       });
     }
-    
+
     console.error("Error updating memory favorite status:", error);
     res.status(500).json({
-      error: "Failed to update memory"
+      error: "Failed to update memory",
     });
   }
 });
@@ -138,32 +152,34 @@ router.put("/:id/hide", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
     const memoryId = req.params.id;
-    
+
     const { isHidden } = updateMemorySchema.parse(req.body);
-    
-    const memory = await memoriesService.updateMemory(userId, memoryId, { isHidden });
-    
+
+    const memory = await memoriesService.updateMemory(userId, memoryId, {
+      isHidden,
+    });
+
     if (!memory) {
       return res.status(404).json({
-        error: "Memory not found"
+        error: "Memory not found",
       });
     }
-    
+
     res.json({
       memory,
-      message: isHidden ? "Memory hidden" : "Memory unhidden"
+      message: isHidden ? "Memory hidden" : "Memory unhidden",
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         error: "Invalid request body",
-        details: error.errors
+        details: error.errors,
       });
     }
-    
+
     console.error("Error updating memory visibility:", error);
     res.status(500).json({
-      error: "Failed to update memory"
+      error: "Failed to update memory",
     });
   }
 });
@@ -173,32 +189,36 @@ router.put("/:id", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
     const memoryId = req.params.id;
-    
+
     const updates = updateMemorySchema.parse(req.body);
-    
-    const memory = await memoriesService.updateMemory(userId, memoryId, updates);
-    
+
+    const memory = await memoriesService.updateMemory(
+      userId,
+      memoryId,
+      updates,
+    );
+
     if (!memory) {
       return res.status(404).json({
-        error: "Memory not found"
+        error: "Memory not found",
       });
     }
-    
+
     res.json({
       memory,
-      message: "Memory updated successfully"
+      message: "Memory updated successfully",
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         error: "Invalid request body",
-        details: error.errors
+        details: error.errors,
       });
     }
-    
+
     console.error("Error updating memory:", error);
     res.status(500).json({
-      error: "Failed to update memory"
+      error: "Failed to update memory",
     });
   }
 });
@@ -209,28 +229,33 @@ router.get("/:id/photos", async (req: Request, res: Response) => {
     const userId = req.user!.id;
     const memoryId = req.params.id;
     const { limit, offset } = getMemoryPhotosSchema.parse(req.query);
-    
-    const photos = await memoriesService.getMemoryPhotos(userId, memoryId, limit, offset);
-    
+
+    const photos = await memoriesService.getMemoryPhotos(
+      userId,
+      memoryId,
+      limit,
+      offset,
+    );
+
     res.json({
       photos,
       pagination: {
         limit,
         offset,
-        hasMore: photos.length === limit
-      }
+        hasMore: photos.length === limit,
+      },
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         error: "Invalid query parameters",
-        details: error.errors
+        details: error.errors,
       });
     }
-    
+
     console.error("Error fetching memory photos:", error);
     res.status(500).json({
-      error: "Failed to fetch memory photos"
+      error: "Failed to fetch memory photos",
     });
   }
 });
@@ -242,25 +267,25 @@ router.get("/types", async (req: Request, res: Response) => {
       {
         type: "on_this_day",
         name: "On This Day",
-        description: "Photos taken on this day in previous years"
+        description: "Photos taken on this day in previous years",
       },
       {
         type: "monthly_highlights",
         name: "Monthly Highlights",
-        description: "Best photos from the past month"
+        description: "Best photos from the past month",
       },
       {
         type: "year_in_review",
         name: "Year in Review",
-        description: "Top moments from the previous year"
-      }
+        description: "Top moments from the previous year",
+      },
     ];
-    
+
     res.json({ memoryTypes });
   } catch (error) {
     console.error("Error fetching memory types:", error);
     res.status(500).json({
-      error: "Failed to fetch memory types"
+      error: "Failed to fetch memory types",
     });
   }
 });
@@ -269,30 +294,39 @@ router.get("/types", async (req: Request, res: Response) => {
 router.get("/stats", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
-    
+
     // Get all memories to calculate stats
     const allMemories = await memoriesService.getUserMemories(userId, 1000, 0);
-    
+
     const stats = {
       totalMemories: allMemories.length,
-      favoriteMemories: allMemories.filter(m => m.isFavorite).length,
-      hiddenMemories: allMemories.filter(m => m.isHidden).length,
+      favoriteMemories: allMemories.filter((m) => m.isFavorite).length,
+      hiddenMemories: allMemories.filter((m) => m.isHidden).length,
       memoriesByType: {
-        on_this_day: allMemories.filter(m => m.memoryType === 'on_this_day').length,
-        monthly_highlights: allMemories.filter(m => m.memoryType === 'monthly_highlights').length,
-        year_in_review: allMemories.filter(m => m.memoryType === 'year_in_review').length
+        on_this_day: allMemories.filter((m) => m.memoryType === "on_this_day")
+          .length,
+        monthly_highlights: allMemories.filter(
+          (m) => m.memoryType === "monthly_highlights",
+        ).length,
+        year_in_review: allMemories.filter(
+          (m) => m.memoryType === "year_in_review",
+        ).length,
       },
       totalPhotos: allMemories.reduce((sum, m) => sum + m.photoCount, 0),
-      averagePhotosPerMemory: allMemories.length > 0 
-        ? Math.round(allMemories.reduce((sum, m) => sum + m.photoCount, 0) / allMemories.length)
-        : 0
+      averagePhotosPerMemory:
+        allMemories.length > 0
+          ? Math.round(
+              allMemories.reduce((sum, m) => sum + m.photoCount, 0) /
+                allMemories.length,
+            )
+          : 0,
     };
-    
+
     res.json({ stats });
   } catch (error) {
     console.error("Error fetching memory stats:", error);
     res.status(500).json({
-      error: "Failed to fetch memory statistics"
+      error: "Failed to fetch memory statistics",
     });
   }
 });

@@ -55,7 +55,9 @@ export function MemoriesBanner({ onPress, onDismiss }: MemoriesBannerProps) {
   } = useQuery({
     queryKey: ["on-this-day-memories"],
     queryFn: async () => {
-      const response = await apiRequest("/api/memories?type=on_this_day&limit=5");
+      const response = await apiRequest(
+        "/api/memories?type=on_this_day&limit=5",
+      );
       return response.json();
     },
     staleTime: 10 * 60 * 1000, // 10 minutes
@@ -63,9 +65,11 @@ export function MemoriesBanner({ onPress, onDismiss }: MemoriesBannerProps) {
   });
 
   // Filter to only show "On This Day" memories that aren't hidden
-  const onThisDayMemories = memoriesData?.memories?.filter(
-    (memory: Memory) => memory.memoryType === "on_this_day" && !memory.isHidden
-  ) || [];
+  const onThisDayMemories =
+    memoriesData?.memories?.filter(
+      (memory: Memory) =>
+        memory.memoryType === "on_this_day" && !memory.isHidden,
+    ) || [];
 
   // Don't render if loading, error, or no memories
   if (isLoading || error || onThisDayMemories.length === 0) {
@@ -73,9 +77,12 @@ export function MemoriesBanner({ onPress, onDismiss }: MemoriesBannerProps) {
   }
 
   // Handle memory press
-  const handleMemoryPress = useCallback((memory: Memory) => {
-    onPress(memory);
-  }, [onPress]);
+  const handleMemoryPress = useCallback(
+    (memory: Memory) => {
+      onPress(memory);
+    },
+    [onPress],
+  );
 
   // Handle dismiss
   const handleDismiss = useCallback(() => {
@@ -134,7 +141,7 @@ export function MemoriesBanner({ onPress, onDismiss }: MemoriesBannerProps) {
         </TouchableOpacity>
       );
     },
-    [theme, handleMemoryPress]
+    [theme, handleMemoryPress],
   );
 
   return (
@@ -150,7 +157,7 @@ export function MemoriesBanner({ onPress, onDismiss }: MemoriesBannerProps) {
           <Feather name="x" size={16} color={theme.textSecondary} />
         </TouchableOpacity>
       </View>
-      
+
       <FlatList
         data={onThisDayMemories}
         renderItem={renderMemoryItem}

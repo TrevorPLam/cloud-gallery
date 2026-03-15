@@ -309,13 +309,13 @@ export async function getUserMLJobs(
   userId: string,
   status?: MLJobStatus,
 ): Promise<
-  Array<{
+  {
     id: string;
     status: MLJobStatus;
     createdAt: Date;
     processedAt?: Date;
     data: MLJobData;
-  }>
+  }[]
 > {
   const states = status
     ? [status]

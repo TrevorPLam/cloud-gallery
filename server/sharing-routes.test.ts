@@ -68,7 +68,8 @@ describe("Sharing API Integration Tests", () => {
     it("should create a shared album successfully", async () => {
       const mockShareResult = {
         id: "share-123",
-        shareToken: "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+        shareToken:
+          "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
         permissions: Permission.VIEW,
         expiresAt: null,
         passwordRequired: false,
@@ -100,7 +101,8 @@ describe("Sharing API Integration Tests", () => {
     it("should create a shared album with password", async () => {
       const mockShareResult = {
         id: "share-123",
-        shareToken: "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+        shareToken:
+          "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
         permissions: Permission.EDIT,
         expiresAt: new Date("2024-12-31T23:59:59.000Z"),
         passwordRequired: true,
@@ -138,7 +140,7 @@ describe("Sharing API Integration Tests", () => {
 
     it("should handle album not found error", async () => {
       vi.mocked(sharingService.createShare).mockRejectedValue(
-        new Error("Album not found or access denied")
+        new Error("Album not found or access denied"),
       );
 
       const response = await request(app)
@@ -173,10 +175,14 @@ describe("Sharing API Integration Tests", () => {
         photos: [],
       };
 
-      vi.mocked(sharingService.accessSharedAlbum).mockResolvedValue(mockAccessResult);
+      vi.mocked(sharingService.accessSharedAlbum).mockResolvedValue(
+        mockAccessResult,
+      );
 
       const response = await request(app)
-        .post("/api/sharing/access/abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890")
+        .post(
+          "/api/sharing/access/abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+        )
         .send({})
         .expect(200);
 
@@ -187,7 +193,7 @@ describe("Sharing API Integration Tests", () => {
 
       expect(sharingService.accessSharedAlbum).toHaveBeenCalledWith(
         "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-        undefined
+        undefined,
       );
     });
 
@@ -210,7 +216,9 @@ describe("Sharing API Integration Tests", () => {
         photos: [],
       };
 
-      vi.mocked(sharingService.accessSharedAlbum).mockResolvedValue(mockAccessResult);
+      vi.mocked(sharingService.accessSharedAlbum).mockResolvedValue(
+        mockAccessResult,
+      );
 
       const response = await request(app)
         .post("/api/sharing/access/token123")
@@ -221,13 +229,13 @@ describe("Sharing API Integration Tests", () => {
 
       expect(sharingService.accessSharedAlbum).toHaveBeenCalledWith(
         "token123",
-        "correctpassword"
+        "correctpassword",
       );
     });
 
     it("should handle invalid share token", async () => {
       vi.mocked(sharingService.accessSharedAlbum).mockRejectedValue(
-        new Error("Invalid or expired share token")
+        new Error("Invalid or expired share token"),
       );
 
       const response = await request(app)
@@ -240,7 +248,7 @@ describe("Sharing API Integration Tests", () => {
 
     it("should handle password required", async () => {
       vi.mocked(sharingService.accessSharedAlbum).mockRejectedValue(
-        new Error("Password required")
+        new Error("Password required"),
       );
 
       const response = await request(app)
@@ -254,7 +262,7 @@ describe("Sharing API Integration Tests", () => {
 
     it("should handle invalid password", async () => {
       vi.mocked(sharingService.accessSharedAlbum).mockRejectedValue(
-        new Error("Invalid password")
+        new Error("Invalid password"),
       );
 
       const response = await request(app)
@@ -286,7 +294,9 @@ describe("Sharing API Integration Tests", () => {
         passwordRequired: false,
       });
 
-      expect(sharingService.validateShareToken).toHaveBeenCalledWith("token123");
+      expect(sharingService.validateShareToken).toHaveBeenCalledWith(
+        "token123",
+      );
     });
 
     it("should validate expired token", async () => {
@@ -349,14 +359,18 @@ describe("Sharing API Integration Tests", () => {
         ],
       };
 
-      vi.mocked(sharingService.getUserSharedAlbums).mockResolvedValue(mockUserShares);
+      vi.mocked(sharingService.getUserSharedAlbums).mockResolvedValue(
+        mockUserShares,
+      );
 
       const response = await request(app)
         .get("/api/sharing/my-shares")
         .expect(200);
 
       expect(response.body).toEqual(mockUserShares);
-      expect(sharingService.getUserSharedAlbums).toHaveBeenCalledWith("test-user-id");
+      expect(sharingService.getUserSharedAlbums).toHaveBeenCalledWith(
+        "test-user-id",
+      );
     });
   });
 
@@ -392,13 +406,13 @@ describe("Sharing API Integration Tests", () => {
           permissions: Permission.EDIT,
           expiresAt: new Date("2024-12-31T23:59:59.000Z"),
           isActive: true,
-        }
+        },
       );
     });
 
     it("should handle share not found", async () => {
       vi.mocked(sharingService.updateShare).mockRejectedValue(
-        new Error("Share not found or access denied")
+        new Error("Share not found or access denied"),
       );
 
       const response = await request(app)
@@ -421,7 +435,9 @@ describe("Sharing API Integration Tests", () => {
         acceptedAt: new Date(),
       };
 
-      vi.mocked(sharingService.addCollaborator).mockResolvedValue(mockCollaborator);
+      vi.mocked(sharingService.addCollaborator).mockResolvedValue(
+        mockCollaborator,
+      );
 
       const response = await request(app)
         .post("/api/sharing/share-123/collaborators")
@@ -446,7 +462,7 @@ describe("Sharing API Integration Tests", () => {
 
     it("should handle insufficient permissions", async () => {
       vi.mocked(sharingService.addCollaborator).mockRejectedValue(
-        new Error("Insufficient permissions to add collaborators")
+        new Error("Insufficient permissions to add collaborators"),
       );
 
       const response = await request(app)
@@ -457,12 +473,14 @@ describe("Sharing API Integration Tests", () => {
         })
         .expect(403);
 
-      expect(response.body.error).toBe("Insufficient permissions to add collaborators");
+      expect(response.body.error).toBe(
+        "Insufficient permissions to add collaborators",
+      );
     });
 
     it("should handle duplicate collaborator", async () => {
       vi.mocked(sharingService.addCollaborator).mockRejectedValue(
-        new Error("User is already a collaborator")
+        new Error("User is already a collaborator"),
       );
 
       const response = await request(app)
@@ -491,19 +509,24 @@ describe("Sharing API Integration Tests", () => {
         },
       ];
 
-      vi.mocked(sharingService.getCollaborators).mockResolvedValue(mockCollaborators);
+      vi.mocked(sharingService.getCollaborators).mockResolvedValue(
+        mockCollaborators,
+      );
 
       const response = await request(app)
         .get("/api/sharing/share-123/collaborators")
         .expect(200);
 
       expect(response.body).toEqual({ collaborators: mockCollaborators });
-      expect(sharingService.getCollaborators).toHaveBeenCalledWith("share-123", "test-user-id");
+      expect(sharingService.getCollaborators).toHaveBeenCalledWith(
+        "share-123",
+        "test-user-id",
+      );
     });
 
     it("should handle access denied", async () => {
       vi.mocked(sharingService.getCollaborators).mockRejectedValue(
-        new Error("Access denied")
+        new Error("Access denied"),
       );
 
       const response = await request(app)
@@ -531,25 +554,27 @@ describe("Sharing API Integration Tests", () => {
       expect(sharingService.removeCollaborator).toHaveBeenCalledWith(
         "share-123",
         "user-456",
-        "test-user-id"
+        "test-user-id",
       );
     });
 
     it("should handle insufficient permissions", async () => {
       vi.mocked(sharingService.removeCollaborator).mockRejectedValue(
-        new Error("Insufficient permissions to remove collaborators")
+        new Error("Insufficient permissions to remove collaborators"),
       );
 
       const response = await request(app)
         .delete("/api/sharing/share-123/collaborators/user-456")
         .expect(403);
 
-      expect(response.body.error).toBe("Insufficient permissions to remove collaborators");
+      expect(response.body.error).toBe(
+        "Insufficient permissions to remove collaborators",
+      );
     });
 
     it("should handle trying to remove album owner", async () => {
       vi.mocked(sharingService.removeCollaborator).mockRejectedValue(
-        new Error("Cannot remove album owner")
+        new Error("Cannot remove album owner"),
       );
 
       const response = await request(app)
@@ -601,11 +626,11 @@ describe("Sharing API Integration Tests", () => {
         ],
       };
 
-      vi.mocked(sharingService.getUserSharedAlbums).mockResolvedValue(mockUserShares);
+      vi.mocked(sharingService.getUserSharedAlbums).mockResolvedValue(
+        mockUserShares,
+      );
 
-      const response = await request(app)
-        .get("/api/sharing/stats")
-        .expect(200);
+      const response = await request(app).get("/api/sharing/stats").expect(200);
 
       expect(response.body).toEqual({
         totalShares: 2,
@@ -623,7 +648,7 @@ describe("Sharing API Integration Tests", () => {
       // Test with unauthenticated request
       const unauthenticatedApp = express();
       unauthenticatedApp.use(express.json());
-      
+
       // Override auth middleware to reject requests
       unauthenticatedApp.use("/api/sharing", (req, res, next) => {
         res.status(401).json({ error: "User not authenticated" });
@@ -649,9 +674,7 @@ describe("Sharing API Integration Tests", () => {
             .send({})
             .expect(401);
         } else {
-          await request(unauthenticatedApp)
-            .get(endpoint.path)
-            .expect(401);
+          await request(unauthenticatedApp).get(endpoint.path).expect(401);
         }
       }
     });
@@ -660,7 +683,7 @@ describe("Sharing API Integration Tests", () => {
   describe("Error Handling", () => {
     it("should handle service errors gracefully", async () => {
       vi.mocked(sharingService.createShare).mockRejectedValue(
-        new Error("Unexpected database error")
+        new Error("Unexpected database error"),
       );
 
       const response = await request(app)

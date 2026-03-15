@@ -34,20 +34,20 @@ interface StorageBreakdown {
   totalBytesUsed: number;
   totalItemCount: number;
   storageLimit: number | null;
-  categories: Array<{
+  categories: {
     category: string;
     bytesUsed: number;
     itemCount: number;
     percentage: number;
     calculatedAt: string;
-  }>;
-  largeFiles: Array<{
+  }[];
+  largeFiles: {
     id: string;
     filename: string;
     size: number | null;
     uri: string;
     isVideo: boolean;
-  }>;
+  }[];
   compressionStats: {
     originalTotal: number;
     compressedTotal: number;

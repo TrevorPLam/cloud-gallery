@@ -19,30 +19,32 @@ const router = Router();
 // ═══════════════════════════════════════════════════════════
 // SECURITY MIDDLEWARE: Apply security headers to all public routes
 // ═══════════════════════════════════════════════════════════
-router.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:"],
-      fontSrc: ["'self'"],
-      connectSrc: ["'self'"],
-      frameAncestors: ["'none'"],
-      baseUri: ["'self'"],
-      formAction: ["'self'"],
+router.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        fontSrc: ["'self'"],
+        connectSrc: ["'self'"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+      },
     },
-  },
-  hsts: {
-    maxAge: 31536000,
-    includeSubDomains: true,
-    preload: true
-  },
-  noSniff: true,
-  frameguard: { action: 'deny' },
-  xssFilter: true,
-  referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
-}));
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
+    noSniff: true,
+    frameguard: { action: "deny" },
+    xssFilter: true,
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+  }),
+);
 
 // ═══════════════════════════════════════════════════════════
 // RATE LIMITING: Simple in-memory rate limiting for public access
@@ -51,7 +53,7 @@ const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
 const rateLimit = (maxRequests: number, windowMs: number) => {
   return (req: Request, res: Response, next: Function) => {
-    const ip = req.ip || req.connection.remoteAddress || 'unknown';
+    const ip = req.ip || req.connection.remoteAddress || "unknown";
     const now = Date.now();
     const tracker = rateLimitMap.get(ip);
 
@@ -64,7 +66,7 @@ const rateLimit = (maxRequests: number, windowMs: number) => {
       return res.status(429).json({
         error: "Too many requests",
         message: "Rate limit exceeded. Please try again later.",
-        retryAfter: Math.ceil((tracker.resetTime - now) / 1000)
+        retryAfter: Math.ceil((tracker.resetTime - now) / 1000),
       });
     }
 
@@ -112,8 +114,8 @@ const paginationSchema = z.object({
 // ═══════════════════════════════════════════════════════════
 
 // Set up EJS as template engine (will be configured in main server)
-router.set('view engine', 'html');
-router.set('views', './templates');
+router.set("view engine", "html");
+router.set("views", "./templates");
 
 // ═══════════════════════════════════════════════════════════
 // POST /public/create - Create public link (authenticated)
@@ -127,9 +129,11 @@ router.post("/create", async (req: Request, res: Response) => {
 
     // Validate request body
     const validatedData = createPublicLinkSchema.parse(req.body);
-    
+
     // Parse expiration date if provided
-    const expiresAt = validatedData.expiresAt ? new Date(validatedData.expiresAt) : null;
+    const expiresAt = validatedData.expiresAt
+      ? new Date(validatedData.expiresAt)
+      : null;
 
     // Create public link using service
     const result = await publicLinksService.createPublicLink({
@@ -172,17 +176,17 @@ router.post("/create", async (req: Request, res: Response) => {
 router.get("/:token", async (req: Request, res: Response) => {
   try {
     const { token } = req.params;
-    const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
-    
+    const clientIp = req.ip || req.connection.remoteAddress || "unknown";
+
     // Validate pagination
     const { page } = paginationSchema.parse(req.query);
 
     // First validate the token without incrementing view count
     const validation = await publicLinksService.validatePublicLink(token);
-    
+
     if (!validation.valid) {
       if (validation.expired) {
-        return res.status(410).render('public-view.html', {
+        return res.status(410).render("public-view.html", {
           passwordRequired: false,
           error: "This public link has expired",
           token,
@@ -190,8 +194,8 @@ router.get("/:token", async (req: Request, res: Response) => {
           customTitle: null,
         });
       }
-      
-      return res.status(404).render('public-view.html', {
+
+      return res.status(404).render("public-view.html", {
         passwordRequired: false,
         error: "Public link not found",
         token,
@@ -202,7 +206,7 @@ router.get("/:token", async (req: Request, res: Response) => {
 
     // If password is required, show password form
     if (validation.passwordRequired) {
-      return res.render('public-view.html', {
+      return res.render("public-view.html", {
         passwordRequired: true,
         token,
         albumTitle: validation.albumTitle || "Protected Album",
@@ -216,20 +220,20 @@ router.get("/:token", async (req: Request, res: Response) => {
       token,
       undefined, // No password needed
       page,
-      clientIp
+      clientIp,
     );
 
     // Helper function for date formatting
     const formatDate = (date: Date) => {
-      return new Intl.DateTimeFormat('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
+      return new Intl.DateTimeFormat("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
       }).format(date);
     };
 
     // Render the public view template
-    res.render('public-view.html', {
+    res.render("public-view.html", {
       passwordRequired: false,
       token,
       albumTitle: publicLinkData.album.title,
@@ -242,7 +246,7 @@ router.get("/:token", async (req: Request, res: Response) => {
         prevPage: Math.max(1, publicLinkData.pagination.page - 1),
         nextPage: Math.min(
           publicLinkData.pagination.totalPages,
-          publicLinkData.pagination.page + 1
+          publicLinkData.pagination.page + 1,
         ),
       },
       allowDownload: publicLinkData.share.allowDownload,
@@ -251,10 +255,9 @@ router.get("/:token", async (req: Request, res: Response) => {
       formatDate,
       error: null,
     });
-
   } catch (error) {
     console.error("Error accessing public link:", error);
-    res.status(500).render('public-view.html', {
+    res.status(500).render("public-view.html", {
       passwordRequired: false,
       error: "Failed to load album",
       token: req.params.token,
@@ -270,11 +273,11 @@ router.get("/:token", async (req: Request, res: Response) => {
 router.post("/:token", async (req: Request, res: Response) => {
   try {
     const { token } = req.params;
-    const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
-    
+    const clientIp = req.ip || req.connection.remoteAddress || "unknown";
+
     // Validate request body
     const validatedData = accessPublicLinkSchema.parse(req.body);
-    
+
     // Validate pagination
     const { page } = paginationSchema.parse(req.query);
 
@@ -283,20 +286,20 @@ router.post("/:token", async (req: Request, res: Response) => {
       token,
       validatedData.password,
       page,
-      clientIp
+      clientIp,
     );
 
     // Helper function for date formatting
     const formatDate = (date: Date) => {
-      return new Intl.DateTimeFormat('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
+      return new Intl.DateTimeFormat("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
       }).format(date);
     };
 
     // Render the public view template
-    res.render('public-view.html', {
+    res.render("public-view.html", {
       passwordRequired: false,
       token,
       albumTitle: publicLinkData.album.title,
@@ -309,7 +312,7 @@ router.post("/:token", async (req: Request, res: Response) => {
         prevPage: Math.max(1, publicLinkData.pagination.page - 1),
         nextPage: Math.min(
           publicLinkData.pagination.totalPages,
-          publicLinkData.pagination.page + 1
+          publicLinkData.pagination.page + 1,
         ),
       },
       allowDownload: publicLinkData.share.allowDownload,
@@ -318,10 +321,9 @@ router.post("/:token", async (req: Request, res: Response) => {
       formatDate,
       error: null,
     });
-
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).render('public-view.html', {
+      return res.status(400).render("public-view.html", {
         passwordRequired: true,
         error: "Invalid password format",
         token: req.params.token,
@@ -332,7 +334,7 @@ router.post("/:token", async (req: Request, res: Response) => {
 
     if (error instanceof Error) {
       if (error.message === "Invalid or expired share token") {
-        return res.status(404).render('public-view.html', {
+        return res.status(404).render("public-view.html", {
           passwordRequired: false,
           error: "Public link not found or expired",
           token: req.params.token,
@@ -340,9 +342,9 @@ router.post("/:token", async (req: Request, res: Response) => {
           customTitle: null,
         });
       }
-      
+
       if (error.message === "Password required") {
-        return res.render('public-view.html', {
+        return res.render("public-view.html", {
           passwordRequired: true,
           error: null,
           token: req.params.token,
@@ -350,9 +352,9 @@ router.post("/:token", async (req: Request, res: Response) => {
           customTitle: null,
         });
       }
-      
+
       if (error.message === "Invalid password") {
-        return res.status(401).render('public-view.html', {
+        return res.status(401).render("public-view.html", {
           passwordRequired: true,
           error: "Incorrect password. Please try again.",
           token: req.params.token,
@@ -362,7 +364,7 @@ router.post("/:token", async (req: Request, res: Response) => {
       }
 
       if (error.message === "Rate limit exceeded") {
-        return res.status(429).render('public-view.html', {
+        return res.status(429).render("public-view.html", {
           passwordRequired: false,
           error: "Too many requests. Please try again later.",
           token: req.params.token,
@@ -373,7 +375,7 @@ router.post("/:token", async (req: Request, res: Response) => {
     }
 
     console.error("Error accessing public link:", error);
-    res.status(500).render('public-view.html', {
+    res.status(500).render("public-view.html", {
       passwordRequired: false,
       error: "Failed to load album",
       token: req.params.token,
@@ -412,14 +414,14 @@ router.get("/:token/validate", async (req: Request, res: Response) => {
 router.get("/:token/download", async (req: Request, res: Response) => {
   try {
     const { token } = req.params;
-    const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
+    const clientIp = req.ip || req.connection.remoteAddress || "unknown";
 
     // Access the public link to check if download is allowed
     const publicLinkData = await publicLinksService.accessPublicLink(
       token,
       undefined,
       1,
-      clientIp
+      clientIp,
     );
 
     if (!publicLinkData.share.allowDownload) {
@@ -438,7 +440,7 @@ router.get("/:token/download", async (req: Request, res: Response) => {
         customTitle: publicLinkData.share.customTitle,
         photoCount: publicLinkData.album.photoCount,
       },
-      photos: publicLinkData.photos.map(photo => ({
+      photos: publicLinkData.photos.map((photo) => ({
         filename: photo.filename,
         uri: photo.uri,
         size: `${photo.width}x${photo.height}`,
@@ -446,7 +448,6 @@ router.get("/:token/download", async (req: Request, res: Response) => {
       })),
       note: "This is a placeholder implementation. In production, this would generate a ZIP file.",
     });
-
   } catch (error) {
     if (error instanceof Error) {
       if (error.message === "Invalid or expired share token") {
@@ -478,9 +479,11 @@ router.put("/:shareId", async (req: Request, res: Response) => {
 
     // Validate request body
     const validatedData = updatePublicLinkSchema.parse(req.body);
-    
+
     // Parse expiration date if provided
-    const expiresAt = validatedData.expiresAt ? new Date(validatedData.expiresAt) : null;
+    const expiresAt = validatedData.expiresAt
+      ? new Date(validatedData.expiresAt)
+      : null;
 
     // Update public link using service
     const result = await publicLinksService.updatePublicLink(shareId, userId, {

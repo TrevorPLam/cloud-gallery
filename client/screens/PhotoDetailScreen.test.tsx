@@ -216,11 +216,9 @@ describe("PhotoDetailScreen - Metadata Updates", () => {
   describe("Tags Update Mutation", () => {
     it("should send PUT request with tags array (Requirement 4.2)", async () => {
       const mockResponse = {
-        json: vi
-          .fn()
-          .mockResolvedValue({
-            photo: { id: "photo-1", tags: ["vacation", "beach"] },
-          }),
+        json: vi.fn().mockResolvedValue({
+          photo: { id: "photo-1", tags: ["vacation", "beach"] },
+        }),
         ok: true,
         status: 200,
       };
@@ -316,11 +314,9 @@ describe("PhotoDetailScreen - Metadata Updates", () => {
   describe("Notes Update Mutation", () => {
     it("should send PUT request with notes field (Requirement 4.3)", async () => {
       const mockResponse = {
-        json: vi
-          .fn()
-          .mockResolvedValue({
-            photo: { id: "photo-1", notes: "Beautiful sunset" },
-          }),
+        json: vi.fn().mockResolvedValue({
+          photo: { id: "photo-1", notes: "Beautiful sunset" },
+        }),
         ok: true,
         status: 200,
       };

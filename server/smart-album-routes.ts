@@ -36,7 +36,11 @@ const updateSmartAlbumSchema = z.object({
 });
 
 const getSmartAlbumPhotosSchema = z.object({
-  limit: z.string().transform(Number).pipe(z.number().min(1).max(100)).default("50"),
+  limit: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().min(1).max(100))
+    .default("50"),
   offset: z.string().transform(Number).pipe(z.number().min(0)).default("0"),
 });
 
@@ -44,23 +48,23 @@ const getSmartAlbumPhotosSchema = z.object({
 router.get("/", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
-    
+
     // Get all existing smart albums
     const albums = await smartAlbumsService.generateAllSmartAlbums(userId);
-    
+
     res.json({
       success: true,
       data: {
         albums,
-        total: albums.length
-      }
+        total: albums.length,
+      },
     });
   } catch (error) {
     console.error("Error fetching smart albums:", error);
     res.status(500).json({
       success: false,
       error: "Failed to fetch smart albums",
-      message: error instanceof Error ? error.message : "Unknown error"
+      message: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -69,24 +73,24 @@ router.get("/", async (req: Request, res: Response) => {
 router.post("/generate", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
-    
+
     // Generate all smart albums
     const albums = await smartAlbumsService.generateAllSmartAlbums(userId);
-    
+
     res.json({
       success: true,
       data: {
         albums,
         total: albums.length,
-        generatedAt: new Date().toISOString()
-      }
+        generatedAt: new Date().toISOString(),
+      },
     });
   } catch (error) {
     console.error("Error generating smart albums:", error);
     res.status(500).json({
       success: false,
       error: "Failed to generate smart albums",
-      message: error instanceof Error ? error.message : "Unknown error"
+      message: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -96,44 +100,44 @@ router.put("/:id", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
     const albumId = req.params.id;
-    
+
     // Validate request body
     const validatedData = updateSmartAlbumSchema.parse(req.body);
-    
+
     // Update smart album settings
     const updatedAlbum = await smartAlbumsService.updateSmartAlbumSettings(
       userId,
       albumId,
-      validatedData
+      validatedData,
     );
-    
+
     if (!updatedAlbum) {
       return res.status(404).json({
         success: false,
-        error: "Smart album not found"
+        error: "Smart album not found",
       });
     }
-    
+
     res.json({
       success: true,
       data: {
-        album: updatedAlbum
-      }
+        album: updatedAlbum,
+      },
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         success: false,
         error: "Invalid request data",
-        details: error.errors
+        details: error.errors,
       });
     }
-    
+
     console.error("Error updating smart album:", error);
     res.status(500).json({
       success: false,
       error: "Failed to update smart album",
-      message: error instanceof Error ? error.message : "Unknown error"
+      message: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -143,18 +147,18 @@ router.get("/:id/photos", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
     const albumId = req.params.id;
-    
+
     // Validate query parameters
     const { limit, offset } = getSmartAlbumPhotosSchema.parse(req.query);
-    
+
     // Get photos for smart album
     const photos = await smartAlbumsService.getSmartAlbumPhotos(
       userId,
       albumId,
       limit,
-      offset
+      offset,
     );
-    
+
     res.json({
       success: true,
       data: {
@@ -162,24 +166,24 @@ router.get("/:id/photos", async (req: Request, res: Response) => {
         pagination: {
           limit,
           offset,
-          count: photos.length
-        }
-      }
+          count: photos.length,
+        },
+      },
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         success: false,
         error: "Invalid query parameters",
-        details: error.errors
+        details: error.errors,
       });
     }
-    
+
     console.error("Error fetching smart album photos:", error);
     res.status(500).json({
       success: false,
       error: "Failed to fetch smart album photos",
-      message: error instanceof Error ? error.message : "Unknown error"
+      message: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -189,31 +193,31 @@ router.post("/update", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
     const { photoIds } = req.body;
-    
+
     // Validate photo IDs
     if (!Array.isArray(photoIds) || photoIds.length === 0) {
       return res.status(400).json({
         success: false,
-        error: "Invalid photo IDs provided"
+        error: "Invalid photo IDs provided",
       });
     }
-    
+
     // Update smart albums for new photos
     await smartAlbumsService.updateSmartAlbumsForNewPhotos(userId, photoIds);
-    
+
     res.json({
       success: true,
       data: {
         updatedPhotoCount: photoIds.length,
-        updatedAt: new Date().toISOString()
-      }
+        updatedAt: new Date().toISOString(),
+      },
     });
   } catch (error) {
     console.error("Error updating smart albums:", error);
     res.status(500).json({
       success: false,
       error: "Failed to update smart albums",
-      message: error instanceof Error ? error.message : "Unknown error"
+      message: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -222,35 +226,42 @@ router.post("/update", async (req: Request, res: Response) => {
 router.get("/stats", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
-    
+
     // Get all smart albums
     const albums = await smartAlbumsService.generateAllSmartAlbums(userId);
-    
+
     // Calculate statistics
     const stats = {
       totalAlbums: albums.length,
       totalPhotos: albums.reduce((sum, album) => sum + album.photoCount, 0),
-      albumsByType: albums.reduce((acc, album) => {
-        acc[album.albumType] = (acc[album.albumType] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>),
-      pinnedAlbums: albums.filter(album => album.isPinned).length,
-      hiddenAlbums: albums.filter(album => album.isHidden).length,
-      averagePhotosPerAlbum: albums.length > 0 
-        ? Math.round(albums.reduce((sum, album) => sum + album.photoCount, 0) / albums.length)
-        : 0
+      albumsByType: albums.reduce(
+        (acc, album) => {
+          acc[album.albumType] = (acc[album.albumType] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>,
+      ),
+      pinnedAlbums: albums.filter((album) => album.isPinned).length,
+      hiddenAlbums: albums.filter((album) => album.isHidden).length,
+      averagePhotosPerAlbum:
+        albums.length > 0
+          ? Math.round(
+              albums.reduce((sum, album) => sum + album.photoCount, 0) /
+                albums.length,
+            )
+          : 0,
     };
-    
+
     res.json({
       success: true,
-      data: stats
+      data: stats,
     });
   } catch (error) {
     console.error("Error fetching smart album stats:", error);
     res.status(500).json({
       success: false,
       error: "Failed to fetch smart album statistics",
-      message: error instanceof Error ? error.message : "Unknown error"
+      message: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -260,34 +271,34 @@ router.delete("/:id", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
     const albumId = req.params.id;
-    
+
     // Hide the smart album
     const updatedAlbum = await smartAlbumsService.updateSmartAlbumSettings(
       userId,
       albumId,
-      { isHidden: true }
+      { isHidden: true },
     );
-    
+
     if (!updatedAlbum) {
       return res.status(404).json({
         success: false,
-        error: "Smart album not found"
+        error: "Smart album not found",
       });
     }
-    
+
     res.json({
       success: true,
       data: {
         album: updatedAlbum,
-        message: "Smart album hidden successfully"
-      }
+        message: "Smart album hidden successfully",
+      },
     });
   } catch (error) {
     console.error("Error hiding smart album:", error);
     res.status(500).json({
       success: false,
       error: "Failed to hide smart album",
-      message: error instanceof Error ? error.message : "Unknown error"
+      message: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });

@@ -63,11 +63,11 @@ describe("Memory Routes Integration Tests", () => {
         },
       ];
 
-      vi.mocked(memoriesService.getUserMemories).mockResolvedValue(mockMemories);
+      vi.mocked(memoriesService.getUserMemories).mockResolvedValue(
+        mockMemories,
+      );
 
-      const response = await request(app)
-        .get("/api/memories")
-        .expect(200);
+      const response = await request(app).get("/api/memories").expect(200);
 
       expect(response.body).toEqual({
         memories: mockMemories,
@@ -78,17 +78,23 @@ describe("Memory Routes Integration Tests", () => {
         },
       });
 
-      expect(memoriesService.getUserMemories).toHaveBeenCalledWith("test-user-id", 50, 0);
+      expect(memoriesService.getUserMemories).toHaveBeenCalledWith(
+        "test-user-id",
+        50,
+        0,
+      );
     });
 
     it("should respect pagination parameters", async () => {
       vi.mocked(memoriesService.getUserMemories).mockResolvedValue([]);
 
-      await request(app)
-        .get("/api/memories?limit=10&offset=20")
-        .expect(200);
+      await request(app).get("/api/memories?limit=10&offset=20").expect(200);
 
-      expect(memoriesService.getUserMemories).toHaveBeenCalledWith("test-user-id", 10, 20);
+      expect(memoriesService.getUserMemories).toHaveBeenCalledWith(
+        "test-user-id",
+        10,
+        20,
+      );
     });
 
     it("should validate pagination parameters", async () => {
@@ -101,11 +107,11 @@ describe("Memory Routes Integration Tests", () => {
     });
 
     it("should handle service errors gracefully", async () => {
-      vi.mocked(memoriesService.getUserMemories).mockRejectedValue(new Error("Database error"));
+      vi.mocked(memoriesService.getUserMemories).mockRejectedValue(
+        new Error("Database error"),
+      );
 
-      const response = await request(app)
-        .get("/api/memories")
-        .expect(500);
+      const response = await request(app).get("/api/memories").expect(500);
 
       expect(response.body.error).toBe("Failed to fetch memories");
     });
@@ -128,7 +134,9 @@ describe("Memory Routes Integration Tests", () => {
         },
       ];
 
-      vi.mocked(memoriesService.generateAllMemories).mockResolvedValue(mockMemories);
+      vi.mocked(memoriesService.generateAllMemories).mockResolvedValue(
+        mockMemories,
+      );
 
       const response = await request(app)
         .post("/api/memories/generate")
@@ -140,11 +148,15 @@ describe("Memory Routes Integration Tests", () => {
         message: "Generated 2 memories",
       });
 
-      expect(memoriesService.generateAllMemories).toHaveBeenCalledWith("test-user-id");
+      expect(memoriesService.generateAllMemories).toHaveBeenCalledWith(
+        "test-user-id",
+      );
     });
 
     it("should handle generation errors", async () => {
-      vi.mocked(memoriesService.generateAllMemories).mockRejectedValue(new Error("Generation failed"));
+      vi.mocked(memoriesService.generateAllMemories).mockRejectedValue(
+        new Error("Generation failed"),
+      );
 
       const response = await request(app)
         .post("/api/memories/generate")
@@ -177,7 +189,7 @@ describe("Memory Routes Integration Tests", () => {
       expect(memoriesService.updateMemory).toHaveBeenCalledWith(
         "test-user-id",
         "memory1",
-        { isFavorite: true }
+        { isFavorite: true },
       );
     });
 
@@ -242,7 +254,7 @@ describe("Memory Routes Integration Tests", () => {
       expect(memoriesService.updateMemory).toHaveBeenCalledWith(
         "test-user-id",
         "memory1",
-        { isHidden: true }
+        { isHidden: true },
       );
     });
 
@@ -287,7 +299,7 @@ describe("Memory Routes Integration Tests", () => {
       expect(memoriesService.updateMemory).toHaveBeenCalledWith(
         "test-user-id",
         "memory1",
-        { isFavorite: true, isHidden: false }
+        { isFavorite: true, isHidden: false },
       );
     });
 
@@ -308,7 +320,7 @@ describe("Memory Routes Integration Tests", () => {
       expect(memoriesService.updateMemory).toHaveBeenCalledWith(
         "test-user-id",
         "memory1",
-        { isFavorite: true }
+        { isFavorite: true },
       );
     });
   });
@@ -353,7 +365,7 @@ describe("Memory Routes Integration Tests", () => {
         "test-user-id",
         "memory1",
         50,
-        0
+        0,
       );
     });
 
@@ -368,7 +380,7 @@ describe("Memory Routes Integration Tests", () => {
         "test-user-id",
         "memory1",
         5,
-        10
+        10,
       );
     });
   });
@@ -425,7 +437,9 @@ describe("Memory Routes Integration Tests", () => {
         },
       ];
 
-      vi.mocked(memoriesService.getUserMemories).mockResolvedValue(mockMemories);
+      vi.mocked(memoriesService.getUserMemories).mockResolvedValue(
+        mockMemories,
+      );
 
       const response = await request(app)
         .get("/api/memories/stats")

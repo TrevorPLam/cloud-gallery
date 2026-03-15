@@ -28,6 +28,10 @@ import {
 } from "./auth-captcha-routes";
 import { logAuthEvent, logSecurityEvent, AuditEventType } from "./audit";
 
+import { db } from "./db";
+import { users } from "../shared/schema";
+import { eq } from "drizzle-orm";
+
 const router = Router();
 
 // JWT secret (should be in environment variables)
@@ -44,10 +48,6 @@ const loginSchema = z.object({
   email: z.string().email("Invalid email format"),
   password: z.string().min(1, "Password is required"),
 });
-
-import { db } from "./db";
-import { users } from "../shared/schema";
-import { eq } from "drizzle-orm";
 
 // Helper function to find user by email
 async function findUserByEmail(email: string) {

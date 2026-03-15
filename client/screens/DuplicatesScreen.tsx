@@ -20,9 +20,9 @@ import {
   RefreshControl,
   Platform,
   Dimensions,
+  Image,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { Image } from "react-native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -79,11 +79,11 @@ interface DuplicateResponse {
 }
 
 interface ResolutionRequest {
-  resolutions: Array<{
+  resolutions: {
     groupId: string;
     keepPhotoIds: string[];
     deletePhotoIds: string[];
-  }>;
+  }[];
 }
 
 // Constants

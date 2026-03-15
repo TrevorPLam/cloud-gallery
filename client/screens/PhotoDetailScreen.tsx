@@ -38,6 +38,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Photo } from "@/types";
 import { apiRequest } from "@/lib/query-client";
 import { ThemedText } from "@/components/ThemedText";
+import { ShareSheet } from "@/components/ShareSheet";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, Colors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
@@ -60,6 +61,9 @@ export default function PhotoDetailScreen() {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [showControls, setShowControls] = useState(true);
   const [isMetadataEditorVisible, setIsMetadataEditorVisible] = useState(false);
+  const [isShareSheetVisible, setIsShareSheetVisible] = useState(false);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const listRef = useRef<any>(null);
 
   // Fetch photos using React Query
@@ -416,21 +420,77 @@ export default function PhotoDetailScreen() {
     });
   };
 
-  const handleShare = async () => {
-    if (!currentPhoto) return;
-    // AI-NOTE: Sharing API available iOS/Android only; web requires different approach
+  // ═══════════════════════════════════════════════════════════
+  // SELECTION HANDLING
+  // ═══════════════════════════════════════════════════════════
+
+  const togglePhotoSelection = useCallback((photoId: string) => {
+    setSelectedPhotos((prev) => {
+      const newSelection = new Set(prev);
+      if (newSelection.has(photoId)) {
+        newSelection.delete(photoId);
+      } else {
+        newSelection.add(photoId);
+      }
+      return newSelection;
+    });
+  }, []);
+
+  const toggleSelectionMode = useCallback(() => {
+    setIsSelectionMode((prev) => !prev);
+    setSelectedPhotos(new Set());
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    try {
-      const isAvailable = await Sharing.isAvailableAsync();
-      if (isAvailable) {
-        await Sharing.shareAsync(currentPhoto.uri);
+  }, []);
+
+  const getSelectedPhotos = useCallback((): Photo[] => {
+    return photos.filter((photo) => selectedPhotos.has(photo.id));
+  }, [photos, selectedPhotos]);
+
+  const isPhotoSelected = useCallback(
+    (photoId: string): boolean => {
+      return selectedPhotos.has(photoId);
+    },
+    [selectedPhotos],
+  );
+
+  const handleShare = async () => {
+    if (!currentPhoto) return;
+
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+
+    // If in selection mode, share selected photos
+    if (isSelectionMode) {
+      const selected = getSelectedPhotos();
+      if (selected.length > 0) {
+        setIsShareSheetVisible(true);
+      } else {
+        // Show message to select photos
+        if (Platform.OS === "web") {
+          alert("Please select photos to share");
+        } else {
+          Alert.alert("No Selection", "Please select photos to share");
+        }
       }
-    } catch (error) {
-      console.log("Share error:", error);
+    } else {
+      // Single photo sharing
+      setIsShareSheetVisible(true);
     }
   };
+
+  const handleShareComplete = useCallback(
+    (result: any) => {
+      // Exit selection mode after successful share
+      if (result.success && isSelectionMode) {
+        setIsSelectionMode(false);
+        setSelectedPhotos(new Set());
+      }
+    },
+    [isSelectionMode],
+  );
 
   const performDelete = () => {
     if (!currentPhoto) return;
@@ -510,14 +570,35 @@ export default function PhotoDetailScreen() {
   };
 
   const renderPhoto = ({ item, index }: { item: Photo; index: number }) => {
+    const isSelected = isPhotoSelected(item.id);
+
     return (
-      <Pressable onPress={toggleControls} style={styles.photoContainer}>
+      <Pressable
+        onPress={
+          isSelectionMode ? () => togglePhotoSelection(item.id) : toggleControls
+        }
+        style={styles.photoContainer}
+      >
         <Image
           source={{ uri: item.uri }}
           style={styles.fullImage}
           contentFit="contain"
           transition={200}
         />
+
+        {/* Selection overlay */}
+        {isSelectionMode && (
+          <View style={styles.selectionOverlay}>
+            <View
+              style={[
+                styles.selectionCheckbox,
+                isSelected && styles.selectionCheckboxSelected,
+              ]}
+            >
+              {isSelected && <Feather name="check" size={16} color="#FFFFFF" />}
+            </View>
+          </View>
+        )}
       </Pressable>
     );
   };
@@ -557,20 +638,43 @@ export default function PhotoDetailScreen() {
         <>
           <View style={[styles.header, { paddingTop: insets.top }]}>
             <Pressable
-              onPress={() => navigation.goBack()}
+              onPress={
+                isSelectionMode
+                  ? toggleSelectionMode
+                  : () => navigation.goBack()
+              }
               style={styles.headerButton}
               hitSlop={8}
             >
-              <Feather name="x" size={24} color="#FFFFFF" />
+              <Feather
+                name={isSelectionMode ? "close" : "x"}
+                size={24}
+                color="#FFFFFF"
+              />
             </Pressable>
             <View style={styles.headerCenter}>
-              {currentPhoto ? (
+              {isSelectionMode ? (
+                <ThemedText type="small" style={styles.dateText}>
+                  {selectedPhotos.size > 0
+                    ? `${selectedPhotos.size} selected`
+                    : "Select photos"}
+                </ThemedText>
+              ) : currentPhoto ? (
                 <ThemedText type="small" style={styles.dateText}>
                   {formatDate(currentPhoto.createdAt)}
                 </ThemedText>
               ) : null}
             </View>
-            <View style={styles.headerButton} />
+            <View style={styles.headerButton}>
+              {!isSelectionMode && (
+                <Pressable
+                  onPress={toggleSelectionMode}
+                  style={styles.selectionModeButton}
+                >
+                  <Feather name="check-square" size={20} color="#FFFFFF" />
+                </Pressable>
+              )}
+            </View>
           </View>
 
           {/* ML Labels Section */}
@@ -629,8 +733,30 @@ export default function PhotoDetailScreen() {
             ) : (
               /* NORMAL MODE BUTTONS */
               <>
-                <Pressable onPress={handleShare} style={styles.footerButton}>
-                  <Feather name="share" size={24} color="#FFFFFF" />
+                <Pressable
+                  onPress={handleShare}
+                  style={[
+                    styles.footerButton,
+                    isSelectionMode && styles.footerButtonSelected,
+                  ]}
+                >
+                  <Feather
+                    name="share"
+                    size={24}
+                    color={isSelectionMode ? Colors.light.accent : "#FFFFFF"}
+                  />
+                  {isSelectionMode && selectedPhotos.size > 0 && (
+                    <ThemedText
+                      type="small"
+                      style={{
+                        color: Colors.light.accent,
+                        fontSize: 10,
+                        marginTop: 2,
+                      }}
+                    >
+                      {selectedPhotos.size}
+                    </ThemedText>
+                  )}
                 </Pressable>
                 <Pressable
                   onPress={handleToggleFavorite}
@@ -694,6 +820,20 @@ export default function PhotoDetailScreen() {
           }}
         />
       )}
+
+      {/* Share Sheet */}
+      <ShareSheet
+        visible={isShareSheetVisible}
+        photos={
+          isSelectionMode
+            ? getSelectedPhotos()
+            : currentPhoto
+              ? [currentPhoto]
+              : []
+        }
+        onClose={() => setIsShareSheetVisible(false)}
+        onComplete={handleShareComplete}
+      />
     </View>
   );
 }
@@ -798,5 +938,39 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 10,
     fontWeight: "500",
+  },
+  // Selection mode styles
+  selectionOverlay: {
+    position: "absolute",
+    top: Spacing.lg,
+    right: Spacing.lg,
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  selectionCheckbox: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  selectionCheckboxSelected: {
+    backgroundColor: Colors.light.accent,
+    borderColor: Colors.light.accent,
+  },
+  selectionModeButton: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  footerButtonSelected: {
+    backgroundColor: "rgba(52, 211, 153, 0.2)",
+    borderRadius: 28,
   },
 });

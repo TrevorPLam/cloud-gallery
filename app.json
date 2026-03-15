@@ -24,7 +24,8 @@
       // AI-NOTE: infoPlist strings shown to users when requesting permissions; be clear and non-intrusive
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Photo Vault needs access to your photos to help you organize and store your memories.",
-        "NSCameraUsageDescription": "Photo Vault needs camera access to take photos directly in the app."
+        "NSCameraUsageDescription": "Photo Vault needs camera access to take photos directly in the app.",
+        "NSPhotoLibraryAddUsageDescription": "Photo Vault needs permission to save shared photos to your photo library."
       }
     },
     "android": {
@@ -73,6 +74,24 @@
           "photosPermission": "Photo Vault needs access to your photo library to save and organize photos.",
           "savePhotosPermission": "Photo Vault needs permission to save photos to your library.",
           "isAccessMediaLocationEnabled": true
+        }
+      ],
+      [
+        "react-native-share",
+        {
+          "ios": [
+            "fb",
+            "instagram",
+            "twitter",
+            "tiktoksharesdk"
+          ],
+          "android": [
+            "com.facebook.katana",
+            "com.instagram.android",
+            "com.twitter.android",
+            "com.zhiliaoapp.musically"
+          ],
+          "enableBase64ShareAndroid": true
         }
       ]
     ],

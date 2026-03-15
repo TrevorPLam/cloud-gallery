@@ -232,7 +232,7 @@ export class SearchIndexService {
   async getPopularSearchTerms(
     limit = 20,
   ): Promise<
-    Array<{ search_term: string; photo_count: number; user_count: number }>
+    { search_term: string; photo_count: number; user_count: number }[]
   > {
     try {
       const result = await this.db.execute(sql`
@@ -242,11 +242,11 @@ export class SearchIndexService {
         LIMIT ${limit}
       `);
 
-      return result as Array<{
+      return result as {
         search_term: string;
         photo_count: number;
         user_count: number;
-      }>;
+      }[];
     } catch (error) {
       console.error("Error getting popular search terms:", error);
       return [];
@@ -332,17 +332,17 @@ export class SearchIndexService {
     userId: string,
     partialQuery: string,
     limit = 5,
-  ): Promise<Array<{ suggestion: string; type: string; count: number }>> {
+  ): Promise<{ suggestion: string; type: string; count: number }[]> {
     try {
       const result = await this.db.execute(sql`
         SELECT * FROM search_suggestions(${userId}, ${partialQuery}, ${limit})
       `);
 
-      return result as Array<{
+      return result as {
         suggestion: string;
         type: string;
         count: number;
-      }>;
+      }[];
     } catch (error) {
       console.error("Error getting search suggestions:", error);
       return [];
@@ -413,26 +413,26 @@ export class SearchIndexService {
     limit = 50,
     offset = 0,
   ): Promise<
-    Array<{
+    {
       id: string;
       uri: string;
       filename: string;
       created_at: Date;
       rank: number;
-    }>
+    }[]
   > {
     try {
       const result = await this.db.execute(sql`
         SELECT * FROM full_text_search_photos(${userId}, ${query}, ${limit}, ${offset})
       `);
 
-      return result as Array<{
+      return result as {
         id: string;
         uri: string;
         filename: string;
         created_at: Date;
         rank: number;
-      }>;
+      }[];
     } catch (error) {
       console.error("Error performing full-text search:", error);
       return [];

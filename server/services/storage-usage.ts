@@ -56,13 +56,13 @@ export interface StorageBreakdown {
   /** Usage by category */
   categories: StorageUsageStats[];
   /** Large files (>10MB) */
-  largeFiles: Array<{
+  largeFiles: {
     id: string;
     filename: string;
     size: number | null;
     uri: string;
     isVideo: boolean;
-  }>;
+  }[];
   /** Compression statistics */
   compressionStats: {
     /** Total original size */

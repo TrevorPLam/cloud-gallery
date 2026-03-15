@@ -9,14 +9,14 @@
 // AI-META-END
 
 import { db, eq, and, desc, count, sql, gt, isNull, or } from "drizzle-orm";
-import { 
-  photos, 
-  people, 
-  faces, 
-  smartAlbums, 
-  type SmartAlbum, 
+import {
+  photos,
+  people,
+  faces,
+  smartAlbums,
+  type SmartAlbum,
   type Photo,
-  type Person
+  type Person,
 } from "../../shared/schema";
 import { z } from "zod";
 
@@ -32,11 +32,11 @@ export interface SmartAlbumCriteria {
 }
 
 export interface SmartAlbumGeneration {
-  type: 'people' | 'places' | 'things' | 'special';
+  type: "people" | "places" | "things" | "special";
   title: string;
   description: string;
   criteria: SmartAlbumCriteria;
-  coverPhotoStrategy: 'newest' | 'highest_quality' | 'random';
+  coverPhotoStrategy: "newest" | "highest_quality" | "random";
 }
 
 export class SmartAlbumsService {
@@ -85,7 +85,9 @@ export class SmartAlbumsService {
   /**
    * Generate people albums (one per named person)
    */
-  async getPeopleAlbumGenerations(userId: string): Promise<SmartAlbumGeneration[]> {
+  async getPeopleAlbumGenerations(
+    userId: string,
+  ): Promise<SmartAlbumGeneration[]> {
     // Get all named people for this user
     const userPeople = await db
       .select()
@@ -94,45 +96,47 @@ export class SmartAlbumsService {
         and(
           eq(people.userId, userId),
           sql`${people.name} IS NOT NULL`,
-          eq(people.isHidden, false)
-        )
+          eq(people.isHidden, false),
+        ),
       );
 
-    return userPeople.map(person => ({
-      type: 'people' as const,
-      title: person.name || 'Unknown Person',
-      description: `Photos of ${person.name || 'this person'}`,
+    return userPeople.map((person) => ({
+      type: "people" as const,
+      title: person.name || "Unknown Person",
+      description: `Photos of ${person.name || "this person"}`,
       criteria: {
         peopleIds: [person.id],
-        minConfidence: 0.7
+        minConfidence: 0.7,
       },
-      coverPhotoStrategy: 'highest_quality' as const
+      coverPhotoStrategy: "highest_quality" as const,
     }));
   }
 
   /**
    * Generate places albums by clustering locations
    */
-  async getPlacesAlbumGenerations(userId: string): Promise<SmartAlbumGeneration[]> {
+  async getPlacesAlbumGenerations(
+    userId: string,
+  ): Promise<SmartAlbumGeneration[]> {
     // Get photos with location data
     const photosWithLocations = await db
       .select({
         location: photos.location,
-        id: photos.id
+        id: photos.id,
       })
       .from(photos)
       .where(
         and(
           eq(photos.userId, userId),
           sql`${photos.location} IS NOT NULL`,
-          isNull(photos.deletedAt)
-        )
+          isNull(photos.deletedAt),
+        ),
       );
 
     // Extract unique location names
     const locationNames = new Set<string>();
-    photosWithLocations.forEach(photo => {
-      if (photo.location && typeof photo.location === 'object') {
+    photosWithLocations.forEach((photo) => {
+      if (photo.location && typeof photo.location === "object") {
         const loc = photo.location as any;
         if (loc.city) locationNames.add(loc.city);
         if (loc.country) locationNames.add(loc.country);
@@ -141,19 +145,22 @@ export class SmartAlbumsService {
     });
 
     const generations: SmartAlbumGeneration[] = [];
-    
+
     // Create albums for significant locations (5+ photos)
     for (const locationName of Array.from(locationNames)) {
-      const photoCount = await this.getPhotoCountForLocation(userId, locationName);
+      const photoCount = await this.getPhotoCountForLocation(
+        userId,
+        locationName,
+      );
       if (photoCount >= 5) {
         generations.push({
-          type: 'places' as const,
+          type: "places" as const,
           title: locationName,
           description: `Photos taken in ${locationName}`,
           criteria: {
-            locationNames: [locationName]
+            locationNames: [locationName],
           },
-          coverPhotoStrategy: 'newest' as const
+          coverPhotoStrategy: "newest" as const,
         });
       }
     }
@@ -164,35 +171,71 @@ export class SmartAlbumsService {
   /**
    * Generate things albums based on ML labels
    */
-  async getThingsAlbumGenerations(userId: string): Promise<SmartAlbumGeneration[]> {
+  async getThingsAlbumGenerations(
+    userId: string,
+  ): Promise<SmartAlbumGeneration[]> {
     // Common categories to create albums for
     const categories = [
-      { label: 'food', title: 'Food & Drinks', description: 'Culinary moments and meals' },
-      { label: 'pet', title: 'Pets', description: 'Animal companions and pets' },
-      { label: 'nature', title: 'Nature', description: 'Landscapes and natural scenes' },
-      { label: 'beach', title: 'Beach', description: 'Beach and ocean scenes' },
-      { label: 'mountain', title: 'Mountains', description: 'Mountain landscapes' },
-      { label: 'sunset', title: 'Sunsets', description: 'Sunset and golden hour' },
-      { label: 'car', title: 'Cars & Vehicles', description: 'Automobiles and vehicles' },
-      { label: 'flower', title: 'Flowers', description: 'Floral photography' },
-      { label: 'architecture', title: 'Architecture', description: 'Buildings and structures' },
-      { label: 'party', title: 'Celebrations', description: 'Parties and celebrations' }
+      {
+        label: "food",
+        title: "Food & Drinks",
+        description: "Culinary moments and meals",
+      },
+      {
+        label: "pet",
+        title: "Pets",
+        description: "Animal companions and pets",
+      },
+      {
+        label: "nature",
+        title: "Nature",
+        description: "Landscapes and natural scenes",
+      },
+      { label: "beach", title: "Beach", description: "Beach and ocean scenes" },
+      {
+        label: "mountain",
+        title: "Mountains",
+        description: "Mountain landscapes",
+      },
+      {
+        label: "sunset",
+        title: "Sunsets",
+        description: "Sunset and golden hour",
+      },
+      {
+        label: "car",
+        title: "Cars & Vehicles",
+        description: "Automobiles and vehicles",
+      },
+      { label: "flower", title: "Flowers", description: "Floral photography" },
+      {
+        label: "architecture",
+        title: "Architecture",
+        description: "Buildings and structures",
+      },
+      {
+        label: "party",
+        title: "Celebrations",
+        description: "Parties and celebrations",
+      },
     ];
 
     const generations: SmartAlbumGeneration[] = [];
 
     for (const category of categories) {
-      const photoCount = await this.getPhotoCountForLabels(userId, [category.label]);
+      const photoCount = await this.getPhotoCountForLabels(userId, [
+        category.label,
+      ]);
       if (photoCount >= 3) {
         generations.push({
-          type: 'things' as const,
+          type: "things" as const,
           title: category.title,
           description: category.description,
           criteria: {
             labels: [category.label],
-            minConfidence: 0.6
+            minConfidence: 0.6,
           },
-          coverPhotoStrategy: 'highest_quality' as const
+          coverPhotoStrategy: "highest_quality" as const,
         });
       }
     }
@@ -203,20 +246,22 @@ export class SmartAlbumsService {
   /**
    * Generate special albums for specific photo types
    */
-  async getSpecialAlbumGenerations(userId: string): Promise<SmartAlbumGeneration[]> {
+  async getSpecialAlbumGenerations(
+    userId: string,
+  ): Promise<SmartAlbumGeneration[]> {
     const generations: SmartAlbumGeneration[] = [];
 
     // Videos album
     const videoCount = await this.getPhotoCountForVideos(userId);
     if (videoCount > 0) {
       generations.push({
-        type: 'special' as const,
-        title: 'Videos',
-        description: 'All video files',
+        type: "special" as const,
+        title: "Videos",
+        description: "All video files",
         criteria: {
-          isVideo: true
+          isVideo: true,
         },
-        coverPhotoStrategy: 'newest' as const
+        coverPhotoStrategy: "newest" as const,
       });
     }
 
@@ -224,13 +269,13 @@ export class SmartAlbumsService {
     const favoritesCount = await this.getPhotoCountForFavorites(userId);
     if (favoritesCount > 0) {
       generations.push({
-        type: 'special' as const,
-        title: 'Favorites',
-        description: 'Favorite photos',
+        type: "special" as const,
+        title: "Favorites",
+        description: "Favorite photos",
         criteria: {
-          isFavorite: true
+          isFavorite: true,
         },
-        coverPhotoStrategy: 'highest_quality' as const
+        coverPhotoStrategy: "highest_quality" as const,
       });
     }
 
@@ -238,14 +283,14 @@ export class SmartAlbumsService {
     const screenshotCount = await this.getPhotoCountForScreenshots(userId);
     if (screenshotCount >= 3) {
       generations.push({
-        type: 'special' as const,
-        title: 'Screenshots',
-        description: 'Screen captures',
+        type: "special" as const,
+        title: "Screenshots",
+        description: "Screen captures",
         criteria: {
-          labels: ['screenshot', 'screen'],
-          minConfidence: 0.8
+          labels: ["screenshot", "screen"],
+          minConfidence: 0.8,
         },
-        coverPhotoStrategy: 'newest' as const
+        coverPhotoStrategy: "newest" as const,
       });
     }
 
@@ -256,22 +301,32 @@ export class SmartAlbumsService {
    * Generate a single smart album
    */
   async generateSmartAlbum(
-    userId: string, 
-    generation: SmartAlbumGeneration
+    userId: string,
+    generation: SmartAlbumGeneration,
   ): Promise<SmartAlbum | null> {
     // Get photos matching criteria
-    const matchingPhotos = await this.getPhotosForCriteria(userId, generation.criteria);
-    
+    const matchingPhotos = await this.getPhotosForCriteria(
+      userId,
+      generation.criteria,
+    );
+
     if (matchingPhotos.length === 0) {
       return null;
     }
 
     // Select cover photo based on strategy
-    const coverPhoto = this.selectCoverPhoto(matchingPhotos, generation.coverPhotoStrategy);
+    const coverPhoto = this.selectCoverPhoto(
+      matchingPhotos,
+      generation.coverPhotoStrategy,
+    );
 
     // Check if smart album already exists
-    const existingAlbum = await this.findExistingSmartAlbum(userId, generation.title, generation.type);
-    
+    const existingAlbum = await this.findExistingSmartAlbum(
+      userId,
+      generation.title,
+      generation.type,
+    );
+
     if (existingAlbum) {
       // Update existing album
       const updatedAlbum = await db
@@ -281,7 +336,7 @@ export class SmartAlbumsService {
           coverPhotoId: coverPhoto?.id,
           photoCount: matchingPhotos.length,
           lastUpdatedAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(smartAlbums.id, existingAlbum.id))
         .returning();
@@ -299,7 +354,7 @@ export class SmartAlbumsService {
           criteria: generation.criteria,
           coverPhotoId: coverPhoto?.id,
           photoCount: matchingPhotos.length,
-          lastUpdatedAt: new Date()
+          lastUpdatedAt: new Date(),
         })
         .returning();
 
@@ -310,22 +365,18 @@ export class SmartAlbumsService {
   /**
    * Get photos matching smart album criteria
    */
-  async getPhotosForCriteria(userId: string, criteria: SmartAlbumCriteria): Promise<Photo[]> {
+  async getPhotosForCriteria(
+    userId: string,
+    criteria: SmartAlbumCriteria,
+  ): Promise<Photo[]> {
     let query = db
       .select()
       .from(photos)
-      .where(
-        and(
-          eq(photos.userId, userId),
-          isNull(photos.deletedAt)
-        )
-      );
+      .where(and(eq(photos.userId, userId), isNull(photos.deletedAt)));
 
     // Apply label filters
     if (criteria.labels && criteria.labels.length > 0) {
-      query = query.where(
-        sql`${photos.mlLabels} && ${criteria.labels}`
-      );
+      query = query.where(sql`${photos.mlLabels} && ${criteria.labels}`);
     }
 
     // Apply people filters
@@ -335,8 +386,8 @@ export class SmartAlbumsService {
           SELECT 1 FROM faces 
           WHERE faces.photo_id = photos.id 
           AND faces.person_id = ANY(${criteria.peopleIds})
-          ${criteria.minConfidence ? `AND faces.confidence >= ${criteria.minConfidence}` : ''}
-        )`
+          ${criteria.minConfidence ? `AND faces.confidence >= ${criteria.minConfidence}` : ""}
+        )`,
       );
     }
 
@@ -346,7 +397,7 @@ export class SmartAlbumsService {
         sql`EXISTS (
           SELECT 1 FROM jsonb_each_text(${photos.location}) as t(key, value)
           WHERE t.value = ANY(${criteria.locationNames})
-        )`
+        )`,
       );
     }
 
@@ -355,8 +406,8 @@ export class SmartAlbumsService {
       query = query.where(
         and(
           gt(photos.createdAt, criteria.dateRange.start),
-          sql`${photos.createdAt} <= ${criteria.dateRange.end}`
-        )
+          sql`${photos.createdAt} <= ${criteria.dateRange.end}`,
+        ),
       );
     }
 
@@ -378,20 +429,25 @@ export class SmartAlbumsService {
   /**
    * Select cover photo based on strategy
    */
-  private selectCoverPhoto(photos: Photo[], strategy: 'newest' | 'highest_quality' | 'random'): Photo | null {
+  private selectCoverPhoto(
+    photos: Photo[],
+    strategy: "newest" | "highest_quality" | "random",
+  ): Photo | null {
     if (photos.length === 0) return null;
 
     switch (strategy) {
-      case 'newest':
+      case "newest":
         return photos[0]; // Already ordered by newest
-      case 'highest_quality':
+      case "highest_quality":
         // Simple quality heuristic: larger dimensions and favorite status
         return photos.reduce((best, photo) => {
-          const bestScore = (best.width * best.height) * (best.isFavorite ? 1.5 : 1);
-          const photoScore = (photo.width * photo.height) * (photo.isFavorite ? 1.5 : 1);
+          const bestScore =
+            best.width * best.height * (best.isFavorite ? 1.5 : 1);
+          const photoScore =
+            photo.width * photo.height * (photo.isFavorite ? 1.5 : 1);
           return photoScore > bestScore ? photo : best;
         });
-      case 'random':
+      case "random":
         return photos[Math.floor(Math.random() * photos.length)];
     }
   }
@@ -400,9 +456,9 @@ export class SmartAlbumsService {
    * Find existing smart album
    */
   private async findExistingSmartAlbum(
-    userId: string, 
-    title: string, 
-    type: string
+    userId: string,
+    title: string,
+    type: string,
   ): Promise<SmartAlbum | null> {
     const existing = await db
       .select()
@@ -411,8 +467,8 @@ export class SmartAlbumsService {
         and(
           eq(smartAlbums.userId, userId),
           eq(smartAlbums.title, title),
-          eq(smartAlbums.albumType, type)
-        )
+          eq(smartAlbums.albumType, type),
+        ),
       )
       .limit(1);
 
@@ -422,7 +478,10 @@ export class SmartAlbumsService {
   /**
    * Helper methods for counting photos
    */
-  private async getPhotoCountForLocation(userId: string, locationName: string): Promise<number> {
+  private async getPhotoCountForLocation(
+    userId: string,
+    locationName: string,
+  ): Promise<number> {
     const result = await db
       .select({ count: count() })
       .from(photos)
@@ -433,14 +492,17 @@ export class SmartAlbumsService {
             SELECT 1 FROM jsonb_each_text(${photos.location}) as t(key, value)
             WHERE t.value = ${locationName}
           )`,
-          isNull(photos.deletedAt)
-        )
+          isNull(photos.deletedAt),
+        ),
       );
 
     return result[0]?.count || 0;
   }
 
-  private async getPhotoCountForLabels(userId: string, labels: string[]): Promise<number> {
+  private async getPhotoCountForLabels(
+    userId: string,
+    labels: string[],
+  ): Promise<number> {
     const result = await db
       .select({ count: count() })
       .from(photos)
@@ -448,8 +510,8 @@ export class SmartAlbumsService {
         and(
           eq(photos.userId, userId),
           sql`${photos.mlLabels} && ${labels}`,
-          isNull(photos.deletedAt)
-        )
+          isNull(photos.deletedAt),
+        ),
       );
 
     return result[0]?.count || 0;
@@ -463,8 +525,8 @@ export class SmartAlbumsService {
         and(
           eq(photos.userId, userId),
           eq(photos.isVideo, true),
-          isNull(photos.deletedAt)
-        )
+          isNull(photos.deletedAt),
+        ),
       );
 
     return result[0]?.count || 0;
@@ -478,8 +540,8 @@ export class SmartAlbumsService {
         and(
           eq(photos.userId, userId),
           eq(photos.isFavorite, true),
-          isNull(photos.deletedAt)
-        )
+          isNull(photos.deletedAt),
+        ),
       );
 
     return result[0]?.count || 0;
@@ -494,10 +556,10 @@ export class SmartAlbumsService {
           eq(photos.userId, userId),
           or(
             sql`${photos.mlLabels} && ARRAY['screenshot', 'screen']`,
-            sql`${photos.ocrText} IS NOT NULL AND LENGTH(${photos.ocrText}) > 50`
+            sql`${photos.ocrText} IS NOT NULL AND LENGTH(${photos.ocrText}) > 50`,
           ),
-          isNull(photos.deletedAt)
-        )
+          isNull(photos.deletedAt),
+        ),
       );
 
     return result[0]?.count || 0;
@@ -506,7 +568,10 @@ export class SmartAlbumsService {
   /**
    * Update smart album when new photos are added
    */
-  async updateSmartAlbumsForNewPhotos(userId: string, photoIds: string[]): Promise<void> {
+  async updateSmartAlbumsForNewPhotos(
+    userId: string,
+    photoIds: string[],
+  ): Promise<void> {
     // Get all existing smart albums for user
     const userAlbums = await db
       .select()
@@ -517,13 +582,13 @@ export class SmartAlbumsService {
     for (const album of userAlbums) {
       const criteria = album.criteria as SmartAlbumCriteria;
       const matchingPhotos = await this.getPhotosForCriteria(userId, criteria);
-      
+
       await db
         .update(smartAlbums)
         .set({
           photoCount: matchingPhotos.length,
           lastUpdatedAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(smartAlbums.id, album.id));
     }
@@ -536,17 +601,12 @@ export class SmartAlbumsService {
     userId: string,
     albumId: string,
     limit: number = 50,
-    offset: number = 0
+    offset: number = 0,
   ): Promise<Photo[]> {
     const album = await db
       .select()
       .from(smartAlbums)
-      .where(
-        and(
-          eq(smartAlbums.id, albumId),
-          eq(smartAlbums.userId, userId)
-        )
-      )
+      .where(and(eq(smartAlbums.id, albumId), eq(smartAlbums.userId, userId)))
       .limit(1);
 
     if (!album[0]) {
@@ -555,7 +615,7 @@ export class SmartAlbumsService {
 
     const criteria = album[0].criteria as SmartAlbumCriteria;
     const photos = await this.getPhotosForCriteria(userId, criteria);
-    
+
     return photos.slice(offset, offset + limit);
   }
 
@@ -565,20 +625,15 @@ export class SmartAlbumsService {
   async updateSmartAlbumSettings(
     userId: string,
     albumId: string,
-    settings: { isPinned?: boolean; isHidden?: boolean }
+    settings: { isPinned?: boolean; isHidden?: boolean },
   ): Promise<SmartAlbum | null> {
     const updated = await db
       .update(smartAlbums)
       .set({
         ...settings,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
-      .where(
-        and(
-          eq(smartAlbums.id, albumId),
-          eq(smartAlbums.userId, userId)
-        )
-      )
+      .where(and(eq(smartAlbums.id, albumId), eq(smartAlbums.userId, userId)))
       .returning();
 
     return updated[0] || null;

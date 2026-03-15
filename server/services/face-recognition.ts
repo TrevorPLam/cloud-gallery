@@ -63,11 +63,11 @@ export interface FaceDetection {
   /** Face embedding vector (128-dimensional) */
   embedding: number[];
   /** Face landmarks (optional) */
-  landmarks?: Array<{
+  landmarks?: {
     x: number;
     y: number;
     type: string;
-  }>;
+  }[];
 }
 
 /**
@@ -498,7 +498,7 @@ export class FaceRecognitionService {
     userId: string,
     embedding: number[],
     threshold: number = DEFAULT_CONFIG.similarityThreshold,
-  ): Promise<Array<{ face: any; similarity: number }>> {
+  ): Promise<{ face: any; similarity: number }[]> {
     try {
       // Use pgvector for similarity search
       const embeddingString = `[${embedding.join(",")}]`;

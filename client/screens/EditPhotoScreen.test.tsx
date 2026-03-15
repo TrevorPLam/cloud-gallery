@@ -398,7 +398,7 @@ describe('EditPhotoScreen - Unit Tests', () => {
       // Mock slow upload
       mockApiRequest.mockImplementation(() => new Promise(resolve => setTimeout(() => 
         resolve({ json: () => Promise.resolve({ file: { uri: 'mock://uploaded.jpg' }) })
-      , 100)));
+      , 100))));
       
       render(<EditPhotoScreen />);
       

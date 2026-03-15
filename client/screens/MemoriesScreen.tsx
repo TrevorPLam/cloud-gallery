@@ -82,13 +82,13 @@ export default function MemoriesScreen({ navigation }: MemoriesScreenProps) {
       queryClient.invalidateQueries({ queryKey: ["memories"] });
       Alert.alert(
         "Memories Generated",
-        `Successfully generated ${data.count} memories`
+        `Successfully generated ${data.count} memories`,
       );
     },
     onError: (error) => {
       Alert.alert(
         "Generation Failed",
-        "Failed to generate memories. Please try again."
+        "Failed to generate memories. Please try again.",
       );
       console.error("Memory generation error:", error);
     },
@@ -96,7 +96,13 @@ export default function MemoriesScreen({ navigation }: MemoriesScreenProps) {
 
   // Update memory mutation (favorite/hide)
   const updateMemoryMutation = useMutation({
-    mutationFn: async ({ memoryId, updates }: { memoryId: string; updates: any }) => {
+    mutationFn: async ({
+      memoryId,
+      updates,
+    }: {
+      memoryId: string;
+      updates: any;
+    }) => {
       const response = await apiRequest(`/api/memories/${memoryId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -110,7 +116,7 @@ export default function MemoriesScreen({ navigation }: MemoriesScreenProps) {
     onError: (error) => {
       Alert.alert(
         "Update Failed",
-        "Failed to update memory. Please try again."
+        "Failed to update memory. Please try again.",
       );
       console.error("Memory update error:", error);
     },
@@ -130,27 +136,36 @@ export default function MemoriesScreen({ navigation }: MemoriesScreenProps) {
   useFocusEffect(
     useCallback(() => {
       refetch();
-    }, [refetch])
+    }, [refetch]),
   );
 
   // Handle memory actions
-  const handleMemoryPress = useCallback((memory: Memory) => {
-    navigation.navigate("MemoryDetailScreen", { memoryId: memory.id });
-  }, [navigation]);
+  const handleMemoryPress = useCallback(
+    (memory: Memory) => {
+      navigation.navigate("MemoryDetailScreen", { memoryId: memory.id });
+    },
+    [navigation],
+  );
 
-  const handleFavoriteToggle = useCallback((memory: Memory) => {
-    updateMemoryMutation.mutate({
-      memoryId: memory.id,
-      updates: { isFavorite: !memory.isFavorite },
-    });
-  }, [updateMemoryMutation]);
+  const handleFavoriteToggle = useCallback(
+    (memory: Memory) => {
+      updateMemoryMutation.mutate({
+        memoryId: memory.id,
+        updates: { isFavorite: !memory.isFavorite },
+      });
+    },
+    [updateMemoryMutation],
+  );
 
-  const handleHideToggle = useCallback((memory: Memory) => {
-    updateMemoryMutation.mutate({
-      memoryId: memory.id,
-      updates: { isHidden: !memory.isHidden },
-    });
-  }, [updateMemoryMutation]);
+  const handleHideToggle = useCallback(
+    (memory: Memory) => {
+      updateMemoryMutation.mutate({
+        memoryId: memory.id,
+        updates: { isHidden: !memory.isHidden },
+      });
+    },
+    [updateMemoryMutation],
+  );
 
   const handleGenerateMemories = useCallback(() => {
     Alert.alert(
@@ -163,7 +178,7 @@ export default function MemoriesScreen({ navigation }: MemoriesScreenProps) {
           onPress: () => generateMemoriesMutation.mutate(),
           style: "default",
         },
-      ]
+      ],
     );
   }, [generateMemoriesMutation]);
 
@@ -178,7 +193,12 @@ export default function MemoriesScreen({ navigation }: MemoriesScreenProps) {
         isLoading={updateMemoryMutation.isPending}
       />
     ),
-    [handleMemoryPress, handleFavoriteToggle, handleHideToggle, updateMemoryMutation.isPending]
+    [
+      handleMemoryPress,
+      handleFavoriteToggle,
+      handleHideToggle,
+      updateMemoryMutation.isPending,
+    ],
   );
 
   // Render empty state
@@ -229,7 +249,12 @@ export default function MemoriesScreen({ navigation }: MemoriesScreenProps) {
         </TouchableOpacity>
       </View>
     );
-  }, [memoriesData, theme, handleGenerateMemories, generateMemoriesMutation.isPending]);
+  }, [
+    memoriesData,
+    theme,
+    handleGenerateMemories,
+    generateMemoriesMutation.isPending,
+  ]);
 
   if (error) {
     return (
@@ -279,9 +304,7 @@ export default function MemoriesScreen({ navigation }: MemoriesScreenProps) {
           icon="refresh-cw"
           onPress={handleGenerateMemories}
           disabled={generateMemoriesMutation.isPending}
-          style={[
-            generateMemoriesMutation.isPending && styles.spinning,
-          ]}
+          style={[generateMemoriesMutation.isPending && styles.spinning]}
         />
       )}
     </View>

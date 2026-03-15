@@ -25,12 +25,7 @@ import { Feather } from "@expo/vector-icons";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 
-import { 
-  SharedAlbum, 
-  CollaboratedAlbum, 
-  ShareSettings,
-  Album 
-} from "@/types";
+import { SharedAlbum, CollaboratedAlbum, ShareSettings, Album } from "@/types";
 import { apiRequest } from "@/lib/query-client";
 import { EmptyState } from "@/components/EmptyState";
 import { ThemedText } from "@/components/ThemedText";

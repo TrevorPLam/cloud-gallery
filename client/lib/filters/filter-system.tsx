@@ -8,24 +8,24 @@
 // TESTS: Unit tests for filter application, integration tests for UI performance
 // AI-META-END
 
-import React, { useMemo } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Image } from 'expo-image';
+import React, { useMemo } from "react";
+import { View, StyleSheet } from "react-native";
+import { Image } from "expo-image";
 
-import { ImageAdjustments, DEFAULT_ADJUSTMENTS } from '../photo-editor';
+import { ImageAdjustments, DEFAULT_ADJUSTMENTS } from "../photo-editor";
 
 // Filter presets (15+ presets as required)
 export const FILTER_PRESETS = [
   {
-    id: 'original',
-    name: 'Original',
-    description: 'No filter applied',
+    id: "original",
+    name: "Original",
+    description: "No filter applied",
     adjustments: { ...DEFAULT_ADJUSTMENTS },
   },
   {
-    id: 'vintage',
-    name: 'Vintage',
-    description: 'Warm, faded look with reduced saturation',
+    id: "vintage",
+    name: "Vintage",
+    description: "Warm, faded look with reduced saturation",
     adjustments: {
       brightness: 0.1,
       contrast: -0.2,
@@ -39,9 +39,9 @@ export const FILTER_PRESETS = [
     },
   },
   {
-    id: 'black_white',
-    name: 'Black & White',
-    description: 'Classic monochrome conversion',
+    id: "black_white",
+    name: "Black & White",
+    description: "Classic monochrome conversion",
     adjustments: {
       brightness: 0.05,
       contrast: 0.2,
@@ -55,9 +55,9 @@ export const FILTER_PRESETS = [
     },
   },
   {
-    id: 'vivid',
-    name: 'Vivid',
-    description: 'Enhanced colors and contrast',
+    id: "vivid",
+    name: "Vivid",
+    description: "Enhanced colors and contrast",
     adjustments: {
       brightness: 0.05,
       contrast: 0.3,
@@ -71,9 +71,9 @@ export const FILTER_PRESETS = [
     },
   },
   {
-    id: 'warm',
-    name: 'Warm',
-    description: 'Cozy warm tones',
+    id: "warm",
+    name: "Warm",
+    description: "Cozy warm tones",
     adjustments: {
       brightness: 0.1,
       contrast: 0.1,
@@ -87,9 +87,9 @@ export const FILTER_PRESETS = [
     },
   },
   {
-    id: 'cool',
-    name: 'Cool',
-    description: 'Cool blue tones',
+    id: "cool",
+    name: "Cool",
+    description: "Cool blue tones",
     adjustments: {
       brightness: -0.05,
       contrast: 0.1,
@@ -103,9 +103,9 @@ export const FILTER_PRESETS = [
     },
   },
   {
-    id: 'dramatic',
-    name: 'Dramatic',
-    description: 'High contrast with deep shadows',
+    id: "dramatic",
+    name: "Dramatic",
+    description: "High contrast with deep shadows",
     adjustments: {
       brightness: -0.1,
       contrast: 0.5,
@@ -119,9 +119,9 @@ export const FILTER_PRESETS = [
     },
   },
   {
-    id: 'soft',
-    name: 'Soft',
-    description: 'Gentle, dreamy appearance',
+    id: "soft",
+    name: "Soft",
+    description: "Gentle, dreamy appearance",
     adjustments: {
       brightness: 0.15,
       contrast: -0.2,
@@ -135,9 +135,9 @@ export const FILTER_PRESETS = [
     },
   },
   {
-    id: 'sepia',
-    name: 'Sepia',
-    description: 'Classic brown tone effect',
+    id: "sepia",
+    name: "Sepia",
+    description: "Classic brown tone effect",
     adjustments: {
       brightness: 0.1,
       contrast: 0.1,
@@ -151,9 +151,9 @@ export const FILTER_PRESETS = [
     },
   },
   {
-    id: 'cinematic',
-    name: 'Cinematic',
-    description: 'Film-inspired color grading',
+    id: "cinematic",
+    name: "Cinematic",
+    description: "Film-inspired color grading",
     adjustments: {
       brightness: -0.05,
       contrast: 0.3,
@@ -167,9 +167,9 @@ export const FILTER_PRESETS = [
     },
   },
   {
-    id: 'fresh',
-    name: 'Fresh',
-    description: 'Bright and clean appearance',
+    id: "fresh",
+    name: "Fresh",
+    description: "Bright and clean appearance",
     adjustments: {
       brightness: 0.2,
       contrast: 0.15,
@@ -183,9 +183,9 @@ export const FILTER_PRESETS = [
     },
   },
   {
-    id: 'noir',
-    name: 'Film Noir',
-    description: 'High contrast black and white',
+    id: "noir",
+    name: "Film Noir",
+    description: "High contrast black and white",
     adjustments: {
       brightness: -0.2,
       contrast: 0.6,
@@ -199,9 +199,9 @@ export const FILTER_PRESETS = [
     },
   },
   {
-    id: 'retro',
-    name: 'Retro',
-    description: '70s inspired color palette',
+    id: "retro",
+    name: "Retro",
+    description: "70s inspired color palette",
     adjustments: {
       brightness: 0.05,
       contrast: -0.1,
@@ -215,9 +215,9 @@ export const FILTER_PRESETS = [
     },
   },
   {
-    id: 'vibrant',
-    name: 'Vibrant',
-    description: 'Maximum color intensity',
+    id: "vibrant",
+    name: "Vibrant",
+    description: "Maximum color intensity",
     adjustments: {
       brightness: 0.1,
       contrast: 0.2,
@@ -231,9 +231,9 @@ export const FILTER_PRESETS = [
     },
   },
   {
-    id: 'matte',
-    name: 'Matte',
-    description: 'Flat, desaturated look',
+    id: "matte",
+    name: "Matte",
+    description: "Flat, desaturated look",
     adjustments: {
       brightness: 0.1,
       contrast: -0.3,
@@ -257,91 +257,95 @@ interface FilteredImageProps {
   height: number;
 }
 
-export const FilteredImage: React.FC<FilteredImageProps> = React.memo(({
-  uri,
-  adjustments,
-  style,
-  width,
-  height,
-}) => {
-  // Check if any adjustments are applied
-  const hasAdjustments = useMemo(() => {
-    return !Object.entries(adjustments).every(([key, value]) => 
-      DEFAULT_ADJUSTMENTS[key as keyof ImageAdjustments] === value
+export const FilteredImage: React.FC<FilteredImageProps> = React.memo(
+  ({ uri, adjustments, style, width, height }) => {
+    // Check if any adjustments are applied
+    const hasAdjustments = useMemo(() => {
+      return !Object.entries(adjustments).every(
+        ([key, value]) =>
+          DEFAULT_ADJUSTMENTS[key as keyof ImageAdjustments] === value,
+      );
+    }, [adjustments]);
+
+    return (
+      <View style={[style, { width, height }]}>
+        <Image
+          source={{ uri }}
+          style={{
+            width,
+            height,
+            opacity: Math.max(0.3, Math.min(1, 1 + adjustments.exposure * 0.2)),
+          }}
+          contentFit="contain"
+          cachePolicy="none"
+        />
+        {hasAdjustments && <View style={styles.adjustmentIndicator} />}
+      </View>
     );
-  }, [adjustments]);
+  },
+);
 
-  return (
-    <View style={[style, { width, height }]}>
-      <Image
-        source={{ uri }}
-        style={{ 
-          width, 
-          height,
-          opacity: Math.max(0.3, Math.min(1, 1 + adjustments.exposure * 0.2)),
-        }}
-        contentFit="contain"
-        cachePolicy="none"
-      />
-      {hasAdjustments && (
-        <View style={styles.adjustmentIndicator} />
-      )}
-    </View>
-  );
-});
-
-FilteredImage.displayName = 'FilteredImage';
+FilteredImage.displayName = "FilteredImage";
 
 // Utility functions
 export function getFilterPreset(id: string) {
-  return FILTER_PRESETS.find(filter => filter.id === id);
+  return FILTER_PRESETS.find((filter) => filter.id === id);
 }
 
 export function hasFilterAdjustments(adjustments: ImageAdjustments): boolean {
-  return !Object.entries(adjustments).every(([key, value]) => 
-    DEFAULT_ADJUSTMENTS[key as keyof ImageAdjustments] === value
+  return !Object.entries(adjustments).every(
+    ([key, value]) =>
+      DEFAULT_ADJUSTMENTS[key as keyof ImageAdjustments] === value,
   );
 }
 
 export function getFilterName(id: string): string {
   const filter = getFilterPreset(id);
-  return filter ? filter.name : 'Unknown';
+  return filter ? filter.name : "Unknown";
 }
 
 export function getFilterDescription(id: string): string {
   const filter = getFilterPreset(id);
-  return filter ? filter.description : '';
+  return filter ? filter.description : "";
 }
 
 // Filter comparison utilities
 export function compareFilters(filter1Id: string, filter2Id: string): number {
   const filter1 = getFilterPreset(filter1Id);
   const filter2 = getFilterPreset(filter2Id);
-  
+
   if (!filter1 || !filter2) return 0;
-  
+
   return filter1.name.localeCompare(filter2.name);
 }
 
 export function getFiltersByCategory(): Record<string, typeof FILTER_PRESETS> {
   return {
     all: FILTER_PRESETS,
-    classic: FILTER_PRESETS.filter(f => ['original', 'black_white', 'sepia', 'noir'].includes(f.id)),
-    warm: FILTER_PRESETS.filter(f => ['warm', 'vintage', 'retro'].includes(f.id)),
-    cool: FILTER_PRESETS.filter(f => ['cool', 'cinematic', 'dramatic'].includes(f.id)),
-    vibrant: FILTER_PRESETS.filter(f => ['vivid', 'vibrant', 'fresh'].includes(f.id)),
-    soft: FILTER_PRESETS.filter(f => ['soft', 'matte'].includes(f.id)),
+    classic: FILTER_PRESETS.filter((f) =>
+      ["original", "black_white", "sepia", "noir"].includes(f.id),
+    ),
+    warm: FILTER_PRESETS.filter((f) =>
+      ["warm", "vintage", "retro"].includes(f.id),
+    ),
+    cool: FILTER_PRESETS.filter((f) =>
+      ["cool", "cinematic", "dramatic"].includes(f.id),
+    ),
+    vibrant: FILTER_PRESETS.filter((f) =>
+      ["vivid", "vibrant", "fresh"].includes(f.id),
+    ),
+    soft: FILTER_PRESETS.filter((f) => ["soft", "matte"].includes(f.id)),
   };
 }
 
 const styles = StyleSheet.create({
   adjustmentIndicator: {
-    position: 'absolute',
+    position: "absolute",
     top: 4,
     right: 4,
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
   },
 });

@@ -22,7 +22,7 @@ vi.mock("./auth", () => ({
     req.user = { id: "test-user-id" };
     next();
   },
-  rateLimit: () => (req: any, res: any, next: any) => next()
+  rateLimit: () => (req: any, res: any, next: any) => next(),
 }));
 
 describe("Smart Albums API Routes", () => {
@@ -51,7 +51,7 @@ describe("Smart Albums API Routes", () => {
           isHidden: false,
           lastUpdatedAt: new Date(),
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         },
         {
           id: "album-2",
@@ -66,40 +66,40 @@ describe("Smart Albums API Routes", () => {
           isHidden: false,
           lastUpdatedAt: new Date(),
           createdAt: new Date(),
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       ];
 
-      vi.mocked(smartAlbumsService.generateAllSmartAlbums).mockResolvedValue(mockAlbums);
+      vi.mocked(smartAlbumsService.generateAllSmartAlbums).mockResolvedValue(
+        mockAlbums,
+      );
 
-      const response = await request(app)
-        .get("/api/smart-albums")
-        .expect(200);
+      const response = await request(app).get("/api/smart-albums").expect(200);
 
       expect(response.body).toEqual({
         success: true,
         data: {
           albums: mockAlbums,
-          total: mockAlbums.length
-        }
+          total: mockAlbums.length,
+        },
       });
 
-      expect(smartAlbumsService.generateAllSmartAlbums).toHaveBeenCalledWith("test-user-id");
+      expect(smartAlbumsService.generateAllSmartAlbums).toHaveBeenCalledWith(
+        "test-user-id",
+      );
     });
 
     it("should handle service errors gracefully", async () => {
       vi.mocked(smartAlbumsService.generateAllSmartAlbums).mockRejectedValue(
-        new Error("Database connection failed")
+        new Error("Database connection failed"),
       );
 
-      const response = await request(app)
-        .get("/api/smart-albums")
-        .expect(500);
+      const response = await request(app).get("/api/smart-albums").expect(500);
 
       expect(response.body).toEqual({
         success: false,
         error: "Failed to fetch smart albums",
-        message: "Database connection failed"
+        message: "Database connection failed",
       });
     });
   });
@@ -120,11 +120,13 @@ describe("Smart Albums API Routes", () => {
           isHidden: false,
           lastUpdatedAt: new Date(),
           createdAt: new Date(),
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       ];
 
-      vi.mocked(smartAlbumsService.generateAllSmartAlbums).mockResolvedValue(mockAlbums);
+      vi.mocked(smartAlbumsService.generateAllSmartAlbums).mockResolvedValue(
+        mockAlbums,
+      );
 
       const response = await request(app)
         .post("/api/smart-albums/generate")
@@ -135,16 +137,18 @@ describe("Smart Albums API Routes", () => {
         data: {
           albums: mockAlbums,
           total: mockAlbums.length,
-          generatedAt: expect.any(String)
-        }
+          generatedAt: expect.any(String),
+        },
       });
 
-      expect(smartAlbumsService.generateAllSmartAlbums).toHaveBeenCalledWith("test-user-id");
+      expect(smartAlbumsService.generateAllSmartAlbums).toHaveBeenCalledWith(
+        "test-user-id",
+      );
     });
 
     it("should handle generation errors", async () => {
       vi.mocked(smartAlbumsService.generateAllSmartAlbums).mockRejectedValue(
-        new Error("ML analysis failed")
+        new Error("ML analysis failed"),
       );
 
       const response = await request(app)
@@ -154,7 +158,7 @@ describe("Smart Albums API Routes", () => {
       expect(response.body).toEqual({
         success: false,
         error: "Failed to generate smart albums",
-        message: "ML analysis failed"
+        message: "ML analysis failed",
       });
     });
   });
@@ -174,10 +178,12 @@ describe("Smart Albums API Routes", () => {
         isHidden: false,
         lastUpdatedAt: new Date(),
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
-      vi.mocked(smartAlbumsService.updateSmartAlbumSettings).mockResolvedValue(updatedAlbum);
+      vi.mocked(smartAlbumsService.updateSmartAlbumSettings).mockResolvedValue(
+        updatedAlbum,
+      );
 
       const response = await request(app)
         .put("/api/smart-albums/album-1")
@@ -187,19 +193,21 @@ describe("Smart Albums API Routes", () => {
       expect(response.body).toEqual({
         success: true,
         data: {
-          album: updatedAlbum
-        }
+          album: updatedAlbum,
+        },
       });
 
       expect(smartAlbumsService.updateSmartAlbumSettings).toHaveBeenCalledWith(
         "test-user-id",
         "album-1",
-        { isPinned: true }
+        { isPinned: true },
       );
     });
 
     it("should return 404 for non-existent album", async () => {
-      vi.mocked(smartAlbumsService.updateSmartAlbumSettings).mockResolvedValue(null);
+      vi.mocked(smartAlbumsService.updateSmartAlbumSettings).mockResolvedValue(
+        null,
+      );
 
       const response = await request(app)
         .put("/api/smart-albums/non-existent")
@@ -208,7 +216,7 @@ describe("Smart Albums API Routes", () => {
 
       expect(response.body).toEqual({
         success: false,
-        error: "Smart album not found"
+        error: "Smart album not found",
       });
     });
 
@@ -237,7 +245,7 @@ describe("Smart Albums API Routes", () => {
           isFavorite: false,
           isVideo: false,
           createdAt: new Date(),
-          modifiedAt: new Date()
+          modifiedAt: new Date(),
         },
         {
           id: "photo-2",
@@ -249,11 +257,13 @@ describe("Smart Albums API Routes", () => {
           isFavorite: true,
           isVideo: false,
           createdAt: new Date(),
-          modifiedAt: new Date()
-        }
+          modifiedAt: new Date(),
+        },
       ];
 
-      vi.mocked(smartAlbumsService.getSmartAlbumPhotos).mockResolvedValue(mockPhotos);
+      vi.mocked(smartAlbumsService.getSmartAlbumPhotos).mockResolvedValue(
+        mockPhotos,
+      );
 
       const response = await request(app)
         .get("/api/smart-albums/album-1/photos")
@@ -267,31 +277,29 @@ describe("Smart Albums API Routes", () => {
           pagination: {
             limit: 10,
             offset: 0,
-            count: mockPhotos.length
-          }
-        }
+            count: mockPhotos.length,
+          },
+        },
       });
 
       expect(smartAlbumsService.getSmartAlbumPhotos).toHaveBeenCalledWith(
         "test-user-id",
         "album-1",
         10,
-        0
+        0,
       );
     });
 
     it("should use default pagination parameters", async () => {
       vi.mocked(smartAlbumsService.getSmartAlbumPhotos).mockResolvedValue([]);
 
-      await request(app)
-        .get("/api/smart-albums/album-1/photos")
-        .expect(200);
+      await request(app).get("/api/smart-albums/album-1/photos").expect(200);
 
       expect(smartAlbumsService.getSmartAlbumPhotos).toHaveBeenCalledWith(
         "test-user-id",
         "album-1",
         50,
-        0
+        0,
       );
     });
 
@@ -310,7 +318,9 @@ describe("Smart Albums API Routes", () => {
     it("should update smart albums for new photos", async () => {
       const photoIds = ["photo-1", "photo-2", "photo-3"];
 
-      vi.mocked(smartAlbumsService.updateSmartAlbumsForNewPhotos).mockResolvedValue(undefined);
+      vi.mocked(
+        smartAlbumsService.updateSmartAlbumsForNewPhotos,
+      ).mockResolvedValue(undefined);
 
       const response = await request(app)
         .post("/api/smart-albums/update")
@@ -321,14 +331,13 @@ describe("Smart Albums API Routes", () => {
         success: true,
         data: {
           updatedPhotoCount: photoIds.length,
-          updatedAt: expect.any(String)
-        }
+          updatedAt: expect.any(String),
+        },
       });
 
-      expect(smartAlbumsService.updateSmartAlbumsForNewPhotos).toHaveBeenCalledWith(
-        "test-user-id",
-        photoIds
-      );
+      expect(
+        smartAlbumsService.updateSmartAlbumsForNewPhotos,
+      ).toHaveBeenCalledWith("test-user-id", photoIds);
     });
 
     it("should validate photo IDs array", async () => {
@@ -339,7 +348,7 @@ describe("Smart Albums API Routes", () => {
 
       expect(response.body).toEqual({
         success: false,
-        error: "Invalid photo IDs provided"
+        error: "Invalid photo IDs provided",
       });
 
       const response2 = await request(app)
@@ -349,14 +358,14 @@ describe("Smart Albums API Routes", () => {
 
       expect(response2.body).toEqual({
         success: false,
-        error: "Invalid photo IDs provided"
+        error: "Invalid photo IDs provided",
       });
     });
 
     it("should handle update errors", async () => {
-      vi.mocked(smartAlbumsService.updateSmartAlbumsForNewPhotos).mockRejectedValue(
-        new Error("Update failed")
-      );
+      vi.mocked(
+        smartAlbumsService.updateSmartAlbumsForNewPhotos,
+      ).mockRejectedValue(new Error("Update failed"));
 
       const response = await request(app)
         .post("/api/smart-albums/update")
@@ -366,7 +375,7 @@ describe("Smart Albums API Routes", () => {
       expect(response.body).toEqual({
         success: false,
         error: "Failed to update smart albums",
-        message: "Update failed"
+        message: "Update failed",
       });
     });
   });
@@ -379,25 +388,27 @@ describe("Smart Albums API Routes", () => {
           albumType: "people",
           photoCount: 25,
           isPinned: true,
-          isHidden: false
+          isHidden: false,
         },
         {
           id: "album-2",
           albumType: "places",
           photoCount: 15,
           isPinned: false,
-          isHidden: false
+          isHidden: false,
         },
         {
           id: "album-3",
           albumType: "things",
           photoCount: 8,
           isPinned: false,
-          isHidden: true
-        }
+          isHidden: true,
+        },
       ];
 
-      vi.mocked(smartAlbumsService.generateAllSmartAlbums).mockResolvedValue(mockAlbums);
+      vi.mocked(smartAlbumsService.generateAllSmartAlbums).mockResolvedValue(
+        mockAlbums,
+      );
 
       const response = await request(app)
         .get("/api/smart-albums/stats")
@@ -411,17 +422,19 @@ describe("Smart Albums API Routes", () => {
           albumsByType: {
             people: 1,
             places: 1,
-            things: 1
+            things: 1,
           },
           pinnedAlbums: 1,
           hiddenAlbums: 1,
-          averagePhotosPerAlbum: 16
-        }
+          averagePhotosPerAlbum: 16,
+        },
       });
     });
 
     it("should handle empty album list", async () => {
-      vi.mocked(smartAlbumsService.generateAllSmartAlbums).mockResolvedValue([]);
+      vi.mocked(smartAlbumsService.generateAllSmartAlbums).mockResolvedValue(
+        [],
+      );
 
       const response = await request(app)
         .get("/api/smart-albums/stats")
@@ -433,7 +446,7 @@ describe("Smart Albums API Routes", () => {
         albumsByType: {},
         pinnedAlbums: 0,
         hiddenAlbums: 0,
-        averagePhotosPerAlbum: 0
+        averagePhotosPerAlbum: 0,
       });
     });
   });
@@ -453,10 +466,12 @@ describe("Smart Albums API Routes", () => {
         isHidden: true,
         lastUpdatedAt: new Date(),
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
-      vi.mocked(smartAlbumsService.updateSmartAlbumSettings).mockResolvedValue(hiddenAlbum);
+      vi.mocked(smartAlbumsService.updateSmartAlbumSettings).mockResolvedValue(
+        hiddenAlbum,
+      );
 
       const response = await request(app)
         .delete("/api/smart-albums/album-1")
@@ -466,19 +481,21 @@ describe("Smart Albums API Routes", () => {
         success: true,
         data: {
           album: hiddenAlbum,
-          message: "Smart album hidden successfully"
-        }
+          message: "Smart album hidden successfully",
+        },
       });
 
       expect(smartAlbumsService.updateSmartAlbumSettings).toHaveBeenCalledWith(
         "test-user-id",
         "album-1",
-        { isHidden: true }
+        { isHidden: true },
       );
     });
 
     it("should return 404 for non-existent album", async () => {
-      vi.mocked(smartAlbumsService.updateSmartAlbumSettings).mockResolvedValue(null);
+      vi.mocked(smartAlbumsService.updateSmartAlbumSettings).mockResolvedValue(
+        null,
+      );
 
       const response = await request(app)
         .delete("/api/smart-albums/non-existent")
@@ -486,7 +503,7 @@ describe("Smart Albums API Routes", () => {
 
       expect(response.body).toEqual({
         success: false,
-        error: "Smart album not found"
+        error: "Smart album not found",
       });
     });
   });

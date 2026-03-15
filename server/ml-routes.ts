@@ -41,7 +41,7 @@ export enum AnalysisType {
 export interface MLAnalysisResult {
   photoId: string;
   userId: string;
-  objects?: Array<{
+  objects?: {
     label: string;
     confidence: number;
     boundingBox: {
@@ -50,7 +50,7 @@ export interface MLAnalysisResult {
       width: number;
       height: number;
     };
-  }>;
+  }[];
   ocrText?: string;
   ocrLanguage?: string;
   perceptualHash?: string;

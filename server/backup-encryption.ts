@@ -298,12 +298,12 @@ async function importDatabaseData(dbData: any): Promise<number> {
 /**
  * List all encrypted backups
  */
-export function listEncryptedBackups(): Array<{
+export function listEncryptedBackups(): {
   fileName: string;
   filePath: string;
   size: number;
   timestamp: string;
-}> {
+}[] {
   try {
     ensureBackupDir();
 

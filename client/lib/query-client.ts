@@ -99,7 +99,7 @@ export class AuthenticationError extends APIError {
 export class ValidationError extends APIError {
   constructor(
     message: string,
-    public validationDetails: Array<{ path: string[]; message: string }>,
+    public validationDetails: { path: string[]; message: string }[],
   ) {
     super(message, 400, validationDetails);
     this.name = "ValidationError";

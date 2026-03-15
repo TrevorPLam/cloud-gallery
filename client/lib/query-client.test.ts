@@ -19,6 +19,12 @@ import {
   queryClient,
 } from "./query-client";
 
+// ═══════════════════════════════════════════════════════════
+// PROPERTY-BASED TESTS
+// ═══════════════════════════════════════════════════════════
+
+import fc from "fast-check";
+
 // Mock AsyncStorage
 vi.mock("@react-native-async-storage/async-storage", () => ({
   default: {
@@ -295,12 +301,6 @@ describe("React Query Configuration", () => {
   });
 });
 
-// ═══════════════════════════════════════════════════════════
-// PROPERTY-BASED TESTS
-// ═══════════════════════════════════════════════════════════
-
-import fc from "fast-check";
-
 /**
  * Property 1: Authorization Header Inclusion
  *
@@ -505,8 +505,8 @@ describe("Property 2: Photo Sorting Consistency", () => {
    * This mimics the expected behavior from the server and client display
    */
   function sortPhotosByCreatedAt(
-    photos: Array<{ createdAt: number }>,
-  ): Array<{ createdAt: number }> {
+    photos: { createdAt: number }[],
+  ): { createdAt: number }[] {
     return [...photos].sort((a, b) => b.createdAt - a.createdAt);
   }
 
@@ -2298,9 +2298,9 @@ describe("Property 11: Optimistic Deletion", () => {
    * This mimics the onMutate callback in useMutation
    */
   function applyOptimisticDeletion(
-    photos: Array<{ id: string }>,
+    photos: { id: string }[],
     photoIdToDelete: string,
-  ): Array<{ id: string }> {
+  ): { id: string }[] {
     return photos.filter((photo) => photo.id !== photoIdToDelete);
   }
 

@@ -54,7 +54,7 @@ export interface DuplicateGroup {
   /** Unique group identifier */
   groupId: string;
   /** Photos in this duplicate group */
-  photos: Array<{
+  photos: {
     id: string;
     uri: string;
     filename: string;
@@ -65,7 +65,7 @@ export interface DuplicateGroup {
     perceptualHash?: string;
     qualityMetrics: PhotoQualityMetrics;
     isBest: boolean;
-  }>;
+  }[];
   /** Group type: 'exact', 'similar', 'burst' */
   groupType: "exact" | "similar" | "burst";
   /** Average similarity within the group */
@@ -149,7 +149,7 @@ export function calculateQualityMetrics(photo: {
  * Detect if photos form a burst sequence based on timestamps
  */
 export function detectBurstSequence(
-  photos: Array<{ createdAt: Date }>,
+  photos: { createdAt: Date }[],
   timeWindowSeconds: number,
 ): boolean {
   if (photos.length < 3) return false;
@@ -320,11 +320,11 @@ export async function findDuplicatePhotos(
  */
 export async function resolveDuplicateGroups(
   userId: string,
-  resolutions: Array<{
+  resolutions: {
     groupId: string;
     keepPhotoIds: string[];
     deletePhotoIds: string[];
-  }>,
+  }[],
 ): Promise<{ resolved: number; errors: string[] }> {
   const errors: string[] = [];
   let resolved = 0;

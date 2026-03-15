@@ -19,16 +19,7 @@ import {
   insertSharedAlbumSchema,
   insertSharedAlbumCollaboratorSchema,
 } from "../../shared/schema";
-import {
-  eq,
-  and,
-  isNull,
-  isNotNull,
-  desc,
-  lt,
-  gt,
-  or,
-} from "drizzle-orm";
+import { eq, and, isNull, isNotNull, desc, lt, gt, or } from "drizzle-orm";
 import { hash, verify } from "argon2";
 import { randomBytes } from "crypto";
 
@@ -53,7 +44,7 @@ export interface SharingConfig {
  */
 export enum Permission {
   VIEW = "view",
-  EDIT = "edit", 
+  EDIT = "edit",
   ADMIN = "admin",
 }
 
@@ -94,7 +85,7 @@ export interface ShareAccess {
     createdAt: Date;
   };
   /** Photos in album */
-  photos: Array<{
+  photos: {
     id: string;
     uri: string;
     width: number;
@@ -102,7 +93,7 @@ export interface ShareAccess {
     filename: string;
     isFavorite: boolean;
     createdAt: Date;
-  }>;
+  }[];
 }
 
 /**
@@ -212,9 +203,13 @@ export class SharingService {
     }
 
     // Set expiration if not provided
-    const expiresAtFinal = expiresAt ?? 
-      (this.config.defaultExpirationDays 
-        ? new Date(Date.now() + this.config.defaultExpirationDays * 24 * 60 * 60 * 1000)
+    const expiresAtFinal =
+      expiresAt ??
+      (this.config.defaultExpirationDays
+        ? new Date(
+            Date.now() +
+              this.config.defaultExpirationDays * 24 * 60 * 60 * 1000,
+          )
         : null);
 
     // Create shared album
@@ -255,10 +250,7 @@ export class SharingService {
         and(
           eq(sharedAlbums.shareToken, shareToken),
           eq(sharedAlbums.isActive, true),
-          or(
-            isNull(sharedAlbums.expiresAt),
-            gt(sharedAlbums.expiresAt, now),
-          ),
+          or(isNull(sharedAlbums.expiresAt), gt(sharedAlbums.expiresAt, now)),
         ),
       )
       .limit(1);
@@ -275,7 +267,10 @@ export class SharingService {
     }
 
     if (share.passwordHash && password) {
-      const passwordValid = await this.verifyPassword(password, share.passwordHash);
+      const passwordValid = await this.verifyPassword(
+        password,
+        share.passwordHash,
+      );
       if (!passwordValid) {
         throw new Error("Invalid password");
       }
@@ -306,7 +301,7 @@ export class SharingService {
     // Increment view count
     await db
       .update(sharedAlbums)
-      .set({ 
+      .set({
         viewCount: share.viewCount + 1,
         updatedAt: new Date(),
       })
@@ -385,7 +380,8 @@ export class SharingService {
       )
       .limit(1);
 
-    const isAdmin = collaboratorCheck.length > 0 && 
+    const isAdmin =
+      collaboratorCheck.length > 0 &&
       collaboratorCheck[0].permissions === Permission.ADMIN;
 
     if (!isOwner && !isAdmin) {
@@ -445,15 +441,17 @@ export class SharingService {
   async getCollaborators(
     sharedAlbumId: string,
     requestUserId: string,
-  ): Promise<Array<{
-    id: string;
-    userId: string;
-    username: string;
-    permissions: Permission;
-    invitedBy: string;
-    acceptedAt: Date | null;
-    createdAt: Date;
-  }>> {
+  ): Promise<
+    {
+      id: string;
+      userId: string;
+      username: string;
+      permissions: Permission;
+      invitedBy: string;
+      acceptedAt: Date | null;
+      createdAt: Date;
+    }[]
+  > {
     // Verify user has access to this shared album
     const sharedAlbum = await db
       .select()
@@ -514,7 +512,7 @@ export class SharingService {
     }
 
     const isOwner = sharedAlbum[0].albums.userId === requestUserId;
-    
+
     // Check if requester is admin collaborator
     const collaboratorCheck = await db
       .select()
@@ -527,7 +525,8 @@ export class SharingService {
       )
       .limit(1);
 
-    const isAdmin = collaboratorCheck.length > 0 && 
+    const isAdmin =
+      collaboratorCheck.length > 0 &&
       collaboratorCheck[0].permissions === Permission.ADMIN;
 
     if (!isOwner && !isAdmin) {
@@ -572,12 +571,7 @@ export class SharingService {
       .select()
       .from(sharedAlbums)
       .innerJoin(albums, eq(sharedAlbums.albumId, albums.id))
-      .where(
-        and(
-          eq(sharedAlbums.id, shareId),
-          eq(albums.userId, userId),
-        ),
-      )
+      .where(and(eq(sharedAlbums.id, shareId), eq(albums.userId, userId)))
       .limit(1);
 
     if (share.length === 0) {
@@ -605,10 +599,8 @@ export class SharingService {
   /**
    * Get all shared albums for a user (both owned and collaborated)
    */
-  async getUserSharedAlbums(
-    userId: string,
-  ): Promise<{
-    owned: Array<{
+  async getUserSharedAlbums(userId: string): Promise<{
+    owned: {
       id: string;
       albumId: string;
       albumTitle: string;
@@ -618,8 +610,8 @@ export class SharingService {
       viewCount: number;
       isActive: boolean;
       createdAt: Date;
-    }>;
-    collaborated: Array<{
+    }[];
+    collaborated: {
       id: string;
       sharedAlbumId: string;
       albumId: string;
@@ -628,7 +620,7 @@ export class SharingService {
       invitedBy: string;
       acceptedAt: Date | null;
       createdAt: Date;
-    }>;
+    }[];
   }> {
     // Get owned shared albums
     const ownedShares = await db
@@ -648,7 +640,10 @@ export class SharingService {
         albumTitle: albums.title,
       })
       .from(sharedAlbumCollaborators)
-      .innerJoin(sharedAlbums, eq(sharedAlbumCollaborators.sharedAlbumId, sharedAlbums.id))
+      .innerJoin(
+        sharedAlbums,
+        eq(sharedAlbumCollaborators.sharedAlbumId, sharedAlbums.id),
+      )
       .innerJoin(albums, eq(sharedAlbums.albumId, albums.id))
       .where(eq(sharedAlbumCollaborators.userId, userId))
       .orderBy(desc(sharedAlbumCollaborators.createdAt));

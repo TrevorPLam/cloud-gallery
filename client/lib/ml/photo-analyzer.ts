@@ -8,10 +8,9 @@
 // TESTS: client/lib/ml/photo-analyzer.test.ts
 // AI-META-END
 
-import { Platform } from "react-native";
+import { Platform, InteractionManager } from "react-native";
 import { loadTensorflowModel, TensorflowModel } from "react-native-fast-tflite";
 import RNMlkitOcr from "react-native-mlkit-ocr";
-import { InteractionManager } from "react-native";
 
 // ─────────────────────────────────────────────────────────
 // TYPES AND INTERFACES
@@ -19,7 +18,7 @@ import { InteractionManager } from "react-native";
 
 export interface TextRecognitionResult {
   text: string;
-  blocks?: Array<{
+  blocks?: {
     text: string;
     boundingBox?: {
       x: number;
@@ -27,7 +26,7 @@ export interface TextRecognitionResult {
       width: number;
       height: number;
     };
-  }>;
+  }[];
 }
 
 export interface MLAnalysisResult {

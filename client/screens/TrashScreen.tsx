@@ -15,13 +15,13 @@ import {
   FlatList,
   Dimensions,
   RefreshControl,
+  Pressable,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { useQuery } from "@tanstack/react-query";
-import { Pressable } from "react-native";
 import { useTheme } from "@/hooks/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";

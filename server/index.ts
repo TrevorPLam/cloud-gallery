@@ -423,7 +423,7 @@ function setupErrorHandler(app: express.Application) {
 // Main server bootstrap
 (async () => {
   // Only start server if not in test mode
-  if (process.env.NODE_ENV !== 'test') {
+  if (process.env.NODE_ENV !== "test") {
     log("Starting Cloud Gallery server...");
     log(`Environment: ${process.env.NODE_ENV || "development"}`);
 
@@ -440,57 +440,57 @@ function setupErrorHandler(app: express.Application) {
     // 4. Rate limiting (before expensive operations)
     setupRateLimiting(app);
 
-  // 5. Body parsing with limits
-  setupBodyParsing(app);
+    // 5. Body parsing with limits
+    setupBodyParsing(app);
 
-  // 6. Request logging (after body parsing)
-  setupRequestLogging(app);
+    // 6. Request logging (after body parsing)
+    setupRequestLogging(app);
 
-  // 7. Expo static serving and routing
-  configureExpoAndLanding(app);
+    // 7. Expo static serving and routing
+    configureExpoAndLanding(app);
 
-  // 8. Application routes
-  const server = await registerRoutes(app);
+    // 8. Application routes
+    const server = await registerRoutes(app);
 
-  // 9. Error handler (MUST BE LAST)
-  setupErrorHandler(app);
+    // 9. Error handler (MUST BE LAST)
+    setupErrorHandler(app);
 
-  // Start server only if not in test mode
-  const port = parseInt(process.env.PORT || "5000", 10);
-  const host = process.env.HOST || "0.0.0.0";
+    // Start server only if not in test mode
+    const port = parseInt(process.env.PORT || "5000", 10);
+    const host = process.env.HOST || "0.0.0.0";
 
-  const onListening = () => {
-    log(`✓ Server ready on port ${port}`);
-    log(`✓ Health check: http://localhost:${port}/`);
-    if (isDevelopment) {
-      log(`✓ API endpoints: http://localhost:${port}/api/*`);
+    const onListening = () => {
+      log(`✓ Server ready on port ${port}`);
+      log(`✓ Health check: http://localhost:${port}/`);
+      if (isDevelopment) {
+        log(`✓ API endpoints: http://localhost:${port}/api/*`);
+      }
+    };
+
+    // `reusePort` is not supported on all platforms (notably Windows).
+    if (process.platform === "win32") {
+      server.listen(port, host, onListening);
+    } else {
+      server.listen({ port, host, reusePort: true }, onListening);
     }
-  };
 
-  // `reusePort` is not supported on all platforms (notably Windows).
-  if (process.platform === "win32") {
-    server.listen(port, host, onListening);
-  } else {
-    server.listen({ port, host, reusePort: true }, onListening);
-  }
+    // Graceful shutdown
+    const gracefulShutdown = () => {
+      log("Received shutdown signal, closing server gracefully...");
+      server.close(() => {
+        log("Server closed");
+        process.exit(0);
+      });
 
-  // Graceful shutdown
-  const gracefulShutdown = () => {
-    log("Received shutdown signal, closing server gracefully...");
-    server.close(() => {
-      log("Server closed");
-      process.exit(0);
-    });
+      // Force close after 10 seconds
+      setTimeout(() => {
+        log("Forcing shutdown");
+        process.exit(1);
+      }, 10000);
+    };
 
-    // Force close after 10 seconds
-    setTimeout(() => {
-      log("Forcing shutdown");
-      process.exit(1);
-    }, 10000);
-  };
-
-  process.on("SIGTERM", gracefulShutdown);
-  process.on("SIGINT", gracefulShutdown);
+    process.on("SIGTERM", gracefulShutdown);
+    process.on("SIGINT", gracefulShutdown);
   }
 })();
 
