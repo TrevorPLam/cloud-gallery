@@ -34,6 +34,58 @@ const mockAlbums: any[] = [];
 const mockAlbumPhotos: any[] = [];
 const mockPhotos: any[] = [];
 
+// Module-scope mock database object for vi.mock factory
+const mockDb = {
+  select: vi.fn(),
+  insert: vi.fn(),
+  update: vi.fn(),
+  delete: vi.fn(),
+};
+
+// Helper function to rebuild mock chains after clearAllMocks
+function rewireMockDb() {
+  mockDb.select.mockReturnValue({
+    from: vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        orderBy: vi.fn().mockReturnValue(Promise.resolve([...mockAlbums])),
+        limit: vi.fn().mockReturnValue(Promise.resolve([...mockAlbums])),
+        execute: vi.fn().mockReturnValue(Promise.resolve([...mockAlbums])),
+      }),
+      execute: vi.fn().mockReturnValue(Promise.resolve([...mockAlbums])),
+    }),
+  });
+  
+  mockDb.insert.mockReturnValue({
+    values: vi.fn().mockReturnValue({
+      returning: vi.fn().mockImplementation((data) => {
+        const newItem = { ...data, id: data.id || `new-${Date.now()}` };
+        if (data.title) mockAlbums.push(newItem);
+        return Promise.resolve([newItem]);
+      }),
+      execute: vi.fn().mockImplementation((data) => {
+        const newItem = { ...data, id: data.id || `new-${Date.now()}` };
+        if (data.title) mockAlbums.push(newItem);
+        return Promise.resolve([{ id: newItem.id }]);
+      }),
+    }),
+  });
+  
+  mockDb.update.mockReturnValue({
+    set: vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        execute: vi.fn().mockResolvedValue(undefined),
+        returning: vi.fn().mockReturnValue(Promise.resolve([])),
+      }),
+    }),
+  });
+  
+  mockDb.delete.mockReturnValue({
+    where: vi.fn().mockReturnValue({
+      execute: vi.fn().mockResolvedValue(undefined),
+    }),
+  });
+}
+
 // Mock jsonwebtoken to prevent JWT verification errors
 vi.mock('jsonwebtoken', () => ({
   default: {
@@ -69,39 +121,9 @@ vi.mock('./security', () => ({
   JWT_SECRET: 'test_secret',
 }));
 
-// Mock database module with factory function to avoid hoisting issues
+// Mock database module using module-scope mockDb
 vi.mock("./db", () => ({
-  db: {
-    select: vi.fn().mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          orderBy: vi.fn().mockReturnValue(Promise.resolve([])),
-          limit: vi.fn().mockReturnValue(Promise.resolve([])),
-          execute: vi.fn().mockReturnValue(Promise.resolve([])),
-        }),
-        execute: vi.fn().mockReturnValue(Promise.resolve([])),
-      }),
-    }),
-    insert: vi.fn().mockReturnValue({
-      values: vi.fn().mockReturnValue({
-        returning: vi.fn().mockReturnValue(Promise.resolve([{ id: 'test-id' }])),
-        execute: vi.fn().mockReturnValue(Promise.resolve([{ id: 'test-id' }])),
-      }),
-    }),
-    update: vi.fn().mockReturnValue({
-      set: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          execute: vi.fn().mockResolvedValue(undefined),
-          returning: vi.fn().mockReturnValue(Promise.resolve([])),
-        }),
-      }),
-    }),
-    delete: vi.fn().mockReturnValue({
-      where: vi.fn().mockReturnValue({
-        execute: vi.fn().mockResolvedValue(undefined),
-      }),
-    }),
-  },
+  db: mockDb,
 }));
 
 // Mock schema
@@ -167,7 +189,7 @@ vi.mock("./auth", () => ({
 describe("Album Routes", () => {
   let app: express.Application;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     // Reset mock data
     mockAlbums.length = 0;
     mockAlbumPhotos.length = 0;
@@ -178,39 +200,9 @@ describe("Album Routes", () => {
     app.use(express.json());
     app.use("/api/albums", albumRoutes);
 
-    // Reset mocks and setup database behavior
+    // Reset mocks and rebuild chains
     vi.clearAllMocks();
-    
-    // Import mocked db and configure it for this test run
-    const { db } = await import('./db');
-    
-    // Configure select mock to return test data
-    db.select.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          orderBy: vi.fn().mockReturnValue(Promise.resolve([...mockAlbums])),
-          limit: vi.fn().mockReturnValue(Promise.resolve([...mockAlbums])),
-          execute: vi.fn().mockReturnValue(Promise.resolve([...mockAlbums])),
-        }),
-        execute: vi.fn().mockReturnValue(Promise.resolve([...mockAlbums])),
-      }),
-    });
-    
-    // Configure insert mock
-    db.insert.mockReturnValue({
-      values: vi.fn().mockReturnValue({
-        returning: vi.fn().mockImplementation((data) => {
-          const newItem = { ...data, id: data.id || `new-${Date.now()}` };
-          if (data.title) mockAlbums.push(newItem);
-          return Promise.resolve([newItem]);
-        }),
-        execute: vi.fn().mockImplementation((data) => {
-          const newItem = { ...data, id: data.id || `new-${Date.now()}` };
-          if (data.title) mockAlbums.push(newItem);
-          return Promise.resolve([{ id: newItem.id }]);
-        }),
-      }),
-    });
+    rewireMockDb();
   });
 
   afterEach(() => {

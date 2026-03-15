@@ -11,20 +11,74 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import fc from 'fast-check';
 import { StorageUsageService, StorageCategory } from './storage-usage';
-import { db } from '../db';
-import { photos, storageUsage } from '../../shared/schema';
 
-// Mock database for testing
+// Module-scope mock database object
+const mockDb = {
+  select: vi.fn(),
+  insert: vi.fn(),
+  update: vi.fn(),
+  delete: vi.fn(),
+};
+
+// Module-scope mock query builder
+const mockQueryBuilder = {
+  execute: vi.fn(),
+  from: vi.fn(),
+  where: vi.fn(),
+  orderBy: vi.fn(),
+  limit: vi.fn(),
+};
+
+// Helper function to rebuild mock chains
+function rewireMockDb() {
+  mockDb.select.mockReturnValue(mockQueryBuilder);
+  mockDb.insert.mockReturnValue({
+    values: vi.fn().mockReturnValue({
+      returning: vi.fn().mockReturnValue({
+        onConflictDoUpdate: vi.fn().mockReturnValue({
+          set: vi.fn().mockReturnValue({
+            execute: vi.fn().mockResolvedValue(undefined),
+          }),
+        }),
+      }),
+    }),
+  });
+  
+  mockQueryBuilder.from.mockReturnValue(mockQueryBuilder);
+  mockQueryBuilder.where.mockReturnValue(mockQueryBuilder);
+  mockQueryBuilder.orderBy.mockReturnValue(mockQueryBuilder);
+  mockQueryBuilder.limit.mockReturnValue(mockQueryBuilder);
+}
+
+// Mock database using module-scope mockDb
 vi.mock('../db', () => ({
-  db: {
-    select: vi.fn(() => ({
-      from: vi.fn(() => ({
-        where: vi.fn(() => ({
-          execute: vi.fn().mockResolvedValue([]),
-        })),
-        execute: vi.fn().mockResolvedValue([]),
-      })),
-    })),
+  db: mockDb,
+}));
+
+// Mock schema to prevent real imports
+vi.mock('../../shared/schema', () => ({
+  photos: {
+    id: 'id',
+    userId: 'userId',
+    originalSize: 'originalSize',
+    compressedSize: 'compressedSize',
+    isVideo: 'isVideo',
+    deletedAt: 'deletedAt',
+    isFavorite: 'isFavorite',
+    createdAt: 'createdAt',
+    uri: 'uri',
+    filename: 'filename',
+  },
+  storageUsage: {
+    userId: 'userId',
+    category: 'category',
+    bytesUsed: 'bytesUsed',
+    itemCount: 'itemCount',
+    calculatedAt: 'calculatedAt',
+    updatedAt: 'updatedAt',
+  },
+  users: {
+    id: 'id',
   },
 }));
 
@@ -33,6 +87,7 @@ describe('StorageUsageService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    rewireMockDb();
     service = new StorageUsageService();
   });
 
@@ -52,39 +107,23 @@ describe('StorageUsageService', () => {
 
       await fc.assert(
         fc.asyncProperty(arbitraryStorageData, async (data: any) => {
-          // Import mocked db and configure it for this test
-          const { db } = await import('../db');
+          // Queue return values for this specific iteration
+          const photoBytes = data.photos[0]?.bytesUsed || 0;
+          const photoItems = data.photos[0]?.itemCount || 0;
+          const videoBytes = data.videos[0]?.bytesUsed || 0;
+          const videoItems = data.videos[0]?.itemCount || 0;
           
-          // Mock database responses for each category
-          const mockResponse = (category: string, categoryData: any) => {
-            (db.select as any).mockReturnValue({
-              from: vi.fn().mockReturnValue({
-                where: vi.fn().mockReturnValue({
-                  execute: vi.fn().mockResolvedValue([{
-                    bytesUsed: categoryData[0]?.bytesUsed || 0,
-                    itemCount: categoryData[0]?.itemCount || 0
-                  }]),
-                }),
-              }),
-            });
-          };
+          mockQueryBuilder.execute
+            .mockResolvedValueOnce([{ bytesUsed: photoBytes, itemCount: photoItems }])
+            .mockResolvedValueOnce([{ bytesUsed: videoBytes, itemCount: videoItems }])
+            .mockResolvedValueOnce([{ bytesUsed: photoBytes + videoBytes, itemCount: photoItems + videoItems }])
+            .mockResolvedValueOnce([{ bytesUsed: photoBytes + videoBytes, itemCount: photoItems + videoItems }]);
 
-          // Test consistency across categories
-          const totalBytes = data.photos.reduce((sum: number, p: any) => sum + p.bytesUsed, 0) +
-                           data.videos.reduce((sum: number, v: any) => sum + v.bytesUsed, 0);
-          const totalItems = data.photos.reduce((sum: number, p: any) => sum + p.itemCount, 0) +
-                           data.videos.reduce((sum: number, v: any) => sum + v.itemCount, 0);
-
-          // Mock responses for each category
-          mockResponse('photos', data.photos);
           const photosStats = await service.calculateCategoryUsage('user123', 'photos');
-          
-          mockResponse('videos', data.videos);
           const videosStats = await service.calculateCategoryUsage('user123', 'videos');
 
-          // Verify totals match
-          expect(photosStats.bytesUsed + videosStats.bytesUsed).toBe(totalBytes);
-          expect(photosStats.itemCount + videosStats.itemCount).toBe(totalItems);
+          expect(photosStats.bytesUsed + videosStats.bytesUsed).toBe(photoBytes + videoBytes);
+          expect(photosStats.itemCount + videosStats.itemCount).toBe(photoItems + videoItems);
         }),
         { numRuns: 50 }
       );
@@ -100,7 +139,6 @@ describe('StorageUsageService', () => {
 
       await fc.assert(
         fc.asyncProperty(arbitraryUsageData, async (data) => {
-          // Mock database response for total and category
           mockQueryBuilder.execute
             .mockResolvedValueOnce([{ bytesUsed: data.totalBytes, itemCount: 100 }])
             .mockResolvedValueOnce([{ bytesUsed: data.categoryBytes, itemCount: 50 }]);
@@ -133,7 +171,7 @@ describe('StorageUsageService', () => {
               isVideo: false,
             }));
 
-          mockQueryBuilder.execute.mockResolvedValue(mockLargeFiles);
+          mockQueryBuilder.execute.mockResolvedValueOnce(mockLargeFiles);
 
           const breakdown = await service.getStorageBreakdown('user123');
           
@@ -163,7 +201,7 @@ describe('StorageUsageService', () => {
             compressedCount: 1,
           }];
 
-          mockQueryBuilder.execute.mockResolvedValue(mockStats);
+          mockQueryBuilder.execute.mockResolvedValueOnce(mockStats);
 
           const breakdown = await service.getStorageBreakdown('user123');
           
@@ -219,7 +257,7 @@ describe('StorageUsageService', () => {
 
   describe('Edge Cases', () => {
     it('should handle empty storage gracefully', async () => {
-      mockQueryBuilder.execute.mockResolvedValue([{ bytesUsed: 0, itemCount: 0 }]);
+      mockQueryBuilder.execute.mockResolvedValueOnce([{ bytesUsed: 0, itemCount: 0 }]);
 
       const stats = await service.calculateCategoryUsage('user123', 'photos');
       
@@ -235,7 +273,7 @@ describe('StorageUsageService', () => {
         compressedCount: 0,
       }];
 
-      mockQueryBuilder.execute.mockResolvedValue(mockStats);
+      mockQueryBuilder.execute.mockResolvedValueOnce(mockStats);
 
       const breakdown = await service.getStorageBreakdown('user123');
       

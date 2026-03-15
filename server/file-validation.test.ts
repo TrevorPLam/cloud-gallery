@@ -45,17 +45,17 @@ describe("File Validation", () => {
 
     it("should reject files that exceed size limits", async () => {
       // Create a large PNG buffer (PNG magic bytes + lots of data)
-      // Use a smaller size to avoid timeout while still testing the limit
+      // Use a much larger size to definitely exceed limits
       const largeBuffer = Buffer.concat([
         Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-        Buffer.alloc(2 * 1024 * 1024, 0), // 2MB of zeros (still exceeds typical limits)
+        Buffer.alloc(50 * 1024 * 1024, 0), // 50MB of zeros (definitely exceeds limits)
       ]);
 
       const result = await validateFile(largeBuffer, "large.png");
 
       expect(result.isValid).toBe(false);
       expect(result.errors.some(err => err.includes("exceeds limit"))).toBe(true);
-    }, 10000); // Increase timeout to 10 seconds
+    }, 30000); // Increase timeout to 30 seconds for large buffer
 
     it("should detect malicious content in text files", async () => {
       // Create a simple text buffer that will be detected

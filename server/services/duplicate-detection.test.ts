@@ -19,7 +19,49 @@ import {
   DuplicateDetectionConfig,
 } from './duplicate-detection';
 
-// Mock the database to prevent connection errors
+// Module-scope mock database object
+const mockDb = {
+  select: vi.fn(),
+  insert: vi.fn(),
+  update: vi.fn(),
+  delete: vi.fn(),
+};
+
+// Helper function to rebuild mock chains
+function rewireMockDb() {
+  mockDb.select.mockReturnValue({
+    from: vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        orderBy: vi.fn().mockReturnValue({
+          limit: vi.fn().mockReturnValue(Promise.resolve([])),
+        }),
+      }),
+    }),
+  });
+  
+  mockDb.insert.mockReturnValue({
+    values: vi.fn().mockReturnValue({
+      returning: vi.fn().mockReturnValue(Promise.resolve([{ id: 'test-id' }])),
+    }),
+  });
+  
+  mockDb.update.mockReturnValue({
+    set: vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        execute: vi.fn().mockResolvedValue(undefined),
+        returning: vi.fn().mockResolvedValue([]),
+      }),
+    }),
+  });
+  
+  mockDb.delete.mockReturnValue({
+    where: vi.fn().mockReturnValue({
+      execute: vi.fn().mockResolvedValue(undefined),
+    }),
+  });
+}
+
+// Mock database using factory function to avoid hoisting issues
 vi.mock('../db', () => ({
   db: {
     select: vi.fn().mockReturnValue({
@@ -40,6 +82,7 @@ vi.mock('../db', () => ({
       set: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
           execute: vi.fn().mockResolvedValue(undefined),
+          returning: vi.fn().mockResolvedValue([]),
         }),
       }),
     }),
@@ -249,8 +292,11 @@ describe('Duplicate Detection Service - Unit Tests', () => {
 
   describe('findDuplicatePhotos - Integration Tests', () => {
     beforeEach(() => {
+      vi.clearAllMocks();
+      
       // Setup mock database to return empty results
-      mockDb.select.mockReturnValue({
+      const { db } = require('../db');
+      db.select.mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
             orderBy: vi.fn().mockResolvedValue([]),
@@ -280,15 +326,18 @@ describe('Duplicate Detection Service - Unit Tests', () => {
 
   describe('resolveDuplicateGroups - Integration Tests', () => {
     beforeEach(() => {
+      vi.clearAllMocks();
+      
       // Setup mock database for resolve operations
-      mockDb.select.mockReturnValue({
+      const { db } = require('../db');
+      db.select.mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
             orderBy: vi.fn().mockResolvedValue([]),
           }),
         }),
       });
-      mockDb.update.mockReturnValue({
+      db.update.mockReturnValue({
         set: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
             returning: vi.fn().mockResolvedValue([]),

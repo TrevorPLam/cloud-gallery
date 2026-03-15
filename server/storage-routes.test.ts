@@ -13,74 +13,105 @@ import request from 'supertest';
 import express from 'express';
 import storageRoutes from './storage-routes';
 
-// Mock dependencies with proper mock methods using factory pattern
-vi.mock('./services/storage-usage', () => ({
-  storageUsageService: {
-    getStorageBreakdown: vi.fn().mockResolvedValue({
-      totalBytesUsed: 1000000,
-      totalItemCount: 50,
-      storageLimit: 5000000,
-      categories: [
-        { category: 'photos', bytesUsed: 800000, itemCount: 40, percentage: 80, calculatedAt: new Date() },
-        { category: 'videos', bytesUsed: 200000, itemCount: 10, percentage: 20, calculatedAt: new Date() },
-      ],
-      largeFiles: [],
-      compressionStats: {
-        originalTotal: 1000000,
-        compressedTotal: 800000,
-        compressionRatio: 1.25,
-        compressedCount: 30,
-      },
+// Module-scope mock storage service
+const mockStorageService = {
+  getStorageBreakdown: vi.fn(),
+  isNearStorageLimit: vi.fn(),
+  getStorageRecommendations: vi.fn(),
+  getLargeFiles: vi.fn(),
+  compressPhotos: vi.fn(),
+  freeUpSpace: vi.fn(),
+  updateStorageUsage: vi.fn(),
+  getFilesForCleanup: vi.fn(),
+  getCompressionCandidates: vi.fn(),
+};
+
+// Module-scope mock authenticateToken
+const mockAuthenticateToken = vi.fn((req: any, res: any, next: any) => {
+  req.user = { id: 'test-user-id', email: 'test@example.com' };
+  next();
+});
+
+// Module-scope mock database
+const mockDb = {
+  select: vi.fn(),
+  insert: vi.fn(),
+  update: vi.fn(),
+  delete: vi.fn(),
+};
+
+// Helper function to rebuild mock chains
+function rewireMockDb() {
+  mockDb.select.mockReturnValue({
+    from: vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        execute: vi.fn().mockResolvedValue([]),
+      }),
     }),
-    isNearStorageLimit: vi.fn(),
-    getStorageRecommendations: vi.fn(),
-    getLargeFiles: vi.fn(),
-    compressPhotos: vi.fn(),
-    freeUpSpace: vi.fn(),
-    updateStorageUsage: vi.fn(),
-    getFilesForCleanup: vi.fn(),
-    getCompressionCandidates: vi.fn(),
-  },
+  });
+  
+  mockDb.insert.mockReturnValue({
+    values: vi.fn().mockReturnValue({
+      returning: vi.fn().mockResolvedValue([{ id: 'test-id' }]),
+    }),
+  });
+  
+  mockDb.update.mockReturnValue({
+    set: vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        execute: vi.fn().mockResolvedValue(undefined),
+      }),
+    }),
+  });
+}
+
+// Mock storage service using module-scope mockStorageService
+vi.mock('./services/storage-usage', () => ({
+  storageUsageService: mockStorageService,
   StorageUsageService: vi.fn(),
   StorageCategory: {},
 }));
 
+// Mock database using module-scope mockDb
 vi.mock('./db', () => ({
-  db: {
-    select: vi.fn().mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          execute: vi.fn().mockResolvedValue([]),
-        }),
-      }),
-    }),
-    insert: vi.fn().mockReturnValue({
-      values: vi.fn().mockReturnValue({
-        returning: vi.fn().mockResolvedValue([{ id: 'test-id' }]),
-      }),
-    }),
-    update: vi.fn().mockReturnValue({
-      set: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          execute: vi.fn().mockResolvedValue(undefined),
-        }),
-      }),
-    }),
-  },
+  db: mockDb,
 }));
 
+// Mock auth using module-scope mockAuthenticateToken
 vi.mock('./auth', () => ({
-  authenticateToken: vi.fn((req: any, res: any, next: any) => {
-    req.user = { id: 'test-user-id', email: 'test@example.com' };
-    next();
-  }),
+  authenticateToken: mockAuthenticateToken,
 }));
+
+// Base mock breakdown for tests
+const baseBreakdown = {
+  totalBytesUsed: 1000000,
+  totalItemCount: 50,
+  storageLimit: 5000000,
+  categories: [
+    { category: 'photos', bytesUsed: 800000, itemCount: 40, percentage: 80, calculatedAt: new Date() },
+    { category: 'videos', bytesUsed: 200000, itemCount: 10, percentage: 20, calculatedAt: new Date() },
+  ],
+  largeFiles: [],
+  compressionStats: {
+    originalTotal: 1000000,
+    compressedTotal: 800000,
+    compressionRatio: 1.25,
+    compressedCount: 30,
+  },
+};
 
 describe('Storage Routes Integration Tests', () => {
   let app: express.Application;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    rewireMockDb();
+    
+    // Set default mock returns
+    mockStorageService.getStorageBreakdown.mockResolvedValue(baseBreakdown);
+    mockStorageService.updateStorageUsage.mockResolvedValue(undefined);
+    mockStorageService.isNearStorageLimit.mockResolvedValue(false);
+    
     app = express();
     app.use(express.json());
     app.use('/api/storage', storageRoutes);
@@ -109,8 +140,7 @@ describe('Storage Routes Integration Tests', () => {
         },
       };
 
-      const { storageUsageService } = require('./services/storage-usage');
-      storageUsageService.getStorageBreakdown.mockResolvedValue(mockBreakdown);
+      mockStorageService.getStorageBreakdown.mockResolvedValue(mockBreakdown);
 
       const response = await request(app)
         .get('/api/storage/usage')
@@ -121,12 +151,11 @@ describe('Storage Routes Integration Tests', () => {
         data: mockBreakdown,
       });
 
-      expect(storageUsageService.getStorageBreakdown).toHaveBeenCalledWith('test-user-id');
+      expect(mockStorageService.getStorageBreakdown).toHaveBeenCalledWith('test-user-id');
     });
 
     it('should handle errors gracefully', async () => {
-      const { storageUsageService } = require('./services/storage-usage');
-      storageUsageService.getStorageBreakdown.mockRejectedValue(new Error('Database error'));
+      mockStorageService.getStorageBreakdown.mockRejectedValue(new Error('Database error'));
 
       const response = await request(app)
         .get('/api/storage/usage')
@@ -141,8 +170,7 @@ describe('Storage Routes Integration Tests', () => {
 
   describe('POST /api/storage/update', () => {
     it('should update storage usage successfully', async () => {
-      const { storageUsageService } = require('./services/storage-usage');
-      storageUsageService.updateStorageUsage.mockResolvedValue(undefined);
+      mockStorageService.updateStorageUsage.mockResolvedValue(undefined);
 
       const response = await request(app)
         .post('/api/storage/update')
@@ -153,12 +181,11 @@ describe('Storage Routes Integration Tests', () => {
         message: 'Storage usage updated successfully',
       });
 
-      expect(storageUsageService.updateStorageUsage).toHaveBeenCalledWith('test-user-id');
+      expect(mockStorageService.updateStorageUsage).toHaveBeenCalledWith('test-user-id');
     });
 
     it('should handle update errors', async () => {
-      const { storageUsageService } = require('./services/storage-usage');
-      storageUsageService.updateStorageUsage.mockRejectedValue(new Error('Update failed'));
+      mockStorageService.updateStorageUsage.mockRejectedValue(new Error('Update failed'));
 
       const response = await request(app)
         .post('/api/storage/update')
@@ -173,15 +200,13 @@ describe('Storage Routes Integration Tests', () => {
 
   describe('POST /api/storage/free-up', () => {
     it('should free up space with old-photos strategy', async () => {
-      const { storageUsageService } = require('./services/storage-usage');
-      storageUsageService.getFilesForCleanup.mockResolvedValue(['photo1', 'photo2', 'photo3']);
+      mockStorageService.getFilesForCleanup.mockResolvedValue(['photo1', 'photo2', 'photo3']);
 
       // Mock database operations
-      const { db } = require('./db');
-      db.select.mockReturnValue({
+      mockDb.select.mockReturnValue({
         execute: vi.fn().mockResolvedValue([{ originalSize: 1000000 }])
       });
-      db.update.mockReturnValue({
+      mockDb.update.mockReturnValue({
         where: vi.fn().mockReturnValue({
           execute: vi.fn().mockResolvedValue(undefined)
         })
@@ -198,11 +223,9 @@ describe('Storage Routes Integration Tests', () => {
     });
 
     it('should handle dry run mode', async () => {
-      const { storageUsageService } = require('./services/storage-usage');
-      storageUsageService.getFilesForCleanup.mockResolvedValue(['photo1', 'photo2']);
+      mockStorageService.getFilesForCleanup.mockResolvedValue(['photo1', 'photo2']);
 
-      const { db } = require('./db');
-      db.select.mockReturnValue({
+      mockDb.select.mockReturnValue({
         execute: vi.fn().mockResolvedValue([{ originalSize: 500000 }])
       });
 
@@ -225,14 +248,13 @@ describe('Storage Routes Integration Tests', () => {
 
   describe('POST /api/storage/compress', () => {
     it('should compress photos successfully', async () => {
-      const { db } = require('./db');
-      db.select.mockReturnValue({
+      mockDb.select.mockReturnValue({
         execute: vi.fn().mockResolvedValue([
           { id: 'photo1', uri: '/path/photo1.jpg', originalSize: 1000000 },
           { id: 'photo2', uri: '/path/photo2.jpg', originalSize: 2000000 },
         ])
       });
-      db.update.mockReturnValue({
+      mockDb.update.mockReturnValue({
         where: vi.fn().mockReturnValue({
           execute: vi.fn().mockResolvedValue(undefined)
         })
@@ -250,13 +272,12 @@ describe('Storage Routes Integration Tests', () => {
     });
 
     it('should compress specific photos when photoIds provided', async () => {
-      const { db } = require('./db');
-      db.select.mockReturnValue({
+      mockDb.select.mockReturnValue({
         execute: vi.fn().mockResolvedValue([
           { id: 'photo1', uri: '/path/photo1.jpg', originalSize: 1000000 },
         ])
       });
-      db.update.mockReturnValue({
+      mockDb.update.mockReturnValue({
         where: vi.fn().mockReturnValue({
           execute: vi.fn().mockResolvedValue(undefined)
         })
@@ -271,13 +292,12 @@ describe('Storage Routes Integration Tests', () => {
     });
 
     it('should handle compression errors per photo', async () => {
-      const { db } = require('./db');
-      db.select.mockReturnValue({
+      mockDb.select.mockReturnValue({
         execute: vi.fn().mockResolvedValue([
           { id: 'photo1', uri: '/path/photo1.jpg', originalSize: 1000000 },
         ])
       });
-      db.update.mockReturnValue({
+      mockDb.update.mockReturnValue({
         where: vi.fn().mockReturnValue({
           execute: vi.fn().mockRejectedValue(new Error('Compression failed'))
         })
@@ -301,8 +321,7 @@ describe('Storage Routes Integration Tests', () => {
         ],
       };
 
-      const { storageUsageService } = require('./services/storage-usage');
-      storageUsageService.getStorageBreakdown.mockResolvedValue(mockBreakdown);
+      mockStorageService.getStorageBreakdown.mockResolvedValue(mockBreakdown);
 
       const response = await request(app)
         .get('/api/storage/large-files')
@@ -321,8 +340,7 @@ describe('Storage Routes Integration Tests', () => {
         ],
       };
 
-      const { storageUsageService } = require('./services/storage-usage');
-      storageUsageService.getStorageBreakdown.mockResolvedValue(mockBreakdown);
+      mockStorageService.getStorageBreakdown.mockResolvedValue(mockBreakdown);
 
       const response = await request(app)
         .get('/api/storage/large-files?threshold=20000000')
@@ -353,9 +371,8 @@ describe('Storage Routes Integration Tests', () => {
         },
       };
 
-      const { storageUsageService } = require('./services/storage-usage');
-      storageUsageService.getStorageBreakdown.mockResolvedValue(mockBreakdown);
-      storageUsageService.isNearStorageLimit.mockResolvedValue(true);
+      mockStorageService.getStorageBreakdown.mockResolvedValue(mockBreakdown);
+      mockStorageService.isNearStorageLimit.mockResolvedValue(true);
 
       const response = await request(app)
         .get('/api/storage/status')
@@ -385,9 +402,8 @@ describe('Storage Routes Integration Tests', () => {
         },
       };
 
-      const { storageUsageService } = require('./services/storage-usage');
-      storageUsageService.getStorageBreakdown.mockResolvedValue(mockBreakdown);
-      storageUsageService.isNearStorageLimit.mockResolvedValue(false);
+      mockStorageService.getStorageBreakdown.mockResolvedValue(mockBreakdown);
+      mockStorageService.isNearStorageLimit.mockResolvedValue(false);
 
       const response = await request(app)
         .get('/api/storage/status')
@@ -401,11 +417,8 @@ describe('Storage Routes Integration Tests', () => {
 
   describe('Authentication', () => {
     it('should require authentication for all endpoints', async () => {
-      // Temporarily disable auth mock
-      vi.doUnmock('./auth');
-      
-      const { authenticateToken } = require('./auth');
-      authenticateToken.mockImplementation((req: any, res: any, next: any) => {
+      // Override the mockAuthenticateToken to reject requests
+      mockAuthenticateToken.mockImplementation((req: any, res: any, next: any) => {
         res.status(401).json({ error: 'User not authenticated' });
       });
 
@@ -427,13 +440,11 @@ describe('Storage Routes Integration Tests', () => {
         }
       }
 
-      // Restore auth mock
-      vi.doMock('./auth', () => ({
-        authenticateToken: (req: any, res: any, next: any) => {
-          req.user = { id: 'test-user-id' };
-          next();
-        },
-      }));
+      // Restore the original mock behavior
+      mockAuthenticateToken.mockImplementation((req: any, res: any, next: any) => {
+        req.user = { id: 'test-user-id', email: 'test@example.com' };
+        next();
+      });
     });
   });
 });

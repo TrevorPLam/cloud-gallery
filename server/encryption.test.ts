@@ -89,7 +89,7 @@ describe("Encryption Utilities", () => {
 
       expect(() => {
         decrypt(tampered, testKey);
-      }).toThrow();
+      }).toThrow(Error);
     });
   });
 
