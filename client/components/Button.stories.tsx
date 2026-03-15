@@ -8,7 +8,7 @@
 
 import type { Meta, StoryObj } from '@storybook/react';
 import { Button } from './Button';
-import { createVisualTest, visualTestPatterns } from '../test-utils/visual-testing';
+import { visualTestPatterns } from '../test-utils/visual-testing';
 
 // Mock Storybook configuration for React Native
 const meta: Meta<typeof Button> = {

@@ -1,0 +1,26 @@
+{
+  "projectToken": "chpt_project_token_placeholder",
+  "buildScriptName": "expo:static:build",
+  "onlyChanged": true,
+  "externals": [
+    "public/**",
+    "assets/**"
+  ],
+  "skip": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.stories.tsx"
+  ],
+  "storybookConfigDir": ".storybook",
+  "exitZeroOnChanges": false,
+  "exitOnceUploaded": true,
+  "autoAcceptChanges": false,
+  "untraced": [
+    "**/node_modules/**"
+  ],
+  "ignore": [
+    "**/coverage/**",
+    "**/dist/**",
+    "**/build/**"
+  ]
+}

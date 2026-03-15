@@ -64,6 +64,19 @@ jobs:
         path: coverage/
         retention-days: 30
 
+    - name: Build Storybook for visual testing
+      run: npm run build-storybook
+
+    - name: Run visual tests (Chromatic)
+      if: github.event_name == 'pull_request'
+      uses: chromaui/action@latest
+      with:
+        projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+        buildScriptName: build-storybook
+        exitZeroOnChanges: true # Don't fail PRs on visual changes
+        exitOnceUploaded: true
+        onlyChanged: true
+
     - name: Comment coverage on PR
       if: github.event_name == 'pull_request'
       uses: actions/github-script@v7

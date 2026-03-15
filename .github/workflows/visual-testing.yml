@@ -1,0 +1,86 @@
+name: Visual Testing
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+# Security: Use minimal permissions by default
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  chromatic:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      with:
+        persist-credentials: false
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build Expo static build
+      run: npm run expo:static:build
+
+    - name: Build Storybook
+      run: npm run build-storybook
+
+    - name: Run Chromatic
+      uses: chromaui/action@latest
+      with:
+        projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+        buildScriptName: build-storybook
+        exitZeroOnChanges: false
+        exitOnceUploaded: true
+        onlyChanged: true
+
+    - name: Comment visual test results on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { data: runs } = await github.rest.actions.listWorkflowRuns({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            workflow_id: '.github/workflows/visual-testing.yml',
+            per_page: 1,
+          });
+          
+          if (runs.workflow_runs.length > 0) {
+            const run = runs.workflow_runs[0];
+            const status = run.conclusion === 'success' ? '✅' : '❌';
+            
+            const comment = `## Visual Test Results ${status}
+            
+            **Status**: ${run.conclusion || 'in_progress'}
+            
+            **View Results**: [Chromatic Dashboard](https://www.chromatic.com/builds)
+            
+            **Build**: #${run.run_number}
+            
+            ---
+            
+            *Visual regression testing powered by Chromatic*`;
+
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+          }

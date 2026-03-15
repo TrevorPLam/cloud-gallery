@@ -208,17 +208,17 @@ export const captureWebScreenshot = async (url: string, selector: string) => {
 ### Chromatic Configuration
 
 ```json
-// package.json
+// .chromaticrc.json
 {
-  "scripts": {
-    "test:visual": "chromatic --build-script-name expo:static:build",
-    "test:visual:ci": "chromatic --exit-zero-on-changes"
-  },
-  "chromatic": {
-    "projectToken": "your-project-token",
-    "buildScriptName": "expo:static:build",
-    "exitZeroOnChanges": true
-  }
+  "projectToken": "chpt_project_token_placeholder",
+  "buildScriptName": "expo:static:build",
+  "onlyChanged": true,
+  "externals": ["public/**", "assets/**"],
+  "skip": ["**/*.test.ts", "**/*.test.tsx", "**/*.stories.tsx"],
+  "storybookConfigDir": ".storybook",
+  "exitZeroOnChanges": false,
+  "exitOnceUploaded": true,
+  "autoAcceptChanges": false
 }
 ```
 
@@ -230,12 +230,21 @@ export default {
   stories: ['../client/**/*.stories.@(js|jsx|ts|tsx)'],
   addons: [
     '@storybook/addon-essentials',
-    '@storybook/addon-a11y',
-    '@chromatic-com/storybook',
+    '@storybook/addon-interactions',
+    '@storybook/addon-viewport',
   ],
   framework: {
-    name: '@storybook/react-webpack5',
+    name: '@storybook/react-vite',
     options: {},
+  },
+  viteFinal: async (config) => {
+    // Configure for React Native Web compatibility
+    config.resolve = config.resolve || {};
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'react-native': 'react-native-web',
+    };
+    return config;
   },
 };
 ```
@@ -325,22 +334,29 @@ export const AndroidVariant: Story = {
 ### GitHub Actions
 
 ```yaml
-# .github/workflows/visual-tests.yml
-name: Visual Tests
+# .github/workflows/visual-testing.yml
+name: Visual Testing
 on: [push, pull_request]
 
 jobs:
-  visual-tests:
+  chromatic:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
       - run: npm ci
       - run: npm run expo:static:build
-      - uses: chromatic-com/action@v1
+      - run: npm run build-storybook
+      - uses: chromaui/action@latest
         with:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
-          buildScriptName: expo:static:build
+          buildScriptName: build-storybook
+          exitZeroOnChanges: false
+          exitOnceUploaded: true
+          onlyChanged: true
 ```
 
 ### Review Process
