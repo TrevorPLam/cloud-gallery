@@ -21,6 +21,7 @@ import smartAlbumRoutes from "./smart-album-routes";
 import memoryRoutes from "./memory-routes";
 import faceRoutes from "./face-routes";
 import sharingRoutes from "./sharing-routes";
+import publicRoutes from "./public-routes";
 import { authenticateToken, generalRateLimit } from "./auth";
 
 // AI-NOTE: Currently empty route registration; designed for expansion with /api prefixed routes
@@ -60,6 +61,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Sharing routes (with authentication)
   app.use("/api/sharing", sharingRoutes);
+
+  // Public routes (anonymous access - no authentication required)
+  app.use("/public", publicRoutes);
 
   // Example protected route
   app.get("/api/protected", authenticateToken, (req, res) => {

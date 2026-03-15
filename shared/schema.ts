@@ -378,6 +378,19 @@ export const sharedAlbums = pgTable("shared_albums", {
   // Is this share currently active?
   isActive: boolean("is_active").default(true).notNull(),
 
+  // Public link specific settings
+  // Allow downloads from public link
+  allowDownload: boolean("allow_download").default(true).notNull(),
+
+  // Show photo metadata in public view
+  showMetadata: boolean("show_metadata").default(false).notNull(),
+
+  // Custom title for public view (overrides album title)
+  customTitle: varchar("custom_title", { length: 255 }),
+
+  // Custom description for public view
+  customDescription: text("custom_description"),
+
   // Timestamps
   createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
     .defaultNow()
