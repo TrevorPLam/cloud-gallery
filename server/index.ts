@@ -422,21 +422,23 @@ function setupErrorHandler(app: express.Application) {
 
 // Main server bootstrap
 (async () => {
-  log("Starting Cloud Gallery server...");
-  log(`Environment: ${process.env.NODE_ENV || "development"}`);
+  // Only start server if not in test mode
+  if (process.env.NODE_ENV !== 'test') {
+    log("Starting Cloud Gallery server...");
+    log(`Environment: ${process.env.NODE_ENV || "development"}`);
 
-  // CRITICAL: Middleware order matters!
-  // 1. Request ID for correlation (first, so all logs have it)
-  app.use(requestId());
+    // CRITICAL: Middleware order matters!
+    // 1. Request ID for correlation (first, so all logs have it)
+    app.use(requestId());
 
-  // 2. Security headers (early, affects all responses)
-  setupSecurityHeaders(app);
+    // 2. Security headers (early, affects all responses)
+    setupSecurityHeaders(app);
 
-  // 3. CORS (before body parsing)
-  setupCors(app);
+    // 3. CORS (before body parsing)
+    setupCors(app);
 
-  // 4. Rate limiting (before expensive operations)
-  setupRateLimiting(app);
+    // 4. Rate limiting (before expensive operations)
+    setupRateLimiting(app);
 
   // 5. Body parsing with limits
   setupBodyParsing(app);
@@ -453,7 +455,7 @@ function setupErrorHandler(app: express.Application) {
   // 9. Error handler (MUST BE LAST)
   setupErrorHandler(app);
 
-  // Start server
+  // Start server only if not in test mode
   const port = parseInt(process.env.PORT || "5000", 10);
   const host = process.env.HOST || "0.0.0.0";
 
@@ -489,4 +491,23 @@ function setupErrorHandler(app: express.Application) {
 
   process.on("SIGTERM", gracefulShutdown);
   process.on("SIGINT", gracefulShutdown);
+  }
 })();
+
+// Export app for testing
+export { app };
+
+// Setup middleware for testing
+export async function setupTestApp() {
+  // Set up middleware for testing (skip rate limiting)
+  app.use(requestId());
+  setupSecurityHeaders(app);
+  setupCors(app);
+  // setupRateLimiting(app); // Skip rate limiting for tests
+  setupBodyParsing(app);
+  setupRequestLogging(app);
+  configureExpoAndLanding(app);
+  await registerRoutes(app);
+  setupErrorHandler(app);
+  return app;
+}

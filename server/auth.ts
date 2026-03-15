@@ -109,13 +109,15 @@ export const authRateLimit = rateLimit({
   legacyHeaders: false,
 });
 
-export const generalRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: {
-    error: "Too many requests",
-    message: "Please try again later",
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+export const generalRateLimit = process.env.NODE_ENV === 'test' 
+  ? (req: Request, res: Response, next: NextFunction) => next() // No-op during tests
+  : rateLimit({
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      max: 100, // Limit each IP to 100 requests per windowMs
+      message: {
+        error: "Too many requests",
+        message: "Please try again later",
+      },
+      standardHeaders: true,
+      legacyHeaders: false,
+    });

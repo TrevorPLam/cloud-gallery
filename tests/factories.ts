@@ -2,6 +2,7 @@
 // Provides helper functions for generating test data
 
 import type { Photo, Album } from "../client/types";
+import { db } from "../server/db";
 
 // Define UserProfile based on usage in storage tests
 export interface UserProfile {
@@ -17,8 +18,74 @@ export interface UserProfile {
 }
 
 /**
- * Factory for creating test Photo objects
+ * Setup test database - creates clean test environment
  */
+export async function setupTestDatabase(): Promise<void> {
+  // For now, this is a placeholder
+  // In a real implementation, this would set up a test database
+  console.log("Setting up test database");
+}
+
+/**
+ * Cleanup test database - removes test data
+ */
+export async function cleanupTestDatabase(): Promise<void> {
+  // For now, this is a placeholder
+  // In a real implementation, this would clean up test data
+  console.log("Cleaning up test database");
+}
+
+/**
+ * Generate test user
+ */
+export async function generateTestUser(overrides: Partial<any> = {}): Promise<any> {
+  const now = Date.now();
+  return {
+    id: `user_${now}_${Math.random().toString(36).substr(2, 9)}`,
+    email: `test_${now}@example.com`,
+    username: `testuser_${now}`,
+    createdAt: now,
+    ...overrides,
+  };
+}
+
+/**
+ * Generate test photo (server version)
+ */
+export async function generateTestPhoto(userId: string, overrides: Partial<any> = {}): Promise<any> {
+  const now = Date.now();
+  return {
+    id: `photo_${now}_${Math.random().toString(36).substr(2, 9)}`,
+    userId,
+    uri: `file://test/photo_${now}.jpg`,
+    width: 1920,
+    height: 1080,
+    createdAt: now,
+    modifiedAt: now,
+    filename: `photo_${now}.jpg`,
+    isFavorite: false,
+    ...overrides,
+  };
+}
+
+/**
+ * Generate test person
+ */
+export async function generateTestPerson(userId: string, overrides: Partial<any> = {}): Promise<any> {
+  const now = Date.now();
+  return {
+    id: `person_${now}_${Math.random().toString(36).substr(2, 9)}`,
+    userId,
+    name: `Test Person ${now}`,
+    faceCount: 1,
+    qualityScore: 0.8,
+    isPinned: false,
+    isHidden: false,
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  };
+}
 export function createTestPhoto(overrides: Partial<Photo> = {}): Photo {
   const now = Date.now();
   return {

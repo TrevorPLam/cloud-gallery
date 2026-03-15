@@ -114,7 +114,7 @@ describe('SearchService', () => {
                   orderBy: vi.fn(() => ({
                     limit: vi.fn(() => ({
                       offset: vi.fn(() => Promise.resolve([]))
-                    }))
+                    }))))
                   }))
                 };
               }))
@@ -151,7 +151,7 @@ describe('SearchService', () => {
                   limit: vi.fn(() => ({
                     offset: vi.fn(() => Promise.resolve(mockPhotos))
                   }))
-                }))
+                }
               }))
             }))
           }));
@@ -198,7 +198,7 @@ describe('SearchService', () => {
                       offset: vi.fn(() => Promise.resolve(
                         mockPhotos.filter(p => p.mlLabels?.includes(filter))
                       ))
-                    }))
+                    }))))
                   }))
                 };
               }))

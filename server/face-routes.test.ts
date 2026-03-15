@@ -10,7 +10,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import request from "supertest";
-import { app } from "./app";
+import { setupTestApp } from "./index";
 import { db } from "./db";
 import { users, photos, faces, people } from "../shared/schema";
 import { eq } from "drizzle-orm";
@@ -23,12 +23,14 @@ import {
 } from "../tests/factories";
 
 describe("Face Recognition API", () => {
+  let app: any;
   let testUser: any;
   let authToken: string;
   let testPhoto: any;
   let testPerson: any;
 
   beforeEach(async () => {
+    app = await setupTestApp();
     await setupTestDatabase();
 
     // Create test user

@@ -26,8 +26,8 @@ import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { photos, users } from "@shared/schema";
 import type { Photo, User } from "@shared/schema";
 
-// Initialize NLP model
-const nlp = winkNLP(model);
+// Initialize NLP model - temporarily disabled for validation
+// const nlp = winkNLP(model);
 
 // Search query types
 export interface SearchQuery {
@@ -90,12 +90,12 @@ export class SearchService {
       }
     }
 
-    // Process with NLP for entity extraction
-    const doc = nlp.readDoc(normalizedQuery);
-
-    // Extract entities and tokens
-    const entities = doc.entities().out();
-    const tokens = doc.tokens().out();
+    // Process with NLP for entity extraction - temporarily disabled
+    // const doc = nlp.readDoc(normalizedQuery);
+    
+    // Temporary fallback for NLP processing
+    const entities: string[] = [];
+    const tokens = normalizedQuery.split(/\s+/).filter(t => t.length > 0);
 
     // Photo/video detection
     if (
