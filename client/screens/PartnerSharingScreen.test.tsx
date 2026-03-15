@@ -9,7 +9,12 @@
 // AI-META-END
 
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react-native";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/hooks/useTheme";
 import PartnerSharingScreen from "../PartnerSharingScreen";
@@ -65,7 +70,7 @@ const createTestQueryClient = () => {
 // Helper component with providers
 const TestComponent = () => {
   const queryClient = createTestQueryClient();
-  
+
   return (
     <QueryClientProvider client={queryClient}>
       <MockThemeProvider>
@@ -110,7 +115,9 @@ describe("PartnerSharingScreen", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Partner Sharing")).toBeTruthy();
-      expect(screen.getByText("Share photos automatically with your partner")).toBeTruthy();
+      expect(
+        screen.getByText("Share photos automatically with your partner"),
+      ).toBeTruthy();
       expect(screen.getByText("Invite Partner")).toBeTruthy();
       expect(screen.getByText("Accept Invitation")).toBeTruthy();
     });
@@ -240,7 +247,11 @@ describe("PartnerSharingScreen", () => {
 
     await waitFor(() => {
       expect(screen.getByText("No Partners Yet")).toBeTruthy();
-      expect(screen.getByText("Invite a partner to start sharing photos automatically.")).toBeTruthy();
+      expect(
+        screen.getByText(
+          "Invite a partner to start sharing photos automatically.",
+        ),
+      ).toBeTruthy();
     });
   });
 
@@ -275,7 +286,9 @@ describe("PartnerSharingScreen", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Invite Partner")).toBeTruthy(); // Modal title
-      expect(screen.getByText("Enter your partner's email address")).toBeTruthy();
+      expect(
+        screen.getByText("Enter your partner's email address"),
+      ).toBeTruthy();
       expect(screen.getByText("Cancel")).toBeTruthy();
       expect(screen.getByText("Send")).toBeTruthy();
     });
@@ -311,7 +324,9 @@ describe("PartnerSharingScreen", () => {
     fireEvent.press(screen.getByText("Cancel"));
 
     await waitFor(() => {
-      expect(screen.queryByText("Enter your partner's email address")).toBeFalsy();
+      expect(
+        screen.queryByText("Enter your partner's email address"),
+      ).toBeFalsy();
     });
   });
 
@@ -358,13 +373,16 @@ describe("PartnerSharingScreen", () => {
     });
 
     await waitFor(() => {
-      expect(apiRequest).toHaveBeenCalledWith("/api/partner-sharing/invitations", {
-        method: "POST",
-        body: JSON.stringify({
-          inviteeEmail: "partner@example.com",
-          message: undefined,
-        }),
-      });
+      expect(apiRequest).toHaveBeenCalledWith(
+        "/api/partner-sharing/invitations",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            inviteeEmail: "partner@example.com",
+            message: undefined,
+          }),
+        },
+      );
     });
   });
 
@@ -398,7 +416,9 @@ describe("PartnerSharingScreen", () => {
 
     // Should show validation error (Alert.alert was called)
     await waitFor(() => {
-      expect(screen.queryByText("Enter your partner's email address")).toBeTruthy();
+      expect(
+        screen.queryByText("Enter your partner's email address"),
+      ).toBeTruthy();
     });
   });
 
@@ -413,7 +433,9 @@ describe("PartnerSharingScreen", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Error Loading Partnerships")).toBeTruthy();
-      expect(screen.getByText("Please check your connection and try again.")).toBeTruthy();
+      expect(
+        screen.getByText("Please check your connection and try again."),
+      ).toBeTruthy();
     });
   });
 
@@ -492,7 +514,9 @@ describe("PartnerSharingScreen", () => {
     });
 
     // Mock slow API call
-    vi.mocked(apiRequest).mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+    vi.mocked(apiRequest).mockImplementation(
+      () => new Promise((resolve) => setTimeout(resolve, 100)),
+    );
 
     render(<TestComponent />);
 
@@ -575,7 +599,9 @@ describe("PartnerSharingScreen", () => {
 
   it("should navigate to shared library when view library is pressed", async () => {
     const mockNavigate = vi.fn();
-    vi.mocked(require("@react-navigation/native").useNavigation).mockReturnValue({
+    vi.mocked(
+      require("@react-navigation/native").useNavigation,
+    ).mockReturnValue({
       navigate: mockNavigate,
     });
 

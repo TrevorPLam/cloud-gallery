@@ -9,15 +9,9 @@
 // AI-META-END
 
 import { db } from "../db";
-import {
-  photos,
-  users,
-  userDevices,
-} from "../../shared/schema";
-import { eq, and, isNull, isNotNull, desc, lt, gt, or, inArray, count } from "drizzle-orm";
-import { randomBytes } from "crypto";
+import { photos, userDevices } from "../../shared/schema";
+import { eq, and, desc } from "drizzle-orm";
 import { Queue, Worker } from "bullmq";
-import { createHash } from "crypto";
 
 /**
  * Version vector implementation for conflict detection
@@ -103,7 +97,7 @@ export interface SyncStatus {
 /**
  * Sync operation for tracking changes
  */
-export interface SyncOperation {
+export interface SyncOperationRecord {
   id: string;
   userId: string;
   deviceId: string;
@@ -151,17 +145,19 @@ export class SyncService {
     deviceId: string,
     deviceType: string,
     deviceName: string,
-    appVersion?: string
+    appVersion?: string,
   ): Promise<DeviceRegistration> {
     try {
       // Check if device already exists
       const existingDevice = await db
         .select()
         .from(userDevices)
-        .where(and(
-          eq(userDevices.userId, userId),
-          eq(userDevices.deviceId, deviceId)
-        ))
+        .where(
+          and(
+            eq(userDevices.userId, userId),
+            eq(userDevices.deviceId, deviceId),
+          ),
+        )
         .limit(1);
 
       if (existingDevice.length > 0) {
@@ -175,10 +171,12 @@ export class SyncService {
             appVersion,
             updatedAt: new Date(),
           })
-          .where(and(
-            eq(userDevices.userId, userId),
-            eq(userDevices.deviceId, deviceId)
-          ))
+          .where(
+            and(
+              eq(userDevices.userId, userId),
+              eq(userDevices.deviceId, deviceId),
+            ),
+          )
           .returning();
 
         return updatedDevice;
@@ -202,7 +200,9 @@ export class SyncService {
       }
     } catch (error) {
       console.error("Device registration error:", error);
-      throw new Error(`Failed to register device: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new Error(
+        `Failed to register device: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -215,11 +215,13 @@ export class SyncService {
       const device = await db
         .select()
         .from(userDevices)
-        .where(and(
-          eq(userDevices.userId, userId),
-          eq(userDevices.deviceId, deviceId),
-          eq(userDevices.isActive, true)
-        ))
+        .where(
+          and(
+            eq(userDevices.userId, userId),
+            eq(userDevices.deviceId, deviceId),
+            eq(userDevices.isActive, true),
+          ),
+        )
         .limit(1);
 
       if (device.length === 0) {
@@ -240,7 +242,9 @@ export class SyncService {
       };
     } catch (error) {
       console.error("Get sync status error:", error);
-      throw new Error(`Failed to get sync status: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new Error(
+        `Failed to get sync status: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -253,11 +257,13 @@ export class SyncService {
       const device = await db
         .select()
         .from(userDevices)
-        .where(and(
-          eq(userDevices.userId, userId),
-          eq(userDevices.deviceId, deviceId),
-          eq(userDevices.isActive, true)
-        ))
+        .where(
+          and(
+            eq(userDevices.userId, userId),
+            eq(userDevices.deviceId, deviceId),
+            eq(userDevices.isActive, true),
+          ),
+        )
         .limit(1);
 
       if (device.length === 0) {
@@ -280,20 +286,25 @@ export class SyncService {
             type: "exponential",
             delay: 2000,
           },
-        }
+        },
       );
 
       return jobId;
     } catch (error) {
       console.error("Trigger sync error:", error);
-      throw new Error(`Failed to trigger sync: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new Error(
+        `Failed to trigger sync: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
   /**
    * Perform delta sync - only sync changes since last sync
    */
-  async performDeltaSync(userId: string, deviceId: string): Promise<{
+  async performDeltaSync(
+    userId: string,
+    deviceId: string,
+  ): Promise<{
     added: any[];
     updated: any[];
     deleted: string[];
@@ -303,10 +314,12 @@ export class SyncService {
       const device = await db
         .select()
         .from(userDevices)
-        .where(and(
-          eq(userDevices.userId, userId),
-          eq(userDevices.deviceId, deviceId)
-        ))
+        .where(
+          and(
+            eq(userDevices.userId, userId),
+            eq(userDevices.deviceId, deviceId),
+          ),
+        )
         .limit(1);
 
       if (device.length === 0) {
@@ -323,13 +336,12 @@ export class SyncService {
 
       let modifiedPhotos;
       if (lastSyncAt) {
-        modifiedPhotos = await baseQuery
-          .queryBuilder.addWhere(gt(photos.modifiedAt, lastSyncAt))
+        modifiedPhotos = await baseQuery.queryBuilder
+          .addWhere(gt(photos.modifiedAt, lastSyncAt))
           .orderBy(desc(photos.modifiedAt));
       } else {
         // First sync - get all photos
-        modifiedPhotos = await baseQuery
-          .orderBy(desc(photos.modifiedAt));
+        modifiedPhotos = await baseQuery.orderBy(desc(photos.modifiedAt));
       }
 
       // Categorize changes
@@ -351,13 +363,15 @@ export class SyncService {
       // Update last sync timestamp
       await db
         .update(userDevices)
-        .set({ 
+        .set({
           updatedAt: new Date(),
         })
-        .where(and(
-          eq(userDevices.userId, userId),
-          eq(userDevices.deviceId, deviceId)
-        ));
+        .where(
+          and(
+            eq(userDevices.userId, userId),
+            eq(userDevices.deviceId, deviceId),
+          ),
+        );
 
       return {
         added,
@@ -367,7 +381,9 @@ export class SyncService {
       };
     } catch (error) {
       console.error("Delta sync error:", error);
-      throw new Error(`Failed to perform delta sync: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new Error(
+        `Failed to perform delta sync: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -378,25 +394,25 @@ export class SyncService {
     userId: string,
     deviceId: string,
     localData: any[],
-    remoteData: any[]
+    remoteData: any[],
   ): Promise<SyncConflict[]> {
     const conflicts: SyncConflict[] = [];
 
     // Create maps for efficient lookup
-    const localMap = new Map(localData.map(item => [item.id, item]));
-    const remoteMap = new Map(remoteData.map(item => [item.id, item]));
+    const localMap = new Map(localData.map((item) => [item.id, item]));
+    const remoteMap = new Map(remoteData.map((item) => [item.id, item]));
 
     // Find conflicts
     for (const [id, localItem] of Array.from(localMap.entries())) {
       const remoteItem = remoteMap.get(id);
-      
+
       if (remoteItem) {
         // Check for concurrent updates
         if (localItem.modifiedAt && remoteItem.modifiedAt) {
           const localTime = new Date(localItem.modifiedAt).getTime();
           const remoteTime = new Date(remoteItem.modifiedAt).getTime();
           const timeDiff = Math.abs(localTime - remoteTime);
-          
+
           // If updates happened within a small window, consider it a conflict
           if (timeDiff < 5000 && localTime !== remoteTime) {
             conflicts.push({
@@ -423,32 +439,34 @@ export class SyncService {
    */
   async resolveConflict(
     conflict: SyncConflict,
-    strategy: ConflictStrategy
+    strategy: ConflictStrategy,
   ): Promise<any> {
     try {
       switch (strategy) {
         case ConflictStrategy.LAST_WRITE_WINS:
           return this.resolveLastWriteWins(conflict);
-        
+
         case ConflictStrategy.SERVER_WINS:
           return conflict.remoteData;
-        
+
         case ConflictStrategy.CLIENT_WINS:
           return conflict.localData;
-        
+
         case ConflictStrategy.MERGE:
           return this.mergeConflictData(conflict);
-        
+
         case ConflictStrategy.MANUAL:
           // Return conflict for manual resolution
           throw new Error("Manual conflict resolution required");
-        
+
         default:
           throw new Error(`Unknown conflict resolution strategy: ${strategy}`);
       }
     } catch (error) {
       console.error("Conflict resolution error:", error);
-      throw new Error(`Failed to resolve conflict: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new Error(
+        `Failed to resolve conflict: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -458,7 +476,7 @@ export class SyncService {
   private resolveLastWriteWins(conflict: SyncConflict): any {
     const localTime = new Date(conflict.localData.modifiedAt).getTime();
     const remoteTime = new Date(conflict.remoteData.modifiedAt).getTime();
-    
+
     return localTime > remoteTime ? conflict.localData : conflict.remoteData;
   }
 
@@ -468,31 +486,31 @@ export class SyncService {
   private mergeConflictData(conflict: SyncConflict): any {
     const local = conflict.localData;
     const remote = conflict.remoteData;
-    
+
     // Merge strategy for photo metadata
     const merged = { ...remote };
-    
+
     // Keep most recent values for each field
-    const fieldsToMerge = ['isFavorite', 'tags', 'notes'];
-    
+    const fieldsToMerge = ["isFavorite", "tags", "notes"];
+
     for (const field of fieldsToMerge) {
       if (local[field] !== undefined && local[field] !== remote[field]) {
         const localModified = new Date(local.modifiedAt).getTime();
         const remoteModified = new Date(remote.modifiedAt).getTime();
-        
+
         if (localModified > remoteModified) {
           merged[field] = local[field];
         }
       }
     }
-    
+
     // Merge arrays (like tags) by combining unique values
     if (local.tags && remote.tags) {
       const allTags = [...local.tags, ...remote.tags];
       const uniqueTags = Array.from(new Set(allTags));
       merged.tags = uniqueTags;
     }
-    
+
     return merged;
   }
 
@@ -508,7 +526,9 @@ export class SyncService {
         .orderBy(desc(userDevices.lastSyncAt));
     } catch (error) {
       console.error("Get user devices error:", error);
-      throw new Error(`Failed to get user devices: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new Error(
+        `Failed to get user devices: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -519,13 +539,17 @@ export class SyncService {
     try {
       await db
         .delete(userDevices)
-        .where(and(
-          eq(userDevices.userId, userId),
-          eq(userDevices.deviceId, deviceId)
-        ));
+        .where(
+          and(
+            eq(userDevices.userId, userId),
+            eq(userDevices.deviceId, deviceId),
+          ),
+        );
     } catch (error) {
       console.error("Remove device error:", error);
-      throw new Error(`Failed to remove device: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new Error(
+        `Failed to remove device: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -537,7 +561,7 @@ export class SyncService {
       "sync-operations",
       async (job) => {
         const { userId, deviceId } = job.data;
-        
+
         try {
           // Perform sync operation
           await this.performDeltaSync(userId, deviceId);
@@ -552,7 +576,7 @@ export class SyncService {
           host: process.env.REDIS_HOST || "localhost",
           port: parseInt(process.env.REDIS_PORT || "6379"),
         },
-      }
+      },
     );
   }
 
@@ -564,7 +588,7 @@ export class SyncService {
       "conflict-resolution",
       async (job) => {
         const { conflict, strategy } = job.data;
-        
+
         try {
           await this.resolveConflict(conflict, strategy);
           console.log(`Conflict resolved: ${conflict.id}`);
@@ -578,14 +602,17 @@ export class SyncService {
           host: process.env.REDIS_HOST || "localhost",
           port: parseInt(process.env.REDIS_PORT || "6379"),
         },
-      }
+      },
     );
   }
 
   /**
    * Generate version vector for sync operations
    */
-  generateVersionVector(deviceId: string, baseVector?: VersionVector): VersionVector {
+  generateVersionVector(
+    deviceId: string,
+    baseVector?: VersionVector,
+  ): VersionVector {
     const vector = baseVector ? { ...baseVector } : {};
     vector[deviceId] = (vector[deviceId] || 0) + 1;
     return vector;
@@ -594,7 +621,10 @@ export class SyncService {
   /**
    * Compare version vectors to determine causality
    */
-  compareVersionVectors(vector1: VersionVector, vector2: VersionVector): {
+  compareVersionVectors(
+    vector1: VersionVector,
+    vector2: VersionVector,
+  ): {
     concurrent: boolean;
     vector1Newer: boolean;
     vector2Newer: boolean;

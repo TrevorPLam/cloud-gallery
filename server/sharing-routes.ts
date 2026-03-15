@@ -10,16 +10,6 @@
 
 import { Router, Request, Response } from "express";
 import { z } from "zod";
-import { db } from "./db";
-import {
-  sharedAlbums,
-  sharedAlbumCollaborators,
-  albums,
-  users,
-  insertSharedAlbumSchema,
-  insertSharedAlbumCollaboratorSchema,
-} from "../shared/schema";
-import { eq, and, desc, isNull, isNotNull, lt, gt, or } from "drizzle-orm";
 import { authenticateToken } from "./auth";
 import { sharingService, Permission } from "./services/sharing";
 

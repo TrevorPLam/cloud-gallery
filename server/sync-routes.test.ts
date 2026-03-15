@@ -12,16 +12,14 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import request from "supertest";
 import express from "express";
 import syncRoutes from "./sync-routes";
-import { authenticateToken } from "../auth";
-import { createSyncService } from "../services/sync";
-import { db } from "../db";
-import { userDevices } from "../../shared/schema";
-import { eq, and } from "drizzle-orm";
+import { authenticateToken } from "./auth";
+import { createSyncService } from "./services/sync";
+import { db } from "./db";
 
 // Mock dependencies
-vi.mock("../auth");
-vi.mock("../services/sync");
-vi.mock("../db");
+vi.mock("./auth");
+vi.mock("./services/sync");
+vi.mock("./db");
 
 // Mock authentication
 const mockAuth = vi.mocked(authenticateToken);
@@ -39,7 +37,7 @@ describe("Sync API Routes", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Setup authentication mock
     mockAuth.mockImplementation((req, res, next) => {
       req.user = mockUser;
@@ -117,7 +115,7 @@ describe("Sync API Routes", () => {
         deviceData.deviceId,
         deviceData.deviceType,
         deviceData.deviceName,
-        deviceData.appVersion
+        deviceData.appVersion,
       );
     });
 
@@ -183,7 +181,10 @@ describe("Sync API Routes", () => {
         success: true,
         status: expectedStatus,
       });
-      expect(mockSync.getSyncStatus).toHaveBeenCalledWith(mockUser.id, deviceId);
+      expect(mockSync.getSyncStatus).toHaveBeenCalledWith(
+        mockUser.id,
+        deviceId,
+      );
     });
 
     it("should return 400 when device ID header is missing", async () => {
@@ -198,7 +199,9 @@ describe("Sync API Routes", () => {
 
     it("should return 404 when device not found", async () => {
       const deviceId = "non-existent-device";
-      mockSync.getSyncStatus.mockRejectedValue(new Error("Device not found or inactive"));
+      mockSync.getSyncStatus.mockRejectedValue(
+        new Error("Device not found or inactive"),
+      );
 
       const response = await request(app)
         .get("/api/sync/status")
@@ -246,7 +249,9 @@ describe("Sync API Routes", () => {
 
     it("should return 404 when device not found", async () => {
       const deviceId = "non-existent-device";
-      mockSync.triggerSync.mockRejectedValue(new Error("Device not found or inactive"));
+      mockSync.triggerSync.mockRejectedValue(
+        new Error("Device not found or inactive"),
+      );
 
       const response = await request(app)
         .post("/api/sync/trigger")
@@ -282,7 +287,10 @@ describe("Sync API Routes", () => {
         success: true,
         data: deltaResult,
       });
-      expect(mockSync.performDeltaSync).toHaveBeenCalledWith(mockUser.id, deviceId);
+      expect(mockSync.performDeltaSync).toHaveBeenCalledWith(
+        mockUser.id,
+        deviceId,
+      );
     });
 
     it("should return 400 when device ID header is missing", async () => {
@@ -301,17 +309,19 @@ describe("Sync API Routes", () => {
       const deviceId = "test-device-123";
       const localData = [{ id: "photo-1", value: "local" }];
       const remoteData = [{ id: "photo-1", value: "remote" }];
-      const conflicts = [{
-        id: "conflict-1",
-        type: "concurrent_update",
-        deviceId,
-        photoId: "photo-1",
-        localData: localData[0],
-        remoteData: remoteData[0],
-        strategy: "last_write_wins",
-        resolved: false,
-        timestamp: new Date(),
-      }];
+      const conflicts = [
+        {
+          id: "conflict-1",
+          type: "concurrent_update",
+          deviceId,
+          photoId: "photo-1",
+          localData: localData[0],
+          remoteData: remoteData[0],
+          strategy: "last_write_wins",
+          resolved: false,
+          timestamp: new Date(),
+        },
+      ];
 
       mockSync.detectConflicts.mockResolvedValue(conflicts);
 
@@ -327,7 +337,12 @@ describe("Sync API Routes", () => {
         conflicts,
         count: conflicts.length,
       });
-      expect(mockSync.detectConflicts).toHaveBeenCalledWith(mockUser.id, deviceId, localData, remoteData);
+      expect(mockSync.detectConflicts).toHaveBeenCalledWith(
+        mockUser.id,
+        deviceId,
+        localData,
+        remoteData,
+      );
     });
 
     it("should return 400 for invalid data format", async () => {
@@ -341,7 +356,9 @@ describe("Sync API Routes", () => {
 
       expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe("localData and remoteData must be arrays");
+      expect(response.body.error).toBe(
+        "localData and remoteData must be arrays",
+      );
     });
   });
 
@@ -376,7 +393,9 @@ describe("Sync API Routes", () => {
         strategy: "manual",
       };
 
-      mockSync.resolveConflict.mockRejectedValue(new Error("Manual conflict resolution required"));
+      mockSync.resolveConflict.mockRejectedValue(
+        new Error("Manual conflict resolution required"),
+      );
 
       const response = await request(app)
         .post("/api/sync/conflicts/resolve")
@@ -392,16 +411,18 @@ describe("Sync API Routes", () => {
 
   describe("GET /api/sync/devices", () => {
     it("should get user devices successfully", async () => {
-      const devices = [{
-        id: "device-1",
-        userId: mockUser.id,
-        deviceId: "phone-123",
-        deviceType: "phone",
-        deviceName: "iPhone 14",
-        isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }];
+      const devices = [
+        {
+          id: "device-1",
+          userId: mockUser.id,
+          deviceId: "phone-123",
+          deviceType: "phone",
+          deviceName: "iPhone 14",
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
 
       mockSync.getUserDevices.mockResolvedValue(devices);
 
@@ -590,8 +611,7 @@ describe("Sync API Routes", () => {
   describe("Authentication", () => {
     it("should require authentication for all endpoints", async () => {
       // Test without authentication
-      const response = await request(app)
-        .get("/api/sync/devices");
+      const response = await request(app).get("/api/sync/devices");
 
       expect(response.status).toBe(401);
     });
@@ -607,7 +627,9 @@ describe("Sync API Routes", () => {
 
   describe("Error Handling", () => {
     it("should handle service errors gracefully", async () => {
-      mockSync.getUserDevices.mockRejectedValue(new Error("Service unavailable"));
+      mockSync.getUserDevices.mockRejectedValue(
+        new Error("Service unavailable"),
+      );
 
       const response = await request(app)
         .get("/api/sync/devices")

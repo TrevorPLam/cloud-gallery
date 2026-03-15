@@ -2,7 +2,6 @@
 // Provides helper functions for generating test data
 
 import type { Photo, Album } from "../client/types";
-import { db } from "../server/db";
 
 // Define UserProfile based on usage in storage tests
 export interface UserProfile {

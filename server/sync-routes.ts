@@ -10,11 +10,10 @@
 
 import { Router, Request, Response } from "express";
 import { z } from "zod";
-import { db } from "../db";
-import { userDevices } from "../../shared/schema";
-import { eq, and, desc } from "drizzle-orm";
-import { authenticateToken } from "../auth";
-import { createSyncService, ConflictStrategy } from "../services/sync";
+import { db } from "./db";
+import { eq, and } from "drizzle-orm";
+import { authenticateToken } from "./auth";
+import { createSyncService } from "./services/sync";
 
 const router = Router();
 const syncService = createSyncService();
@@ -28,7 +27,10 @@ router.use(authenticateToken);
 const registerDeviceSchema = z.object({
   deviceId: z.string().min(1, "Device ID is required"),
   deviceType: z.enum(["phone", "tablet", "web", "desktop"]),
-  deviceName: z.string().min(1, "Device name is required").max(100, "Device name too long"),
+  deviceName: z
+    .string()
+    .min(1, "Device name is required")
+    .max(100, "Device name too long"),
   appVersion: z.string().optional(),
 });
 
@@ -43,7 +45,10 @@ const resolveConflictSchema = z.object({
 });
 
 const updateDeviceSchema = z.object({
-  deviceName: z.string().min(1, "Device name is required").max(100, "Device name too long"),
+  deviceName: z
+    .string()
+    .min(1, "Device name is required")
+    .max(100, "Device name too long"),
   isActive: z.boolean().default(true),
   appVersion: z.string().optional(),
 });
@@ -64,7 +69,7 @@ router.post("/register", async (req: Request, res: Response) => {
       deviceId,
       deviceType,
       deviceName,
-      appVersion
+      appVersion,
     );
 
     res.status(201).json({
@@ -74,7 +79,7 @@ router.post("/register", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Register device error:", error);
-    
+
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         success: false,
@@ -98,7 +103,7 @@ router.post("/register", async (req: Request, res: Response) => {
 router.get("/status", async (req: Request, res: Response) => {
   try {
     const deviceId = req.headers["x-device-id"] as string;
-    
+
     if (!deviceId) {
       return res.status(400).json({
         success: false,
@@ -115,8 +120,11 @@ router.get("/status", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Get sync status error:", error);
-    
-    if (error instanceof Error && error.message === "Device not found or inactive") {
+
+    if (
+      error instanceof Error &&
+      error.message === "Device not found or inactive"
+    ) {
       return res.status(404).json({
         success: false,
         error: "Device not found or inactive",
@@ -138,7 +146,7 @@ router.get("/status", async (req: Request, res: Response) => {
 router.post("/trigger", async (req: Request, res: Response) => {
   try {
     const deviceId = req.headers["x-device-id"] as string;
-    
+
     if (!deviceId) {
       return res.status(400).json({
         success: false,
@@ -148,7 +156,6 @@ router.post("/trigger", async (req: Request, res: Response) => {
 
     // Validate request body
     const validatedData = triggerSyncSchema.parse(req.body);
-    const { force } = validatedData;
     const userId = req.user!.id;
 
     const jobId = await syncService.triggerSync(userId, deviceId);
@@ -160,7 +167,7 @@ router.post("/trigger", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Trigger sync error:", error);
-    
+
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         success: false,
@@ -169,7 +176,10 @@ router.post("/trigger", async (req: Request, res: Response) => {
       });
     }
 
-    if (error instanceof Error && error.message === "Device not found or inactive") {
+    if (
+      error instanceof Error &&
+      error.message === "Device not found or inactive"
+    ) {
       return res.status(404).json({
         success: false,
         error: "Device not found or inactive",
@@ -191,7 +201,7 @@ router.post("/trigger", async (req: Request, res: Response) => {
 router.get("/delta", async (req: Request, res: Response) => {
   try {
     const deviceId = req.headers["x-device-id"] as string;
-    
+
     if (!deviceId) {
       return res.status(400).json({
         success: false,
@@ -208,7 +218,7 @@ router.get("/delta", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Delta sync error:", error);
-    
+
     if (error instanceof Error && error.message === "Device not found") {
       return res.status(404).json({
         success: false,
@@ -231,7 +241,7 @@ router.get("/delta", async (req: Request, res: Response) => {
 router.post("/conflicts/detect", async (req: Request, res: Response) => {
   try {
     const deviceId = req.headers["x-device-id"] as string;
-    
+
     if (!deviceId) {
       return res.status(400).json({
         success: false,
@@ -249,7 +259,12 @@ router.post("/conflicts/detect", async (req: Request, res: Response) => {
     }
 
     const userId = req.user!.id;
-    const conflicts = await syncService.detectConflicts(userId, deviceId, localData, remoteData);
+    const conflicts = await syncService.detectConflicts(
+      userId,
+      deviceId,
+      localData,
+      remoteData,
+    );
 
     res.json({
       success: true,
@@ -258,7 +273,7 @@ router.post("/conflicts/detect", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Conflict detection error:", error);
-    
+
     res.status(500).json({
       success: false,
       error: "Failed to detect conflicts",
@@ -275,7 +290,7 @@ router.post("/conflicts/resolve", async (req: Request, res: Response) => {
   try {
     // Validate request body
     const validatedData = resolveConflictSchema.parse(req.body);
-    const { conflictId, strategy, resolution } = validatedData;
+    const { conflictId, strategy } = validatedData;
 
     // In a real implementation, we would fetch the conflict from database
     // For now, we'll create a mock conflict
@@ -300,7 +315,7 @@ router.post("/conflicts/resolve", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Conflict resolution error:", error);
-    
+
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         success: false,
@@ -309,7 +324,10 @@ router.post("/conflicts/resolve", async (req: Request, res: Response) => {
       });
     }
 
-    if (error instanceof Error && error.message === "Manual conflict resolution required") {
+    if (
+      error instanceof Error &&
+      error.message === "Manual conflict resolution required"
+    ) {
       return res.status(422).json({
         success: false,
         error: "Manual conflict resolution required",
@@ -341,7 +359,7 @@ router.get("/devices", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Get devices error:", error);
-    
+
     res.status(500).json({
       success: false,
       error: "Failed to get devices",
@@ -372,10 +390,9 @@ router.put("/devices/:deviceId", async (req: Request, res: Response) => {
         appVersion,
         updatedAt: new Date(),
       })
-      .where(and(
-        eq(userDevices.userId, userId),
-        eq(userDevices.deviceId, deviceId)
-      ))
+      .where(
+        and(eq(userDevices.userId, userId), eq(userDevices.deviceId, deviceId)),
+      )
       .returning();
 
     if (!updatedDevice) {
@@ -392,7 +409,7 @@ router.put("/devices/:deviceId", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Update device error:", error);
-    
+
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         success: false,
@@ -422,10 +439,9 @@ router.delete("/devices/:deviceId", async (req: Request, res: Response) => {
     const device = await db
       .select()
       .from(userDevices)
-      .where(and(
-        eq(userDevices.userId, userId),
-        eq(userDevices.deviceId, deviceId)
-      ))
+      .where(
+        and(eq(userDevices.userId, userId), eq(userDevices.deviceId, deviceId)),
+      )
       .limit(1);
 
     if (device.length === 0) {
@@ -443,7 +459,7 @@ router.delete("/devices/:deviceId", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Remove device error:", error);
-    
+
     res.status(500).json({
       success: false,
       error: "Failed to remove device",
@@ -462,9 +478,12 @@ router.get("/stats", async (req: Request, res: Response) => {
     const devices = await syncService.getUserDevices(userId);
 
     // Calculate statistics
-    const activeDevices = devices.filter(d => d.isActive).length;
-    const devicesWithSync = devices.filter(d => d.lastSyncAt).length;
-    const totalSyncOperations = devices.reduce((sum, d) => sum + (d.storageUsed || 0), 0);
+    const activeDevices = devices.filter((d) => d.isActive).length;
+    const devicesWithSync = devices.filter((d) => d.lastSyncAt).length;
+    const totalSyncOperations = devices.reduce(
+      (sum, d) => sum + (d.storageUsed || 0),
+      0,
+    );
 
     const stats = {
       totalDevices: devices.length,
@@ -472,7 +491,10 @@ router.get("/stats", async (req: Request, res: Response) => {
       devicesWithSync,
       lastSync: devices.length > 0 ? devices[0].lastSyncAt : null,
       totalSyncOperations,
-      averageSyncOpsPerDevice: devices.length > 0 ? Math.round(totalSyncOperations / devices.length) : 0,
+      averageSyncOpsPerDevice:
+        devices.length > 0
+          ? Math.round(totalSyncOperations / devices.length)
+          : 0,
     };
 
     res.json({
@@ -481,7 +503,7 @@ router.get("/stats", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Get sync stats error:", error);
-    
+
     res.status(500).json({
       success: false,
       error: "Failed to get sync statistics",
@@ -497,7 +519,7 @@ router.get("/stats", async (req: Request, res: Response) => {
 router.post("/reset", async (req: Request, res: Response) => {
   try {
     const deviceId = req.headers["x-device-id"] as string;
-    
+
     if (!deviceId) {
       return res.status(400).json({
         success: false,
@@ -514,10 +536,9 @@ router.post("/reset", async (req: Request, res: Response) => {
         lastSyncAt: null,
         updatedAt: new Date(),
       })
-      .where(and(
-        eq(userDevices.userId, userId),
-        eq(userDevices.deviceId, deviceId)
-      ));
+      .where(
+        and(eq(userDevices.userId, userId), eq(userDevices.deviceId, deviceId)),
+      );
 
     res.json({
       success: true,
@@ -525,7 +546,7 @@ router.post("/reset", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Reset sync error:", error);
-    
+
     res.status(500).json({
       success: false,
       error: "Failed to reset sync state",

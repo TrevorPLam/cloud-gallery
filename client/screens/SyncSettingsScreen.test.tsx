@@ -9,7 +9,12 @@
 // AI-META-END
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react-native";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SyncSettingsScreen } from "./SyncSettingsScreen";
 import { useTheme } from "../constants/theme";
@@ -135,16 +140,14 @@ function renderWithQueryClient(component: React.ReactElement) {
   });
 
   return render(
-    <QueryClientProvider client={queryClient}>
-      {component}
-    </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>{component}</QueryClientProvider>,
   );
 }
 
 describe("SyncSettingsScreen", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Setup default mock responses
     mockGetDevices.mockResolvedValue(mockDevices);
     mockGetSyncStatus.mockResolvedValue(mockSyncStatus);
@@ -206,8 +209,16 @@ describe("SyncSettingsScreen", () => {
 
     it("should show loading state initially", () => {
       // Make the queries delay to show loading state
-      mockGetDevices.mockImplementation(() => new Promise(resolve => setTimeout(() => resolve(mockDevices), 100)));
-      mockGetSyncStatus.mockImplementation(() => new Promise(resolve => setTimeout(() => resolve(mockSyncStatus), 100)));
+      mockGetDevices.mockImplementation(
+        () =>
+          new Promise((resolve) => setTimeout(() => resolve(mockDevices), 100)),
+      );
+      mockGetSyncStatus.mockImplementation(
+        () =>
+          new Promise((resolve) =>
+            setTimeout(() => resolve(mockSyncStatus), 100),
+          ),
+      );
 
       renderWithQueryClient(<SyncSettingsScreen />);
 
@@ -311,7 +322,7 @@ describe("SyncSettingsScreen", () => {
         expect(Alert.alert).toHaveBeenCalledWith(
           "Remove Device",
           'Are you sure you want to remove "iPhone 14"? This will stop sync for this device.',
-          expect.any(Array)
+          expect.any(Array),
         );
       });
     });
@@ -478,7 +489,7 @@ describe("SyncSettingsScreen", () => {
       await waitFor(() => {
         expect(Alert.alert).toHaveBeenCalledWith(
           "Error",
-          "Failed to trigger sync"
+          "Failed to trigger sync",
         );
       });
     });
@@ -507,7 +518,7 @@ describe("SyncSettingsScreen", () => {
       await waitFor(() => {
         expect(Alert.alert).toHaveBeenCalledWith(
           "Error",
-          "Failed to update device"
+          "Failed to update device",
         );
       });
     });
@@ -551,7 +562,7 @@ describe("SyncSettingsScreen", () => {
         // Check that interactive elements are properly labeled for screen readers
         const triggerButton = screen.getByLabelText("Trigger sync button");
         expect(triggerButton).toBeTruthy();
-        
+
         const editButton = screen.getByLabelText("Edit iPhone 14 device");
         expect(editButton).toBeTruthy();
       });

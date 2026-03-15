@@ -77,7 +77,7 @@ export default function PartnerSharedLibraryScreen() {
     queryKey: ["partner-sharing", "shared-photos", partnershipId, page],
     queryFn: async () => {
       const response = await apiRequest(
-        `/api/partner-sharing/shared-photos/${partnershipId}?page=${page}&limit=50`
+        `/api/partner-sharing/shared-photos/${partnershipId}?page=${page}&limit=50`,
       );
       return response.data as SharedPhotosResponse;
     },
@@ -95,7 +95,7 @@ export default function PartnerSharedLibraryScreen() {
         {
           method: "PUT",
           body: JSON.stringify({ partnershipId }),
-        }
+        },
       );
       return response.data;
     },
@@ -112,17 +112,17 @@ export default function PartnerSharedLibraryScreen() {
             photos: oldData.photos.map((photo) =>
               photo.id === photoId
                 ? { ...photo, isSavedByPartner: true }
-                : photo
+                : photo,
             ),
           };
-        }
+        },
       );
     },
     onError: (error: any) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert(
         "Error",
-        error.response?.data?.error || "Failed to save photo"
+        error.response?.data?.error || "Failed to save photo",
       );
     },
   });
@@ -149,18 +149,14 @@ export default function PartnerSharedLibraryScreen() {
       return;
     }
 
-    Alert.alert(
-      "Save Photo",
-      `Save "${photo.filename}" to your library?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Save",
-          onPress: () => savePhotoMutation.mutate(photo.id),
-          style: "default",
-        },
-      ]
-    );
+    Alert.alert("Save Photo", `Save "${photo.filename}" to your library?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Save",
+        onPress: () => savePhotoMutation.mutate(photo.id),
+        style: "default",
+      },
+    ]);
   };
 
   const handleRefresh = async () => {
@@ -188,7 +184,9 @@ export default function PartnerSharedLibraryScreen() {
         contentContainerStyle={styles.photoGrid}
       />
       {photo.isSavedByPartner && (
-        <View style={[styles.savedIndicator, { backgroundColor: theme.success }]}>
+        <View
+          style={[styles.savedIndicator, { backgroundColor: theme.success }]}
+        >
           <Feather name="check" size={12} color="white" />
         </View>
       )}
@@ -206,7 +204,7 @@ export default function PartnerSharedLibraryScreen() {
       <ThemedText style={styles.subtitle}>
         {sharedPhotosData?.totalCount || 0} photos shared
       </ThemedText>
-      
+
       <Card style={styles.infoCard}>
         <View style={styles.infoRow}>
           <Feather name="info" size={16} color={theme.primary} />
@@ -237,14 +235,13 @@ export default function PartnerSharedLibraryScreen() {
       <View style={[styles.container, { paddingTop: headerHeight }]}>
         <View style={styles.errorContainer}>
           <Feather name="alert-circle" size={48} color={theme.error} />
-          <ThemedText style={styles.errorTitle}>Error Loading Photos</ThemedText>
+          <ThemedText style={styles.errorTitle}>
+            Error Loading Photos
+          </ThemedText>
           <ThemedText style={styles.errorSubtitle}>
             Please check your connection and try again.
           </ThemedText>
-          <Button
-            onPress={handleRefresh}
-            style={styles.retryButton}
-          >
+          <Button onPress={handleRefresh} style={styles.retryButton}>
             <Feather name="refresh-cw" size={16} color="white" />
             <ThemedText>Retry</ThemedText>
           </Button>

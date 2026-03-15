@@ -67,7 +67,12 @@ interface SyncStats {
 
 interface ConflictResolution {
   conflictId: string;
-  strategy: "last_write_wins" | "merge" | "manual" | "server_wins" | "client_wins";
+  strategy:
+    | "last_write_wins"
+    | "merge"
+    | "manual"
+    | "server_wins"
+    | "client_wins";
   resolution?: any;
 }
 
@@ -76,14 +81,14 @@ const api = {
   async getDevices(): Promise<Device[]> {
     const response = await fetch("/api/sync/devices", {
       headers: {
-        "Authorization": `Bearer ${await getToken()}`,
+        Authorization: `Bearer ${await getToken()}`,
       },
     });
-    
+
     if (!response.ok) {
       throw new Error("Failed to get devices");
     }
-    
+
     const data = await response.json();
     return data.devices;
   },
@@ -92,15 +97,15 @@ const api = {
     const deviceId = await getDeviceId();
     const response = await fetch("/api/sync/status", {
       headers: {
-        "Authorization": `Bearer ${await getToken()}`,
+        Authorization: `Bearer ${await getToken()}`,
         "x-device-id": deviceId,
       },
     });
-    
+
     if (!response.ok) {
       throw new Error("Failed to get sync status");
     }
-    
+
     const data = await response.json();
     return data.status;
   },
@@ -108,14 +113,14 @@ const api = {
   async getSyncStats(): Promise<SyncStats> {
     const response = await fetch("/api/sync/stats", {
       headers: {
-        "Authorization": `Bearer ${await getToken()}`,
+        Authorization: `Bearer ${await getToken()}`,
       },
     });
-    
+
     if (!response.ok) {
       throw new Error("Failed to get sync stats");
     }
-    
+
     const data = await response.json();
     return data.stats;
   },
@@ -126,33 +131,36 @@ const api = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${await getToken()}`,
+        Authorization: `Bearer ${await getToken()}`,
         "x-device-id": deviceId,
       },
       body: JSON.stringify({ force }),
     });
-    
+
     if (!response.ok) {
       throw new Error("Failed to trigger sync");
     }
-    
+
     return response.json();
   },
 
-  async updateDevice(deviceId: string, updates: Partial<Device>): Promise<Device> {
+  async updateDevice(
+    deviceId: string,
+    updates: Partial<Device>,
+  ): Promise<Device> {
     const response = await fetch(`/api/sync/devices/${deviceId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${await getToken()}`,
+        Authorization: `Bearer ${await getToken()}`,
       },
       body: JSON.stringify(updates),
     });
-    
+
     if (!response.ok) {
       throw new Error("Failed to update device");
     }
-    
+
     const data = await response.json();
     return data.device;
   },
@@ -161,10 +169,10 @@ const api = {
     const response = await fetch(`/api/sync/devices/${deviceId}`, {
       method: "DELETE",
       headers: {
-        "Authorization": `Bearer ${await getToken()}`,
+        Authorization: `Bearer ${await getToken()}`,
       },
     });
-    
+
     if (!response.ok) {
       throw new Error("Failed to remove device");
     }
@@ -175,16 +183,16 @@ const api = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${await getToken()}`,
+        Authorization: `Bearer ${await getToken()}`,
         "x-device-id": await getDeviceId(),
       },
       body: JSON.stringify(conflict),
     });
-    
+
     if (!response.ok) {
       throw new Error("Failed to resolve conflict");
     }
-    
+
     const data = await response.json();
     return data.resolved;
   },
@@ -227,7 +235,7 @@ function formatBytes(bytes: number): string {
 export const SyncSettingsScreen: React.FC = () => {
   const theme = useTheme();
   const queryClient = useQueryClient();
-  
+
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -279,8 +287,13 @@ export const SyncSettingsScreen: React.FC = () => {
   });
 
   const updateDeviceMutation = useMutation({
-    mutationFn: ({ deviceId, updates }: { deviceId: string; updates: Partial<Device> }) =>
-      api.updateDevice(deviceId, updates),
+    mutationFn: ({
+      deviceId,
+      updates,
+    }: {
+      deviceId: string;
+      updates: Partial<Device>;
+    }) => api.updateDevice(deviceId, updates),
     onSuccess: () => {
       Alert.alert("Success", "Device updated successfully");
       setEditModalVisible(false);
@@ -318,10 +331,7 @@ export const SyncSettingsScreen: React.FC = () => {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([
-        refetchDevices(),
-        refetchStatus(),
-      ]);
+      await Promise.all([refetchDevices(), refetchStatus()]);
     } finally {
       setRefreshing(false);
     }
@@ -339,7 +349,7 @@ export const SyncSettingsScreen: React.FC = () => {
 
   const handleSaveDevice = () => {
     if (!selectedDevice) return;
-    
+
     updateDeviceMutation.mutate({
       deviceId: selectedDevice.deviceId,
       updates: {
@@ -360,7 +370,7 @@ export const SyncSettingsScreen: React.FC = () => {
           style: "destructive",
           onPress: () => removeDeviceMutation.mutate(device.deviceId),
         },
-      ]
+      ],
     );
   };
 
@@ -388,36 +398,54 @@ export const SyncSettingsScreen: React.FC = () => {
             <Text style={[styles.deviceName, { color: theme.colors.text }]}>
               {item.deviceName}
             </Text>
-            <Text style={[styles.deviceType, { color: theme.colors.textSecondary }]}>
-              {item.deviceType.charAt(0).toUpperCase() + item.deviceType.slice(1)} • {item.appVersion || "Unknown version"}
+            <Text
+              style={[styles.deviceType, { color: theme.colors.textSecondary }]}
+            >
+              {item.deviceType.charAt(0).toUpperCase() +
+                item.deviceType.slice(1)}{" "}
+              • {item.appVersion || "Unknown version"}
             </Text>
           </View>
         </View>
         <View style={styles.deviceStatus}>
-          <View style={[
-            styles.statusIndicator,
-            { backgroundColor: item.isActive ? theme.colors.success : theme.colors.textSecondary }
-          ]} />
-          <Text style={[styles.statusText, { color: theme.colors.textSecondary }]}>
+          <View
+            style={[
+              styles.statusIndicator,
+              {
+                backgroundColor: item.isActive
+                  ? theme.colors.success
+                  : theme.colors.textSecondary,
+              },
+            ]}
+          />
+          <Text
+            style={[styles.statusText, { color: theme.colors.textSecondary }]}
+          >
             {item.isActive ? "Active" : "Inactive"}
           </Text>
         </View>
       </View>
-      
+
       <View style={styles.deviceStats}>
         <View style={styles.statItem}>
-          <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
+          <Text
+            style={[styles.statLabel, { color: theme.colors.textSecondary }]}
+          >
             Last Sync
           </Text>
           <Text style={[styles.statValue, { color: theme.colors.text }]}>
             {item.lastSyncAt
-              ? formatDistanceToNow(new Date(item.lastSyncAt), { addSuffix: true })
+              ? formatDistanceToNow(new Date(item.lastSyncAt), {
+                  addSuffix: true,
+                })
               : "Never"}
           </Text>
         </View>
         {item.storageUsed && (
           <View style={styles.statItem}>
-            <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
+            <Text
+              style={[styles.statLabel, { color: theme.colors.textSecondary }]}
+            >
               Storage Used
             </Text>
             <Text style={[styles.statValue, { color: theme.colors.text }]}>
@@ -432,13 +460,21 @@ export const SyncSettingsScreen: React.FC = () => {
           style={[styles.actionButton, { borderColor: theme.colors.border }]}
           onPress={() => handleEditDevice(item)}
         >
-          <Ionicons name="create-outline" size={16} color={theme.colors.primary} />
+          <Ionicons
+            name="create-outline"
+            size={16}
+            color={theme.colors.primary}
+          />
           <Text style={[styles.actionText, { color: theme.colors.primary }]}>
             Edit
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.actionButton, styles.removeButton, { borderColor: theme.colors.error }]}
+          style={[
+            styles.actionButton,
+            styles.removeButton,
+            { borderColor: theme.colors.error },
+          ]}
           onPress={() => handleRemoveDevice(item)}
         >
           <Ionicons name="trash-outline" size={16} color={theme.colors.error} />
@@ -462,34 +498,61 @@ export const SyncSettingsScreen: React.FC = () => {
         <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
           Sync Status
         </Text>
-        
+
         {syncStatus ? (
           <View style={styles.statusContent}>
             <View style={styles.statusRow}>
-              <Text style={[styles.statusLabel, { color: theme.colors.textSecondary }]}>
+              <Text
+                style={[
+                  styles.statusLabel,
+                  { color: theme.colors.textSecondary },
+                ]}
+              >
                 Last Sync:
               </Text>
               <Text style={[styles.statusValue, { color: theme.colors.text }]}>
                 {syncStatus.lastSyncAt
-                  ? formatDistanceToNow(new Date(syncStatus.lastSyncAt), { addSuffix: true })
+                  ? formatDistanceToNow(new Date(syncStatus.lastSyncAt), {
+                      addSuffix: true,
+                    })
                   : "Never"}
               </Text>
             </View>
-            
+
             <View style={styles.statusRow}>
-              <Text style={[styles.statusLabel, { color: theme.colors.textSecondary }]}>
+              <Text
+                style={[
+                  styles.statusLabel,
+                  { color: theme.colors.textSecondary },
+                ]}
+              >
                 Pending Operations:
               </Text>
               <Text style={[styles.statusValue, { color: theme.colors.text }]}>
                 {syncStatus.pendingOperations}
               </Text>
             </View>
-            
+
             <View style={styles.statusRow}>
-              <Text style={[styles.statusLabel, { color: theme.colors.textSecondary }]}>
+              <Text
+                style={[
+                  styles.statusLabel,
+                  { color: theme.colors.textSecondary },
+                ]}
+              >
                 Conflicts:
               </Text>
-              <Text style={[styles.statusValue, { color: syncStatus.conflicts > 0 ? theme.colors.error : theme.colors.text }]}>
+              <Text
+                style={[
+                  styles.statusValue,
+                  {
+                    color:
+                      syncStatus.conflicts > 0
+                        ? theme.colors.error
+                        : theme.colors.text,
+                  },
+                ]}
+              >
                 {syncStatus.conflicts}
               </Text>
             </View>
@@ -497,7 +560,12 @@ export const SyncSettingsScreen: React.FC = () => {
             {syncStatus.syncInProgress && (
               <View style={styles.syncProgress}>
                 <ActivityIndicator size="small" color={theme.colors.primary} />
-                <Text style={[styles.syncProgressText, { color: theme.colors.primary }]}>
+                <Text
+                  style={[
+                    styles.syncProgressText,
+                    { color: theme.colors.primary },
+                  ]}
+                >
                   Sync in progress...
                 </Text>
               </View>
@@ -514,7 +582,7 @@ export const SyncSettingsScreen: React.FC = () => {
             loading={triggerSyncMutation.isPending}
             disabled={syncStatus?.syncInProgress}
           />
-          
+
           {syncStatus && syncStatus.conflicts > 0 && (
             <Button
               title={`Resolve ${syncStatus.conflicts} Conflicts`}
@@ -531,7 +599,7 @@ export const SyncSettingsScreen: React.FC = () => {
         <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
           Sync Settings
         </Text>
-        
+
         <View style={styles.settingRow}>
           <Text style={[styles.settingLabel, { color: theme.colors.text }]}>
             Auto-sync
@@ -539,10 +607,13 @@ export const SyncSettingsScreen: React.FC = () => {
           <Switch
             value={autoSyncEnabled}
             onValueChange={setAutoSyncEnabled}
-            trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+            trackColor={{
+              false: theme.colors.border,
+              true: theme.colors.primary,
+            }}
           />
         </View>
-        
+
         <View style={styles.settingRow}>
           <Text style={[styles.settingLabel, { color: theme.colors.text }]}>
             Sync on Wi-Fi only
@@ -550,25 +621,40 @@ export const SyncSettingsScreen: React.FC = () => {
           <Switch
             value={syncOnWifiOnly}
             onValueChange={setSyncOnWifiOnly}
-            trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+            trackColor={{
+              false: theme.colors.border,
+              true: theme.colors.primary,
+            }}
           />
         </View>
-        
+
         <View style={styles.settingRow}>
           <Text style={[styles.settingLabel, { color: theme.colors.text }]}>
             Conflict Resolution
           </Text>
           <TouchableOpacity
-            style={[styles.settingSelector, { borderColor: theme.colors.border }]}
+            style={[
+              styles.settingSelector,
+              { borderColor: theme.colors.border },
+            ]}
             onPress={() => {
               // In a real app, show picker for conflict resolution strategies
-              Alert.alert("Conflict Resolution", "Choose how to resolve sync conflicts");
+              Alert.alert(
+                "Conflict Resolution",
+                "Choose how to resolve sync conflicts",
+              );
             }}
           >
             <Text style={[styles.settingValue, { color: theme.colors.text }]}>
-              {conflictStrategy.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+              {conflictStrategy
+                .replace(/_/g, " ")
+                .replace(/\b\w/g, (l) => l.toUpperCase())}
             </Text>
-            <Ionicons name="chevron-down" size={16} color={theme.colors.textSecondary} />
+            <Ionicons
+              name="chevron-down"
+              size={16}
+              color={theme.colors.textSecondary}
+            />
           </TouchableOpacity>
         </View>
       </Card>
@@ -579,40 +665,66 @@ export const SyncSettingsScreen: React.FC = () => {
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
             Sync Statistics
           </Text>
-          
+
           <View style={styles.statsGrid}>
             <View style={styles.statBox}>
-              <Text style={[styles.statNumber, { color: theme.colors.primary }]}>
+              <Text
+                style={[styles.statNumber, { color: theme.colors.primary }]}
+              >
                 {syncStats.totalDevices}
               </Text>
-              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
+              <Text
+                style={[
+                  styles.statLabel,
+                  { color: theme.colors.textSecondary },
+                ]}
+              >
                 Total Devices
               </Text>
             </View>
-            
+
             <View style={styles.statBox}>
-              <Text style={[styles.statNumber, { color: theme.colors.success }]}>
+              <Text
+                style={[styles.statNumber, { color: theme.colors.success }]}
+              >
                 {syncStats.activeDevices}
               </Text>
-              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
+              <Text
+                style={[
+                  styles.statLabel,
+                  { color: theme.colors.textSecondary },
+                ]}
+              >
                 Active Devices
               </Text>
             </View>
-            
+
             <View style={styles.statBox}>
-              <Text style={[styles.statNumber, { color: theme.colors.warning }]}>
+              <Text
+                style={[styles.statNumber, { color: theme.colors.warning }]}
+              >
                 {syncStats.totalSyncOperations}
               </Text>
-              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
+              <Text
+                style={[
+                  styles.statLabel,
+                  { color: theme.colors.textSecondary },
+                ]}
+              >
                 Total Sync Ops
               </Text>
             </View>
-            
+
             <View style={styles.statBox}>
               <Text style={[styles.statNumber, { color: theme.colors.info }]}>
                 {syncStats.averageSyncOpsPerDevice}
               </Text>
-              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
+              <Text
+                style={[
+                  styles.statLabel,
+                  { color: theme.colors.textSecondary },
+                ]}
+              >
                 Avg Ops/Device
               </Text>
             </View>
@@ -625,7 +737,7 @@ export const SyncSettingsScreen: React.FC = () => {
         <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
           Connected Devices
         </Text>
-        
+
         {devicesLoading ? (
           <ActivityIndicator size="small" color={theme.colors.primary} />
         ) : devices.length > 0 ? (
@@ -637,7 +749,9 @@ export const SyncSettingsScreen: React.FC = () => {
             ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
           />
         ) : (
-          <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
+          <Text
+            style={[styles.emptyText, { color: theme.colors.textSecondary }]}
+          >
             No devices connected
           </Text>
         )}
@@ -651,21 +765,29 @@ export const SyncSettingsScreen: React.FC = () => {
         onRequestClose={() => setEditModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: theme.colors.card },
+            ]}
+          >
             <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
               Edit Device
             </Text>
-            
+
             <View style={styles.formGroup}>
               <Text style={[styles.formLabel, { color: theme.colors.text }]}>
                 Device Name
               </Text>
               <TextInput
-                style={[styles.formInput, { 
-                  backgroundColor: theme.colors.background,
-                  borderColor: theme.colors.border,
-                  color: theme.colors.text,
-                }]}
+                style={[
+                  styles.formInput,
+                  {
+                    backgroundColor: theme.colors.background,
+                    borderColor: theme.colors.border,
+                    color: theme.colors.text,
+                  },
+                ]}
                 value={deviceName}
                 onChangeText={setDeviceName}
                 placeholder="Enter device name"

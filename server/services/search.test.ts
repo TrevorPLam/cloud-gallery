@@ -114,7 +114,7 @@ describe('SearchService', () => {
                   orderBy: vi.fn(() => ({
                     limit: vi.fn(() => ({
                       offset: vi.fn(() => Promise.resolve([]))
-                    }))))
+                    }))
                   }))
                 };
               }))

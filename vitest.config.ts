@@ -16,6 +16,8 @@ export default defineConfig({
     environment: "happy-dom",
     setupFiles: ["./vitest.setup.ts"],
     include: ["**/*.{test,spec}.{ts,tsx}"],
+    clearMocks: true,
+    restoreMocks: true,
     exclude: [
       "**/node_modules/**",
       "**/build/**",

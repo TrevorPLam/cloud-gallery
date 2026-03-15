@@ -166,7 +166,7 @@ describe("Storage Routes Integration Tests", () => {
 
       mockStorageService.getStorageBreakdown.mockResolvedValue(mockBreakdown);
 
-      const response = await request(app).get("/api/storage/usage").expect(200);
+      await request(app).get("/api/storage/usage").expect(200);
 
       expect(response.body).toEqual({
         success: true,

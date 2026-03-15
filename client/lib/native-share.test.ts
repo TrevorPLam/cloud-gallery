@@ -91,6 +91,7 @@ describe("NativeShareService", () => {
   describe("isSharingAvailable", () => {
     it("should return true for web platform", async () => {
       mockPlatform.mockReturnValue("web");
+      vi.clearAllMocks(); // Clear any previous mock calls
 
       const result = await service.isSharingAvailable();
 
@@ -158,11 +159,12 @@ describe("NativeShareService", () => {
       mockPlatform.mockReturnValue("web");
       vi.spyOn(service, "isSharingAvailable").mockResolvedValue(true);
       const { shareAsync } = await import("expo-sharing");
-      vi.mocked(shareAsync).mockResolvedValue();
+      const mockShareAsync = vi.mocked(shareAsync);
+      mockShareAsync.mockResolvedValue();
 
       const result = await service.sharePhotos([mockPhotos[0]]);
 
-      expect(shareAsync).toHaveBeenCalledWith(mockPhotos[0].uri, {
+      expect(mockShareAsync).toHaveBeenCalledWith(mockPhotos[0].uri, {
         dialogTitle: "Share Photo",
         mimeType: "image/jpeg",
       });
@@ -233,11 +235,13 @@ describe("NativeShareService", () => {
     it("should use setStringAsync on web platform", async () => {
       mockPlatform.mockReturnValue("web");
       const { setStringAsync } = await import("expo-clipboard");
-      vi.mocked(setStringAsync).mockResolvedValue(true);
+      const mockSetStringAsync = vi.mocked(setStringAsync);
+      mockSetStringAsync.mockResolvedValue(true);
 
       const result = await service.copyToClipboard([mockPhotos[0]]);
 
-      expect(setStringAsync).toHaveBeenCalledWith(mockPhotos[0].uri);
+      // The implementation joins URIs with newlines, even for single photos
+      expect(mockSetStringAsync).toHaveBeenCalledWith(mockPhotos[0].uri);
       expect(result.success).toBe(true);
     });
 

@@ -13,7 +13,6 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import express from "express";
 import smartAlbumRoutes from "./smart-album-routes";
 import { smartAlbumsService } from "./services/smart-albums";
-import { authenticateToken } from "./auth";
 
 // Mock dependencies
 vi.mock("./services/smart-albums");

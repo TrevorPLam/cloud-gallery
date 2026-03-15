@@ -137,33 +137,42 @@ describe("StorageUsageService", () => {
           const expectedVideoItems = data.videoItems || 0;
 
           // Mock the service methods directly to avoid complex query builder mocking
-          const mockCalculateCategoryUsage = vi.spyOn(service, 'calculateCategoryUsage');
-          
+          const mockCalculateCategoryUsage = vi.spyOn(
+            service,
+            "calculateCategoryUsage",
+          );
+
           mockCalculateCategoryUsage
             .mockResolvedValueOnce({
-              category: 'photos',
+              category: "photos",
               bytesUsed: expectedPhotoBytes,
               itemCount: expectedPhotoItems,
               percentage: 0,
               calculatedAt: new Date(),
             })
             .mockResolvedValueOnce({
-              category: 'videos',
+              category: "videos",
               bytesUsed: expectedVideoBytes,
               itemCount: expectedVideoItems,
               percentage: 0,
               calculatedAt: new Date(),
             });
 
-          const photosStats = await service.calculateCategoryUsage("user123", "photos");
-          const videosStats = await service.calculateCategoryUsage("user123", "videos");
+          const photosStats = await service.calculateCategoryUsage(
+            "user123",
+            "photos",
+          );
+          const videosStats = await service.calculateCategoryUsage(
+            "user123",
+            "videos",
+          );
 
           // Verify individual category stats
           expect(photosStats.bytesUsed).toBe(expectedPhotoBytes);
           expect(photosStats.itemCount).toBe(expectedPhotoItems);
           expect(videosStats.bytesUsed).toBe(expectedVideoBytes);
           expect(videosStats.itemCount).toBe(expectedVideoItems);
-          
+
           // Then verify totals
           expect(photosStats.bytesUsed + videosStats.bytesUsed).toBe(
             expectedPhotoBytes + expectedVideoBytes,
@@ -171,7 +180,7 @@ describe("StorageUsageService", () => {
           expect(photosStats.itemCount + videosStats.itemCount).toBe(
             expectedPhotoItems + expectedVideoItems,
           );
-          
+
           mockCalculateCategoryUsage.mockRestore();
         }),
         { numRuns: 50 },
@@ -194,24 +203,33 @@ describe("StorageUsageService", () => {
           }
 
           // Mock the service method directly
-          const mockCalculateCategoryUsage = vi.spyOn(service, 'calculateCategoryUsage');
-          
-          const expectedPercentage = data.totalBytes > 0 ? (data.categoryBytes / data.totalBytes) * 100 : 0;
-          
+          const mockCalculateCategoryUsage = vi.spyOn(
+            service,
+            "calculateCategoryUsage",
+          );
+
+          const expectedPercentage =
+            data.totalBytes > 0
+              ? (data.categoryBytes / data.totalBytes) * 100
+              : 0;
+
           mockCalculateCategoryUsage.mockResolvedValueOnce({
-            category: 'photos',
+            category: "photos",
             bytesUsed: data.categoryBytes,
             itemCount: 50,
             percentage: expectedPercentage,
             calculatedAt: new Date(),
           });
 
-          const stats = await service.calculateCategoryUsage("user123", "photos");
+          const stats = await service.calculateCategoryUsage(
+            "user123",
+            "photos",
+          );
 
           expect(stats.percentage).toBeGreaterThanOrEqual(0);
           expect(stats.percentage).toBeLessThanOrEqual(100);
           expect(stats.percentage).toBeCloseTo(expectedPercentage, 2);
-          
+
           mockCalculateCategoryUsage.mockRestore();
         }),
         { numRuns: 100 },
@@ -241,8 +259,11 @@ describe("StorageUsageService", () => {
             }));
 
           // Mock the getStorageBreakdown method directly
-          const mockGetStorageBreakdown = vi.spyOn(service, 'getStorageBreakdown');
-          
+          const mockGetStorageBreakdown = vi.spyOn(
+            service,
+            "getStorageBreakdown",
+          );
+
           mockGetStorageBreakdown.mockResolvedValueOnce({
             totalBytesUsed: 1000,
             totalItemCount: 10,
@@ -265,10 +286,10 @@ describe("StorageUsageService", () => {
               expect(file.size).toBeGreaterThanOrEqual(threshold);
             });
           }
-          
+
           // Verify the count matches expected
           expect(breakdown.largeFiles?.length || 0).toBe(mockLargeFiles.length);
-          
+
           mockGetStorageBreakdown.mockRestore();
         }),
         { numRuns: 100 },
@@ -338,7 +359,10 @@ describe("StorageUsageService", () => {
           };
 
           // Mock the getStorageBreakdown method to return our test data
-          const mockGetStorageBreakdown = vi.spyOn(service, "getStorageBreakdown");
+          const mockGetStorageBreakdown = vi.spyOn(
+            service,
+            "getStorageBreakdown",
+          );
           mockGetStorageBreakdown.mockResolvedValue(mockBreakdown);
 
           const expectedNearLimit =
@@ -346,7 +370,7 @@ describe("StorageUsageService", () => {
           const actualNearLimit = await service.isNearStorageLimit("user123");
 
           expect(actualNearLimit).toBe(expectedNearLimit);
-          
+
           mockGetStorageBreakdown.mockRestore();
         }),
         { numRuns: 100 },

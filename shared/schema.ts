@@ -729,9 +729,7 @@ export const partnerRelationships = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
 
     // Partnership status: pending, accepted, declined, revoked
-    status: varchar("status", { length: 20 })
-      .default("pending")
-      .notNull(),
+    status: varchar("status", { length: 20 }).default("pending").notNull(),
 
     // Who initiated this partnership request
     initiatedBy: varchar("initiated_by")
@@ -773,101 +771,96 @@ export const partnerRelationships = pgTable(
 // ─────────────────────────────────────────────────────────
 // Partner invitations with secure tokens
 
-export const partnerInvitations = pgTable(
-  "partner_invitations",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()`),
+export const partnerInvitations = pgTable("partner_invitations", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
 
-    // Unique invitation token
-    invitationToken: varchar("invitation_token", { length: 128 })
-      .notNull()
-      .unique(),
+  // Unique invitation token
+  invitationToken: varchar("invitation_token", { length: 128 })
+    .notNull()
+    .unique(),
 
-    // User who sent the invitation
-    inviterId: varchar("inviter_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+  // User who sent the invitation
+  inviterId: varchar("inviter_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
 
-    // Email of the invited partner (if not yet a user)
-    inviteeEmail: text("invitee_email"),
+  // Email of the invited partner (if not yet a user)
+  inviteeEmail: text("invitee_email"),
 
-    // User ID of the invited partner (if already a user)
-    inviteeId: varchar("invitee_id")
-      .references(() => users.id, { onDelete: "cascade" }),
+  // User ID of the invited partner (if already a user)
+  inviteeId: varchar("invitee_id").references(() => users.id, {
+    onDelete: "cascade",
+  }),
 
-    // Invitation status: pending, accepted, declined, expired
-    status: varchar("status", { length: 20 })
-      .default("pending")
-      .notNull(),
+  // Invitation status: pending, accepted, declined, expired
+  status: varchar("status", { length: 20 }).default("pending").notNull(),
 
-    // Invitation message from inviter
-    message: text("message"),
+  // Invitation message from inviter
+  message: text("message"),
 
-    // When the invitation expires
-    expiresAt: timestamp("expires_at", { mode: "date", withTimezone: true })
-      .notNull(),
+  // When the invitation expires
+  expiresAt: timestamp("expires_at", {
+    mode: "date",
+    withTimezone: true,
+  }).notNull(),
 
-    // When the invitation was responded to
-    respondedAt: timestamp("responded_at", { mode: "date", withTimezone: true }),
+  // When the invitation was responded to
+  respondedAt: timestamp("responded_at", { mode: "date", withTimezone: true }),
 
-    // Timestamps
-    createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
-      .defaultNow()
-      .notNull(),
-    updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
-      .defaultNow()
-      .notNull(),
-  },
-);
+  // Timestamps
+  createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
 
 // ─────────────────────────────────────────────────────────
 // PARTNER AUTO-SHARE RULES TABLE
 // ─────────────────────────────────────────────────────────
 // Auto-share rules for partner relationships
 
-export const partnerAutoShareRules = pgTable(
-  "partner_auto_share_rules",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()`),
+export const partnerAutoShareRules = pgTable("partner_auto_share_rules", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
 
-    // Which partnership this rule belongs to
-    partnershipId: varchar("partnership_id")
-      .notNull()
-      .references(() => partnerRelationships.id, { onDelete: "cascade" }),
+  // Which partnership this rule belongs to
+  partnershipId: varchar("partnership_id")
+    .notNull()
+    .references(() => partnerRelationships.id, { onDelete: "cascade" }),
 
-    // User who created this rule
-    userId: varchar("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+  // User who created this rule
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
 
-    // Rule name for identification
-    name: varchar("name", { length: 100 }).notNull(),
+  // Rule name for identification
+  name: varchar("name", { length: 100 }).notNull(),
 
-    // Rule type: all_photos, date_range, people, content_type
-    ruleType: varchar("rule_type", { length: 20 }).notNull(),
+  // Rule type: all_photos, date_range, people, content_type
+  ruleType: varchar("rule_type", { length: 20 }).notNull(),
 
-    // Whether this rule is currently active
-    isActive: boolean("is_active").default(true).notNull(),
+  // Whether this rule is currently active
+  isActive: boolean("is_active").default(true).notNull(),
 
-    // Rule criteria (stored as JSON)
-    criteria: jsonb("criteria").notNull(),
+  // Rule criteria (stored as JSON)
+  criteria: jsonb("criteria").notNull(),
 
-    // Priority of this rule (higher = more priority)
-    priority: integer("priority").default(0).notNull(),
+  // Priority of this rule (higher = more priority)
+  priority: integer("priority").default(0).notNull(),
 
-    // Timestamps
-    createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
-      .defaultNow()
-      .notNull(),
-    updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
-      .defaultNow()
-      .notNull(),
-  },
-);
+  // Timestamps
+  createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
 
 // ─────────────────────────────────────────────────────────
 // PARTNER SHARED PHOTOS TABLE
@@ -897,8 +890,9 @@ export const partnerSharedPhotos = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
 
     // Which rule triggered this share (if any)
-    ruleId: varchar("rule_id")
-      .references(() => partnerAutoShareRules.id, { onDelete: "set null" }),
+    ruleId: varchar("rule_id").references(() => partnerAutoShareRules.id, {
+      onDelete: "set null",
+    }),
 
     // Whether the partner has saved this photo
     isSavedByPartner: boolean("is_saved_by_partner").default(false).notNull(),
@@ -1072,7 +1066,8 @@ export const selectStorageUsageSchema = createSelectSchema(storageUsage);
 //   updatedAt: true,
 // });
 
-export const selectPartnerRelationshipSchema = createSelectSchema(partnerRelationships);
+export const selectPartnerRelationshipSchema =
+  createSelectSchema(partnerRelationships);
 
 // export const insertPartnerInvitationSchema = createInsertSchema(partnerInvitations).omit({
 //   id: true,
@@ -1081,7 +1076,8 @@ export const selectPartnerRelationshipSchema = createSelectSchema(partnerRelatio
 //   updatedAt: true,
 // });
 
-export const selectPartnerInvitationSchema = createSelectSchema(partnerInvitations);
+export const selectPartnerInvitationSchema =
+  createSelectSchema(partnerInvitations);
 
 // export const insertPartnerAutoShareRuleSchema = createInsertSchema(partnerAutoShareRules).omit({
 //   id: true,
@@ -1090,7 +1086,9 @@ export const selectPartnerInvitationSchema = createSelectSchema(partnerInvitatio
 //   updatedAt: true,
 // });
 
-export const selectPartnerAutoShareRuleSchema = createSelectSchema(partnerAutoShareRules);
+export const selectPartnerAutoShareRuleSchema = createSelectSchema(
+  partnerAutoShareRules,
+);
 
 // export const insertPartnerSharedPhotoSchema = createInsertSchema(partnerSharedPhotos).omit({
 //   id: true,
@@ -1098,7 +1096,8 @@ export const selectPartnerAutoShareRuleSchema = createSelectSchema(partnerAutoSh
 //   updatedAt: true,
 // });
 
-export const selectPartnerSharedPhotoSchema = createSelectSchema(partnerSharedPhotos);
+export const selectPartnerSharedPhotoSchema =
+  createSelectSchema(partnerSharedPhotos);
 
 // ─────────────────────────────────────────────────────────
 // TYPESCRIPT TYPES FOR NEW TABLES

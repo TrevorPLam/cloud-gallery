@@ -11,12 +11,17 @@
 import { Router } from "express";
 import { z } from "zod";
 import { authenticateToken } from "./middleware";
-import { partnerSharingService, PartnershipStatus, InvitationStatus, AutoShareRuleType } from "../services/partner-sharing";
-import { 
+import {
+  partnerSharingService,
+  PartnershipStatus,
+  InvitationStatus,
+  AutoShareRuleType,
+} from "../services/partner-sharing";
+import {
   selectPartnerRelationshipSchema,
   selectPartnerInvitationSchema,
   selectPartnerAutoShareRuleSchema,
-  selectPartnerSharedPhotoSchema
+  selectPartnerSharedPhotoSchema,
 } from "../../shared/schema";
 
 const router = Router();
@@ -32,12 +37,14 @@ const createInvitationSchema = z.object({
   inviteeEmail: z.string().email().optional(),
   inviteeId: z.string().uuid().optional(),
   message: z.string().max(500).optional(),
-  privacySettings: z.object({
-    includeOtherApps: z.boolean().default(true),
-    minQuality: z.number().min(0).max(100).optional(),
-    excludeTags: z.array(z.string()).optional(),
-    favoritesOnly: z.boolean().default(false),
-  }).optional(),
+  privacySettings: z
+    .object({
+      includeOtherApps: z.boolean().default(true),
+      minQuality: z.number().min(0).max(100).optional(),
+      excludeTags: z.array(z.string()).optional(),
+      favoritesOnly: z.boolean().default(false),
+    })
+    .optional(),
   expiresAt: z.string().datetime().optional(),
 });
 
@@ -49,7 +56,9 @@ const createAutoShareRuleSchema = z.object({
     startDate: z.string().datetime().optional(),
     endDate: z.string().datetime().optional(),
     peopleIds: z.array(z.string().uuid()).optional(),
-    contentTypes: z.array(z.enum(["camera", "screenshot", "download", "other"])).optional(),
+    contentTypes: z
+      .array(z.enum(["camera", "screenshot", "download", "other"]))
+      .optional(),
     minQuality: z.number().min(0).max(100).optional(),
     excludeTags: z.array(z.string()).optional(),
     favoritesOnly: z.boolean().default(false),
@@ -86,7 +95,9 @@ router.post("/invitations", async (req, res) => {
     const invitation = await partnerSharingService.createInvitation({
       inviterId: userId,
       ...validatedData,
-      expiresAt: validatedData.expiresAt ? new Date(validatedData.expiresAt) : undefined,
+      expiresAt: validatedData.expiresAt
+        ? new Date(validatedData.expiresAt)
+        : undefined,
     });
 
     res.status(201).json({
@@ -181,7 +192,8 @@ router.get("/partnerships", async (req, res) => {
   try {
     const userId = req.user!.id;
 
-    const partnerships = await partnerSharingService.getUserPartnerships(userId);
+    const partnerships =
+      await partnerSharingService.getUserPartnerships(userId);
 
     res.json({
       success: true,
@@ -230,7 +242,10 @@ router.put("/partnerships/:id/privacy", async (req, res) => {
     }
 
     if (error instanceof Error) {
-      if (error.message.includes("not found") || error.message.includes("access denied")) {
+      if (
+        error.message.includes("not found") ||
+        error.message.includes("access denied")
+      ) {
         return res.status(404).json({
           success: false,
           error: error.message,
@@ -255,7 +270,10 @@ router.delete("/partnerships/:id", async (req, res) => {
     const userId = req.user!.id;
     const partnershipId = req.params.id;
 
-    const result = await partnerSharingService.endPartnership(partnershipId, userId);
+    const result = await partnerSharingService.endPartnership(
+      partnershipId,
+      userId,
+    );
 
     res.json({
       success: true,
@@ -264,7 +282,10 @@ router.delete("/partnerships/:id", async (req, res) => {
     });
   } catch (error) {
     if (error instanceof Error) {
-      if (error.message.includes("not found") || error.message.includes("access denied")) {
+      if (
+        error.message.includes("not found") ||
+        error.message.includes("access denied")
+      ) {
         return res.status(404).json({
           success: false,
           error: error.message,
@@ -300,8 +321,12 @@ router.post("/rules", async (req, res) => {
       ruleType: validatedData.ruleType,
       criteria: {
         ...validatedData.criteria,
-        startDate: validatedData.criteria.startDate ? new Date(validatedData.criteria.startDate) : undefined,
-        endDate: validatedData.criteria.endDate ? new Date(validatedData.criteria.endDate) : undefined,
+        startDate: validatedData.criteria.startDate
+          ? new Date(validatedData.criteria.startDate)
+          : undefined,
+        endDate: validatedData.criteria.endDate
+          ? new Date(validatedData.criteria.endDate)
+          : undefined,
       },
       priority: validatedData.priority,
     });
@@ -320,7 +345,10 @@ router.post("/rules", async (req, res) => {
     }
 
     if (error instanceof Error) {
-      if (error.message.includes("not found") || error.message.includes("access denied")) {
+      if (
+        error.message.includes("not found") ||
+        error.message.includes("access denied")
+      ) {
         return res.status(404).json({
           success: false,
           error: error.message,
@@ -345,7 +373,10 @@ router.get("/rules/:partnershipId", async (req, res) => {
     const userId = req.user!.id;
     const partnershipId = req.params.id;
 
-    const rules = await partnerSharingService.getAutoShareRules(partnershipId, userId);
+    const rules = await partnerSharingService.getAutoShareRules(
+      partnershipId,
+      userId,
+    );
 
     res.json({
       success: true,
@@ -356,7 +387,10 @@ router.get("/rules/:partnershipId", async (req, res) => {
     });
   } catch (error) {
     if (error instanceof Error) {
-      if (error.message.includes("not found") || error.message.includes("access denied")) {
+      if (
+        error.message.includes("not found") ||
+        error.message.includes("access denied")
+      ) {
         return res.status(404).json({
           success: false,
           error: error.message,
@@ -382,12 +416,16 @@ router.put("/rules/:id", async (req, res) => {
     const ruleId = req.params.id;
     const validatedData = createAutoShareRuleSchema.partial().parse(req.body);
 
-    const result = await partnerSharingService.updateAutoShareRule(ruleId, userId, {
-      name: validatedData.name,
-      criteria: validatedData.criteria,
-      priority: validatedData.priority,
-      isActive: validatedData.isActive,
-    });
+    const result = await partnerSharingService.updateAutoShareRule(
+      ruleId,
+      userId,
+      {
+        name: validatedData.name,
+        criteria: validatedData.criteria,
+        priority: validatedData.priority,
+        isActive: validatedData.isActive,
+      },
+    );
 
     res.json({
       success: true,
@@ -404,7 +442,10 @@ router.put("/rules/:id", async (req, res) => {
     }
 
     if (error instanceof Error) {
-      if (error.message.includes("not found") || error.message.includes("access denied")) {
+      if (
+        error.message.includes("not found") ||
+        error.message.includes("access denied")
+      ) {
         return res.status(404).json({
           success: false,
           error: error.message,
@@ -429,7 +470,10 @@ router.delete("/rules/:id", async (req, res) => {
     const userId = req.user!.id;
     const ruleId = req.params.id;
 
-    const result = await partnerSharingService.deleteAutoShareRule(ruleId, userId);
+    const result = await partnerSharingService.deleteAutoShareRule(
+      ruleId,
+      userId,
+    );
 
     res.json({
       success: true,
@@ -438,7 +482,10 @@ router.delete("/rules/:id", async (req, res) => {
     });
   } catch (error) {
     if (error instanceof Error) {
-      if (error.message.includes("not found") || error.message.includes("access denied")) {
+      if (
+        error.message.includes("not found") ||
+        error.message.includes("access denied")
+      ) {
         return res.status(404).json({
           success: false,
           error: error.message,
@@ -482,7 +529,10 @@ router.get("/shared-photos/:partnershipId", async (req, res) => {
     });
   } catch (error) {
     if (error instanceof Error) {
-      if (error.message.includes("not found") || error.message.includes("access denied")) {
+      if (
+        error.message.includes("not found") ||
+        error.message.includes("access denied")
+      ) {
         return res.status(404).json({
           success: false,
           error: error.message,
@@ -545,7 +595,11 @@ router.put("/shared-photos/:photoId/save", async (req, res) => {
       });
     }
 
-    const result = await partnerSharingService.saveSharedPhoto(photoId, partnershipId, userId);
+    const result = await partnerSharingService.saveSharedPhoto(
+      photoId,
+      partnershipId,
+      userId,
+    );
 
     res.json({
       success: true,
@@ -554,7 +608,10 @@ router.put("/shared-photos/:photoId/save", async (req, res) => {
     });
   } catch (error) {
     if (error instanceof Error) {
-      if (error.message.includes("not found") || error.message.includes("access denied")) {
+      if (
+        error.message.includes("not found") ||
+        error.message.includes("access denied")
+      ) {
         return res.status(404).json({
           success: false,
           error: error.message,

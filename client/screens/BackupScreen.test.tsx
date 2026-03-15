@@ -1,11 +1,15 @@
 // BackupScreen UI tests for Cloud Gallery
 
-import { render, screen, fireEvent, waitFor } from "@testing-library/react-native";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Alert } from "react-native";
 import { BackupScreen } from "./BackupScreen";
-import { ThemeProvider } from "../constants/theme";
-import { defaultTheme } from "../constants/theme";
+import { ThemeProvider, defaultTheme } from "../constants/theme";
 
 // Mock the API functions
 jest.mock("./BackupScreen", () => {
@@ -47,39 +51,38 @@ jest.mock("@expo/vector-icons", () => ({
     glyphMap: {
       "checkmark-circle": "checkmark-circle",
       "close-circle": "close-circle",
-      "time": "time",
+      time: "time",
       "ellipsis-circle": "ellipsis-circle",
-      "trash": "trash",
+      trash: "trash",
     },
   },
 }));
 
 // Create a test query client
-const createTestQueryClient = () => new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-      gcTime: 0,
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+        gcTime: 0,
+      },
+      mutations: {
+        retry: false,
+      },
     },
-    mutations: {
-      retry: false,
-    },
-  },
-});
+  });
 
 // Test wrapper component
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <QueryClientProvider client={createTestQueryClient()}>
-    <ThemeProvider theme={defaultTheme}>
-      {children}
-    </ThemeProvider>
+    <ThemeProvider theme={defaultTheme}>{children}</ThemeProvider>
   </QueryClientProvider>
 );
 
 describe("BackupScreen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Mock successful API responses
     const { api } = require("./BackupScreen");
     api.listBackups.mockResolvedValue([
@@ -106,7 +109,7 @@ describe("BackupScreen", () => {
         errorMessage: "Network error",
       },
     ]);
-    
+
     api.getBackupStats.mockResolvedValue({
       totalBackups: 2,
       completedBackups: 1,
@@ -114,7 +117,7 @@ describe("BackupScreen", () => {
       totalSize: 1024 * 1024,
       lastBackup: "2024-01-01T01:00:00Z",
     });
-    
+
     api.getBackupConfig.mockResolvedValue({
       autoBackupEnabled: false,
       retentionDays: 30,
@@ -177,7 +180,9 @@ describe("BackupScreen", () => {
       render(<BackupScreen />, { wrapper: TestWrapper });
 
       await waitFor(() => {
-        expect(screen.getByText("No backups yet. Start your first backup above.")).toBeTruthy();
+        expect(
+          screen.getByText("No backups yet. Start your first backup above."),
+        ).toBeTruthy();
       });
     });
   });
@@ -199,7 +204,7 @@ describe("BackupScreen", () => {
         expect(Alert.alert).toHaveBeenCalledWith(
           "Start Backup",
           "Are you sure you want to start a incremental backup?",
-          expect.any(Array)
+          expect.any(Array),
         );
       });
 
@@ -229,7 +234,7 @@ describe("BackupScreen", () => {
         expect(Alert.alert).toHaveBeenCalledWith(
           "Start Backup",
           "Are you sure you want to start a full backup?",
-          expect.any(Array)
+          expect.any(Array),
         );
       });
 
@@ -259,7 +264,7 @@ describe("BackupScreen", () => {
         expect(Alert.alert).toHaveBeenCalledWith(
           "Start Backup",
           "Are you sure you want to start a incremental backup?",
-          expect.any(Array)
+          expect.any(Array),
         );
       });
 
@@ -271,7 +276,7 @@ describe("BackupScreen", () => {
       await waitFor(() => {
         expect(Alert.alert).toHaveBeenCalledWith(
           "Success",
-          "Backup started with ID: new-backup-1"
+          "Backup started with ID: new-backup-1",
         );
       });
     });
@@ -292,7 +297,7 @@ describe("BackupScreen", () => {
         expect(Alert.alert).toHaveBeenCalledWith(
           "Start Backup",
           "Are you sure you want to start a incremental backup?",
-          expect.any(Array)
+          expect.any(Array),
         );
       });
 
@@ -304,7 +309,7 @@ describe("BackupScreen", () => {
       await waitFor(() => {
         expect(Alert.alert).toHaveBeenCalledWith(
           "Error",
-          "Failed to start backup"
+          "Failed to start backup",
         );
       });
     });
@@ -335,7 +340,7 @@ describe("BackupScreen", () => {
         expect(Alert.alert).toHaveBeenCalledWith(
           "Delete Backup",
           "Are you sure you want to delete this backup? This action cannot be undone.",
-          expect.any(Array)
+          expect.any(Array),
         );
       });
 
@@ -365,7 +370,7 @@ describe("BackupScreen", () => {
         expect(Alert.alert).toHaveBeenCalledWith(
           "Delete Backup",
           "Are you sure you want to delete this backup? This action cannot be undone.",
-          expect.any(Array)
+          expect.any(Array),
         );
       });
 
@@ -377,7 +382,7 @@ describe("BackupScreen", () => {
       await waitFor(() => {
         expect(Alert.alert).toHaveBeenCalledWith(
           "Success",
-          "Backup deleted successfully"
+          "Backup deleted successfully",
         );
       });
     });
@@ -394,7 +399,7 @@ describe("BackupScreen", () => {
       // Find and toggle the switch
       const switches = screen.getAllByRole("switch");
       expect(switches.length).toBeGreaterThan(0);
-      
+
       fireEvent(switches[0], "valueChange", true);
 
       await waitFor(() => {
@@ -462,7 +467,7 @@ describe("BackupScreen", () => {
   describe("Pull to Refresh", () => {
     it("should refresh data when pulled down", async () => {
       const { api } = require("./BackupScreen");
-      
+
       render(<BackupScreen />, { wrapper: TestWrapper });
 
       await waitFor(() => {
@@ -514,7 +519,7 @@ describe("BackupScreen", () => {
         expect(Alert.alert).toHaveBeenCalledWith(
           "Delete Backup",
           "Are you sure you want to delete this backup? This action cannot be undone.",
-          expect.any(Array)
+          expect.any(Array),
         );
       });
 
@@ -526,7 +531,7 @@ describe("BackupScreen", () => {
       await waitFor(() => {
         expect(Alert.alert).toHaveBeenCalledWith(
           "Error",
-          "Failed to delete backup"
+          "Failed to delete backup",
         );
       });
     });
@@ -537,9 +542,15 @@ describe("BackupScreen", () => {
       render(<BackupScreen />, { wrapper: TestWrapper });
 
       await waitFor(() => {
-        expect(screen.getByRole("button", { name: /Start Incremental Backup/i })).toBeTruthy();
-        expect(screen.getByRole("button", { name: /Start Full Backup/i })).toBeTruthy();
-        expect(screen.getByRole("switch", { name: /Automatic Backup/i })).toBeTruthy();
+        expect(
+          screen.getByRole("button", { name: /Start Incremental Backup/i }),
+        ).toBeTruthy();
+        expect(
+          screen.getByRole("button", { name: /Start Full Backup/i }),
+        ).toBeTruthy();
+        expect(
+          screen.getByRole("switch", { name: /Automatic Backup/i }),
+        ).toBeTruthy();
       });
     });
 
@@ -550,10 +561,14 @@ describe("BackupScreen", () => {
       render(<BackupScreen />, { wrapper: TestWrapper });
 
       await waitFor(() => {
-        expect(screen.getByRole("button", { name: /Start Incremental Backup/i })).toBeTruthy();
+        expect(
+          screen.getByRole("button", { name: /Start Incremental Backup/i }),
+        ).toBeTruthy();
       });
 
-      fireEvent.press(screen.getByRole("button", { name: /Start Incremental Backup/i }));
+      fireEvent.press(
+        screen.getByRole("button", { name: /Start Incremental Backup/i }),
+      );
 
       await waitFor(() => {
         expect(Alert.alert).toHaveBeenCalled();

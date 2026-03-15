@@ -11,17 +11,13 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import {
-  StorageUsageService,
   storageUsageService,
-  StorageCategory,
   StorageBreakdown,
 } from "./services/storage-usage";
 import { authenticateToken } from "./auth";
 import { db } from "./db";
 import { photos } from "../shared/schema";
-import { eq, and, isNull, isNotNull } from "drizzle-orm"; // Add missing isNotNull import
-import fs from "fs/promises";
-import path from "path";
+import { eq, and, isNull, isNotNull } from "drizzle-orm";
 
 const router = Router();
 
@@ -227,9 +223,7 @@ router.post("/compress", async (req: Request, res: Response) => {
       return res.status(401).json({ error: "User not authenticated" });
     }
 
-    const { photoIds, quality, threshold } = compressPhotosSchema.parse(
-      req.body,
-    );
+    const { photoIds, quality } = compressPhotosSchema.parse(req.body);
 
     // Get photos to compress
     let photosToCompress;

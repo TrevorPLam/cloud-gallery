@@ -62,35 +62,37 @@ interface BackupConfig {
 
 // API functions (these would be implemented in a proper API client)
 const api = {
-  async startBackup(type: "full" | "incremental" = "incremental"): Promise<{ backupId: string }> {
+  async startBackup(
+    type: "full" | "incremental" = "incremental",
+  ): Promise<{ backupId: string }> {
     // In a real implementation, this would make an API call
     const response = await fetch("/api/backup/start", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${await getToken()}`,
+        Authorization: `Bearer ${await getToken()}`,
       },
       body: JSON.stringify({ type }),
     });
-    
+
     if (!response.ok) {
       throw new Error("Failed to start backup");
     }
-    
+
     return response.json();
   },
 
   async getBackupStatus(backupId: string): Promise<BackupMetadata> {
     const response = await fetch(`/api/backup/status/${backupId}`, {
       headers: {
-        "Authorization": `Bearer ${await getToken()}`,
+        Authorization: `Bearer ${await getToken()}`,
       },
     });
-    
+
     if (!response.ok) {
       throw new Error("Failed to get backup status");
     }
-    
+
     const data = await response.json();
     return data.backup;
   },
@@ -98,14 +100,14 @@ const api = {
   async listBackups(): Promise<BackupMetadata[]> {
     const response = await fetch("/api/backup/list", {
       headers: {
-        "Authorization": `Bearer ${await getToken()}`,
+        Authorization: `Bearer ${await getToken()}`,
       },
     });
-    
+
     if (!response.ok) {
       throw new Error("Failed to list backups");
     }
-    
+
     const data = await response.json();
     return data.backups;
   },
@@ -114,10 +116,10 @@ const api = {
     const response = await fetch(`/api/backup/${backupId}`, {
       method: "DELETE",
       headers: {
-        "Authorization": `Bearer ${await getToken()}`,
+        Authorization: `Bearer ${await getToken()}`,
       },
     });
-    
+
     if (!response.ok) {
       throw new Error("Failed to delete backup");
     }
@@ -126,14 +128,14 @@ const api = {
   async getBackupStats(): Promise<BackupStats> {
     const response = await fetch("/api/backup/stats", {
       headers: {
-        "Authorization": `Bearer ${await getToken()}`,
+        Authorization: `Bearer ${await getToken()}`,
       },
     });
-    
+
     if (!response.ok) {
       throw new Error("Failed to get backup stats");
     }
-    
+
     const data = await response.json();
     return data.stats;
   },
@@ -141,14 +143,14 @@ const api = {
   async getBackupConfig(): Promise<BackupConfig> {
     const response = await fetch("/api/backup/config", {
       headers: {
-        "Authorization": `Bearer ${await getToken()}`,
+        Authorization: `Bearer ${await getToken()}`,
       },
     });
-    
+
     if (!response.ok) {
       throw new Error("Failed to get backup config");
     }
-    
+
     const data = await response.json();
     return data.config;
   },
@@ -158,11 +160,11 @@ const api = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${await getToken()}`,
+        Authorization: `Bearer ${await getToken()}`,
       },
       body: JSON.stringify({ schedule }),
     });
-    
+
     if (!response.ok) {
       throw new Error("Failed to schedule backup");
     }
@@ -172,10 +174,10 @@ const api = {
     const response = await fetch("/api/backup/schedule", {
       method: "DELETE",
       headers: {
-        "Authorization": `Bearer ${await getToken()}`,
+        Authorization: `Bearer ${await getToken()}`,
       },
     });
-    
+
     if (!response.ok) {
       throw new Error("Failed to cancel scheduled backup");
     }
@@ -216,10 +218,7 @@ export const BackupScreen: React.FC = () => {
     refetchInterval: 30000,
   });
 
-  const {
-    data: config,
-    isLoading: configLoading,
-  } = useQuery({
+  const { data: config, isLoading: configLoading } = useQuery({
     queryKey: ["backup-config"],
     queryFn: api.getBackupConfig,
   });
@@ -282,10 +281,7 @@ export const BackupScreen: React.FC = () => {
   // Handlers
   const handleRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([
-      refetchBackups(),
-      refetchStats(),
-    ]);
+    await Promise.all([refetchBackups(), refetchStats()]);
     setRefreshing(false);
   };
 
@@ -300,7 +296,7 @@ export const BackupScreen: React.FC = () => {
           style: "default",
           onPress: () => startBackupMutation.mutate(type),
         },
-      ]
+      ],
     );
   };
 
@@ -315,7 +311,7 @@ export const BackupScreen: React.FC = () => {
           style: "destructive",
           onPress: () => deleteBackupMutation.mutate(backupId),
         },
-      ]
+      ],
     );
   };
 
@@ -374,8 +370,12 @@ export const BackupScreen: React.FC = () => {
           <Text style={[styles.backupType, { color: theme.colors.primary }]}>
             {backup.type.toUpperCase()}
           </Text>
-          <Text style={[styles.backupDate, { color: theme.colors.textSecondary }]}>
-            {formatDistanceToNow(new Date(backup.createdAt), { addSuffix: true })}
+          <Text
+            style={[styles.backupDate, { color: theme.colors.textSecondary }]}
+          >
+            {formatDistanceToNow(new Date(backup.createdAt), {
+              addSuffix: true,
+            })}
           </Text>
         </View>
         <View style={styles.backupStatus}>
@@ -384,17 +384,26 @@ export const BackupScreen: React.FC = () => {
             size={20}
             color={getStatusColor(backup.status)}
           />
-          <Text style={[styles.statusText, { color: getStatusColor(backup.status) }]}>
+          <Text
+            style={[
+              styles.statusText,
+              { color: getStatusColor(backup.status) },
+            ]}
+          >
             {backup.status.replace("_", " ")}
           </Text>
         </View>
       </View>
-      
+
       <View style={styles.backupDetails}>
-        <Text style={[styles.backupDetail, { color: theme.colors.textSecondary }]}>
+        <Text
+          style={[styles.backupDetail, { color: theme.colors.textSecondary }]}
+        >
           Size: {formatFileSize(backup.size)}
         </Text>
-        <Text style={[styles.backupDetail, { color: theme.colors.textSecondary }]}>
+        <Text
+          style={[styles.backupDetail, { color: theme.colors.textSecondary }]}
+        >
           Files: {backup.fileCount}
         </Text>
       </View>
@@ -411,7 +420,9 @@ export const BackupScreen: React.FC = () => {
           onPress={() => handleDeleteBackup(backup.id)}
         >
           <Ionicons name="trash" size={16} color={theme.colors.error} />
-          <Text style={[styles.deleteButtonText, { color: theme.colors.error }]}>
+          <Text
+            style={[styles.deleteButtonText, { color: theme.colors.error }]}
+          >
             Delete
           </Text>
         </TouchableOpacity>
@@ -424,48 +435,59 @@ export const BackupScreen: React.FC = () => {
       <Text style={[styles.statsTitle, { color: theme.colors.text }]}>
         Backup Statistics
       </Text>
-      
+
       <View style={styles.statsGrid}>
         <View style={styles.statItem}>
           <Text style={[styles.statValue, { color: theme.colors.primary }]}>
             {stats?.totalBackups || 0}
           </Text>
-          <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
+          <Text
+            style={[styles.statLabel, { color: theme.colors.textSecondary }]}
+          >
             Total Backups
           </Text>
         </View>
-        
+
         <View style={styles.statItem}>
           <Text style={[styles.statValue, { color: theme.colors.success }]}>
             {stats?.completedBackups || 0}
           </Text>
-          <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
+          <Text
+            style={[styles.statLabel, { color: theme.colors.textSecondary }]}
+          >
             Completed
           </Text>
         </View>
-        
+
         <View style={styles.statItem}>
           <Text style={[styles.statValue, { color: theme.colors.error }]}>
             {stats?.failedBackups || 0}
           </Text>
-          <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
+          <Text
+            style={[styles.statLabel, { color: theme.colors.textSecondary }]}
+          >
             Failed
           </Text>
         </View>
-        
+
         <View style={styles.statItem}>
           <Text style={[styles.statValue, { color: theme.colors.primary }]}>
             {formatFileSize(stats?.totalSize || 0)}
           </Text>
-          <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
+          <Text
+            style={[styles.statLabel, { color: theme.colors.textSecondary }]}
+          >
             Total Size
           </Text>
         </View>
       </View>
 
       {stats?.lastBackup && (
-        <Text style={[styles.lastBackup, { color: theme.colors.textSecondary }]}>
-          Last backup: {formatDistanceToNow(new Date(stats.lastBackup), { addSuffix: true })}
+        <Text
+          style={[styles.lastBackup, { color: theme.colors.textSecondary }]}
+        >
+          Last backup:{" "}
+          {formatDistanceToNow(new Date(stats.lastBackup), { addSuffix: true })}
         </Text>
       )}
     </Card>
@@ -476,7 +498,7 @@ export const BackupScreen: React.FC = () => {
       <Text style={[styles.actionsTitle, { color: theme.colors.text }]}>
         Backup Actions
       </Text>
-      
+
       <View style={styles.actionButtons}>
         <Button
           title="Start Incremental Backup"
@@ -484,7 +506,7 @@ export const BackupScreen: React.FC = () => {
           loading={startBackupMutation.isPending}
           style={styles.actionButton}
         />
-        
+
         <Button
           title="Start Full Backup"
           onPress={() => handleStartBackup("full")}
@@ -502,11 +524,19 @@ export const BackupScreen: React.FC = () => {
           <Switch
             value={autoBackupEnabled}
             onValueChange={handleToggleAutoBackup}
-            trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+            trackColor={{
+              false: theme.colors.border,
+              true: theme.colors.primary,
+            }}
           />
         </View>
-        
-        <Text style={[styles.autoBackupDescription, { color: theme.colors.textSecondary }]}>
+
+        <Text
+          style={[
+            styles.autoBackupDescription,
+            { color: theme.colors.textSecondary },
+          ]}
+        >
           Automatically back up your photos on a schedule
         </Text>
       </View>
@@ -515,7 +545,13 @@ export const BackupScreen: React.FC = () => {
 
   if (backupsLoading || statsLoading || configLoading) {
     return (
-      <View style={[styles.container, styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+      <View
+        style={[
+          styles.container,
+          styles.loadingContainer,
+          { backgroundColor: theme.colors.background },
+        ]}
+      >
         <ActivityIndicator size="large" color={theme.colors.primary} />
         <Text style={[styles.loadingText, { color: theme.colors.text }]}>
           Loading backup information...
@@ -525,7 +561,9 @@ export const BackupScreen: React.FC = () => {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <ScrollView
         style={styles.scrollView}
         refreshControl={
@@ -538,14 +576,19 @@ export const BackupScreen: React.FC = () => {
       >
         {renderStatsCard()}
         {renderActionsCard()}
-        
+
         <Card style={styles.backupsCard}>
           <Text style={[styles.backupsTitle, { color: theme.colors.text }]}>
             Backup History
           </Text>
-          
+
           {backups.length === 0 ? (
-            <Text style={[styles.noBackupsText, { color: theme.colors.textSecondary }]}>
+            <Text
+              style={[
+                styles.noBackupsText,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
               No backups yet. Start your first backup above.
             </Text>
           ) : (
@@ -562,27 +605,40 @@ export const BackupScreen: React.FC = () => {
         onRequestClose={() => setShowScheduleModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: theme.colors.card },
+            ]}
+          >
             <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
               Schedule Automatic Backup
             </Text>
-            
-            <Text style={[styles.modalDescription, { color: theme.colors.textSecondary }]}>
+
+            <Text
+              style={[
+                styles.modalDescription,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
               Enter a cron expression for when to run automatic backups.
               Default: Daily at 2 AM
             </Text>
-            
+
             <TextInput
-              style={[styles.scheduleInput, { 
-                borderColor: theme.colors.border,
-                color: theme.colors.text,
-                backgroundColor: theme.colors.background,
-              }]}
+              style={[
+                styles.scheduleInput,
+                {
+                  borderColor: theme.colors.border,
+                  color: theme.colors.text,
+                  backgroundColor: theme.colors.background,
+                },
+              ]}
               value={schedule}
               onChangeText={setSchedule}
               placeholder="0 2 * * *"
             />
-            
+
             <View style={styles.modalActions}>
               <Button
                 title="Cancel"

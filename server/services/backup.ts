@@ -9,12 +9,22 @@
 // AI-META-END
 
 import { db } from "../db";
+import { photos, users } from "../../shared/schema";
 import {
-  photos,
-  users,
-} from "../../shared/schema";
-import { eq, and, isNull, isNotNull, desc, lt, gt, or, inArray } from "drizzle-orm";
-import { createEncryptedBackup, restoreFromEncryptedBackup } from "./backup-encryption";
+  eq,
+  and,
+  isNull,
+  isNotNull,
+  desc,
+  lt,
+  gt,
+  or,
+  inArray,
+} from "drizzle-orm";
+import {
+  createEncryptedBackup,
+  restoreFromEncryptedBackup,
+} from "./backup-encryption";
 import { randomBytes } from "crypto";
 import { Queue, Worker } from "bullmq";
 import { createReadStream, createWriteStream, statSync, existsSync } from "fs";
@@ -27,7 +37,9 @@ export interface CloudStorageProvider {
   uploadFile(key: string, filePath: string, metadata?: any): Promise<string>;
   downloadFile(key: string, localPath: string): Promise<void>;
   deleteFile(key: string): Promise<void>;
-  listFiles(prefix?: string): Promise<Array<{ key: string; size: number; lastModified: Date }>>;
+  listFiles(
+    prefix?: string,
+  ): Promise<{ key: string; size: number; lastModified: Date }[]>;
   generatePresignedUrl(key: string, expiresIn?: number): Promise<string>;
 }
 
@@ -47,7 +59,7 @@ export class S3StorageProvider implements CloudStorageProvider {
     try {
       const { S3Client } = await import("@aws-sdk/client-s3");
       const { Upload } = await import("@aws-sdk/lib-storage");
-      
+
       this.s3Client = new S3Client({
         region,
         credentials: {
@@ -62,7 +74,11 @@ export class S3StorageProvider implements CloudStorageProvider {
     }
   }
 
-  async uploadFile(key: string, filePath: string, metadata?: any): Promise<string> {
+  async uploadFile(
+    key: string,
+    filePath: string,
+    metadata?: any,
+  ): Promise<string> {
     if (!this.s3Client) {
       throw new Error("S3 client not initialized");
     }
@@ -113,7 +129,7 @@ export class S3StorageProvider implements CloudStorageProvider {
 
       const response = await this.s3Client.send(command);
       const writeStream = createWriteStream(localPath);
-      
+
       await pipeline(response.Body as any, writeStream);
     } catch (error) {
       console.error("S3 download failed:", error);
@@ -140,7 +156,9 @@ export class S3StorageProvider implements CloudStorageProvider {
     }
   }
 
-  async listFiles(prefix?: string): Promise<Array<{ key: string; size: number; lastModified: Date }>> {
+  async listFiles(
+    prefix?: string,
+  ): Promise<{ key: string; size: number; lastModified: Date }[]> {
     if (!this.s3Client) {
       throw new Error("S3 client not initialized");
     }
@@ -153,8 +171,8 @@ export class S3StorageProvider implements CloudStorageProvider {
       });
 
       const response = await this.s3Client.send(command);
-      
-      return (response.Contents || []).map(obj => ({
+
+      return (response.Contents || []).map((obj) => ({
         key: obj.Key!,
         size: obj.Size || 0,
         lastModified: obj.LastModified || new Date(),
@@ -165,7 +183,10 @@ export class S3StorageProvider implements CloudStorageProvider {
     }
   }
 
-  async generatePresignedUrl(key: string, expiresIn: number = 3600): Promise<string> {
+  async generatePresignedUrl(
+    key: string,
+    expiresIn: number = 3600,
+  ): Promise<string> {
     if (!this.s3Client) {
       throw new Error("S3 client not initialized");
     }
@@ -252,7 +273,7 @@ export class BackupService {
 
   constructor(config: BackupConfig) {
     this.config = config;
-    
+
     // Initialize BullMQ queue
     this.backupQueue = new Queue("backup", {
       connection: {
@@ -270,7 +291,7 @@ export class BackupService {
       "backup",
       async (job) => {
         const { type, userId, options } = job.data;
-        
+
         switch (type) {
           case "full":
             return await this.performFullBackup(userId, options);
@@ -288,7 +309,7 @@ export class BackupService {
           port: parseInt(process.env.REDIS_PORT || "6379"),
         },
         concurrency: 2,
-      }
+      },
     );
 
     this.worker.on("completed", (job) => {
@@ -305,7 +326,7 @@ export class BackupService {
    */
   async startFullBackup(userId: string, options?: any): Promise<string> {
     const backupId = randomBytes(16).toString("hex");
-    
+
     // Create backup metadata
     const backupMetadata: BackupMetadata = {
       id: backupId,
@@ -317,24 +338,28 @@ export class BackupService {
       createdAt: new Date(),
       userId,
     };
-    
+
     this.backupStore.set(backupId, backupMetadata);
-    
+
     // Add job to queue
-    await this.backupQueue.add("full", {
-      userId,
-      backupId,
-      type: BackupType.FULL,
-      options: options || {},
-    }, {
-      attempts: 3,
-      backoff: {
-        type: "exponential",
-        delay: 5000,
+    await this.backupQueue.add(
+      "full",
+      {
+        userId,
+        backupId,
+        type: BackupType.FULL,
+        options: options || {},
       },
-      priority: 1,
-    });
-    
+      {
+        attempts: 3,
+        backoff: {
+          type: "exponential",
+          delay: 5000,
+        },
+        priority: 1,
+      },
+    );
+
     return backupId;
   }
 
@@ -343,7 +368,7 @@ export class BackupService {
    */
   async startIncrementalBackup(userId: string, options?: any): Promise<string> {
     const backupId = randomBytes(16).toString("hex");
-    
+
     // Create backup metadata
     const backupMetadata: BackupMetadata = {
       id: backupId,
@@ -355,23 +380,27 @@ export class BackupService {
       createdAt: new Date(),
       userId,
     };
-    
+
     this.backupStore.set(backupId, backupMetadata);
-    
+
     // Add job to queue
-    await this.backupQueue.add("incremental", {
-      userId,
-      backupId,
-      type: BackupType.INCREMENTAL,
-      options: options || {},
-    }, {
-      attempts: 3,
-      backoff: {
-        type: "exponential",
-        delay: 5000,
+    await this.backupQueue.add(
+      "incremental",
+      {
+        userId,
+        backupId,
+        type: BackupType.INCREMENTAL,
+        options: options || {},
       },
-      priority: 2,
-    });
+      {
+        attempts: 3,
+        backoff: {
+          type: "exponential",
+          delay: 5000,
+        },
+        priority: 2,
+      },
+    );
 
     return backupId;
   }
@@ -387,9 +416,14 @@ export class BackupService {
     }
 
     // Check BullMQ jobs
-    const jobs = await this.backupQueue.getJobs(["waiting", "active", "completed", "failed"]);
-    const job = jobs.find(j => j.data.backupId === backupId);
-    
+    const jobs = await this.backupQueue.getJobs([
+      "waiting",
+      "active",
+      "completed",
+      "failed",
+    ]);
+    const job = jobs.find((j) => j.data.backupId === backupId);
+
     if (!job) {
       return null;
     }
@@ -414,13 +448,20 @@ export class BackupService {
    */
   async listUserBackups(userId: string): Promise<BackupMetadata[]> {
     // Get from in-memory store
-    const storedBackups = Array.from(this.backupStore.values()).filter(b => b.userId === userId);
-    
-    // Get from BullMQ jobs
-    const jobs = await this.backupQueue.getJobs(["waiting", "active", "completed", "failed"]);
-    const userJobs = jobs.filter(j => j.data.userId === userId);
+    const storedBackups = Array.from(this.backupStore.values()).filter(
+      (b) => b.userId === userId,
+    );
 
-    const jobBackups = userJobs.map(job => ({
+    // Get from BullMQ jobs
+    const jobs = await this.backupQueue.getJobs([
+      "waiting",
+      "active",
+      "completed",
+      "failed",
+    ]);
+    const userJobs = jobs.filter((j) => j.data.userId === userId);
+
+    const jobBackups = userJobs.map((job) => ({
       id: job.data.backupId,
       type: job.data.type,
       status: this.mapJobStatusToBackupStatus(job),
@@ -436,16 +477,20 @@ export class BackupService {
     // Combine and deduplicate
     const allBackups = [...storedBackups, ...jobBackups];
     const uniqueBackups = new Map();
-    
-    allBackups.forEach(backup => {
-      if (!uniqueBackups.has(backup.id) || 
-          new Date(backup.createdAt) > new Date(uniqueBackups.get(backup.id)!.createdAt)) {
+
+    allBackups.forEach((backup) => {
+      if (
+        !uniqueBackups.has(backup.id) ||
+        new Date(backup.createdAt) >
+          new Date(uniqueBackups.get(backup.id)!.createdAt)
+      ) {
         uniqueBackups.set(backup.id, backup);
       }
     });
 
-    return Array.from(uniqueBackups.values()).sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    return Array.from(uniqueBackups.values()).sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
   }
 
@@ -465,7 +510,7 @@ export class BackupService {
   private async performFullBackup(userId: string, options: any): Promise<any> {
     try {
       const backupId = options.backupId;
-      
+
       // Update status to in_progress
       const backup = this.backupStore.get(backupId);
       if (backup) {
@@ -480,15 +525,21 @@ export class BackupService {
         .where(eq(photos.userId, userId));
 
       // Create encrypted backup
-      const backupFile = await createEncryptedBackup(`backup-${userId}-${Date.now()}`);
-      
+      const backupFile = await createEncryptedBackup(
+        `backup-${userId}-${Date.now()}`,
+      );
+
       // Upload to cloud storage
       const cloudKey = `backups/${userId}/${backupFile.fileName}`;
-      await this.config.storageProvider.uploadFile(cloudKey, backupFile.filePath, {
-        userId,
-        type: BackupType.FULL,
-        photoCount: userPhotos.length,
-      });
+      await this.config.storageProvider.uploadFile(
+        cloudKey,
+        backupFile.filePath,
+        {
+          userId,
+          type: BackupType.FULL,
+          photoCount: userPhotos.length,
+        },
+      );
 
       // Update backup metadata
       if (backup) {
@@ -518,12 +569,13 @@ export class BackupService {
       };
     } catch (error) {
       console.error("Full backup failed:", error);
-      
+
       // Update backup metadata with error
       const backup = this.backupStore.get(options.backupId);
       if (backup) {
         backup.status = BackupStatus.FAILED;
-        backup.errorMessage = error instanceof Error ? error.message : "Unknown error";
+        backup.errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
         this.backupStore.set(options.backupId, backup);
       }
 
@@ -534,10 +586,13 @@ export class BackupService {
   /**
    * Perform incremental backup
    */
-  private async performIncrementalBackup(userId: string, options: any): Promise<any> {
+  private async performIncrementalBackup(
+    userId: string,
+    options: any,
+  ): Promise<any> {
     try {
       const backupId = options.backupId;
-      
+
       // Update status to in_progress
       const backup = this.backupStore.get(backupId);
       if (backup) {
@@ -555,9 +610,9 @@ export class BackupService {
             or(
               isNull(photos.backupStatus),
               lt(photos.backupCompletedAt!, photos.modifiedAt),
-              eq(photos.backupStatus, BackupStatus.FAILED)
-            )
-          )
+              eq(photos.backupStatus, BackupStatus.FAILED),
+            ),
+          ),
         );
 
       if (photosToBackup.length === 0) {
@@ -577,15 +632,21 @@ export class BackupService {
       }
 
       // Create encrypted backup for incremental photos
-      const backupFile = await createEncryptedBackup(`incremental-${userId}-${Date.now()}`);
-      
+      const backupFile = await createEncryptedBackup(
+        `incremental-${userId}-${Date.now()}`,
+      );
+
       // Upload to cloud storage
       const cloudKey = `backups/${userId}/incremental/${backupFile.fileName}`;
-      await this.config.storageProvider.uploadFile(cloudKey, backupFile.filePath, {
-        userId,
-        type: BackupType.INCREMENTAL,
-        photoCount: photosToBackup.length,
-      });
+      await this.config.storageProvider.uploadFile(
+        cloudKey,
+        backupFile.filePath,
+        {
+          userId,
+          type: BackupType.INCREMENTAL,
+          photoCount: photosToBackup.length,
+        },
+      );
 
       // Update backup metadata
       if (backup) {
@@ -609,9 +670,9 @@ export class BackupService {
             eq(photos.userId, userId),
             inArray(
               photos.id,
-              photosToBackup.map(p => p.id)
-            )
-          )
+              photosToBackup.map((p) => p.id),
+            ),
+          ),
         );
 
       return {
@@ -623,12 +684,13 @@ export class BackupService {
       };
     } catch (error) {
       console.error("Incremental backup failed:", error);
-      
+
       // Update backup metadata with error
       const backup = this.backupStore.get(options.backupId);
       if (backup) {
         backup.status = BackupStatus.FAILED;
-        backup.errorMessage = error instanceof Error ? error.message : "Unknown error";
+        backup.errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
         this.backupStore.set(options.backupId, backup);
       }
 
@@ -642,14 +704,17 @@ export class BackupService {
   private async performRestore(userId: string, options: any): Promise<any> {
     try {
       const { cloudKey } = options;
-      
+
       // Download backup from cloud storage
-      const localPath = join(process.env.BACKUP_DIR || "./backups", `restore-${userId}-${Date.now()}.enc`);
+      const localPath = join(
+        process.env.BACKUP_DIR || "./backups",
+        `restore-${userId}-${Date.now()}.enc`,
+      );
       await this.config.storageProvider.downloadFile(cloudKey, localPath);
-      
+
       // Restore from encrypted backup
       const restoreResult = await restoreFromEncryptedBackup(localPath);
-      
+
       return {
         success: true,
         recordsRestored: restoreResult.recordsRestored,
@@ -664,7 +729,10 @@ export class BackupService {
   /**
    * Schedule automatic backups
    */
-  async scheduleAutomaticBackups(userId: string, schedule: string): Promise<void> {
+  async scheduleAutomaticBackups(
+    userId: string,
+    schedule: string,
+  ): Promise<void> {
     // Add recurring job to queue
     await this.backupQueue.add(
       "incremental",
@@ -680,7 +748,7 @@ export class BackupService {
           type: "exponential",
           delay: 5000,
         },
-      }
+      },
     );
   }
 
@@ -689,7 +757,7 @@ export class BackupService {
    */
   async cancelScheduledBackup(userId: string): Promise<void> {
     const repeatableJobs = await this.backupQueue.getRepeatableJobs();
-    
+
     for (const job of repeatableJobs) {
       if (job.name === "incremental" && job.opts?.data?.userId === userId) {
         await this.backupQueue.removeRepeatableByKey(job.key);
@@ -704,7 +772,7 @@ export class BackupService {
     try {
       // Get backup record
       const backup = this.backupStore.get(backupId);
-      
+
       if (!backup || backup.userId !== userId) {
         throw new Error("Backup not found or access denied");
       }
@@ -735,13 +803,16 @@ export class BackupService {
     lastBackup?: Date;
   }> {
     const backups = await this.listUserBackups(userId);
-    
-    const completedBackups = backups.filter(b => b.status === BackupStatus.COMPLETED);
-    const failedBackups = backups.filter(b => b.status === BackupStatus.FAILED);
+
+    const completedBackups = backups.filter(
+      (b) => b.status === BackupStatus.COMPLETED,
+    );
+    const failedBackups = backups.filter(
+      (b) => b.status === BackupStatus.FAILED,
+    );
     const totalSize = completedBackups.reduce((sum, b) => sum + b.size, 0);
-    const lastBackup = completedBackups.length > 0 
-      ? completedBackups[0].createdAt 
-      : undefined;
+    const lastBackup =
+      completedBackups.length > 0 ? completedBackups[0].createdAt : undefined;
 
     return {
       totalBackups: backups.length,
@@ -767,7 +838,7 @@ export class BackupService {
 export function createBackupService(): BackupService {
   const storageProvider = new S3StorageProvider(
     process.env.AWS_S3_BUCKET || "cloud-gallery-backups",
-    process.env.AWS_REGION || "us-east-1"
+    process.env.AWS_REGION || "us-east-1",
   );
 
   return new BackupService({

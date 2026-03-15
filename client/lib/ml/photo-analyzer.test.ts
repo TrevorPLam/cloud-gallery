@@ -136,7 +136,7 @@ describe("PhotoAnalyzer", () => {
             expect(error).toBeDefined();
           }
         }),
-        { numRuns: 5 },
+        { numRuns: 50 },
       );
 
       expect(property).resolves.not.toThrow();

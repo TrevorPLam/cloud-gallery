@@ -9,6 +9,19 @@
 // AI-META-END
 
 // Mock the database import - must be before other imports due to hoisting
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { fc } from "fast-check";
+import { PartnerSharingService, AutoShareRuleType } from "./partner-sharing";
+import { db } from "../db";
+import {
+  partnerRelationships,
+  partnerInvitations,
+  partnerAutoShareRules,
+  partnerSharedPhotos,
+  users,
+  photos,
+} from "../../shared/schema";
+
 vi.mock("../db", () => ({
   db: {
     select: vi.fn(() => ({
@@ -34,22 +47,9 @@ vi.mock("../db", () => ({
       delete: vi.fn(() => ({
         where: vi.fn(() => []),
       })),
-    }),
+    })),
   },
 }));
-
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { fc } from "fast-check";
-import { PartnerSharingService, AutoShareRuleType } from "./partner-sharing";
-import { db } from "../db";
-import {
-  partnerRelationships,
-  partnerInvitations,
-  partnerAutoShareRules,
-  partnerSharedPhotos,
-  users,
-  photos,
-} from "../../shared/schema";
 
 // Get the mocked database
 const mockDb = vi.mocked(db) as any;
@@ -78,13 +78,15 @@ describe("PartnerSharingService - Property Tests", () => {
     // Generate multiple tokens
     for (let i = 0; i < numTokens; i++) {
       // Access private method through reflection for testing
-      const generateToken = (service as any).generateInvitationToken.bind(service);
+      const generateToken = (service as any).generateInvitationToken.bind(
+        service,
+      );
       const token = generateToken();
-      
+
       // Property check: Token should be unique
       expect(tokenSet.has(token)).toBe(false);
       tokenSet.add(token);
-      
+
       // Property check: Token should have expected format (hex string)
       expect(token).toMatch(/^[a-f0-9]{128}$/);
     }
@@ -157,12 +159,16 @@ describe("PartnerSharingService - Property Tests", () => {
           isFavorite: fc.boolean(),
           tags: fc.option(fc.array(fc.string())),
           quality: fc.option(fc.integer({ min: 0, max: 100 })),
-          source: fc.option(fc.constantFrom("camera", "screenshot", "download")),
+          source: fc.option(
+            fc.constantFrom("camera", "screenshot", "download"),
+          ),
         }),
         async (privacySettings, photo) => {
           // Mock the evaluateAllPhotosRule method
-          const evaluateAllPhotosRule = (service as any).evaluateAllPhotosRule.bind(service);
-          
+          const evaluateAllPhotosRule = (
+            service as any
+          ).evaluateAllPhotosRule.bind(service);
+
           const result = evaluateAllPhotosRule(privacySettings, {
             ...photo,
             tags: photo.tags || [],
@@ -175,8 +181,8 @@ describe("PartnerSharingService - Property Tests", () => {
 
           // Property: Exclude tags should be enforced
           if (privacySettings.excludeTags && photo.tags) {
-            const hasExcludedTag = privacySettings.excludeTags.some(tag =>
-              photo.tags!.includes(tag)
+            const hasExcludedTag = privacySettings.excludeTags.some((tag) =>
+              photo.tags!.includes(tag),
             );
             if (hasExcludedTag) {
               expect(result).toBe(false);
@@ -189,9 +195,9 @@ describe("PartnerSharingService - Property Tests", () => {
               expect(result).toBe(false);
             }
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -207,27 +213,35 @@ describe("PartnerSharingService - Property Tests", () => {
         fc.date(),
         async (startDate, endDate, photoDate) => {
           // Ensure startDate <= endDate
-          const [start, end] = startDate <= endDate ? [startDate, endDate] : [endDate, startDate];
-          
+          const [start, end] =
+            startDate <= endDate ? [startDate, endDate] : [endDate, startDate];
+
           const criteria = {
             startDate: start,
             endDate: end,
           };
 
-          const evaluateDateRangeRule = (service as any).evaluateDateRangeRule.bind(service);
-          const result = evaluateDateRangeRule(criteria, { createdAt: photoDate });
+          const evaluateDateRangeRule = (
+            service as any
+          ).evaluateDateRangeRule.bind(service);
+          const result = evaluateDateRangeRule(criteria, {
+            createdAt: photoDate,
+          });
 
           // Property: Photo should be included if within date range
           const shouldBeIncluded = photoDate >= start && photoDate <= end;
           expect(result).toBe(shouldBeIncluded);
 
           // Property: Edge cases should be handled correctly
-          if (photoDate.getTime() === start.getTime() || photoDate.getTime() === end.getTime()) {
+          if (
+            photoDate.getTime() === start.getTime() ||
+            photoDate.getTime() === end.getTime()
+          ) {
             expect(result).toBe(true); // Inclusive boundaries
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -244,7 +258,9 @@ describe("PartnerSharingService - Property Tests", () => {
       { filename: "vacation_photo.jpg", expected: "camera" },
     ];
 
-    const evaluateContentTypeRule = (service as any).evaluateContentTypeRule.bind(service);
+    const evaluateContentTypeRule = (
+      service as any
+    ).evaluateContentTypeRule.bind(service);
 
     for (const testCase of testCases) {
       const criteria = {
@@ -266,38 +282,34 @@ describe("PartnerSharingService - Property Tests", () => {
 
   it("should maintain user isolation in partnerships", async () => {
     fc.assert(
-      fc.asyncProperty(
-        fc.uuid(),
-        fc.uuid(),
-        async (userId1, userId2) => {
-          // Ensure different users
-          if (userId1 === userId2) return;
+      fc.asyncProperty(fc.uuid(), fc.uuid(), async (userId1, userId2) => {
+        // Ensure different users
+        if (userId1 === userId2) return;
 
-          // Mock database responses for user isolation check
-          mockDb.select.mockReturnValue([
-            {
-              where: vi.fn().mockReturnValue([
-                {
-                  limit: vi.fn().mockReturnValue([{ id: "partnership-123" }]),
-                },
-              ]),
-            },
-          ]);
+        // Mock database responses for user isolation check
+        mockDb.select.mockReturnValue([
+          {
+            where: vi.fn().mockReturnValue([
+              {
+                limit: vi.fn().mockReturnValue([{ id: "partnership-123" }]),
+              },
+            ]),
+          },
+        ]);
 
-          // Test that users can only access their own partnerships
-          try {
-            await service.getUserPartnerships(userId1);
-            // Should not throw for valid user
-          } catch (error) {
-            // Should not have access violations
-            expect(error.message).not.toContain("access denied");
-          }
-
-          // Verify database was called with correct user ID
-          expect(mockDb.select).toHaveBeenCalled();
+        // Test that users can only access their own partnerships
+        try {
+          await service.getUserPartnerships(userId1);
+          // Should not throw for valid user
+        } catch (error) {
+          // Should not have access violations
+          expect(error.message).not.toContain("access denied");
         }
-      ),
-      { numRuns: 50 }
+
+        // Verify database was called with correct user ID
+        expect(mockDb.select).toHaveBeenCalled();
+      }),
+      { numRuns: 50 },
     );
   });
 
@@ -322,7 +334,7 @@ describe("PartnerSharingService - Property Tests", () => {
     ]);
 
     await expect(
-      service.acceptInvitation("expired-token", "user-123")
+      service.acceptInvitation("expired-token", "user-123"),
     ).rejects.toThrow("Invalid or expired invitation");
 
     // Test valid invitation
@@ -383,7 +395,7 @@ describe("PartnerSharingService - Property Tests", () => {
                   {
                     orderBy: vi.fn().mockReturnValue(
                       // Return rules shuffled
-                      [...rules].sort(() => Math.random() - 0.5)
+                      [...rules].sort(() => Math.random() - 0.5),
                     ),
                   },
                 ]),
@@ -394,8 +406,10 @@ describe("PartnerSharingService - Property Tests", () => {
       },
     ]);
 
-    const evaluateAutoShareRules = (service as any).evaluateAutoShareRules.bind(service);
-    
+    const evaluateAutoShareRules = (service as any).evaluateAutoShareRules.bind(
+      service,
+    );
+
     // The service should order by priority automatically
     await evaluateAutoShareRules("photo-123", "user-123");
 
@@ -425,7 +439,9 @@ describe("PartnerSharingService - Property Tests", () => {
       },
     ]);
 
-    const sharePhotoWithPartners = (service as any).sharePhotoWithPartners.bind(service);
+    const sharePhotoWithPartners = (service as any).sharePhotoWithPartners.bind(
+      service,
+    );
     const result = await sharePhotoWithPartners(photoId, userId);
 
     // Property: Should not create duplicate shares
@@ -453,7 +469,9 @@ describe("PartnerSharingService - Property Tests", () => {
 
     // Property: Invitation expiration should be reasonable
     expect(defaultConfig.defaultInvitationExpirationDays).toBeGreaterThan(0);
-    expect(defaultConfig.defaultInvitationExpirationDays).toBeLessThanOrEqual(30);
+    expect(defaultConfig.defaultInvitationExpirationDays).toBeLessThanOrEqual(
+      30,
+    );
   });
 
   // ═══════════════════════════════════════════════════════════
@@ -524,7 +542,11 @@ describe("PartnerSharingService - Property Tests", () => {
     ]);
 
     await expect(
-      partnerSharingService.updatePrivacySettings(partnershipId, userId, privacySettings)
+      partnerSharingService.updatePrivacySettings(
+        partnershipId,
+        userId,
+        privacySettings,
+      ),
     ).rejects.toThrow("Partnership not found or access denied");
   });
 
@@ -616,7 +638,7 @@ describe("PartnerSharingService - Property Tests", () => {
     expect(mockDb.update).toHaveBeenCalledWith(
       expect.objectContaining({
         set: expect.objectContaining(updates),
-      })
+      }),
     );
   });
 
@@ -687,7 +709,7 @@ describe("PartnerSharingService - Property Tests", () => {
           status: "revoked",
           isActive: false,
         }),
-      })
+      }),
     );
   });
 
@@ -729,7 +751,11 @@ describe("PartnerSharingService - Property Tests", () => {
       },
     ]);
 
-    const result = await service.saveSharedPhoto(photoId, partnershipId, userId);
+    const result = await service.saveSharedPhoto(
+      photoId,
+      partnershipId,
+      userId,
+    );
 
     expect(result.success).toBe(true);
     expect(mockDb.update).toHaveBeenCalledWith(
@@ -737,7 +763,7 @@ describe("PartnerSharingService - Property Tests", () => {
         set: expect.objectContaining({
           isSavedByPartner: true,
         }),
-      })
+      }),
     );
   });
 

@@ -19,7 +19,18 @@ import {
   faces,
   people,
 } from "../../shared/schema";
-import { eq, and, isNull, isNotNull, desc, lt, gt, or, inArray, sql } from "drizzle-orm";
+import {
+  eq,
+  and,
+  isNull,
+  isNotNull,
+  desc,
+  lt,
+  gt,
+  or,
+  inArray,
+  sql,
+} from "drizzle-orm";
 import { hash, verify } from "argon2";
 import { randomBytes } from "crypto";
 
@@ -90,13 +101,13 @@ export interface AutoShareCriteria {
   /** For DATE_RANGE rules */
   startDate?: Date;
   endDate?: Date;
-  
+
   /** For PEOPLE rules */
   peopleIds?: string[];
-  
+
   /** For CONTENT_TYPE rules */
   contentTypes?: ("camera" | "screenshot" | "download" | "other")[];
-  
+
   /** Common criteria */
   minQuality?: number;
   excludeTags?: string[];
@@ -182,10 +193,7 @@ export class PartnerSharingService {
   /**
    * Verify data against Argon2id hash
    */
-  private async verifyData(
-    data: string,
-    hash: string,
-  ): Promise<boolean> {
+  private async verifyData(data: string, hash: string): Promise<boolean> {
     try {
       return await verify(hash, data, {
         memoryCost: this.config.argon2Memory,
@@ -208,7 +216,14 @@ export class PartnerSharingService {
     inviteeEmail?: string;
     expiresAt: Date;
   }> {
-    const { inviterId, inviteeEmail, inviteeId, message, privacySettings, expiresAt } = options;
+    const {
+      inviterId,
+      inviteeEmail,
+      inviteeId,
+      message,
+      privacySettings,
+      expiresAt,
+    } = options;
 
     // Validate that either inviteeEmail or inviteeId is provided
     if (!inviteeEmail && !inviteeId) {
@@ -382,7 +397,14 @@ export class PartnerSharingService {
     ruleType: AutoShareRuleType;
     isActive: boolean;
   }> {
-    const { partnershipId, userId, name, ruleType, criteria, priority = 0 } = options;
+    const {
+      partnershipId,
+      userId,
+      name,
+      ruleType,
+      criteria,
+      priority = 0,
+    } = options;
 
     // Verify partnership exists and user is part of it
     const partnership = await db
@@ -456,7 +478,7 @@ export class PartnerSharingService {
         ),
       );
 
-    const partnershipIds = partnerships.map(p => p.id);
+    const partnershipIds = partnerships.map((p) => p.id);
 
     if (partnershipIds.length === 0) {
       return [];
@@ -488,10 +510,7 @@ export class PartnerSharingService {
   /**
    * Evaluate a single auto-share rule against a photo
    */
-  private async evaluateRule(
-    rule: any,
-    photo: any,
-  ): Promise<boolean> {
+  private async evaluateRule(rule: any, photo: any): Promise<boolean> {
     const criteria = rule.criteria as AutoShareCriteria;
 
     switch (rule.ruleType) {
@@ -528,7 +547,7 @@ export class PartnerSharingService {
     // Check exclude tags
     if (criteria.excludeTags && photo.tags) {
       const photoTags = Array.isArray(photo.tags) ? photo.tags : [];
-      if (criteria.excludeTags.some(tag => photoTags.includes(tag))) {
+      if (criteria.excludeTags.some((tag) => photoTags.includes(tag))) {
         return false;
       }
     }
@@ -588,16 +607,16 @@ export class PartnerSharingService {
 
     // Get people for these faces
     const facePersonIds = photoFaces
-      .filter(face => face.personId)
-      .map(face => face.personId!);
+      .filter((face) => face.personId)
+      .map((face) => face.personId!);
 
     if (facePersonIds.length === 0) {
       return false;
     }
 
     // Check if any of the photo's people are in the rule's people list
-    return criteria.peopleIds.some(personId => 
-      facePersonIds.includes(personId)
+    return criteria.peopleIds.some((personId) =>
+      facePersonIds.includes(personId),
     );
   }
 
@@ -621,8 +640,10 @@ export class PartnerSharingService {
       contentType = "screenshot";
     }
     // Downloads might come from specific folders or have certain patterns
-    else if (photo.filename.toLowerCase().includes("download") || 
-             photo.filename.toLowerCase().includes("saved")) {
+    else if (
+      photo.filename.toLowerCase().includes("download") ||
+      photo.filename.toLowerCase().includes("saved")
+    ) {
       contentType = "download";
     }
     // Otherwise assume camera
@@ -874,16 +895,18 @@ export class PartnerSharingService {
   async getAutoShareRules(
     partnershipId: string,
     userId: string,
-  ): Promise<{
-    id: string;
-    name: string;
-    ruleType: AutoShareRuleType;
-    criteria: AutoShareCriteria;
-    priority: number;
-    isActive: boolean;
-    createdAt: Date;
-    createdBy: string;
-  }[]> {
+  ): Promise<
+    {
+      id: string;
+      name: string;
+      ruleType: AutoShareRuleType;
+      criteria: AutoShareCriteria;
+      priority: number;
+      isActive: boolean;
+      createdAt: Date;
+      createdBy: string;
+    }[]
+  > {
     // Verify user is part of this partnership
     const partnership = await db
       .select()
@@ -912,7 +935,10 @@ export class PartnerSharingService {
       .from(partnerAutoShareRules)
       .innerJoin(users, eq(partnerAutoShareRules.userId, users.id))
       .where(eq(partnerAutoShareRules.partnershipId, partnershipId))
-      .orderBy(desc(partnerAutoShareRules.priority), desc(partnerAutoShareRules.createdAt));
+      .orderBy(
+        desc(partnerAutoShareRules.priority),
+        desc(partnerAutoShareRules.createdAt),
+      );
 
     return rules.map(({ rule, creatorUsername }) => ({
       id: rule.id,
@@ -970,7 +996,10 @@ export class PartnerSharingService {
   /**
    * Delete an auto-share rule
    */
-  async deleteAutoShareRule(ruleId: string, userId: string): Promise<{ success: boolean }> {
+  async deleteAutoShareRule(
+    ruleId: string,
+    userId: string,
+  ): Promise<{ success: boolean }> {
     // Verify user owns this rule
     const rule = await db
       .select()
@@ -998,7 +1027,10 @@ export class PartnerSharingService {
   /**
    * End a partnership
    */
-  async endPartnership(partnershipId: string, userId: string): Promise<{ success: boolean }> {
+  async endPartnership(
+    partnershipId: string,
+    userId: string,
+  ): Promise<{ success: boolean }> {
     // Verify user is part of this partnership
     const partnership = await db
       .select()

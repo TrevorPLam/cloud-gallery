@@ -94,7 +94,7 @@ describe("PhotoEditor - Property Tests", () => {
             }
           }
         }),
-        { numRuns: 10 },
+        { numRuns: 100 },
       );
     });
 
@@ -120,7 +120,7 @@ describe("PhotoEditor - Property Tests", () => {
             }
           }
         }),
-        { numRuns: 10 },
+        { numRuns: 100 },
       );
     });
 
@@ -141,7 +141,7 @@ describe("PhotoEditor - Property Tests", () => {
             }
           }
         }),
-        { numRuns: 10 },
+        { numRuns: 100 },
       );
     });
   });
@@ -175,7 +175,7 @@ describe("PhotoEditor - Property Tests", () => {
             }
           },
         ),
-        { numRuns: 5 },
+        { numRuns: 50 },
       );
     });
 
@@ -200,7 +200,7 @@ describe("PhotoEditor - Property Tests", () => {
             expect(newIndex).toBeLessThan(history.length);
           }
         }),
-        { numRuns: 10 },
+        { numRuns: 100 },
       );
     });
 
@@ -228,7 +228,7 @@ describe("PhotoEditor - Property Tests", () => {
             );
           }
         }),
-        { numRuns: 10 },
+        { numRuns: 100 },
       );
     });
   });
@@ -324,7 +324,7 @@ describe("PhotoEditor - Property Tests", () => {
           await testEditor.resetToOriginal();
           expect(testEditor.getCurrentUri()).toBe(mockUri);
         }),
-        { numRuns: 10 },
+        { numRuns: 100 },
       );
     });
 
@@ -353,7 +353,7 @@ describe("PhotoEditor - Property Tests", () => {
             ),
           ).toBe(true);
         }),
-        { numRuns: 10 },
+        { numRuns: 100 },
       );
     });
   });

@@ -56,7 +56,9 @@ export default function PartnerSharingScreen() {
   const [showRuleModal, setShowRuleModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteMessage, setInviteMessage] = useState("");
-  const [selectedPartnership, setSelectedPartnership] = useState<string | null>(null);
+  const [selectedPartnership, setSelectedPartnership] = useState<string | null>(
+    null,
+  );
   const [autoShareRules, setAutoShareRules] = useState<any[]>([]);
   const [showCreateRuleForm, setShowCreateRuleForm] = useState(false);
   const [newRule, setNewRule] = useState({
@@ -89,10 +91,7 @@ export default function PartnerSharingScreen() {
     },
   });
 
-  const {
-    data: stats,
-    isLoading: statsLoading,
-  } = useQuery({
+  const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["partner-sharing", "stats"],
     queryFn: async () => {
       const response = await apiRequest("/api/partner-sharing/stats");
@@ -100,14 +99,13 @@ export default function PartnerSharingScreen() {
     },
   });
 
-  const {
-    data: rulesData,
-    refetch: refetchRules,
-  } = useQuery({
+  const { data: rulesData, refetch: refetchRules } = useQuery({
     queryKey: ["partner-sharing", "rules", selectedPartnership],
     queryFn: async () => {
       if (!selectedPartnership) return { rules: [] };
-      const response = await apiRequest(`/api/partner-sharing/rules/${selectedPartnership}`);
+      const response = await apiRequest(
+        `/api/partner-sharing/rules/${selectedPartnership}`,
+      );
       return response.data as { rules: any[] };
     },
     enabled: !!selectedPartnership,
@@ -147,10 +145,13 @@ export default function PartnerSharingScreen() {
 
   const acceptInvitationMutation = useMutation({
     mutationFn: async (invitationToken: string) => {
-      const response = await apiRequest("/api/partner-sharing/invitations/accept", {
-        method: "POST",
-        body: JSON.stringify({ invitationToken }),
-      });
+      const response = await apiRequest(
+        "/api/partner-sharing/invitations/accept",
+        {
+          method: "POST",
+          body: JSON.stringify({ invitationToken }),
+        },
+      );
       return response.data;
     },
     onSuccess: (data) => {
@@ -204,11 +205,20 @@ export default function PartnerSharingScreen() {
   });
 
   const updateRuleMutation = useMutation({
-    mutationFn: async ({ ruleId, updates }: { ruleId: string; updates: any }) => {
-      const response = await apiRequest(`/api/partner-sharing/rules/${ruleId}`, {
-        method: "PUT",
-        body: JSON.stringify(updates),
-      });
+    mutationFn: async ({
+      ruleId,
+      updates,
+    }: {
+      ruleId: string;
+      updates: any;
+    }) => {
+      const response = await apiRequest(
+        `/api/partner-sharing/rules/${ruleId}`,
+        {
+          method: "PUT",
+          body: JSON.stringify(updates),
+        },
+      );
       return response.data;
     },
     onSuccess: () => {
@@ -227,9 +237,12 @@ export default function PartnerSharingScreen() {
 
   const deleteRuleMutation = useMutation({
     mutationFn: async (ruleId: string) => {
-      const response = await apiRequest(`/api/partner-sharing/rules/${ruleId}`, {
-        method: "DELETE",
-      });
+      const response = await apiRequest(
+        `/api/partner-sharing/rules/${ruleId}`,
+        {
+          method: "DELETE",
+        },
+      );
       return response.data;
     },
     onSuccess: () => {
@@ -327,7 +340,7 @@ export default function PartnerSharingScreen() {
           onPress: () => deleteRuleMutation.mutate(rule.id),
           style: "destructive",
         },
-      ]
+      ],
     );
   };
 
@@ -477,7 +490,9 @@ export default function PartnerSharingScreen() {
             style={styles.actionCard}
           >
             <Feather name="user-plus" size={20} color="white" />
-            <ThemedText style={styles.actionCardTitle}>Invite Partner</ThemedText>
+            <ThemedText style={styles.actionCardTitle}>
+              Invite Partner
+            </ThemedText>
             <ThemedText style={styles.actionCardSubtitle}>
               Send an invitation to share photos
             </ThemedText>
@@ -489,7 +504,9 @@ export default function PartnerSharingScreen() {
             style={[styles.actionCard, styles.actionCardOutline]}
           >
             <Feather name="check-circle" size={20} color={theme.primary} />
-            <ThemedText style={[styles.actionCardTitle, { color: theme.primary }]}>
+            <ThemedText
+              style={[styles.actionCardTitle, { color: theme.primary }]}
+            >
               Accept Invitation
             </ThemedText>
             <ThemedText style={styles.actionCardSubtitle}>
@@ -509,7 +526,9 @@ export default function PartnerSharingScreen() {
         {/* Pending Partnerships */}
         {partnerships?.pending && partnerships.pending.length > 0 && (
           <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Pending Partners</ThemedText>
+            <ThemedText style={styles.sectionTitle}>
+              Pending Partners
+            </ThemedText>
             {partnerships.pending.map(renderPartnershipCard)}
           </View>
         )}
@@ -535,7 +554,10 @@ export default function PartnerSharingScreen() {
             </ThemedText>
 
             <TextInput
-              style={[styles.input, { color: theme.text, borderColor: theme.border }]}
+              style={[
+                styles.input,
+                { color: theme.text, borderColor: theme.border },
+              ]}
               placeholder="partner@example.com"
               placeholderTextColor={theme.textSecondary}
               value={inviteEmail}
@@ -600,7 +622,9 @@ export default function PartnerSharingScreen() {
                 {rulesData.rules.map((rule) => (
                   <View key={rule.id} style={styles.ruleItem}>
                     <View style={styles.ruleHeader}>
-                      <ThemedText style={styles.ruleName}>{rule.name}</ThemedText>
+                      <ThemedText style={styles.ruleName}>
+                        {rule.name}
+                      </ThemedText>
                       <View style={styles.ruleToggle}>
                         <Button
                           variant={rule.isActive ? "primary" : "outline"}
@@ -627,7 +651,9 @@ export default function PartnerSharingScreen() {
                       style={styles.deleteButton}
                     >
                       <Feather name="trash-2" size={14} color={theme.error} />
-                      <ThemedText style={[styles.deleteText, { color: theme.error }]}>
+                      <ThemedText
+                        style={[styles.deleteText, { color: theme.error }]}
+                      >
                         Delete
                       </ThemedText>
                     </Button>
@@ -638,8 +664,10 @@ export default function PartnerSharingScreen() {
 
             {/* Create New Rule */}
             <View style={styles.createRuleSection}>
-              <ThemedText style={styles.sectionTitle}>Create New Rule</ThemedText>
-              
+              <ThemedText style={styles.sectionTitle}>
+                Create New Rule
+              </ThemedText>
+
               {!showCreateRuleForm ? (
                 <Button
                   variant="outline"
@@ -654,22 +682,36 @@ export default function PartnerSharingScreen() {
               ) : (
                 <View style={styles.createRuleForm}>
                   <TextInput
-                    style={[styles.input, { color: theme.text, borderColor: theme.border }]}
+                    style={[
+                      styles.input,
+                      { color: theme.text, borderColor: theme.border },
+                    ]}
                     placeholder="Rule name"
                     placeholderTextColor={theme.textSecondary}
                     value={newRule.name}
-                    onChangeText={(text) => setNewRule({ ...newRule, name: text })}
+                    onChangeText={(text) =>
+                      setNewRule({ ...newRule, name: text })
+                    }
                   />
 
                   <View style={styles.ruleTypeSelector}>
                     <ThemedText style={styles.label}>Rule Type:</ThemedText>
                     <View style={styles.ruleTypeButtons}>
-                      {["all_photos", "favorites_only", "date_range", "people"].map((type) => (
+                      {[
+                        "all_photos",
+                        "favorites_only",
+                        "date_range",
+                        "people",
+                      ].map((type) => (
                         <Button
                           key={type}
-                          variant={newRule.ruleType === type ? "primary" : "outline"}
+                          variant={
+                            newRule.ruleType === type ? "primary" : "outline"
+                          }
                           size="small"
-                          onPress={() => setNewRule({ ...newRule, ruleType: type as any })}
+                          onPress={() =>
+                            setNewRule({ ...newRule, ruleType: type as any })
+                          }
                           style={styles.ruleTypeButton}
                         >
                           <ThemedText style={styles.ruleTypeButtonText}>
@@ -706,7 +748,9 @@ export default function PartnerSharingScreen() {
                       style={styles.modalButton}
                     >
                       <ThemedText>
-                        {createRuleMutation.isPending ? "Creating..." : "Create"}
+                        {createRuleMutation.isPending
+                          ? "Creating..."
+                          : "Create"}
                       </ThemedText>
                     </Button>
                   </View>

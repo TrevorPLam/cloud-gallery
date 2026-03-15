@@ -4,8 +4,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import request from "supertest";
 import express from "express";
 import backupRoutes from "./backup-routes";
-import { createBackupService } from "../services/backup";
-import { BackupStatus, BackupType } from "../services/backup";
+import {
+  createBackupService,
+  BackupStatus,
+  BackupType,
+} from "../services/backup";
 
 // Mock the backup service
 vi.mock("../services/backup", () => ({
@@ -91,7 +94,9 @@ describe("Backup API", () => {
 
     it("should start an incremental backup by default", async () => {
       const backupService = createBackupService();
-      vi.mocked(backupService.startIncrementalBackup).mockResolvedValue("backup-456");
+      vi.mocked(backupService.startIncrementalBackup).mockResolvedValue(
+        "backup-456",
+      );
 
       const response = await request(app)
         .post("/api/backup/start")
@@ -117,7 +122,9 @@ describe("Backup API", () => {
 
     it("should handle service errors gracefully", async () => {
       const backupService = createBackupService();
-      vi.mocked(backupService.startFullBackup).mockRejectedValue(new Error("Service error"));
+      vi.mocked(backupService.startFullBackup).mockRejectedValue(
+        new Error("Service error"),
+      );
 
       const response = await request(app)
         .post("/api/backup/start")
@@ -189,9 +196,7 @@ describe("Backup API", () => {
 
   describe("GET /api/backup/list", () => {
     it("should return user backups list", async () => {
-      const response = await request(app)
-        .get("/api/backup/list")
-        .expect(200);
+      const response = await request(app).get("/api/backup/list").expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.backups).toHaveLength(1);
@@ -226,17 +231,19 @@ describe("Backup API", () => {
     it("should apply pagination", async () => {
       const backupService = createBackupService();
       vi.mocked(backupService.listUserBackups).mockResolvedValue([
-        ...Array(100).fill(null).map((_, i) => ({
-          id: `backup-${i}`,
-          userId: "user-123",
-          type: BackupType.INCREMENTAL,
-          status: BackupStatus.COMPLETED,
-          size: 1024,
-          fileCount: 10,
-          cloudKey: `backups/user-123/backup-${i}.enc`,
-          createdAt: new Date(),
-          completedAt: new Date(),
-        })),
+        ...Array(100)
+          .fill(null)
+          .map((_, i) => ({
+            id: `backup-${i}`,
+            userId: "user-123",
+            type: BackupType.INCREMENTAL,
+            status: BackupStatus.COMPLETED,
+            size: 1024,
+            fileCount: 10,
+            cloudKey: `backups/user-123/backup-${i}.enc`,
+            createdAt: new Date(),
+            completedAt: new Date(),
+          })),
       ]);
 
       const response = await request(app)
@@ -263,7 +270,9 @@ describe("Backup API", () => {
   describe("POST /api/backup/restore", () => {
     it("should start restore process", async () => {
       const backupService = createBackupService();
-      vi.mocked(backupService.startIncrementalBackup).mockResolvedValue("restore-job-123");
+      vi.mocked(backupService.startIncrementalBackup).mockResolvedValue(
+        "restore-job-123",
+      );
       vi.mocked(backupService.listUserBackups).mockResolvedValue([
         {
           id: "backup-123",
@@ -387,7 +396,9 @@ describe("Backup API", () => {
       expect(response.body.success).toBe(true);
       expect(response.body.schedule).toBe("0 2 * * *");
       expect(response.body.type).toBe("incremental");
-      expect(response.body.message).toBe("Automatic backup scheduled successfully");
+      expect(response.body.message).toBe(
+        "Automatic backup scheduled successfully",
+      );
     });
 
     it("should validate cron expression", async () => {
@@ -429,9 +440,7 @@ describe("Backup API", () => {
 
   describe("GET /api/backup/stats", () => {
     it("should return backup statistics", async () => {
-      const response = await request(app)
-        .get("/api/backup/stats")
-        .expect(200);
+      const response = await request(app).get("/api/backup/stats").expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.stats.totalBackups).toBe(1);
@@ -459,15 +468,16 @@ describe("Backup API", () => {
         },
       ]);
 
-      const response = await request(app)
-        .get("/api/backup/config")
-        .expect(200);
+      const response = await request(app).get("/api/backup/config").expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.config.autoBackupEnabled).toBe(true);
       expect(response.body.config.retentionDays).toBe(30);
       expect(response.body.config.maxBackupSize).toBe(100 * 1024 * 1024);
-      expect(response.body.config.supportedTypes).toEqual(["full", "incremental"]);
+      expect(response.body.config.supportedTypes).toEqual([
+        "full",
+        "incremental",
+      ]);
       expect(response.body.config.totalBackups).toBe(1);
     });
   });
@@ -498,7 +508,9 @@ describe("Backup API", () => {
       expect(response.body.verification.valid).toBe(true);
       expect(response.body.verification.size).toBe(1024);
       expect(response.body.verification.fileCount).toBe(10);
-      expect(response.body.verification.cloudKey).toBe("backups/user-123/backup.enc");
+      expect(response.body.verification.cloudKey).toBe(
+        "backups/user-123/backup.enc",
+      );
       expect(response.body.verification.verifiedAt).toBeInstanceOf(Date);
     });
 
@@ -541,9 +553,11 @@ describe("Backup API", () => {
   describe("Authentication", () => {
     it("should require authentication for all endpoints", async () => {
       // Temporarily remove authentication middleware
-      vi.mocked(require("../auth").authenticateToken).mockImplementation((req, res, next) => {
-        res.status(401).json({ success: false, error: "Unauthorized" });
-      });
+      vi.mocked(require("../auth").authenticateToken).mockImplementation(
+        (req, res, next) => {
+          res.status(401).json({ success: false, error: "Unauthorized" });
+        },
+      );
 
       const endpoints = [
         { method: "post", path: "/api/backup/start" },
@@ -569,11 +583,11 @@ describe("Backup API", () => {
   describe("Error Handling", () => {
     it("should handle service errors gracefully", async () => {
       const backupService = createBackupService();
-      vi.mocked(backupService.listUserBackups).mockRejectedValue(new Error("Database error"));
+      vi.mocked(backupService.listUserBackups).mockRejectedValue(
+        new Error("Database error"),
+      );
 
-      const response = await request(app)
-        .get("/api/backup/list")
-        .expect(500);
+      const response = await request(app).get("/api/backup/list").expect(500);
 
       expect(response.body.success).toBe(false);
       expect(response.body.error).toBe("Failed to list backups");

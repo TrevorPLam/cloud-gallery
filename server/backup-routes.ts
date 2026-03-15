@@ -14,8 +14,11 @@ import { db } from "../db";
 import { backupQueue, users } from "../../shared/schema";
 import { eq, and } from "drizzle-orm";
 import { authenticateToken } from "../auth";
-import { createBackupService } from "../services/backup";
-import { BackupStatus, BackupType } from "../services/backup";
+import {
+  createBackupService,
+  BackupStatus,
+  BackupType,
+} from "../services/backup";
 
 const router = Router();
 const backupService = createBackupService();
@@ -67,7 +70,7 @@ router.post("/start", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Start backup error:", error);
-    
+
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         success: false,
@@ -124,7 +127,7 @@ router.get("/status/:backupId", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Get backup status error:", error);
-    
+
     res.status(500).json({
       success: false,
       error: "Failed to get backup status",
@@ -152,19 +155,21 @@ router.get("/list", async (req: Request, res: Response) => {
 
     // Apply filters if provided
     let filteredBackups = backups;
-    
+
     if (validatedType) {
-      filteredBackups = filteredBackups.filter(b => b.type === validatedType);
+      filteredBackups = filteredBackups.filter((b) => b.type === validatedType);
     }
-    
+
     if (validatedStatus) {
-      filteredBackups = filteredBackups.filter(b => b.status === validatedStatus);
+      filteredBackups = filteredBackups.filter(
+        (b) => b.status === validatedStatus,
+      );
     }
 
     // Apply pagination
     const paginatedBackups = filteredBackups.slice(
       validatedOffset,
-      validatedOffset + validatedLimit
+      validatedOffset + validatedLimit,
     );
 
     res.json({
@@ -179,7 +184,7 @@ router.get("/list", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("List backups error:", error);
-    
+
     res.status(500).json({
       success: false,
       error: "Failed to list backups",
@@ -201,8 +206,10 @@ router.post("/restore", async (req: Request, res: Response) => {
 
     // Verify user owns this backup
     const userBackups = await backupService.listUserBackups(userId);
-    const backupExists = userBackups.some(backup => backup.cloudKey === cloudKey);
-    
+    const backupExists = userBackups.some(
+      (backup) => backup.cloudKey === cloudKey,
+    );
+
     if (!backupExists) {
       return res.status(403).json({
         success: false,
@@ -223,7 +230,7 @@ router.post("/restore", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Restore backup error:", error);
-    
+
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         success: false,
@@ -259,7 +266,7 @@ router.delete("/:backupId", async (req: Request, res: Response) => {
 
     // Verify backup exists and belongs to user
     const backupStatus = await backupService.getBackupStatus(backupId);
-    
+
     if (!backupStatus) {
       return res.status(404).json({
         success: false,
@@ -297,7 +304,7 @@ router.delete("/:backupId", async (req: Request, res: Response) => {
     }
   } catch (error) {
     console.error("Delete backup error:", error);
-    
+
     res.status(500).json({
       success: false,
       error: "Failed to delete backup",
@@ -318,8 +325,9 @@ router.post("/schedule", async (req: Request, res: Response) => {
     const userId = req.user!.id;
 
     // Validate cron expression (basic validation)
-    const cronRegex = /^(\*|([0-9]|1[0-9]|2[0-9]|3[0-9])|([0-9]|1[0-9]|2[0-9]|3[0-9])\/([0-9]|1[0-9]|2[0-9]|3[0-9])) (\*|([0-9]|1[0-9]|2[0-3])|([0-9]|1[0-9]|2[0-3])\/([0-9]|1[0-9]|2[0-3])) (\*|([1-9]|1[0-9]|2[0-9]|3[0-1])|([1-9]|1[0-9]|2[0-9]|3[0-1])\/([1-9]|1[0-9]|2[0-9]|3[0-1])) (\*|([1-9]|1[0-2])|([1-9]|1[0-2])\/([1-9]|1[0-2])) (\*|([0-6])|([0-6])\/([0-6]))$/;
-    
+    const cronRegex =
+      /^(\*|([0-9]|1[0-9]|2[0-9]|3[0-9])|([0-9]|1[0-9]|2[0-9]|3[0-9])\/([0-9]|1[0-9]|2[0-9]|3[0-9])) (\*|([0-9]|1[0-9]|2[0-3])|([0-9]|1[0-9]|2[0-3])\/([0-9]|1[0-9]|2[0-3])) (\*|([1-9]|1[0-9]|2[0-9]|3[0-1])|([1-9]|1[0-9]|2[0-9]|3[0-1])\/([1-9]|1[0-9]|2[0-9]|3[0-1])) (\*|([1-9]|1[0-2])|([1-9]|1[0-2])\/([1-9]|1[0-2])) (\*|([0-6])|([0-6])\/([0-6]))$/;
+
     if (!cronRegex.test(schedule)) {
       return res.status(400).json({
         success: false,
@@ -337,7 +345,7 @@ router.post("/schedule", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Schedule backup error:", error);
-    
+
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         success: false,
@@ -370,7 +378,7 @@ router.delete("/schedule", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Cancel schedule error:", error);
-    
+
     res.status(500).json({
       success: false,
       error: "Failed to cancel backup schedule",
@@ -395,7 +403,7 @@ router.get("/stats", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Get backup stats error:", error);
-    
+
     res.status(500).json({
       success: false,
       error: "Failed to get backup statistics",
@@ -414,8 +422,10 @@ router.get("/config", async (req: Request, res: Response) => {
 
     // Get user's scheduled backup info
     const userBackups = await backupService.listUserBackups(userId);
-    const lastBackup = userBackups.find(b => b.status === BackupStatus.COMPLETED);
-    
+    const lastBackup = userBackups.find(
+      (b) => b.status === BackupStatus.COMPLETED,
+    );
+
     const config = {
       autoBackupEnabled: true, // This could be stored in user preferences
       retentionDays: 30,
@@ -431,7 +441,7 @@ router.get("/config", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Get backup config error:", error);
-    
+
     res.status(500).json({
       success: false,
       error: "Failed to get backup configuration",
@@ -458,7 +468,7 @@ router.post("/verify", async (req: Request, res: Response) => {
 
     // Verify backup exists and belongs to user
     const backupStatus = await backupService.getBackupStatus(backupId);
-    
+
     if (!backupStatus) {
       return res.status(404).json({
         success: false,
@@ -489,7 +499,7 @@ router.post("/verify", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Verify backup error:", error);
-    
+
     res.status(500).json({
       success: false,
       error: "Failed to verify backup",
@@ -503,7 +513,7 @@ router.post("/verify", async (req: Request, res: Response) => {
  */
 router.use((error: any, req: Request, res: Response, next: any) => {
   console.error("Backup route error:", error);
-  
+
   if (error.name === "ValidationError") {
     return res.status(400).json({
       success: false,
@@ -522,7 +532,10 @@ router.use((error: any, req: Request, res: Response, next: any) => {
   res.status(500).json({
     success: false,
     error: "Internal server error",
-    message: process.env.NODE_ENV === "development" ? error.message : "Something went wrong",
+    message:
+      process.env.NODE_ENV === "development"
+        ? error.message
+        : "Something went wrong",
   });
 });
 

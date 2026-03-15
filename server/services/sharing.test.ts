@@ -66,19 +66,22 @@ describe("SharingService", () => {
 
   it("should generate tokens with consistent length", async () => {
     // Mock the service method to return a predictable result
-    const mockCreateShare = vi.spyOn(sharingService, 'createShare').mockResolvedValue({
-      id: "share-1",
-      shareToken: "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
-      albumId: "album-1",
-      permissions: Permission.VIEW,
-      expiresAt: null,
-      passwordHash: null,
-      isActive: true,
-      viewCount: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      passwordRequired: false,
-    });
+    const mockCreateShare = vi
+      .spyOn(sharingService, "createShare")
+      .mockResolvedValue({
+        id: "share-1",
+        shareToken:
+          "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+        albumId: "album-1",
+        permissions: Permission.VIEW,
+        expiresAt: null,
+        passwordHash: null,
+        isActive: true,
+        viewCount: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        passwordRequired: false,
+      });
 
     const result = await sharingService.createShare({
       albumId: "album-1",
@@ -90,7 +93,7 @@ describe("SharingService", () => {
     expect(result.shareToken).toHaveLength(64);
     // Token should be hex characters only
     expect(result.shareToken).toMatch(/^[0-9a-f]+$/);
-    
+
     mockCreateShare.mockRestore();
   });
 
@@ -98,37 +101,41 @@ describe("SharingService", () => {
     const invalidToken = "invalid-token";
 
     // Mock the service method to return invalid result
-    const mockValidateShareToken = vi.spyOn(sharingService, 'validateShareToken').mockResolvedValue({
-      valid: false,
-      expired: false,
-      passwordRequired: false,
-      share: null,
-    });
+    const mockValidateShareToken = vi
+      .spyOn(sharingService, "validateShareToken")
+      .mockResolvedValue({
+        valid: false,
+        expired: false,
+        passwordRequired: false,
+        share: null,
+      });
 
     const validation = await sharingService.validateShareToken(invalidToken);
 
     expect(validation.valid).toBe(false);
     expect(validation.expired).toBe(false);
     expect(validation.passwordRequired).toBe(false);
-    
+
     mockValidateShareToken.mockRestore();
   });
 
   it("should handle password hashing", async () => {
     // Mock the service method to return a password-protected share
-    const mockCreateShare = vi.spyOn(sharingService, 'createShare').mockResolvedValue({
-      id: "share-1",
-      shareToken: "protected-token-hash",
-      albumId: "album-1",
-      permissions: Permission.VIEW,
-      expiresAt: null,
-      passwordHash: "hashed_testpassword123",
-      isActive: true,
-      viewCount: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      passwordRequired: true,
-    });
+    const mockCreateShare = vi
+      .spyOn(sharingService, "createShare")
+      .mockResolvedValue({
+        id: "share-1",
+        shareToken: "protected-token-hash",
+        albumId: "album-1",
+        permissions: Permission.VIEW,
+        expiresAt: null,
+        passwordHash: "hashed_testpassword123",
+        isActive: true,
+        viewCount: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        passwordRequired: true,
+      });
 
     const result = await sharingService.createShare({
       albumId: "album-1",
@@ -138,7 +145,7 @@ describe("SharingService", () => {
     });
 
     expect(result.passwordRequired).toBe(true);
-    
+
     mockCreateShare.mockRestore();
   });
 });

@@ -12,7 +12,11 @@ import request from "supertest";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { app } from "../index";
 import { db } from "../db";
-import { partnerInvitations, partnerRelationships, users } from "../../shared/schema";
+import {
+  partnerInvitations,
+  partnerRelationships,
+  users,
+} from "../../shared/schema";
 
 // Mock database for testing
 const mockDb = {
@@ -175,9 +179,9 @@ describe("Partner Sharing API - Integration Tests", () => {
         {
           where: vi.fn().mockReturnValue([
             {
-              limit: vi.fn().mockReturnValue([
-                { id: "inviter-123", username: "testuser" },
-              ]),
+              limit: vi
+                .fn()
+                .mockReturnValue([{ id: "inviter-123", username: "testuser" }]),
             },
           ]),
         },
@@ -277,7 +281,9 @@ describe("Partner Sharing API - Integration Tests", () => {
         .expect(403);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe("You are not authorized to accept this invitation");
+      expect(response.body.error).toBe(
+        "You are not authorized to accept this invitation",
+      );
     });
   });
 
@@ -435,7 +441,9 @@ describe("Partner Sharing API - Integration Tests", () => {
         .expect(404);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe("Partnership not found or access denied");
+      expect(response.body.error).toBe(
+        "Partnership not found or access denied",
+      );
     });
   });
 
@@ -538,7 +546,9 @@ describe("Partner Sharing API - Integration Tests", () => {
         .expect(404);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe("Partnership not found or access denied");
+      expect(response.body.error).toBe(
+        "Partnership not found or access denied",
+      );
     });
 
     it("should respect pagination limits", async () => {

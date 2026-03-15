@@ -9,7 +9,7 @@
 // AI-META-END
 
 import { db } from "../db";
-import { photos, storageUsage, users } from "../../shared/schema";
+import { photos, storageUsage } from "../../shared/schema";
 import {
   eq,
   and,
