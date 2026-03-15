@@ -10,8 +10,8 @@
 
 import request from "supertest";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { app } from "../index";
-import { db } from "../db";
+import { app } from "./index";
+import { db } from "./db";
 import {
   partnerInvitations,
   partnerRelationships,

@@ -17,7 +17,6 @@ export default defineConfig({
     setupFiles: ["./vitest.setup.ts"],
     include: ["**/*.{test,spec}.{ts,tsx}"],
     clearMocks: true,
-    restoreMocks: true,
     exclude: [
       "**/node_modules/**",
       "**/build/**",
@@ -26,6 +25,7 @@ export default defineConfig({
       "**/static-build/**",
       "**/.expo/**",
       "**/.git/**",
+      "**/research/**",
     ],
     coverage: {
       provider: "v8",

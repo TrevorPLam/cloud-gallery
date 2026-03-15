@@ -17,7 +17,7 @@ import {
 } from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/hooks/useTheme";
-import PartnerSharingScreen from "../PartnerSharingScreen";
+import PartnerSharingScreen from "./PartnerSharingScreen";
 import { apiRequest } from "@/lib/query-client";
 
 // Mock dependencies

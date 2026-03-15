@@ -18,7 +18,7 @@ import {
 import { Alert } from "react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { NavigationContainer } from "@react-navigation/native";
-import DuplicatesScreen from "../DuplicatesScreen";
+import DuplicatesScreen from "./DuplicatesScreen";
 
 // Mock dependencies
 jest.mock("@expo/vector-icons", () => ({

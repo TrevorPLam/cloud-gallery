@@ -1,0 +1,131 @@
+ FAIL  server/album-routes.test.ts [ server/album-routes.test.ts ]
+ FAIL  server/backup-routes.test.ts [ server/backup-routes.test.ts ]
+ FAIL  server/duplicate-routes.test.ts [ server/duplicate-routes.test.ts ]
+ FAIL  server/face-routes.test.ts [ server/face-routes.test.ts ]
+ FAIL  server/ml-routes.test.ts [ server/ml-routes.test.ts ]
+ FAIL  server/partner-sharing-routes.test.ts [ server/partner-sharing-routes.test.ts ]
+ FAIL  server/public-routes.test.ts [ server/public-routes.test.ts ]
+ FAIL  server/search-routes.test.ts [ server/search-routes.test.ts ]
+ FAIL  server/storage-routes.test.ts [ server/storage-routes.test.ts ]
+ FAIL  server/sync-routes.test.ts [ server/sync-routes.test.ts ]
+ FAIL  client/components/PhotoMetadataEditor.test.tsx [ client/components/PhotoMetadataEditor.test.tsx ]
+ FAIL  client/lib/photo-editor.test.ts [ client/lib/photo-editor.test.ts ]
+ FAIL  client/screens/AlbumDetailScreen.share.test.tsx [ client/screens/AlbumDetailScreen.share.test.tsx ]
+ FAIL  client/screens/BackupScreen.test.tsx [ client/screens/BackupScreen.test.tsx ]
+ FAIL  client/screens/DuplicatesScreen.test.tsx [ client/screens/DuplicatesScreen.test.tsx ]
+ FAIL  client/screens/EditPhotoScreen.test.tsx [ client/screens/EditPhotoScreen.test.tsx ]
+ FAIL  client/screens/MemoriesScreen.test.tsx [ client/screens/MemoriesScreen.test.tsx ]
+ FAIL  client/screens/PartnerSharingScreen.test.tsx [ client/screens/PartnerSharingScreen.test.tsx ]
+ FAIL  client/screens/SearchScreen.test.tsx [ client/screens/SearchScreen.test.tsx ]
+ FAIL  client/screens/SharedAlbumsScreen.test.tsx [ client/screens/SharedAlbumsScreen.test.tsx ]
+ FAIL  client/screens/SmartAlbumsScreen.test.tsx [ client/screens/SmartAlbumsScreen.test.tsx ]
+ FAIL  client/screens/SyncSettingsScreen.test.tsx [ client/screens/SyncSettingsScreen.test.tsx ]
+ FAIL  server/services/backup.test.ts [ server/services/backup.test.ts ]
+ FAIL  server/services/search.test.ts [ server/services/search.test.ts ]
+ FAIL  client/lib/ml/photo-analyzer.test.ts [ client/lib/ml/photo-analyzer.test.ts ]
+ FAIL  server/memory-routes.test.ts > Memory Routes Integration Tests > GET /api/memories > should return user memories with default pagination
+ FAIL  server/memory-routes.test.ts > Memory Routes Integration Tests > GET /api/memories/:id/photos > should return photos in a memory
+ FAIL  server/routes.test.ts > registerRoutes > returns an HTTP server instance
+ FAIL  server/routes.test.ts > registerRoutes > mounts auth/photo/upload routers at their expected API prefixes
+ FAIL  server/routes.test.ts > registerRoutes > exposes the protected sample endpoint with authenticated user context
+ FAIL  server/sharing-routes.test.ts > Sharing API Integration Tests > POST /api/sharing/create > should create a shared album successfully
+ FAIL  server/sharing-routes.test.ts > Sharing API Integration Tests > POST /api/sharing/create > should create a shared album with password
+ FAIL  server/sharing-routes.test.ts > Sharing API Integration Tests > POST /api/sharing/create > should reject invalid request data
+ FAIL  server/sharing-routes.test.ts > Sharing API Integration Tests > POST /api/sharing/create > should handle album not found error
+ FAIL  server/sharing-routes.test.ts > Sharing API Integration Tests > POST /api/sharing/access/:token > should access shared album without password
+ FAIL  server/sharing-routes.test.ts > Sharing API Integration Tests > GET /api/sharing/my-shares > should get user's shared albums
+ FAIL  server/sharing-routes.test.ts > Sharing API Integration Tests > PUT /api/sharing/:shareId > should update shared album settings
+ FAIL  server/sharing-routes.test.ts > Sharing API Integration Tests > POST /api/sharing/:shareId/collaborators > should add collaborator successfully
+ FAIL  server/sharing-routes.test.ts > Sharing API Integration Tests > POST /api/sharing/:shareId/collaborators > should handle insufficient permissions
+ FAIL  server/sharing-routes.test.ts > Sharing API Integration Tests > POST /api/sharing/:shareId/collaborators > should handle duplicate collaborator
+ FAIL  server/sharing-routes.test.ts > Sharing API Integration Tests > Error Handling > should handle service errors gracefully
+ FAIL  server/smart-album-routes.test.ts > Smart Albums API Routes > GET /api/smart-albums > should return all smart albums for authenticated user
+ FAIL  server/smart-album-routes.test.ts > Smart Albums API Routes > POST /api/smart-albums/generate > should generate smart albums and return them
+ FAIL  server/smart-album-routes.test.ts > Smart Albums API Routes > PUT /api/smart-albums/:id > should update smart album settings
+ FAIL  server/smart-album-routes.test.ts > Smart Albums API Routes > GET /api/smart-albums/:id/photos > should return photos for smart album with pagination
+ FAIL  server/smart-album-routes.test.ts > Smart Albums API Routes > DELETE /api/smart-albums/:id > should hide smart album
+ FAIL  client/lib/native-share.test.ts > NativeShareService > isSharingAvailable > should return true for web platform
+ FAIL  client/lib/native-share.test.ts > NativeShareService > sharePhotos > should use expo-sharing for single photo on web
+ FAIL  client/lib/native-share.test.ts > NativeShareService > copyToClipboard > should use setStringAsync on web platform
+ FAIL  client/lib/native-share.test.ts > NativeShareService > getAvailableShareMethods > should exclude device method for web
+ FAIL  client/lib/native-share.test.ts > NativeShareService > Platform-specific options > should return Android-specific options
+ FAIL  client/lib/native-share.test.ts > NativeShareService > Platform-specific options > should return empty options for web
+ FAIL  server/services/memories.test.ts > MemoriesService Property Tests > Property 1: Date Range Accuracy > should generate accurate date ranges for 'On This Day' memories
+ FAIL  server/services/memories.test.ts > MemoriesService Property Tests > Property 1: Date Range Accuracy > should maintain date range consistency for monthly highlights
+ FAIL  server/services/memories.test.ts > MemoriesService Property Tests > Property 2: Scoring Consistency > should maintain score bounds between 0 and 1
+ FAIL  server/services/memories.test.ts > MemoriesService Property Tests > Property 3: Memory Generation Idempotence > should not create duplicate memories for same date range
+ FAIL  server/services/memories.test.ts > MemoriesService Property Tests > Property 3: Memory Generation Idempotence > should maintain memory photo count accuracy
+ FAIL  server/services/memories.test.ts > MemoriesService Property Tests > Property 4: Memory Type Validation > should only generate valid memory types
+ FAIL  server/services/memories.test.ts > MemoriesService Property Tests > Property 4: Memory Type Validation > should generate appropriate titles for each memory type
+ FAIL  server/services/partner-sharing.test.ts > PartnerSharingService - Property Tests > should enforce privacy settings consistently
+ FAIL  server/services/partner-sharing.test.ts > PartnerSharingService - Property Tests > should handle date range rule boundaries correctly
+ FAIL  server/services/partner-sharing.test.ts > PartnerSharingService - Property Tests > should maintain user isolation in partnerships
+ FAIL  server/services/partner-sharing.test.ts > PartnerSharingService - Property Tests > should handle invitation expiration correctly
+ FAIL  server/services/partner-sharing.test.ts > PartnerSharingService - Property Tests > should respect auto-share rule priority ordering
+ FAIL  server/services/partner-sharing.test.ts > PartnerSharingService - Property Tests > should prevent duplicate shared photos
+ FAIL  server/services/partner-sharing.test.ts > PartnerSharingService - Property Tests > should update privacy settings for valid partnership
+ FAIL  server/services/partner-sharing.test.ts > PartnerSharingService - Property Tests > should reject privacy settings update for invalid partnership
+ FAIL  server/services/partner-sharing.test.ts > PartnerSharingService - Property Tests > should get auto-share rules for valid partnership
+ FAIL  server/services/partner-sharing.test.ts > PartnerSharingService - Property Tests > should update auto-share rule for valid owner
+ FAIL  server/services/partner-sharing.test.ts > PartnerSharingService - Property Tests > should delete auto-share rule for valid owner
+ FAIL  server/services/partner-sharing.test.ts > PartnerSharingService - Property Tests > should end partnership for valid participant
+ FAIL  server/services/partner-sharing.test.ts > PartnerSharingService - Property Tests > should save shared photo for valid partnership
+ FAIL  server/services/partner-sharing.test.ts > PartnerSharingService - Property Tests > should return accurate partner sharing statistics
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Token Generation Properties > Property 1: Token uniqueness - Generated tokens should be unique
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Token Generation Properties > Property 2: Token entropy - Tokens should have sufficient entropy
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Rate Limiting Properties > Property 1: Rate limit enforcement - Should block excessive requests
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Rate Limiting Properties > Property 2: Rate limit reset - Should allow requests after time window
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Rate Limiting Properties > Property 3: Rate limit isolation - Different IPs should have independent limits
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Public Link Creation Properties > Property 1: Creation idempotence - Same options should create different links
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Public Link Creation Properties > Property 2: Default values - Should apply sensible defaults
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Public Link Creation Properties > Property 3: Password protection - Should handle passwords correctly
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Public Link Access Properties > Property 1: View count increment - Each access should increment view count
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Public Link Access Properties > Property 2: Pagination bounds - Should handle page numbers correctly
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Public Link Access Properties > Property 3: Rate limiting during access - Should block excessive access
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Public Link Validation Properties > Property 1: Validation correctness - Should correctly identify valid/invalid tokens
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Public Link Validation Properties > Property 2: Expiration handling - Should handle expired links correctly
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Public Link Validation Properties > Property 3: Password requirement detection - Should identify password-protected links
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Public Link Update Properties > Property 1: Update persistence - Changes should be applied correctly
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Public Link Update Properties > Property 2: Partial updates - Should update only specified fields
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Public Link Update Properties > Property 3: Authorization - Should reject updates from unauthorized users
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Statistics Properties > Property 1: Statistics accuracy - Should calculate correct statistics
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Statistics Properties > Property 2: Empty statistics - Should handle users with no public links
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Edge Cases and Error Handling > Property 1: Invalid album ID - Should reject non-existent albums
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Edge Cases and Error Handling > Property 2: Invalid user ID - Should reject unauthorized users
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Edge Cases and Error Handling > Property 3: Malformed tokens - Should handle invalid token formats
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Edge Cases and Error Handling > Property 4: Extreme pagination - Should handle very large page numbers
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Security Properties > Property 1: Token randomness - Tokens should be cryptographically random
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Security Properties > Property 2: Rate limit memory management - Should clean up old entries
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Token Generation Properties > Property 1: Token uniqueness - Generated tokens should be unique
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Token Generation Properties > Property 2: Token entropy - Tokens should have sufficient entropy
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Rate Limiting Properties > Property 1: Rate limit enforcement - Should block excessive requests
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Rate Limiting Properties > Property 2: Rate limit reset - Should allow requests after time window
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Rate Limiting Properties > Property 3: Rate limit isolation - Different IPs should have independent limits
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Public Link Creation Properties > Property 1: Creation idempotence - Same options should create different links
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Public Link Creation Properties > Property 2: Default values - Should apply sensible defaults
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Public Link Creation Properties > Property 3: Password protection - Should handle passwords correctly
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Public Link Access Properties > Property 1: View count increment - Each access should increment view count
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Public Link Access Properties > Property 2: Pagination bounds - Should handle page numbers correctly
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Public Link Access Properties > Property 3: Rate limiting during access - Should block excessive access
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Public Link Validation Properties > Property 1: Validation correctness - Should correctly identify valid/invalid tokens
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Public Link Validation Properties > Property 2: Expiration handling - Should handle expired links correctly
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Public Link Validation Properties > Property 3: Password requirement detection - Should identify password-protected links
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Public Link Update Properties > Property 1: Update persistence - Changes should be applied correctly
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Public Link Update Properties > Property 2: Partial updates - Should update only specified fields
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Public Link Update Properties > Property 3: Authorization - Should reject updates from unauthorized users
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Statistics Properties > Property 1: Statistics accuracy - Should calculate correct statistics
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Statistics Properties > Property 2: Empty statistics - Should handle users with no public links
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Edge Cases and Error Handling > Property 1: Invalid album ID - Should reject non-existent albums
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Edge Cases and Error Handling > Property 2: Invalid user ID - Should reject unauthorized users
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Edge Cases and Error Handling > Property 3: Malformed tokens - Should handle invalid token formats
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Edge Cases and Error Handling > Property 4: Extreme pagination - Should handle very large page numbers
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Security Properties > Property 1: Token randomness - Tokens should be cryptographically random
+ FAIL  server/services/public-links.test.ts > PublicLinksService Property Tests > Security Properties > Property 2: Rate limit memory management - Should clean up old entries
+ FAIL  server/services/smart-albums.test.ts > SmartAlbumsService Property Tests > Property 1: Album Photo Consistency > should handle empty photo sets gracefully
+ FAIL  server/services/smart-albums.test.ts > SmartAlbumsService Property Tests > Property 2: Update Idempotence > should produce same result when updating same album multiple times
+ FAIL  server/services/smart-albums.test.ts > SmartAlbumsService Property Tests > Property 5: Album Generation Completeness > should generate all expected album types for users with diverse photos
+ FAIL  server/services/sync.test.ts > SyncService > Version Vector Operations > Property 1: Version vector monotonicity
+ FAIL  server/services/sync.test.ts > SyncService > Version Vector Operations > Property 3: Version vector transitivity
+ FAIL  server/services/sync.test.ts > SyncService > Conflict Detection > Property 1: Conflict detection symmetry
+ FAIL  server/services/sync.test.ts > SyncService > Conflict Detection > Property 2: No false positives for identical data
+ FAIL  server/services/sync.test.ts > SyncService > Conflict Detection > Property 3: Conflict detection for concurrent updates

@@ -24,7 +24,7 @@ import {
 import {
   createEncryptedBackup,
   restoreFromEncryptedBackup,
-} from "./backup-encryption";
+} from "../backup-encryption";
 import { randomBytes } from "crypto";
 import { Queue, Worker } from "bullmq";
 import { createReadStream, createWriteStream, statSync, existsSync } from "fs";

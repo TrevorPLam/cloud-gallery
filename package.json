@@ -25,6 +25,9 @@
     "security:sbom": "npx @cyclonedx/cyclonedx-npm --output-file sbom-cyclonedx.json"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.600.0",
+    "@aws-sdk/lib-storage": "^3.600.0",
+    "@aws-sdk/s3-request-presigner": "^3.600.0",
     "@expo-google-fonts/nunito": "^0.4.2",
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "^2.2.0",
@@ -43,6 +46,7 @@
     "bullmq": "^5.71.0",
     "chrono": "^1.0.5",
     "crypto-js": "^4.2.0",
+    "date-fns": "^4.1.0",
     "dotenv": "^16.6.1",
     "drizzle-orm": "^0.39.3",
     "drizzle-zod": "^0.7.0",
@@ -95,14 +99,12 @@
     "wink-nlp": "^2.4.0",
     "ws": "^8.18.0",
     "zod": "^3.24.2",
-    "zod-validation-error": "^3.4.0",
-    "@aws-sdk/client-s3": "^3.600.0",
-    "@aws-sdk/lib-storage": "^3.600.0",
-    "@aws-sdk/s3-request-presigner": "^3.600.0",
-    "date-fns": "^4.1.0"
+    "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.1.0",
+    "@testing-library/react-native": "^13.3.3",
     "@types/bcrypt": "^6.0.0",
     "@types/crypto-js": "^4.2.2",
     "@types/express": "^5.0.0",
@@ -125,6 +127,7 @@
     "fast-check": "^4.6.0",
     "happy-dom": "^20.0.0",
     "prettier": "3.6.2",
+    "react-test-renderer": "^19.1.0",
     "supertest": "^7.2.2",
     "typescript": "~5.9.2",
     "vite": "^6.0.11",

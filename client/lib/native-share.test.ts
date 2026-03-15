@@ -71,8 +71,15 @@ const mockPhotos: Photo[] = [
 describe("NativeShareService", () => {
   let service: NativeShareService;
 
+  beforeAll(() => {
+    // Set default platform to ios for most tests
+    mockPlatform.mockReturnValue("ios");
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset platform mock to ios for each test
+    mockPlatform.mockReturnValue("ios");
     service = nativeShareService;
   });
 
@@ -91,9 +98,10 @@ describe("NativeShareService", () => {
   describe("isSharingAvailable", () => {
     it("should return true for web platform", async () => {
       mockPlatform.mockReturnValue("web");
-      vi.clearAllMocks(); // Clear any previous mock calls
-
+      console.log("Platform.OS mocked as:", Platform.OS);
+      
       const result = await service.isSharingAvailable();
+      console.log("Result:", result);
 
       expect(result).toBe(true);
     });
