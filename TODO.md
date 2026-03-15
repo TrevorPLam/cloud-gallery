@@ -1,0 +1,1516 @@
+# TODO - Cloud Gallery Testing Infrastructure
+
+This document outlines the testing infrastructure improvements needed to achieve 2026 enterprise standards.
+
+## 🚨 Priority 1: Critical Fixes (Week 1-2)
+
+### [ ] TASK-001: Stabilize Test Suite
+**Target**: Achieve 100% test pass rate (currently 96.7% with 27/810 failing tests)
+
+#### Subtasks:
+- [ ] TASK-001-1: Fix property test failure in sync service
+  - **Files**: `server/services/sync.test.ts:71`
+  - **Issue**: Version vector monotonicity property test failing with type assertion error
+  - **Action**: Debug fast-check property test, fix type assertions for object vs number comparison
+
+- [ ] TASK-001-2: Fix API integration test failures
+  - **Files**: `server/search-routes.test.ts`
+  - **Issue**: Multiple 500 errors in search endpoints due to missing server setup
+  - **Action**: Debug server initialization, fix mock configurations for search routes
+
+- [ ] TASK-001-3: Fix validation error handling
+  - **Files**: `server/search-routes.test.ts:382`
+  - **Issue**: Zod validation response format mismatch in test expectations
+  - **Action**: Update test expectations to match actual Zod error response structure
+
+- [ ] TASK-001-4: Fix remaining failing tests
+  - **Files**: Various test files identified in coverage report
+  - **Issue**: Additional failing tests across the test suite
+  - **Action**: Run `npm run test:coverage` and systematically fix all failures
+
+**Definition of Done**:
+- All 810 tests pass consistently across Node.js 18.x and 20.x
+- Test execution time remains under 60 seconds
+- No flaky tests in CI/CD pipeline
+- Coverage report shows 100% pass rate
+
+**Out of Scope**:
+- Modifying test coverage thresholds (must remain 100%)
+- Changing test framework or tooling
+- Adding new test functionality
+- Modifying production code to make tests pass
+
+**Related Task Files**:
+- `server/services/sync.test.ts`
+- `server/search-routes.test.ts`
+- `vitest.config.ts`
+- Coverage reports in `coverage/`
+
+## 🔧 Priority 2: Modern Testing Patterns (Week 3-4)
+
+### [ ] TASK-002: Adopt Sociable Testing Patterns
+**Target**: Reduce over-mocking and implement behavior-focused testing across 90% of test suite
+
+#### Subtasks:
+- [ ] TASK-002-1: Audit existing tests for over-mocking
+  - **Files**: All `*.test.ts` files in `server/`, `client/`, `shared/`
+  - **Issue**: Tests mocking internal dependencies instead of true boundaries
+  - **Action**: Catalog all mocks, identify which should be real implementations
+
+- [ ] TASK-002-2: Replace internal dependency mocks
+  - **Files**: Test files with internal mocks (e.g., mappers, validators, utilities)
+  - **Issue**: Testing implementation details rather than behavior
+  - **Action**: Replace mocks with real implementations, mock only boundaries (DB, HTTP, filesystem, time)
+
+- [ ] TASK-002-3: Eliminate interaction-only assertions
+  - **Files**: Tests using `mock.Verify()` extensively
+  - **Issue**: Tests verifying "how" rather than "what"
+  - **Action**: Replace `mock.Verify()` calls with state assertions and outcome testing
+
+- [ ] TASK-002-4: Update test documentation
+  - **Files**: `docs/testing/30_TEST_PATTERNS.md`
+  - **Issue**: Documentation needs sociable testing examples
+  - **Action**: Add before/after examples, guidelines for boundary identification
+
+**Definition of Done**:
+- 90% of unit tests use real implementations for internal collaborators
+- No tests mock internal helpers, utilities, or domain objects
+- Only true boundaries (DB, HTTP, filesystem, time, randomness) are mocked
+- All tests focus on behavior/outcome rather than implementation details
+- Updated documentation with examples and guidelines
+
+**Out of Scope**:
+- Tests that require external services (these should still mock HTTP calls)
+- Database integration tests (these should use test databases)
+- File system operations (these should use in-memory fakes)
+- Time-dependent tests (these should use time providers)
+
+**Related Task Files**:
+- `docs/testing/30_TEST_PATTERNS.md`
+- All test files in `server/`, `client/`, `shared/`
+- `vitest.setup.ts` (mock configurations)
+
+### [ ] TASK-003: Implement Accessibility-First Testing
+**Target**: Replace test ID queries with semantic queries across all component tests
+
+#### Subtasks:
+- [ ] TASK-003-1: Audit component tests for query patterns
+  - **Files**: `client/components/*.test.tsx`, `client/screens/*.test.tsx`
+  - **Issue**: Tests using `getByTestId()` instead of semantic queries
+  - **Action**: Catalog all query methods, identify non-semantic patterns
+
+- [ ] TASK-003-2: Replace data-testid with semantic queries
+  - **Files**: Component tests using `getByTestId()`
+  - **Issue**: Tests not following accessibility-first principles
+  - **Action**: Replace with `getByRole()`, `getByLabelText()`, `getByPlaceholderText()`
+
+- [ ] TASK-003-3: Update component test infrastructure
+  - **Files**: `vitest.setup.ts`, component test files
+  - **Issue**: Need proper accessibility testing setup
+  - **Action**: Add `@testing-library/jest-dom` matchers, configure accessibility helpers
+
+- [ ] TASK-003-4: Add accessibility query guidelines
+  - **Files**: `docs/testing/30_TEST_PATTERNS.md`
+  - **Issue**: Missing accessibility testing guidelines
+  - **Action**: Document query priority order, provide examples for each query type
+
+**Definition of Done**:
+- 100% of component tests use semantic queries as primary method
+- `getByTestId()` only used as last resort with justification
+- All interactive elements are testable via accessibility queries
+- Component tests validate accessibility structure
+- Documentation includes comprehensive query guidelines
+
+**Out of Scope**:
+- Tests for purely presentational components without semantic meaning
+- Legacy components that cannot be made accessible without breaking changes
+- Performance-critical components where query speed is paramount
+- Third-party component testing (use their recommended testing approach)
+
+**Related Task Files**:
+- `client/components/*.test.tsx`
+- `client/screens/*.test.tsx`
+- `vitest.setup.ts`
+- `docs/testing/30_TEST_PATTERNS.md`
+
+### [ ] TASK-004: Migrate to User Event Testing
+**Target**: Replace all fireEvent usage with userEvent for realistic user interaction simulation
+
+#### Subtasks:
+- [ ] TASK-004-1: Audit tests for fireEvent usage
+  - **Files**: All component and integration test files
+  - **Issue**: Tests using `fireEvent` instead of `userEvent`
+  - **Action**: Catalog all `fireEvent` usage, identify interaction patterns
+
+- [ ] TASK-004-2: Replace fireEvent with userEvent
+  - **Files**: Tests with `fireEvent` usage
+  - **Issue**: Tests not simulating real user behavior accurately
+  - **Action**: Replace with `userEvent.setup()` and appropriate userEvent methods
+
+- [ ] TASK-004-3: Update async interaction handling
+  - **Files**: Tests with user interactions
+  - **Issue**: Tests not properly awaiting async user events
+  - **Action**: Add proper `await` for userEvent actions, update assertion timing
+
+- [ ] TASK-004-4: Add userEvent best practices documentation
+  - **Files**: `docs/testing/30_TEST_PATTERNS.md`
+  - **Issue**: Missing userEvent guidelines and examples
+  - **Action**: Document userEvent vs fireEvent differences, provide migration examples
+
+**Definition of Done**:
+- 100% of user interaction tests use `userEvent` instead of `fireEvent`
+- All user events are properly awaited with async/await
+- Tests simulate realistic user behavior (typing, clicking, hovering)
+- Performance impact of userEvent is acceptable
+- Documentation includes comprehensive userEvent guidelines
+
+**Out of Scope**:
+- Tests that require precise event timing control
+- Tests for custom event handlers that don't work with userEvent
+- Performance-critical tests where fireEvent overhead is significant
+- Third-party component testing requiring specific event simulation
+
+**Related Task Files**:
+- All component test files
+- Integration test files with user interactions
+- `docs/testing/30_TEST_PATTERNS.md`
+- `vitest.setup.ts`
+
+## 🚀 Priority 3: Enhanced Testing Infrastructure (Month 2)
+
+### [ ] TASK-005: Implement Visual Testing in CI/CD
+**Target**: Integrate Chromatic for automated visual regression testing
+
+#### Subtasks:
+- [ ] TASK-005-1: Configure Chromatic project
+  - **Files**: `package.json`, `.chromaticrc`
+  - **Issue**: Chromatic not configured for project
+  - **Action**: Set up Chromatic project, configure build script, add API key
+
+- [ ] TASK-005-2: Add visual tests for critical components
+  - **Files**: `client/components/*.test.tsx`, `client/screens/*.test.tsx`
+  - **Issue**: No visual test coverage for UI components
+  - **Action**: Add visual tests for Button, Card, PhotoGrid, critical screens
+
+- [ ] TASK-005-3: Integrate visual testing in CI/CD
+  - **Files**: `.github/workflows/test-coverage.yml`
+  - **Issue**: Visual testing not part of automated pipeline
+  - **Action**: Add Chromatic step to GitHub Actions, configure PR reviews
+
+- [ ] TASK-005-4: Set up visual regression workflow
+  - **Files**: `docs/testing/60_VISUAL_TESTING.md`
+  - **Issue**: Missing visual testing guidelines
+  - **Action**: Document visual testing process, review workflow, approval process
+
+**Definition of Done**:
+- Chromatic project configured and connected
+- Critical UI components have visual test coverage
+- Visual tests run automatically on PRs
+- Visual diffs reviewed and approved before merge
+- Documentation includes visual testing guidelines
+
+**Out of Scope**:
+- Visual testing for every single component (focus on critical path)
+- Cross-browser visual testing (focus on React Native platforms)
+- Visual testing for data visualization components (complex charts)
+- Visual testing for third-party components
+
+**Related Task Files**:
+- `package.json`
+- `.chromaticrc`
+- `.github/workflows/test-coverage.yml`
+- `docs/testing/60_VISUAL_TESTING.md`
+- Critical component test files
+
+### [ ] TASK-006: Automate Accessibility Testing
+**Target**: Integrate automated accessibility testing in CI/CD pipeline
+
+#### Subtasks:
+- [ ] TASK-006-1: Configure axe-core integration
+  - **Files**: `vitest.setup.ts`, `package.json`
+  - **Issue**: axe-core not integrated with test runner
+  - **Action**: Add axe-core setup, configure accessibility rules
+
+- [ ] TASK-006-2: Add accessibility tests to components
+  - **Files**: `client/components/*.test.tsx`, `client/screens/*.test.tsx`
+  - **Issue**: No automated accessibility testing
+  - **Action**: Add axe-core assertions to all component tests
+
+- [ ] TASK-006-3: Add accessibility CI/CD checks
+  - **Files**: `.github/workflows/test-coverage.yml`
+  - **Issue**: Accessibility not validated in automated pipeline
+  - **Action**: Add accessibility test step, configure failure thresholds
+
+- [ ] TASK-006-4: Create accessibility testing guidelines
+  - **Files**: `docs/testing/50_ACCESSIBILITY_TESTING.md`
+  - **Issue**: Missing accessibility testing documentation
+  - **Action**: Document WCAG 2.1 AA testing approach, common issues, fixes
+
+**Definition of Done**:
+- axe-core integrated with test runner
+- All component tests include accessibility assertions
+- CI/CD pipeline fails on accessibility violations
+- WCAG 2.1 AA compliance validated automatically
+- Documentation includes accessibility testing guidelines
+
+**Out of Scope**:
+- Manual accessibility testing (focus on automated)
+- Screen reader testing (requires manual validation)
+- Color contrast testing for user-generated content
+- Accessibility testing for third-party components
+
+**Related Task Files**:
+- `vitest.setup.ts`
+- `package.json`
+- `.github/workflows/test-coverage.yml`
+- `docs/testing/50_ACCESSIBILITY_TESTING.md`
+- All component test files
+
+### [ ] TASK-007: Implement Performance Regression Testing
+**Target**: Add automated performance testing with regression detection
+
+#### Subtasks:
+- [ ] TASK-007-1: Set up performance testing infrastructure
+  - **Files**: `vitest.config.ts`, `tests/performance/`
+  - **Issue**: No performance testing framework
+  - **Action**: Configure performance testing, add benchmark utilities
+
+- [ ] TASK-007-2: Add performance tests for critical paths
+  - **Files**: `tests/performance/`, critical function test files
+  - **Issue**: No performance coverage for critical operations
+  - **Action**: Add tests for photo processing, search, data operations
+
+- [ ] TASK-007-3: Configure performance regression detection
+  - **Files**: `.github/workflows/test-coverage.yml`
+  - **Issue**: No performance regression monitoring
+  - **Action**: Add performance thresholds, configure regression alerts
+
+- [ ] TASK-007-4: Document performance testing guidelines
+  - **Files**: `docs/testing/40_TEST_FACTORIES.md`
+  - **Issue**: Missing performance testing documentation
+  - **Action**: Document performance testing patterns, thresholds, analysis
+
+**Definition of Done**:
+- Performance testing framework configured
+- Critical operations have performance benchmarks
+- CI/CD pipeline detects performance regressions
+- Performance trends tracked over time
+- Documentation includes performance testing guidelines
+
+**Out of Scope**:
+- Performance testing for every function (focus on critical path)
+- Load testing for API endpoints (separate initiative)
+- Memory profiling for React Native components
+- Performance testing for development environment
+
+**Related Task Files**:
+- `vitest.config.ts`
+- `tests/performance/`
+- `.github/workflows/test-coverage.yml`
+- `docs/testing/40_TEST_FACTORIES.md`
+- Critical operation test files
+
+## 🔍 Priority 4: Advanced Testing Features (Month 3)
+
+### [ ] TASK-008: Add API Contract Testing
+**Target**: Implement consumer-driven contract testing for API endpoints
+
+#### Subtasks:
+- [ ] TASK-008-1: Set up contract testing framework
+  - **Files**: `package.json`, `tests/contracts/`
+  - **Issue**: No contract testing infrastructure
+  - **Action**: Choose contract testing tool (Pact), configure framework
+
+- [ ] TASK-008-2: Define API contracts for critical endpoints
+  - **Files**: `tests/contracts/api-contracts.json`, `server/*-routes.ts`
+  - **Issue**: No formal API contracts defined
+  - **Action**: Define contracts for auth, photos, albums, search endpoints
+
+- [ ] TASK-008-3: Implement contract validation
+  - **Files**: `server/*-routes.test.ts`, contract test files
+  - **Issue**: API responses not validated against contracts
+  - **Action**: Add contract validation to integration tests
+
+- [ ] TASK-008-4: Add contract testing to CI/CD
+  - **Files**: `.github/workflows/test-coverage.yml`
+  - **Issue**: Contract testing not part of automated pipeline
+  - **Action**: Add contract test step, configure publishing
+
+**Definition of Done**:
+- Contract testing framework configured
+- Critical API endpoints have defined contracts
+- Contract validation automated in tests
+- CI/CD pipeline validates contracts
+- Breaking changes detected automatically
+
+**Out of Scope**:
+- Contract testing for internal APIs (focus on public endpoints)
+- Contract testing for third-party integrations
+- Contract testing for deprecated endpoints
+- Contract testing for development-only endpoints
+
+**Related Task Files**:
+- `tests/contracts/`
+- `server/auth-routes.ts`
+- `server/photo-routes.ts`
+- `server/album-routes.ts`
+- `server/search-routes.ts`
+- `.github/workflows/test-coverage.yml`
+
+### [ ] TASK-009: Enhance Database Testing
+**Target**: Implement proper database integration testing with test containers
+
+#### Subtasks:
+- [ ] TASK-009-1: Set up test database infrastructure
+  - **Files**: `tests/database/`, `vitest.config.ts`
+  - **Issue**: No dedicated test database setup
+  - **Action**: Configure test containers, database seeding utilities
+
+- [ ] TASK-009-2: Add database integration tests
+  - **Files**: `server/db.test.ts`, service integration tests
+  - **Issue**: Limited database integration testing
+  - **Action**: Add tests for migrations, schema validation, data operations
+
+- [ ] TASK-009-3: Implement test data isolation
+  - **Files**: `tests/database/test-data-factory.ts`
+  - **Issue**: Test data not properly isolated
+  - **Action**: Create test data factories, implement cleanup procedures
+
+- [ ] TASK-009-4: Add database migration testing
+  - **Files**: `tests/database/migrations.test.ts`
+  - **Issue**: Database migrations not tested
+  - **Action**: Add migration validation, rollback testing
+
+**Definition of Done**:
+- Test database infrastructure configured
+- Database operations have integration test coverage
+- Test data properly isolated between tests
+- Database migrations validated automatically
+- Cleanup procedures prevent test interference
+
+**Out of Scope**:
+- Production database testing (focus on test environment)
+- Performance testing for database queries
+- Database clustering or replication testing
+- Database backup/restore testing
+
+**Related Task Files**:
+- `tests/database/`
+- `server/db.ts`
+- `drizzle.config.ts`
+- Migration files in `server/`
+- Service files with database operations
+
+### [ ] TASK-010: Implement End-to-End Testing Framework
+**Target**: Set up Detox for React Native E2E testing
+
+#### Subtasks:
+- [ ] TASK-010-1: Configure Detox testing framework
+  - **Files**: `.detoxrc.json`, `package.json`
+  - **Issue**: No E2E testing framework configured
+  - **Action**: Set up Detox, configure test devices, build configurations
+
+- [ ] TASK-010-2: Add critical user journey tests
+  - **Files**: `e2e/`, critical user flows
+  - **Issue**: No E2E test coverage for user journeys
+  - **Action**: Add tests for photo upload, album creation, search, sharing
+
+- [ ] TASK-010-3: Integrate E2E tests in CI/CD
+  - **Files**: `.github/workflows/e2e-tests.yml`
+  - **Issue**: E2E tests not part of automated pipeline
+  - **Action**: Add E2E test workflow, configure device emulators
+
+- [ ] TASK-010-4: Set up E2E test reporting
+  - **Files**: E2E test configuration files
+  - **Issue**: No E2E test reporting infrastructure
+  - **Action**: Configure test reporting, artifact collection, failure analysis
+
+**Definition of Done**:
+- Detox framework configured for iOS and Android
+- Critical user journeys have E2E test coverage
+- E2E tests run automatically in CI/CD
+- Test failures properly reported with artifacts
+- E2E test execution time within acceptable limits
+
+**Out of Scope**:
+- E2E testing for every user flow (focus on critical paths)
+- E2E testing for web platform (focus on React Native)
+- E2E testing for edge cases (covered by unit/integration tests)
+- E2E testing for performance (separate initiative)
+
+**Related Task Files**:
+- `.detoxrc.json`
+- `e2e/`
+- `.github/workflows/e2e-tests.yml`
+- Critical screen components
+- Navigation configuration
+
+### [ ] TASK-011: Enhance Security Testing
+**Target**: Implement automated security testing and compliance validation
+
+#### Subtasks:
+- [ ] TASK-011-1: Integrate automated security scanning
+  - **Files**: `.github/workflows/security-scan.yml`, `package.json`
+  - **Issue**: Security scanning not fully automated
+  - **Action**: Add OWASP ZAP integration, dependency vulnerability scanning
+
+- [ ] TASK-011-2: Implement security test cases
+  - **Files**: `tests/security/`, authentication and authorization tests
+  - **Issue**: Limited security test coverage
+  - **Action**: Add tests for SQL injection, XSS, authentication bypass, data leakage
+
+- [ ] TASK-011-3: Add compliance testing automation
+  - **Files**: `tests/compliance/`, compliance validation scripts
+  - **Issue**: Manual compliance testing only
+  - **Action**: Add automated HIPAA and GDPR compliance validation
+
+- [ ] TASK-011-4: Configure security test reporting
+  - **Files**: Security test configurations, CI/CD workflows
+  - **Issue**: Security test results not properly reported
+  - **Action**: Add security test dashboards, failure notifications
+
+**Definition of Done**:
+- Automated security scanning integrated in CI/CD
+- Security vulnerabilities automatically detected
+- Compliance testing automated for HIPAA and GDPR
+- Security test failures block deployments
+- Security trends tracked over time
+
+**Out of Scope**:
+- Manual penetration testing (focus on automated)
+- Social engineering testing
+- Physical security testing
+- Third-party security assessments
+
+**Related Task Files**:
+- `tests/security/`
+- `tests/compliance/`
+- `.github/workflows/security-scan.yml`
+- Security middleware files
+- Authentication and authorization code
+
+### [ ] TASK-012: Implement Test Metrics & Monitoring
+**Target**: Set up comprehensive test monitoring and reporting dashboard
+
+#### Subtasks:
+- [ ] TASK-012-1: Configure test execution monitoring
+  - **Files**: `.github/workflows/test-metrics.yml`, monitoring scripts
+  - **Issue**: No test execution monitoring
+  - **Action**: Set up test execution time tracking, flaky test detection
+
+- [ ] TASK-012-2: Create quality metrics dashboard
+  - **Files**: Monitoring dashboard configuration
+  - **Issue**: No centralized quality metrics
+  - **Action**: Create dashboard for coverage, performance, security metrics
+
+- [ ] TASK-012-3: Implement test failure notifications
+  - **Files**: Notification configurations, alerting rules
+  - **Issue**: Test failures not properly notified
+  - **Action**: Configure Slack/email notifications for test failures
+
+- [ ] TASK-012-4: Set up trend analysis
+  - **Files**: Trend analysis scripts, reporting automation
+  - **Issue**: No historical trend analysis
+  - **Action**: Track coverage, performance, security trends over time
+
+**Definition of Done**:
+- Test execution metrics collected automatically
+- Quality metrics dashboard accessible to team
+- Test failures trigger appropriate notifications
+- Historical trends tracked and reported
+- Performance regressions detected automatically
+
+**Out of Scope**:
+- Real-time monitoring (focus on batch reporting)
+- Custom metric visualization tools
+- Integration with external monitoring services
+- Advanced analytics and machine learning
+
+**Related Task Files**:
+- Monitoring configuration files
+- CI/CD workflow files
+- Test reporting scripts
+- Notification service configurations
+
+### [ ] TASK-013: Enhance Documentation & Training
+**Target**: Create comprehensive testing documentation and training program
+
+#### Subtasks:
+- [ ] TASK-013-1: Update testing documentation
+  - **Files**: `docs/testing/`, README files
+  - **Issue**: Documentation needs updates for new patterns
+  - **Action**: Update all testing docs with modern patterns and examples
+
+- [ ] TASK-013-2: Create testing onboarding guides
+  - **Files**: `docs/testing/onboarding/`, training materials
+  - **Issue**: No structured onboarding for testing
+  - **Action**: Create step-by-step guides for new developers
+
+- [ ] TASK-013-3: Develop testing best practices workshop
+  - **Files**: Workshop materials, presentation slides
+  - **Issue**: No formal testing training program
+  - **Action**: Create workshop materials, schedule regular training sessions
+
+- [ ] TASK-013-4: Implement code review guidelines
+  - **Files**: `CONTRIBUTING.md`, review checklists
+  - **Issue**: Testing guidelines not integrated in code review
+  - **Action**: Add testing requirements to code review process
+
+**Definition of Done**:
+- All testing documentation updated and accurate
+- New developers have comprehensive onboarding materials
+- Regular testing workshops conducted
+- Code review process includes testing validation
+- Team competency in modern testing patterns verified
+
+**Out of Scope**:
+- Video tutorial creation (focus on written documentation)
+- External training programs
+- Certification programs
+- Advanced testing research
+
+**Related Task Files**:
+- `docs/testing/`
+- `CONTRIBUTING.md`
+- Workshop materials
+- Code review guidelines
+
+## 🎯 Success Metrics
+
+### Phase 1 Targets (Week 1-2)
+- [ ] 100% test pass rate (0/810 failing)
+- [ ] All property tests passing
+- [ ] Zero flaky tests in CI/CD
+
+### Phase 2 Targets (Week 3-4)
+- [ ] 90% of tests use sociable patterns
+- [ ] 100% of component tests use semantic queries
+- [ ] All user interactions use userEvent
+
+### Phase 3 Targets (Month 2)
+- [ ] Visual testing integrated in CI/CD
+- [ ] Accessibility testing automated
+- [ ] Performance regression tests implemented
+
+### Phase 4 Targets (Month 3)
+- [ ] E2E test coverage for critical paths
+- [ ] Contract testing for all APIs
+- [ ] Security testing automated
+
+### Phase 5 Targets (Ongoing)
+- [ ] Test execution time <30s
+- [ ] Flaky test rate <1%
+- [ ] 100% documentation coverage
+
+## 🔧 Implementation Guidelines
+
+### Test Writing Standards
+1. **Behavior-focused testing**: Test what the code does, not how it does it
+2. **Sociable unit tests**: Use real implementations for internal collaborators
+3. **Accessibility-first**: Use semantic queries over test IDs
+4. **User interaction simulation**: Use userEvent over fireEvent
+5. **Comprehensive coverage**: Test all branches, including error paths
+
+### Code Review Requirements
+1. All new code must have 100% test coverage
+2. Tests must follow modern patterns (no over-mocking)
+3. Component tests must use semantic queries
+4. Performance tests for critical paths
+5. Documentation updates for new patterns
+
+### CI/CD Integration
+1. All tests must pass in matrix testing (Node.js 18.x, 20.x)
+2. Coverage reports must be generated and uploaded
+3. Visual tests must run on PRs
+4. Performance tests must validate thresholds
+5. Security tests must pass for all changes
+
+## 📚 Resources
+
+### Documentation
+- [Testing Documentation](./docs/testing/00_INDEX.md)
+- [Test Patterns Guide](./docs/testing/30_TEST_PATTERNS.md)
+- [Coverage Exceptions](./docs/testing/99_EXCEPTIONS.md)
+
+### Tools & Configuration
+- [Vitest Configuration](./vitest.config.ts)
+- [Test Setup](./vitest.setup.ts)
+- [CI/CD Workflow](./.github/workflows/test-coverage.yml)
+
+### External References
+- [Vitest Documentation](https://vitest.dev/)
+- [React Testing Library](https://testing-library.com/)
+- [Enterprise Testing Best Practices 2026](https://bool.dev/blog/detail/top-10-unit-testing-antipatterns-in-dotnet)
+
+---
+
+## 🚀 Getting Started
+
+### Quick Start for Developers
+```bash
+# Run all tests
+npm run test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Check for focused/skipped tests
+npm run test:check-focused
+
+# Run tests in watch mode
+npm run test:watch
+```
+
+### Contribution Guidelines
+1. Write tests for all new functionality
+2. Follow modern testing patterns
+3. Ensure 100% coverage for business logic
+4. Update documentation for new patterns
+5. All PRs must pass CI/CD quality gates
+
+---
+
+## 🚀 Priority 6: Zero-Knowledge Features (Months 1-3)
+
+### [ ] TASK-014: Implement Client-Side File Encryption (XChaCha20-Poly1305)
+**Target**: Add zero-knowledge file encryption with streaming support for large files
+
+#### Subtasks:
+- [ ] TASK-014-1: Integrate react-native-sodium-jsi for crypto operations
+  - **Files**: `package.json`, `client/lib/encryption.ts`
+  - **Issue**: No native crypto library integration
+  - **Action**: Add react-native-sodium-jsi, implement XChaCha20-Poly1305 wrapper
+
+- [ ] TASK-014-2: Implement streaming encryption for large files
+  - **Files**: `client/lib/streaming-encryption.ts`
+  - **Issue**: Large files (>100MB) cause memory issues
+  - **Action**: Add chunked encryption with crypto_secretstream_xchacha20poly1305
+
+- [ ] TASK-014-3: Add hybrid encryption strategy
+  - **Files**: `client/lib/adaptive-encryption.ts`
+  - **Issue**: One-size-fits-all encryption inefficient
+  - **Action**: Implement size-based encryption (direct/chunked/streaming)
+
+- [ ] TASK-014-4: Integrate hardware-accelerated crypto
+  - **Files**: `client/lib/platform-crypto.ts`
+  - **Issue**: Not leveraging platform security features
+  - **Action**: Add iOS CryptoKit and Android KeyStore integration
+
+**Definition of Done**:
+- XChaCha20-Poly1305 encryption implemented with JSI performance
+- Streaming encryption supports files >100MB without memory issues
+- Hardware acceleration utilized on supported platforms
+- Zero-knowledge encryption prevents server access to plaintext
+
+**Out of Scope**:
+- Custom encryption algorithms (use proven standards)
+- Server-side encryption (must remain zero-knowledge)
+- Encryption for non-photo file types (focus on images/videos)
+- Real-time encryption during capture (focus on storage)
+
+**Related Task Files**:
+- `client/lib/encryption.ts`
+- `client/lib/streaming-encryption.ts`
+- `client/lib/adaptive-encryption.ts`
+- `client/lib/platform-crypto.ts`
+- `package.json`
+
+### [ ] TASK-015: Implement Zero-Knowledge Key Management (Argon2id)
+**Target**: Build secure key derivation and management system with biometric support
+
+#### Subtasks:
+- [ ] TASK-015-1: Implement Argon2id key derivation
+  - **Files**: `client/lib/key-derivation.ts`
+  - **Issue**: No secure password-based key derivation
+  - **Action**: Add isomorphic-argon2 with OWASP parameters (64MB, 3 iterations, 2 parallelism)
+
+- [ ] TASK-015-2: Create hierarchical key system
+  - **Files**: `client/lib/key-hierarchy.ts`
+  - **Issue**: No structured key management
+  - **Action**: Implement master, file, sharing, and device key derivation
+
+- [ ] TASK-015-3: Integrate secure storage
+  - **Files**: `client/lib/secure-storage.ts`
+  - **Issue**: Keys stored in insecure locations
+  - **Action**: Use expo-secure-store with platform keychain/keystore
+
+- [ ] TASK-015-4: Add biometric key unlock
+  - **Files**: `client/lib/biometric-auth.ts`
+  - **Issue**: No biometric authentication integration
+  - **Action**: Implement biometric unlock of master key with fallback
+
+**Definition of Done**:
+- Argon2id key derivation with secure parameters
+- Hierarchical key system for different encryption purposes
+- Keys stored in platform secure storage
+- Biometric authentication for key access
+
+**Out of Scope**:
+- Password storage (never store passwords)
+- Key recovery without user interaction
+- Cloud-based key management (must remain zero-knowledge)
+- Key sharing without user consent
+
+**Related Task Files**:
+- `client/lib/key-derivation.ts`
+- `client/lib/key-hierarchy.ts`
+- `client/lib/secure-storage.ts`
+- `client/lib/biometric-auth.ts`
+- `client/contexts/AuthContext.tsx`
+
+### [ ] TASK-016: Implement Encrypted Search Index (SSE)
+**Target**: Create privacy-preserving search with searchable symmetric encryption
+
+#### Subtasks:
+- [ ] TASK-016-1: Build deterministic encryption for search terms
+  - **Files**: `client/lib/encrypted-search.ts`
+  - **Issue**: No encrypted search capability
+  - **Action**: Implement AES-SIV deterministic encryption with padding
+
+- [ ] TASK-016-2: Create encrypted index construction
+  - **Files**: `client/lib/search-index.ts`
+  - **Issue**: No search index infrastructure
+  - **Action**: Build encrypted index for tags, dates, locations
+
+- [ ] TASK-016-3: Implement client-side search tokens
+  - **Files**: `client/lib/search-tokens.ts`
+  - **Issue**: Search queries exposed to server
+  - **Action**: Generate encrypted search tokens for privacy
+
+- [ ] TASK-016-4: Add advanced search operators
+  - **Files**: `client/lib/advanced-search.ts`
+  - **Issue**: Limited search capabilities
+  - **Action**: Implement AND, OR, NOT operators with encrypted queries
+
+**Definition of Done**:
+- Deterministic encryption for search terms with frequency protection
+- Encrypted search index supports tags, dates, locations
+- Client-side search tokens prevent server query exposure
+- Advanced search operators work with encrypted data
+
+**Out of Scope**:
+- Plaintext search indexes (must remain encrypted)
+- Server-side search processing (must remain zero-knowledge)
+- Search for unencrypted content (focus on encrypted data)
+- Real-time search suggestions (privacy concerns)
+
+**Related Task Files**:
+- `client/lib/encrypted-search.ts`
+- `client/lib/search-index.ts`
+- `client/lib/search-tokens.ts`
+- `client/lib/advanced-search.ts`
+- `server/routes/search-routes.ts`
+
+### [ ] TASK-017: Implement Reliable Background Backup
+**Target**: Add secure background sync with Expo BackgroundFetch integration
+
+#### Subtasks:
+- [ ] TASK-017-1: Integrate Expo BackgroundFetch
+  - **Files**: `package.json`, `client/lib/background-sync.ts`
+  - **Issue**: No background sync capability
+  - **Action**: Add expo-background-fetch with task management
+
+- [ ] TASK-017-2: Implement network-aware sync strategy
+  - **Files**: `client/lib/network-sync.ts`
+  - **Issue**: Sync doesn't adapt to network conditions
+  - **Action**: Add WiFi-only uploads, cellular preferences, resume support
+
+- [ ] TASK-017-3: Add battery optimization
+  - **Files**: `client/lib/battery-sync.ts`
+  - **Issue**: Background sync drains battery
+  - **Action**: Implement charging-only sync, exponential backoff, peak hour throttling
+
+- [ ] TASK-017-4: Create delta sync algorithm
+  - **Files**: `client/lib/delta-sync.ts`
+  - **Issue**: Full sync inefficient for large libraries
+  - **Action**: Implement change detection, partial uploads, bandwidth adaptation
+
+**Definition of Done**:
+- Background sync works reliably on iOS and Android
+- Network-aware sync adapts to connection quality
+- Battery optimization prevents excessive drain
+- Delta sync reduces bandwidth usage for large libraries
+
+**Out of Scope**:
+- Real-time sync (focus on periodic background sync)
+- Sync during active use (background only)
+- Sync of unencrypted content (must remain zero-knowledge)
+- Forced sync without user consent
+
+**Related Task Files**:
+- `client/lib/background-sync.ts`
+- `client/lib/network-sync.ts`
+- `client/lib/battery-sync.ts`
+- `client/lib/delta-sync.ts`
+- `package.json`
+
+---
+
+## 🧠 Priority 7: On-Device Machine Learning (Months 4-6)
+
+### [ ] TASK-018: Implement On-Device ML Infrastructure
+**Target**: Add TensorFlow Lite integration with GPU acceleration
+
+#### Subtasks:
+- [ ] TASK-018-1: Integrate react-native-fast-tflite
+  - **Files**: `package.json`, `client/lib/ml/tflite.ts`
+  - **Issue**: No on-device ML capability
+  - **Action**: Add react-native-fast-tflite with GPU delegate support
+
+- [ ] TASK-018-2: Add model loading and caching
+  - **Files**: `client/lib/ml/model-manager.ts`
+  - **Issue**: Models not optimized for mobile
+  - **Action**: Implement quantized model loading, caching, background preloading
+
+- [ ] TASK-018-3: Integrate react-native-vision-camera
+  - **Files**: `client/lib/ml/camera-ml.ts`
+  - **Issue**: No real-time camera processing
+  - **Action**: Add frame processors for real-time ML inference
+
+- [ ] TASK-018-4: Implement adaptive model selection
+  - **Files**: `client/lib/ml/adaptive-models.ts`
+  - **Issue**: One-size-fits-all models inefficient
+  - **Action**: Add device capability detection, model complexity adaptation
+
+**Definition of Done**:
+- TensorFlow Lite models run efficiently on-device
+- GPU acceleration utilized on supported devices
+- Real-time camera frame processing implemented
+- Model selection adapts to device capabilities
+
+**Out of Scope**:
+- Cloud-based ML processing (must remain on-device)
+- Custom model training (use pre-trained models)
+- ML for non-photo content (focus on images/videos)
+- Real-time ML during camera preview (focus on post-processing)
+
+**Related Task Files**:
+- `client/lib/ml/tflite.ts`
+- `client/lib/ml/model-manager.ts`
+- `client/lib/ml/camera-ml.ts`
+- `client/lib/ml/adaptive-models.ts`
+- `package.json`
+
+### [ ] TASK-019: Implement Face Detection & Recognition
+**Target**: Add on-device face detection with clustering and person management
+
+#### Subtasks:
+- [ ] TASK-019-1: Integrate BlazeFace face detection
+  - **Files**: `client/lib/ml/face-detection.ts`, `assets/blazeface.tflite`
+  - **Issue**: No face detection capability
+  - **Action**: Add BlazeFace model with real-time detection
+
+- [ ] TASK-019-2: Implement face embedding generation
+  - **Files**: `client/lib/ml/face-embeddings.ts`, `assets/facenet.tflite`
+  - **Issue**: No face recognition capability
+  - **Action**: Add FaceNet model for 128-dimensional embeddings
+
+- [ ] TASK-019-3: Create DBSCAN clustering algorithm
+  - **Files**: `client/lib/ml/face-clustering.ts`
+  - **Issue**: No automatic person grouping
+  - **Action**: Implement DBSCAN with cosine similarity for face clustering
+
+- [ ] TASK-019-4: Add person management interface
+  - **Files**: `client/screens/PeopleScreen.tsx`, `client/components/PersonCard.tsx`
+  - **Issue**: No UI for face management
+  - **Action**: Create person management with naming, merging, privacy controls
+
+**Definition of Done**:
+- Face detection works reliably on photos and videos
+- Face embeddings generated for recognition and clustering
+- Automatic person grouping with DBSCAN algorithm
+- User interface for person management and privacy controls
+
+**Out of Scope**:
+- Cloud-based face processing (must remain on-device)
+- Face recognition without user consent (privacy-first)
+- Face detection in real-time camera preview (performance concerns)
+- Sharing face data without explicit permission
+
+**Related Task Files**:
+- `client/lib/ml/face-detection.ts`
+- `client/lib/ml/face-embeddings.ts`
+- `client/lib/ml/face-clustering.ts`
+- `client/screens/PeopleScreen.tsx`
+- `server/services/face-recognition.ts`
+
+### [ ] TASK-020: Implement Natural Language Semantic Search (CLIP)
+**Target**: Add CLIP-based semantic search with text-to-image matching
+
+#### Subtasks:
+- [ ] TASK-020-1: Integrate CLIP model for embeddings
+  - **Files**: `client/lib/ml/clip-embeddings.ts`, `assets/clip-vit-b-32.tflite`
+  - **Issue**: No semantic search capability
+  - **Action**: Add CLIP-ViT-B/32 model quantized for mobile
+
+- [ ] TASK-020-2: Implement embedding generation and caching
+  - **Files**: `client/lib/ml/embedding-cache.ts`
+  - **Issue**: Embeddings generated repeatedly
+  - **Action**: Add encrypted local caching with progressive generation
+
+- [ ] TASK-020-3: Create semantic search interface
+  - **Files**: `client/screens/SemanticSearchScreen.tsx`
+  - **Issue**: No UI for semantic search
+  - **Action**: Build search interface with text input and image results
+
+- [ ] TASK-020-4: Add multimodal search capabilities
+  - **Files**: `client/lib/ml/multimodal-search.ts`
+  - **Issue**: Limited to text-to-image search
+  - **Action**: Implement image-to-image, text-to-text, cross-modal search
+
+**Definition of Done**:
+- CLIP model generates high-quality image and text embeddings
+- Embedding cache provides fast search responses
+- Semantic search interface supports natural language queries
+- Multimodal search works across different content types
+
+**Out of Scope**:
+- Cloud-based embedding generation (must remain on-device)
+- Real-time semantic search during typing (performance concerns)
+- Search of unencrypted content (must remain zero-knowledge)
+- Semantic search without user consent
+
+**Related Task Files**:
+- `client/lib/ml/clip-embeddings.ts`
+- `client/lib/ml/embedding-cache.ts`
+- `client/screens/SemanticSearchScreen.tsx`
+- `client/lib/ml/multimodal-search.ts`
+- `server/routes/search-routes.ts`
+
+### [ ] TASK-021: Implement Similar Photo Stacking
+**Target**: Add perceptual hashing and quality-based photo grouping
+
+#### Subtasks:
+- [ ] TASK-021-1: Implement perceptual hashing algorithms
+  - **Files**: `client/lib/photo/perceptual-hash.ts`
+  - **Issue**: No duplicate detection capability
+  - **Action**: Add pHash, dHash, and structural similarity algorithms
+
+- [ ] TASK-021-2: Create burst detection system
+  - **Files**: `client/lib/photo/burst-detection.ts`
+  - **Issue**: No automatic burst photo grouping
+  - **Action**: Implement EXIF-based burst detection with time clustering
+
+- [ ] TASK-021-3: Add photo quality scoring
+  - **Files**: `client/lib/photo/quality-score.ts`
+  - **Issue**: No automatic best photo selection
+  - **Action**: Implement sharpness, exposure, composition scoring
+
+- [ ] TASK-021-4: Create stacking interface
+  - **Files**: `client/screens/PhotoStackingScreen.tsx`
+  - **Issue**: No UI for photo stacking management
+  - **Action**: Build interface for reviewing and managing stacked photos
+
+**Definition of Done**:
+- Perceptual hashing detects similar photos with high accuracy
+- Burst detection groups consecutive photos automatically
+- Quality scoring selects best photos from groups
+- User interface allows manual override of automatic grouping
+
+**Out of Scope**:
+- Automatic deletion of duplicates (user control required)
+- Stacking of unprocessed photos (must be analyzed first)
+- Cloud-based duplicate detection (must remain on-device)
+- Quality scoring without user transparency
+
+**Related Task Files**:
+- `client/lib/photo/perceptual-hash.ts`
+- `client/lib/photo/burst-detection.ts`
+- `client/lib/photo/quality-score.ts`
+- `client/screens/PhotoStackingScreen.tsx`
+- `client/lib/storage.ts`
+
+---
+
+## 🎨 Priority 8: User Experience Features (Months 7-9)
+
+### [ ] TASK-022: Implement Google Takeout / iCloud Migration
+**Target**: Add migration tools for competing photo services
+
+#### Subtasks:
+- [ ] TASK-022-1: Create Google Takeout processing pipeline
+  - **Files**: `client/lib/migration/google-takeout.ts`
+  - **Issue**: No Google Photos import capability
+  - **Action**: Add ZIP archive parsing, metadata.json extraction, EXIF restoration
+
+- [ ] TASK-022-2: Implement iCloud migration strategy
+  - **Files**: `client/lib/migration/icloud-migration.ts`
+  - **Issue**: No iCloud Photos import capability
+  - **Action**: Add iCloud Photos API integration, Live Photos handling
+
+- [ ] TASK-022-3: Add EXIF restoration with ExifTool
+  - **Files**: `client/lib/migration/exif-restoration.ts`
+  - **Issue**: Metadata lost during migration
+  - **Action**: Integrate ExifTool for metadata restoration
+
+- [ ] TASK-022-4: Create migration assistant interface
+  - **Files**: `client/screens/MigrationScreen.tsx`
+  - **Issue**: No UI for migration process
+  - **Action**: Build migration wizard with progress tracking
+
+**Definition of Done**:
+- Google Takeout archives processed with metadata preservation
+- iCloud Photos imported with Live Photos support
+- EXIF data restored accurately from source metadata
+- Migration interface provides clear progress and feedback
+
+**Out of Scope**:
+- Automatic deletion of source photos (user choice required)
+- Migration of non-photo content (focus on images/videos)
+- Cloud-based migration processing (must remain zero-knowledge)
+- Migration without user consent
+
+**Related Task Files**:
+- `client/lib/migration/google-takeout.ts`
+- `client/lib/migration/icloud-migration.ts`
+- `client/lib/migration/exif-restoration.ts`
+- `client/screens/MigrationScreen.tsx`
+
+### [ ] TASK-023: Implement Interactive Photo Map
+**Target**: Add geospatial photo visualization with clustering
+
+#### Subtasks:
+- [ ] TASK-023-1: Integrate supercluster for geospatial clustering
+  - **Files**: `client/lib/map/photo-clustering.ts`
+  - **Issue**: No map clustering capability
+  - **Action**: Add supercluster with dynamic clustering based on zoom level
+
+- [ ] TASK-023-2: Create heatmap visualization
+  - **Files**: `client/lib/map/heatmap-renderer.ts`
+  - **Issues**: No photo density visualization
+  - **Action**: Implement canvas-based heatmap with gradient mapping
+
+- [ ] TASK-023-3: Add temporal map layers
+  - **Files**: `client/lib/map/temporal-layers.ts`
+  - **Issue**: No time-based photo filtering on map
+  - **Action**: Implement timeline scrubbing with animated overlays
+
+- [ ] TASK-023-4: Build interactive map interface
+  - **Files**: `client/screens/PhotoMapScreen.tsx`
+  - **Issue**: No UI for photo map
+  - **Action**: Create map interface with clustering, heatmap, timeline controls
+
+**Definition of Done**:
+- Photo locations clustered efficiently for large datasets
+- Heatmap visualization shows photo density patterns
+- Temporal layers enable time-based photo exploration
+- Interactive map provides smooth navigation and filtering
+
+**Out of Scope**:
+- Real-time location tracking (focus on existing photo metadata)
+- Public photo sharing without consent
+- Map data storage without encryption
+- Location-based recommendations without user data
+
+**Related Task Files**:
+- `client/lib/map/photo-clustering.ts`
+- `client/lib/map/heatmap-renderer.ts`
+- `client/lib/map/temporal-layers.ts`
+- `client/screens/PhotoMapScreen.tsx`
+
+### [ ] TASK-024: Implement Pinch-to-Zoom Gallery Grid
+**Target**: Add multi-level timeline navigation with gesture controls
+
+#### Subtasks:
+- [ ] TASK-024-1: Create multi-level timeline hierarchy
+  - **Files**: `client/lib/gallery/timeline-navigation.ts`
+  - **Issue**: No hierarchical timeline navigation
+  - **Action**: Implement Year → Month → Day → Photo hierarchy
+
+- [ ] TASK-024-2: Integrate gesture recognition
+  - **Files**: `client/lib/gallery/gesture-handler.ts`
+  - **Issue**: No pinch-to-zoom gesture support
+  - **Action**: Add react-native-gesture-handler with pinch, pan, tap gestures
+
+- [ ] TASK-024-3: Optimize with FlashList
+  - **Files**: `client/lib/gallery/flash-list-optimization.ts`
+  - **Issue**: Poor performance with large photo sets
+  - **Action**: Implement FlashList with dynamic item heights and lazy loading
+
+- [ ] TASK-024-4: Build zoomable gallery interface
+  - **Files**: `client/screens/GalleryScreen.tsx`
+  - **Issue**: No zoomable gallery interface
+  - **Action**: Create gallery with smooth zoom transitions and haptic feedback
+
+**Definition of Done**:
+- Multi-level timeline navigation works smoothly
+- Pinch-to-zoom gestures recognized accurately
+- FlashList provides optimal performance for large datasets
+- Gallery interface maintains scroll position during zoom
+
+**Out of Scope**:
+- 3D gallery views (focus on 2D timeline)
+- Real-time photo capture in gallery view
+- Gallery sharing without user consent
+- Custom gesture patterns without user training
+
+**Related Task Files**:
+- `client/lib/gallery/timeline-navigation.ts`
+- `client/lib/gallery/gesture-handler.ts`
+- `client/lib/gallery/flash-list-optimization.ts`
+- `client/screens/GalleryScreen.tsx`
+
+### [ ] TASK-025: Implement Recently Deleted / Trash Bin
+**Target**: Add trash system with automatic cleanup and recovery
+
+#### Subtasks:
+- [ ] TASK-025-1: Create automatic cleanup system
+  - **Files**: `client/lib/trash/cleanup-service.ts`
+  - **Issue**: No automatic deletion capability
+  - **Action**: Implement 30-day retention with background cleanup tasks
+
+- [ ] TASK-025-2: Add trash bin interface
+  - **Files**: `client/screens/TrashScreen.tsx`
+  - **Issue**: No UI for deleted items
+  - **Action**: Build trash interface with countdown timers and bulk operations
+
+- [ ] TASK-025-3: Implement recovery options
+  - **Files**: `client/lib/trash/recovery-service.ts`
+  - **Issue**: No recovery capability for deleted items
+  - **Action**: Add restore functionality with extended recovery options
+
+- [ ] TASK-025-4: Add privacy-first deletion
+  - **Files**: `client/lib/trash/secure-deletion.ts`
+  - **Issue**: No secure deletion capability
+  - **Action**: Implement cryptographic proof of deletion with audit trail
+
+**Definition of Done**:
+- Automatic cleanup removes expired items after 30 days
+- Trash bin interface shows deleted items with expiration dates
+- Recovery options allow restoration of accidentally deleted items
+- Secure deletion provides cryptographic proof of removal
+
+**Out of Scope**:
+- Immediate permanent deletion without trash period
+- Recovery of items after permanent deletion
+- Trash bin for non-photo content
+- Automatic deletion without user notification
+
+**Related Task Files**:
+- `client/lib/trash/cleanup-service.ts`
+- `client/screens/TrashScreen.tsx`
+- `client/lib/trash/recovery-service.ts`
+- `client/lib/trash/secure-deletion.ts`
+
+---
+
+## 👨‍👩‍👧‍👦 Priority 9: Sharing & Collaboration (Months 10-12)
+
+### [ ] TASK-026: Implement Family & Shared Libraries
+**Target**: Add end-to-end encrypted sharing with permission management
+
+#### Subtasks:
+- [ ] TASK-026-1: Create encrypted sharing keys
+  - **Files**: `client/lib/sharing/key-management.ts`
+  - **Issue**: No sharing key infrastructure
+  - **Action**: Implement per-sharing encryption keys with hierarchical permissions
+
+- [ ] TASK-026-2: Add permission management system
+  - **Files**: `client/lib/sharing/permissions.ts`
+  - **Issue**: No access control for shared content
+  - **Action**: Implement role-based access control with granular permissions
+
+- [ ] TASK-026-3: Create sharing interface
+  - **Files**: `client/screens/SharingScreen.tsx`
+  - **Issue**: No UI for sharing management
+  - **Action**: Build sharing interface with member management and activity tracking
+
+- [ ] TASK-026-4: Implement multi-device sync
+  - **Files**: `client/lib/sharing/device-sync.ts`
+  - **Issue**: No consistent sharing state across devices
+  - **Action**: Add conflict resolution and delta sync for sharing updates
+
+**Definition of Done**:
+- Encrypted sharing keys protect shared content privacy
+- Permission system provides granular access control
+- Sharing interface manages members and activities
+- Multi-device sync maintains consistent sharing state
+
+**Out of Scope**:
+- Public sharing without encryption
+- Sharing without explicit user consent
+- Automatic sharing based on content analysis
+- Sharing of non-photo content without user control
+
+**Related Task Files**:
+- `client/lib/sharing/key-management.ts`
+- `client/lib/sharing/permissions.ts`
+- `client/screens/SharingScreen.tsx`
+- `client/lib/sharing/device-sync.ts`
+
+### [ ] TASK-027: Implement Smart TV Integration
+**Target**: Add TV apps with D-pad navigation and voice search
+
+#### Subtasks:
+- [ ] TASK-027-1: Create React Native TV apps
+  - **Files**: `client/tv/`, `package.json`
+  - **Issue**: No TV platform support
+  - **Action**: Add react-native-tvos with D-pad navigation and focus management
+
+- [ ] TASK-027-2: Implement content streaming
+  - **Files**: `client/tv/streaming-service.ts`
+  - **Issue**: No adaptive streaming for TV
+  - **Action**: Add adaptive bitrate streaming with progressive loading
+
+- [ ] TASK-027-3: Add voice search integration
+  - **Files**: `client/tv/voice-search.ts`
+  - **Issue**: No voice control capability
+  - **Action**: Integrate Siri and Google Assistant for voice commands
+
+- [ ] TASK-027-4: Build TV-specific interface
+  - **Files**: `client/tv/TVGalleryScreen.tsx`
+  - **Issue**: No TV-optimized UI
+  - **Action**: Create 10-foot UI with large touch targets and focus indicators
+
+**Definition of Done**:
+- TV apps run on Apple TV and Android TV platforms
+- Content streaming adapts to network conditions
+- Voice search enables hands-free navigation
+- TV interface optimized for remote control usage
+
+**Out of Scope**:
+- Real-time TV casting without encryption
+- TV apps for platforms without voice support
+- Content sharing without user consent
+- TV interface without accessibility features
+
+**Related Task Files**:
+- `client/tv/`
+- `client/tv/streaming-service.ts`
+- `client/tv/voice-search.ts`
+- `client/tv/TVGalleryScreen.tsx`
+
+### [ ] TASK-028: Implement Desktop Apps (Windows/macOS)
+**Target**: Add desktop applications with native file system integration
+
+#### Subtasks:
+- [ ] TASK-028-1: Create Tauri + React Native Web architecture
+  - **Files**: `desktop/`, `package.json`
+  - **Issue**: No desktop platform support
+  - **Action**: Implement Tauri backend with React Native Web frontend
+
+- [ ] TASK-028-2: Add native file system integration
+  - **Files**: `desktop/src/file-watcher.rs`
+  - **Issue**: No file system monitoring
+  - **Action**: Implement real-time folder monitoring with efficient change detection
+
+- [ ] TASK-028-3: Create desktop-specific features
+  - **Files**: `desktop/src/desktop-features.rs`
+  - **Issue**: No desktop-unique capabilities
+  - **Action**: Add drag-and-drop, system tray, keyboard shortcuts
+
+- [ ] TASK-028-4: Build desktop interface
+  - **Files**: `desktop/src-tauri/src/main.rs`
+  - **Issue**: No desktop application interface
+  - **Action**: Create desktop app with native window management
+
+**Definition of Done**:
+- Desktop apps run on Windows and macOS platforms
+- File system integration provides automatic photo sync
+- Desktop features enhance productivity and usability
+- Desktop interface optimized for mouse and keyboard interaction
+
+**Out of Scope**:
+- Desktop apps for Linux (focus on Windows/macOS)
+- Cloud-based file processing (must remain zero-knowledge)
+- Desktop sharing without user consent
+- Desktop apps without accessibility features
+
+**Related Task Files**:
+- `desktop/`
+- `desktop/src/file-watcher.rs`
+- `desktop/src/desktop-features.rs`
+- `desktop/src-tauri/src/main.rs`
+
+### [ ] TASK-029: Implement Live Photos / Motion Photos Support
+**Target**: Add motion photo processing and playback
+
+#### Subtasks:
+- [ ] TASK-029-1: Create format detection and processing
+  - **Files**: `client/lib/live-photo/processor.ts`
+  - **Issue**: No Live Photo format support
+  - **Action**: Detect Apple Live Photos and Android Motion Photos with metadata extraction
+
+- [ ] TASK-029-2: Implement playback engine
+  - **Files**: `client/lib/live-photo/playback.ts`
+  - **Issue**: No motion photo playback capability
+  - **Action**: Add smooth video looping with synchronized playback
+
+- [ ] TASK-029-3: Add storage optimization
+  - **Files**: `client/lib/live-photo/storage.ts`
+  - **Issue**: Inefficient storage of photo/video pairs
+  - **Action**: Implement compression and caching strategies
+
+- [ ] TASK-029-4: Build Live Photo interface
+  - **Files**: `client/components/LivePhotoViewer.tsx`
+  - **Issue**: No UI for Live Photo interaction
+  - **Action**: Create viewer with tap-to-play motion and controls
+
+**Definition of Done**:
+- Live Photo formats detected and processed accurately
+- Motion playback provides smooth looping experience
+- Storage optimization reduces bandwidth and storage usage
+- Interface enables intuitive Live Photo interaction
+
+**Out of Scope**:
+- Live Photo creation from existing photos
+- Cloud-based Live Photo processing
+- Live Photo sharing without encryption
+- Live Photo playback without user consent
+
+**Related Task Files**:
+- `client/lib/live-photo/processor.ts`
+- `client/lib/live-photo/playback.ts`
+- `client/lib/live-photo/storage.ts`
+- `client/components/LivePhotoViewer.tsx`
+
+---
+
+## 🎨 Priority 10: AI & Innovation Features (Months 13-15)
+
+### [ ] TASK-030: Implement Magic Editor/Eraser (Generative AI)
+**Target**: Add on-device generative AI for photo editing
+
+#### Subtasks:
+- [ ] TASK-030-1: Integrate on-device generative models
+  - **Files**: `client/lib/ai/inpainting-model.ts`, `assets/inpaint-model.tflite`
+  - **Issue**: No generative AI capability
+  - **Action**: Add lightweight diffusion models for object removal
+
+- [ ] TASK-030-2: Create intuitive editing interface
+  - **Files**: `client/screens/MagicEditorScreen.tsx`
+  - **Issue**: No UI for AI-powered editing
+  - **Action**: Build brush tools with real-time preview and undo/redo
+
+- [ ] TASK-030-3: Implement privacy-preserving processing
+  - **Files**: `client/lib/ai/privacy-processing.ts`
+  - **Issue**: Potential privacy concerns with AI processing
+  - **Action**: Ensure all processing happens on-device with secure cleanup
+
+- [ ] TASK-030-4: Add context-aware editing
+  - **Files**: `client/lib/ai/context-aware.ts`
+  - **Issue**: Generic AI editing results
+  - **Action**: Implement scene understanding for intelligent object removal
+
+**Definition of Done**:
+- Generative AI models perform high-quality object removal
+- Editing interface provides intuitive brush tools and preview
+- Privacy-preserving processing keeps all data on-device
+- Context-aware editing produces realistic results
+
+**Out of Scope**:
+- Cloud-based AI processing (must remain on-device)
+- AI editing without user consent
+- Generative AI for creating new content
+- AI editing that modifies user identity without permission
+
+**Related Task Files**:
+- `client/lib/ai/inpainting-model.ts`
+- `client/screens/MagicEditorScreen.tsx`
+- `client/lib/ai/privacy-processing.ts`
+- `client/lib/ai/context-aware.ts`
+
+### [ ] TASK-031: Implement Cinematic Photos & Auto-Video Highlights
+**Target**: Add automatic video generation from photo sequences
+
+#### Subtasks:
+- [ ] TASK-031-1: Create automatic video generation
+  - **Files**: `client/lib/cinematic/video-generator.ts`
+  - **Issue**: No automatic video creation capability
+  - **Action**: Implement photo clustering and timeline generation
+
+- [ ] TASK-031-2: Add music synchronization
+  - **Files**: `client/lib/cinematic/music-sync.ts`
+  - **Issue**: No music integration for videos
+  - **Action**: Implement beat detection and adaptive music selection
+
+- [ ] TASK-031-3: Implement cinematic effects
+  - **Files**: `client/lib/cinematic/effects.ts`
+  - **Issue**: No cinematic video effects
+  - **Action**: Add panning, zooming, and transition effects
+
+- [ ] TASK-031-4: Build cinematic interface
+  - **Files**: `client/screens/CinematicScreen.tsx`
+  - **Issue**: No UI for video creation
+  - **Action**: Create interface with preview and customization options
+
+**Definition of Done**:
+- Automatic video generation creates compelling highlight reels
+- Music synchronization provides rhythmic video timing
+- Cinematic effects add professional polish to videos
+- Interface enables easy video creation and customization
+
+**Out of Scope**:
+- Real-time video generation during capture
+- Cloud-based video processing (must remain on-device)
+- Video sharing without user consent
+- Cinematic effects that alter photo content meaning
+
+**Related Task Files**:
+- `client/lib/cinematic/video-generator.ts`
+- `client/lib/cinematic/music-sync.ts`
+- `client/lib/cinematic/effects.ts`
+- `client/screens/CinematicScreen.tsx`
+
+---
+
+## 🎯 Success Metrics
+
+### Phase 1 Targets (Week 1-2)
+- [ ] 100% test pass rate (0/810 failing)
+- [ ] All property tests passing
+- [ ] Zero flaky tests in CI/CD
+
+### Phase 2 Targets (Week 3-4)
+- [ ] 90% of tests use sociable patterns
+- [ ] 100% of component tests use semantic queries
+- [ ] All user interactions use userEvent
+
+### Phase 3 Targets (Month 2)
+- [ ] Visual testing integrated in CI/CD
+- [ ] Accessibility testing automated
+- [ ] Performance regression tests implemented
+
+### Phase 4 Targets (Month 3)
+- [ ] E2E test coverage for critical paths
+- [ ] Contract testing for all APIs
+- [ ] Security testing automated
+
+### Phase 5 Targets (Ongoing)
+- [ ] Test execution time <30s
+- [ ] Flaky test rate <1%
+- [ ] 100% documentation coverage
+
+### Phase 6 Targets (Months 1-3)
+- [ ] Zero-knowledge encryption implemented
+- [ ] Key management system operational
+- [ ] Encrypted search functional
+- [ ] Background sync reliable
+
+### Phase 7 Targets (Months 4-6)
+- [ ] On-device ML infrastructure complete
+- [ ] Face detection and recognition working
+- [ ] Semantic search operational
+- [ ] Photo stacking implemented
+
+### Phase 8 Targets (Months 7-9)
+- [ ] Migration tools functional
+- [ ] Interactive map complete
+- [ ] Zoomable gallery working
+- [ ] Trash system operational
+
+### Phase 9 Targets (Months 10-12)
+- [ ] Family sharing system live
+- [ ] TV apps deployed
+- [ ] Desktop apps available
+- [ ] Live Photos supported
+
+### Phase 10 Targets (Months 13-15)
+- [ ] Magic editor implemented
+- [ ] Cinematic videos working
+- [ ] All features fully tested
+- [ ] Zero-knowledge privacy maintained
+
+---
+
+*Last updated: March 2026 | Version: 1.0.0 | Target: 2026 Enterprise Standards*

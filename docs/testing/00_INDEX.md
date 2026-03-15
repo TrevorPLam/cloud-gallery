@@ -11,6 +11,8 @@ This directory contains comprehensive documentation for the Cloud Gallery testin
 - **[20_COVERAGE.md](./20_COVERAGE.md)** - Coverage requirements and reporting
 - **[30_TEST_PATTERNS.md](./30_TEST_PATTERNS.md)** - Testing patterns and best practices
 - **[40_TEST_FACTORIES.md](./40_TEST_FACTORIES.md)** - Test factories and performance testing
+- **[50_ACCESSIBILITY_TESTING.md](./50_ACCESSIBILITY_TESTING.md)** - WCAG 2.1 AA accessibility testing
+- **[60_VISUAL_TESTING.md](./60_VISUAL_TESTING.md)** - Visual regression testing with Chromatic
 - **[99_EXCEPTIONS.md](./99_EXCEPTIONS.md)** - Coverage exceptions and justifications
 
 ## 🎯 Quick Start
@@ -27,6 +29,12 @@ npm run test:watch
 
 # Run tests with coverage report
 npm run test:coverage
+
+# Run accessibility tests
+npm run test:accessibility
+
+# Run visual regression tests
+npm run test:visual
 
 # Run tests with UI
 npm run test:ui

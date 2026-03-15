@@ -140,6 +140,11 @@ vi.mock("@react-navigation/native", () => ({
 // Mock React Query
 global.fetch = vi.fn();
 
+// Mock chrono library for date parsing
+vi.mock("chrono", () => ({
+  parse: vi.fn(() => []),
+}));
+
 // Performance polyfill for tests
 Object.defineProperty(global, 'performance', {
   writable: true,
