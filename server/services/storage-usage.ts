@@ -8,14 +8,24 @@
 // TESTS: Property tests for calculation algorithms, integration tests for API endpoints
 // AI-META-END
 
-import { db } from '../db';
-import { photos, storageUsage, users } from '../../shared/schema';
-import { eq, and, sum, count, gte, lte, desc, isNull, isNotNull } from 'drizzle-orm';
+import { db } from "../db";
+import { photos, storageUsage, users } from "../../shared/schema";
+import {
+  eq,
+  and,
+  sum,
+  count,
+  gte,
+  lte,
+  desc,
+  isNull,
+  isNotNull,
+} from "drizzle-orm";
 
 /**
  * Storage category types for tracking usage
  */
-export type StorageCategory = 'photos' | 'videos' | 'thumbnails' | 'cache';
+export type StorageCategory = "photos" | "videos" | "thumbnails" | "cache";
 
 /**
  * Storage usage statistics for a category
@@ -105,7 +115,7 @@ export class StorageUsageService {
    */
   async calculateCategoryUsage(
     userId: string,
-    category: StorageCategory
+    category: StorageCategory,
   ): Promise<StorageUsageStats> {
     const query = this.buildCategoryQuery(userId, category);
     const result = await query.execute();
@@ -116,7 +126,8 @@ export class StorageUsageService {
     // Get total usage for percentage calculation
     const totalResult = await this.getTotalUsageQuery(userId).execute();
     const totalBytesUsed = Number(totalResult[0]?.bytesUsed || 0);
-    const percentage = totalBytesUsed > 0 ? (bytesUsed / totalBytesUsed) * 100 : 0;
+    const percentage =
+      totalBytesUsed > 0 ? (bytesUsed / totalBytesUsed) * 100 : 0;
 
     return {
       category,
@@ -136,7 +147,12 @@ export class StorageUsageService {
     let totalBytesUsed = 0;
     let totalItemCount = 0;
 
-    for (const category of ['photos', 'videos', 'thumbnails', 'cache'] as StorageCategory[]) {
+    for (const category of [
+      "photos",
+      "videos",
+      "thumbnails",
+      "cache",
+    ] as StorageCategory[]) {
       const stats = await this.calculateCategoryUsage(userId, category);
       categories.push(stats);
       totalBytesUsed += stats.bytesUsed;
@@ -163,7 +179,12 @@ export class StorageUsageService {
    * Update storage usage records for a user
    */
   async updateStorageUsage(userId: string): Promise<void> {
-    const categories: StorageCategory[] = ['photos', 'videos', 'thumbnails', 'cache'];
+    const categories: StorageCategory[] = [
+      "photos",
+      "videos",
+      "thumbnails",
+      "cache",
+    ];
 
     for (const category of categories) {
       const stats = await this.calculateCategoryUsage(userId, category);
@@ -197,7 +218,8 @@ export class StorageUsageService {
     if (!this.config.storageLimit) return false;
 
     const breakdown = await this.getStorageBreakdown(userId);
-    const usagePercentage = (breakdown.totalBytesUsed / this.config.storageLimit) * 100;
+    const usagePercentage =
+      (breakdown.totalBytesUsed / this.config.storageLimit) * 100;
     return usagePercentage >= this.config.autoCleanupThreshold;
   }
 
@@ -217,14 +239,14 @@ export class StorageUsageService {
           eq(photos.userId, userId),
           eq(photos.isFavorite, false),
           lte(photos.createdAt, thirtyDaysAgo),
-          isNull(photos.deletedAt)
-        )
+          isNull(photos.deletedAt),
+        ),
       )
       .orderBy(desc(photos.createdAt))
       .limit(100)
       .execute();
 
-    return oldPhotos.map(p => p.id);
+    return oldPhotos.map((p) => p.id);
   }
 
   /**
@@ -240,14 +262,14 @@ export class StorageUsageService {
           gte(photos.originalSize, this.config.largeFileThreshold),
           isNull(photos.compressedSize),
           eq(photos.isVideo, false),
-          isNull(photos.deletedAt)
-        )
+          isNull(photos.deletedAt),
+        ),
       )
       .orderBy(desc(photos.originalSize))
       .limit(50)
       .execute();
 
-    return candidates.map(p => p.id);
+    return candidates.map((p) => p.id);
   }
 
   /**
@@ -260,12 +282,7 @@ export class StorageUsageService {
         itemCount: count(photos.id).mapWith(Number),
       })
       .from(photos)
-      .where(
-        and(
-          eq(photos.userId, userId),
-          isNull(photos.deletedAt)
-        )
-      );
+      .where(and(eq(photos.userId, userId), isNull(photos.deletedAt)));
   }
 
   /**
@@ -285,8 +302,8 @@ export class StorageUsageService {
         and(
           eq(photos.userId, userId),
           gte(photos.originalSize, this.config.largeFileThreshold),
-          isNull(photos.deletedAt)
-        )
+          isNull(photos.deletedAt),
+        ),
       )
       .orderBy(desc(photos.originalSize))
       .limit(20)
@@ -308,8 +325,8 @@ export class StorageUsageService {
         and(
           eq(photos.userId, userId),
           isNotNull(photos.compressedSize),
-          isNull(photos.deletedAt)
-        )
+          isNull(photos.deletedAt),
+        ),
       )
       .execute();
 
@@ -320,7 +337,10 @@ export class StorageUsageService {
     return {
       originalTotal,
       compressedTotal: compressedTotal || 0,
-      compressionRatio: originalTotal > 0 && compressedTotal > 0 ? originalTotal / compressedTotal : 1,
+      compressionRatio:
+        originalTotal > 0 && compressedTotal > 0
+          ? originalTotal / compressedTotal
+          : 1,
       compressedCount,
     };
   }
@@ -330,7 +350,7 @@ export class StorageUsageService {
    */
   private buildCategoryQuery(userId: string, category: StorageCategory) {
     switch (category) {
-      case 'photos':
+      case "photos":
         return db
           .select({
             bytesUsed: sum(photos.originalSize).mapWith(Number),
@@ -341,11 +361,11 @@ export class StorageUsageService {
             and(
               eq(photos.userId, userId),
               eq(photos.isVideo, false),
-              isNull(photos.deletedAt)
-            )
+              isNull(photos.deletedAt),
+            ),
           );
 
-      case 'videos':
+      case "videos":
         return db
           .select({
             bytesUsed: sum(photos.originalSize).mapWith(Number),
@@ -356,11 +376,11 @@ export class StorageUsageService {
             and(
               eq(photos.userId, userId),
               eq(photos.isVideo, true),
-              isNull(photos.deletedAt)
-            )
+              isNull(photos.deletedAt),
+            ),
           );
 
-      case 'thumbnails':
+      case "thumbnails":
         // For thumbnails, estimate based on photo count
         return db
           .select({
@@ -368,14 +388,9 @@ export class StorageUsageService {
             itemCount: count(photos.id).mapWith(Number),
           })
           .from(photos)
-          .where(
-            and(
-              eq(photos.userId, userId),
-              isNull(photos.deletedAt)
-            )
-          );
+          .where(and(eq(photos.userId, userId), isNull(photos.deletedAt)));
 
-      case 'cache':
+      case "cache":
         // Cache is estimated as 5% of total usage
         return this.getTotalUsageQuery(userId);
 

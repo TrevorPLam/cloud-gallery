@@ -115,7 +115,10 @@ export const photos = pgTable("photos", {
   mlLabels: text("ml_labels").array(),
 
   // When ML analysis was last performed
-  mlProcessedAt: timestamp("ml_processed_at", { mode: 'date', withTimezone: true }),
+  mlProcessedAt: timestamp("ml_processed_at", {
+    mode: "date",
+    withTimezone: true,
+  }),
 
   // Version of ML model used for analysis
   mlVersion: varchar("ml_version", { length: 20 }),
@@ -145,7 +148,10 @@ export const photos = pgTable("photos", {
   backupStatus: varchar("backup_status", { length: 20 }),
 
   // When backup was completed
-  backupCompletedAt: timestamp("backup_completed_at", { mode: 'date', withTimezone: true }),
+  backupCompletedAt: timestamp("backup_completed_at", {
+    mode: "date",
+    withTimezone: true,
+  }),
 
   // Original file size in bytes
   originalSize: integer("original_size"),
@@ -287,11 +293,17 @@ export const faces = pgTable("faces", {
   confidence: real("confidence").notNull(),
 
   // Which person this face belongs to (null if unassigned)
-  personId: varchar("person_id").references(() => people.id, { onDelete: "set null" }),
+  personId: varchar("person_id").references(() => people.id, {
+    onDelete: "set null",
+  }),
 
   // Timestamps
-  createdAt: timestamp("created_at", { mode: 'date', withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: 'date', withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 // ─────────────────────────────────────────────────────────
@@ -325,8 +337,12 @@ export const people = pgTable("people", {
   faceCount: integer("face_count").default(0).notNull(),
 
   // Timestamps
-  createdAt: timestamp("created_at", { mode: 'date', withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: 'date', withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 // ─────────────────────────────────────────────────────────
@@ -354,7 +370,7 @@ export const sharedAlbums = pgTable("shared_albums", {
   permissions: varchar("permissions", { length: 20 }).default("view").notNull(),
 
   // When share expires (null = never expires)
-  expiresAt: timestamp("expires_at", { mode: 'date', withTimezone: true }),
+  expiresAt: timestamp("expires_at", { mode: "date", withTimezone: true }),
 
   // Number of times this shared album was viewed
   viewCount: integer("view_count").default(0).notNull(),
@@ -363,8 +379,12 @@ export const sharedAlbums = pgTable("shared_albums", {
   isActive: boolean("is_active").default(true).notNull(),
 
   // Timestamps
-  createdAt: timestamp("created_at", { mode: 'date', withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: 'date', withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 // ─────────────────────────────────────────────────────────
@@ -386,7 +406,9 @@ export const sharedAlbumCollaborators = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
 
     // Permissions: view, edit, admin
-    permissions: varchar("permissions", { length: 20 }).default("view").notNull(),
+    permissions: varchar("permissions", { length: 20 })
+      .default("view")
+      .notNull(),
 
     // Who invited this collaborator
     invitedBy: varchar("invited_by")
@@ -394,11 +416,15 @@ export const sharedAlbumCollaborators = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
 
     // When invitation was accepted
-    acceptedAt: timestamp("accepted_at", { mode: 'date', withTimezone: true }),
+    acceptedAt: timestamp("accepted_at", { mode: "date", withTimezone: true }),
 
     // Timestamps
-    createdAt: timestamp("created_at", { mode: 'date', withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { mode: 'date', withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => {
     return {
@@ -441,7 +467,9 @@ export const photoEdits = pgTable("photo_edits", {
   thumbnailUri: text("thumbnail_uri"),
 
   // Timestamps
-  createdAt: timestamp("created_at", { mode: 'date', withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 // ─────────────────────────────────────────────────────────
@@ -469,11 +497,19 @@ export const memories = pgTable("memories", {
   description: text("description"),
 
   // Date range for memory
-  startDate: timestamp("start_date", { mode: 'date', withTimezone: true }).notNull(),
-  endDate: timestamp("end_date", { mode: 'date', withTimezone: true }).notNull(),
+  startDate: timestamp("start_date", {
+    mode: "date",
+    withTimezone: true,
+  }).notNull(),
+  endDate: timestamp("end_date", {
+    mode: "date",
+    withTimezone: true,
+  }).notNull(),
 
   // Cover photo for memory
-  coverPhotoId: varchar("cover_photo_id").references(() => photos.id, { onDelete: "set null" }),
+  coverPhotoId: varchar("cover_photo_id").references(() => photos.id, {
+    onDelete: "set null",
+  }),
 
   // Number of photos in memory
   photoCount: integer("photo_count").default(0).notNull(),
@@ -488,8 +524,12 @@ export const memories = pgTable("memories", {
   isHidden: boolean("is_hidden").default(false).notNull(),
 
   // Timestamps
-  createdAt: timestamp("created_at", { mode: 'date', withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: 'date', withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 // ─────────────────────────────────────────────────────────
@@ -521,7 +561,9 @@ export const smartAlbums = pgTable("smart_albums", {
   criteria: jsonb("criteria").notNull(),
 
   // Cover photo for smart album
-  coverPhotoId: varchar("cover_photo_id").references(() => photos.id, { onDelete: "set null" }),
+  coverPhotoId: varchar("cover_photo_id").references(() => photos.id, {
+    onDelete: "set null",
+  }),
 
   // Number of photos in smart album
   photoCount: integer("photo_count").default(0).notNull(),
@@ -533,11 +575,18 @@ export const smartAlbums = pgTable("smart_albums", {
   isHidden: boolean("is_hidden").default(false).notNull(),
 
   // When smart album was last updated
-  lastUpdatedAt: timestamp("last_updated_at", { mode: 'date', withTimezone: true }),
+  lastUpdatedAt: timestamp("last_updated_at", {
+    mode: "date",
+    withTimezone: true,
+  }),
 
   // Timestamps
-  createdAt: timestamp("created_at", { mode: 'date', withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: 'date', withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 // ─────────────────────────────────────────────────────────
@@ -571,17 +620,23 @@ export const backupQueue = pgTable("backup_queue", {
   errorMessage: text("error_message"),
 
   // When this backup was scheduled
-  scheduledAt: timestamp("scheduled_at", { mode: 'date', withTimezone: true }).defaultNow().notNull(),
+  scheduledAt: timestamp("scheduled_at", { mode: "date", withTimezone: true })
+    .defaultNow()
+    .notNull(),
 
   // When this backup was started
-  startedAt: timestamp("started_at", { mode: 'date', withTimezone: true }),
+  startedAt: timestamp("started_at", { mode: "date", withTimezone: true }),
 
   // When this backup was completed
-  completedAt: timestamp("completed_at", { mode: 'date', withTimezone: true }),
+  completedAt: timestamp("completed_at", { mode: "date", withTimezone: true }),
 
   // Timestamps
-  createdAt: timestamp("created_at", { mode: 'date', withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: 'date', withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 // ─────────────────────────────────────────────────────────
@@ -589,83 +644,104 @@ export const backupQueue = pgTable("backup_queue", {
 // ─────────────────────────────────────────────────────────
 // Track user devices for multi-device sync
 
-export const userDevices = pgTable("user_devices", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
+export const userDevices = pgTable(
+  "user_devices",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
 
-  // Which user owns this device
-  userId: varchar("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+    // Which user owns this device
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
 
-  // Device identifier (unique per user)
-  deviceId: varchar("device_id", { length: 255 }).notNull(),
+    // Device identifier (unique per user)
+    deviceId: varchar("device_id", { length: 255 }).notNull(),
 
-  // Device type: phone, tablet, web, desktop
-  deviceType: varchar("device_type", { length: 20 }).notNull(),
+    // Device type: phone, tablet, web, desktop
+    deviceType: varchar("device_type", { length: 20 }).notNull(),
 
-  // Device name (user-friendly)
-  deviceName: varchar("device_name", { length: 100 }).notNull(),
+    // Device name (user-friendly)
+    deviceName: varchar("device_name", { length: 100 }).notNull(),
 
-  // Last sync timestamp
-  lastSyncAt: timestamp("last_sync_at", { mode: 'date', withTimezone: true }),
+    // Last sync timestamp
+    lastSyncAt: timestamp("last_sync_at", { mode: "date", withTimezone: true }),
 
-  // Is this device currently active?
-  isActive: boolean("is_active").default(true).notNull(),
+    // Is this device currently active?
+    isActive: boolean("is_active").default(true).notNull(),
 
-  // Storage used on this device (in bytes)
-  storageUsed: integer("storage_used").default(0).notNull(),
+    // Storage used on this device (in bytes)
+    storageUsed: integer("storage_used").default(0).notNull(),
 
-  // App version on this device
-  appVersion: varchar("app_version", { length: 20 }),
+    // App version on this device
+    appVersion: varchar("app_version", { length: 20 }),
 
-  // Timestamps
-  createdAt: timestamp("created_at", { mode: 'date', withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: 'date', withTimezone: true }).defaultNow().notNull(),
-}, (table) => {
-  return {
-    // Unique constraint on userId + deviceId
-    userIdDeviceIdUnique: sql`UNIQUE(user_id, device_id)`,
-  };
-});
+    // Timestamps
+    createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => {
+    return {
+      // Unique constraint on userId + deviceId
+      userIdDeviceIdUnique: sql`UNIQUE(user_id, device_id)`,
+    };
+  },
+);
 
 // ─────────────────────────────────────────────────────────
 // STORAGE USAGE TABLE
 // ─────────────────────────────────────────────────────────
 // Track storage usage by category
 
-export const storageUsage = pgTable("storage_usage", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
+export const storageUsage = pgTable(
+  "storage_usage",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
 
-  // Which user this usage belongs to
-  userId: varchar("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+    // Which user this usage belongs to
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
 
-  // Usage category: photos, videos, thumbnails, cache
-  category: varchar("category", { length: 20 }).notNull(),
+    // Usage category: photos, videos, thumbnails, cache
+    category: varchar("category", { length: 20 }).notNull(),
 
-  // Storage used in bytes
-  bytesUsed: integer("bytes_used").default(0).notNull(),
+    // Storage used in bytes
+    bytesUsed: integer("bytes_used").default(0).notNull(),
 
-  // Number of items in this category
-  itemCount: integer("item_count").default(0).notNull(),
+    // Number of items in this category
+    itemCount: integer("item_count").default(0).notNull(),
 
-  // Last calculated timestamp
-  calculatedAt: timestamp("calculated_at", { mode: 'date', withTimezone: true }).defaultNow().notNull(),
+    // Last calculated timestamp
+    calculatedAt: timestamp("calculated_at", {
+      mode: "date",
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
 
-  // Timestamps
-  createdAt: timestamp("created_at", { mode: 'date', withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: 'date', withTimezone: true }).defaultNow().notNull(),
-}, (table) => {
-  return {
-    // Unique constraint on userId + category
-    userIdCategoryUnique: sql`UNIQUE(user_id, category)`,
-  };
-});
+    // Timestamps
+    createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => {
+    return {
+      // Unique constraint on userId + category
+      userIdCategoryUnique: sql`UNIQUE(user_id, category)`,
+    };
+  },
+);
 
 // ─────────────────────────────────────────────────────────
 // VALIDATION SCHEMAS FOR NEW TABLES
@@ -695,14 +771,18 @@ export const insertSharedAlbumSchema = createInsertSchema(sharedAlbums).omit({
 
 export const selectSharedAlbumSchema = createSelectSchema(sharedAlbums);
 
-export const insertSharedAlbumCollaboratorSchema = createInsertSchema(sharedAlbumCollaborators).omit({
+export const insertSharedAlbumCollaboratorSchema = createInsertSchema(
+  sharedAlbumCollaborators,
+).omit({
   sharedAlbumId: true,
   userId: true,
   createdAt: true,
   updatedAt: true,
 });
 
-export const selectSharedAlbumCollaboratorSchema = createSelectSchema(sharedAlbumCollaborators);
+export const selectSharedAlbumCollaboratorSchema = createSelectSchema(
+  sharedAlbumCollaborators,
+);
 
 export const insertPhotoEditSchema = createInsertSchema(photoEdits).omit({
   id: true,
@@ -761,8 +841,11 @@ export type Person = typeof people.$inferSelect;
 export type InsertPerson = z.infer<typeof insertPersonSchema>;
 export type SharedAlbum = typeof sharedAlbums.$inferSelect;
 export type InsertSharedAlbum = z.infer<typeof insertSharedAlbumSchema>;
-export type SharedAlbumCollaborator = typeof sharedAlbumCollaborators.$inferSelect;
-export type InsertSharedAlbumCollaborator = z.infer<typeof insertSharedAlbumCollaboratorSchema>;
+export type SharedAlbumCollaborator =
+  typeof sharedAlbumCollaborators.$inferSelect;
+export type InsertSharedAlbumCollaborator = z.infer<
+  typeof insertSharedAlbumCollaboratorSchema
+>;
 export type PhotoEdit = typeof photoEdits.$inferSelect;
 export type InsertPhotoEdit = z.infer<typeof insertPhotoEditSchema>;
 export type Memory = typeof memories.$inferSelect;

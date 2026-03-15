@@ -17,7 +17,10 @@ import { generateCaptcha, verifyCaptcha } from "./captcha";
 const router = Router();
 
 // Track failed attempts by IP address (in production, use Redis)
-const failedAttempts = new Map<string, { count: number; lastAttempt: number }>();
+const failedAttempts = new Map<
+  string,
+  { count: number; lastAttempt: number }
+>();
 
 // Input validation schemas
 const captchaRequestSchema = z.object({
@@ -93,7 +96,10 @@ router.get("/captcha", (req: Request, res: Response) => {
 router.post("/captcha/verify", (req: Request, res: Response) => {
   try {
     const validatedData = captchaRequestSchema.parse(req.body);
-    const isValid = verifyCaptcha(validatedData.captchaId, validatedData.answer);
+    const isValid = verifyCaptcha(
+      validatedData.captchaId,
+      validatedData.answer,
+    );
 
     if (isValid) {
       res.json({
@@ -133,7 +139,7 @@ export function checkCaptchaRequirement(
   next: any,
 ): void {
   const ip = req.ip || req.connection.remoteAddress || "unknown";
-  
+
   if (requiresCaptcha(ip)) {
     return res.status(429).json({
       error: "CAPTCHA required",
@@ -154,7 +160,7 @@ export function verifyCaptchaMiddleware(
   next: any,
 ): void {
   const ip = req.ip || req.connection.remoteAddress || "unknown";
-  
+
   // If CAPTCHA is not required, skip verification
   if (!requiresCaptcha(ip)) {
     return next();
@@ -162,7 +168,7 @@ export function verifyCaptchaMiddleware(
 
   // If CAPTCHA is required, verify it
   const { captchaId, answer } = req.body;
-  
+
   if (!captchaId || answer === undefined) {
     return res.status(400).json({
       error: "CAPTCHA required",
@@ -172,7 +178,7 @@ export function verifyCaptchaMiddleware(
   }
 
   const isValid = verifyCaptcha(captchaId, Number(answer));
-  
+
   if (!isValid) {
     return res.status(400).json({
       error: "Invalid CAPTCHA",

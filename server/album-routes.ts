@@ -11,7 +11,12 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { db } from "./db";
-import { albums, albumPhotos, photos, insertAlbumSchema } from "../shared/schema";
+import {
+  albums,
+  albumPhotos,
+  photos,
+  insertAlbumSchema,
+} from "../shared/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { authenticateToken } from "./auth";
 
@@ -51,7 +56,9 @@ router.get("/", async (req: Request, res: Response) => {
 // ═══════════════════════════════════════════════════════════
 router.get("/:id", async (req: Request, res: Response) => {
   try {
-    const albumId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const albumId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
     const userId = req.user?.id;
 
     if (!userId) {
@@ -79,8 +86,8 @@ router.get("/:id", async (req: Request, res: Response) => {
     // Extract photo IDs
     const photoIds = albumPhotosList.map((ap) => ap.photoId);
 
-    res.json({ 
-      album: album[0], 
+    res.json({
+      album: album[0],
       photoIds,
     });
   } catch (error) {
@@ -130,7 +137,9 @@ router.post("/", async (req: Request, res: Response) => {
 // ═══════════════════════════════════════════════════════════
 router.put("/:id", async (req: Request, res: Response) => {
   try {
-    const albumId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const albumId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
     const userId = req.user?.id;
 
     if (!userId) {
@@ -181,7 +190,9 @@ router.put("/:id", async (req: Request, res: Response) => {
 // ═══════════════════════════════════════════════════════════
 router.delete("/:id", async (req: Request, res: Response) => {
   try {
-    const albumId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const albumId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
     const userId = req.user?.id;
 
     if (!userId) {
@@ -204,7 +215,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
       .delete(albums)
       .where(and(eq(albums.id, albumId), eq(albums.userId, userId)));
 
-    res.json({ 
+    res.json({
       message: "Album deleted successfully",
       albumId,
     });
@@ -219,7 +230,9 @@ router.delete("/:id", async (req: Request, res: Response) => {
 // ═══════════════════════════════════════════════════════════
 router.post("/:id/photos", async (req: Request, res: Response) => {
   try {
-    const albumId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const albumId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
     const userId = req.user?.id;
     const { photoId } = req.body;
 
@@ -257,7 +270,9 @@ router.post("/:id/photos", async (req: Request, res: Response) => {
     const existing = await db
       .select()
       .from(albumPhotos)
-      .where(and(eq(albumPhotos.albumId, albumId), eq(albumPhotos.photoId, photoId)))
+      .where(
+        and(eq(albumPhotos.albumId, albumId), eq(albumPhotos.photoId, photoId)),
+      )
       .limit(1);
 
     if (existing.length > 0) {
@@ -272,9 +287,8 @@ router.post("/:id/photos", async (req: Request, res: Response) => {
       .orderBy(desc(albumPhotos.position))
       .limit(1);
 
-    const nextPosition = maxPositionResult.length > 0 
-      ? maxPositionResult[0].position + 1 
-      : 0;
+    const nextPosition =
+      maxPositionResult.length > 0 ? maxPositionResult[0].position + 1 : 0;
 
     // Add photo to album
     await db.insert(albumPhotos).values({
@@ -283,7 +297,7 @@ router.post("/:id/photos", async (req: Request, res: Response) => {
       position: nextPosition,
     });
 
-    res.status(201).json({ 
+    res.status(201).json({
       message: "Photo added to album",
       albumId,
       photoId,
@@ -299,8 +313,12 @@ router.post("/:id/photos", async (req: Request, res: Response) => {
 // ═══════════════════════════════════════════════════════════
 router.delete("/:id/photos/:photoId", async (req: Request, res: Response) => {
   try {
-    const albumId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const photoId = Array.isArray(req.params.photoId) ? req.params.photoId[0] : req.params.photoId;
+    const albumId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
+    const photoId = Array.isArray(req.params.photoId)
+      ? req.params.photoId[0]
+      : req.params.photoId;
     const userId = req.user?.id;
 
     if (!userId) {
@@ -322,7 +340,9 @@ router.delete("/:id/photos/:photoId", async (req: Request, res: Response) => {
     const existing = await db
       .select()
       .from(albumPhotos)
-      .where(and(eq(albumPhotos.albumId, albumId), eq(albumPhotos.photoId, photoId)))
+      .where(
+        and(eq(albumPhotos.albumId, albumId), eq(albumPhotos.photoId, photoId)),
+      )
       .limit(1);
 
     if (existing.length === 0) {
@@ -332,9 +352,11 @@ router.delete("/:id/photos/:photoId", async (req: Request, res: Response) => {
     // Remove photo from album
     await db
       .delete(albumPhotos)
-      .where(and(eq(albumPhotos.albumId, albumId), eq(albumPhotos.photoId, photoId)));
+      .where(
+        and(eq(albumPhotos.albumId, albumId), eq(albumPhotos.photoId, photoId)),
+      );
 
-    res.json({ 
+    res.json({
       message: "Photo removed from album",
       albumId,
       photoId,

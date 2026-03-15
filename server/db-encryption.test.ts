@@ -56,7 +56,7 @@ describe("Database Encryption", () => {
       const encrypted2 = encryptField(plaintext);
 
       expect(encrypted1).not.toBe(encrypted2);
-      
+
       // But both should decrypt to the same value
       expect(decryptField(encrypted1)).toBe(plaintext);
       expect(decryptField(encrypted2)).toBe(plaintext);
@@ -204,7 +204,11 @@ describe("Database Encryption", () => {
       const validation = validateEncryptionConfig();
 
       expect(validation.isValid).toBe(false);
-      expect(validation.warnings.some(w => w.includes("DB_ENCRYPTION_KEY not set"))).toBe(true);
+      expect(
+        validation.warnings.some((w) =>
+          w.includes("DB_ENCRYPTION_KEY not set"),
+        ),
+      ).toBe(true);
     });
 
     it("should warn about missing salt", () => {
@@ -214,7 +218,11 @@ describe("Database Encryption", () => {
       const validation = validateEncryptionConfig();
 
       expect(validation.isValid).toBe(false);
-      expect(validation.warnings.some(w => w.includes("DB_ENCRYPTION_SALT not set"))).toBe(true);
+      expect(
+        validation.warnings.some((w) =>
+          w.includes("DB_ENCRYPTION_SALT not set"),
+        ),
+      ).toBe(true);
     });
 
     it("should warn about default values", () => {
@@ -224,7 +232,9 @@ describe("Database Encryption", () => {
       const validation = validateEncryptionConfig();
 
       expect(validation.isValid).toBe(false);
-      expect(validation.warnings.some(w => w.includes("default encryption key"))).toBe(true);
+      expect(
+        validation.warnings.some((w) => w.includes("default encryption key")),
+      ).toBe(true);
     });
   });
 
@@ -241,21 +251,21 @@ describe("Database Encryption", () => {
 
       // IV should be 16 bytes (32 hex chars)
       expect(parsed.iv).toMatch(/^[a-f0-9]{32}$/);
-      
+
       // Tag should be 16 bytes (32 hex chars)
       expect(parsed.tag).toMatch(/^[a-f0-9]{32}$/);
     });
 
     it("should fail decryption with wrong key", () => {
       const plaintext = "secret-data";
-      
+
       // Encrypt with one key
       process.env.DB_ENCRYPTION_KEY = "first-key-32-chars-long";
       const encrypted = encryptField(plaintext);
-      
+
       // Try to decrypt with different key
       process.env.DB_ENCRYPTION_KEY = "different-key-32-chars-long";
-      
+
       expect(() => {
         decryptField(encrypted);
       }).toThrow("Failed to decrypt field data");

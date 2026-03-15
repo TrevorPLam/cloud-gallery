@@ -29,7 +29,13 @@ import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest, AuthenticationError, ValidationError, NetworkError, ServerError } from "@/lib/query-client";
+import {
+  apiRequest,
+  AuthenticationError,
+  ValidationError,
+  NetworkError,
+  ServerError,
+} from "@/lib/query-client";
 import { EmptyState } from "@/components/EmptyState";
 import { SkeletonLoader } from "@/components/SkeletonLoader";
 import { useTheme } from "@/hooks/useTheme";
@@ -76,7 +82,7 @@ export default function PeopleScreen() {
   // ═══════════════════════════════════════════════════════════
   // ERROR MESSAGE FORMATTING
   // ═══════════════════════════════════════════════════════════
-  
+
   const getErrorMessage = (error: unknown): string => {
     if (error instanceof AuthenticationError) {
       return "Session expired. Please log in again.";
@@ -88,7 +94,7 @@ export default function PeopleScreen() {
       return "Server error. Please try again later.";
     }
     if (error instanceof ValidationError) {
-      return `Validation error: ${error.validationDetails.map(d => d.message).join(', ')}`;
+      return `Validation error: ${error.validationDetails.map((d) => d.message).join(", ")}`;
     }
     if (error instanceof Error) {
       return error.message;
@@ -99,16 +105,16 @@ export default function PeopleScreen() {
   // ═══════════════════════════════════════════════════════════
   // FETCH PEOPLE (React Query)
   // ═══════════════════════════════════════════════════════════
-  
-  const { 
-    data: people = [], 
-    isLoading, 
+
+  const {
+    data: people = [],
+    isLoading,
     error,
-    refetch 
+    refetch,
   } = useQuery<Person[]>({
-    queryKey: ['people'],
+    queryKey: ["people"],
     queryFn: async () => {
-      const res = await apiRequest('GET', '/api/faces/people');
+      const res = await apiRequest("GET", "/api/faces/people");
       const data = await res.json();
       return data.people;
     },
@@ -117,9 +123,9 @@ export default function PeopleScreen() {
 
   // Fetch face statistics
   const { data: stats } = useQuery<PersonStats>({
-    queryKey: ['face-stats'],
+    queryKey: ["face-stats"],
     queryFn: async () => {
-      const res = await apiRequest('GET', '/api/faces/stats');
+      const res = await apiRequest("GET", "/api/faces/stats");
       return res.json();
     },
     refetchOnWindowFocus: true,
@@ -128,68 +134,88 @@ export default function PeopleScreen() {
   // ═══════════════════════════════════════════════════════════
   // UPDATE PERSON MUTATION
   // ═══════════════════════════════════════════════════════════
-  
+
   const updatePersonMutation = useMutation({
-    mutationFn: async ({ personId, updates }: { personId: string; updates: Partial<Person> }) => {
-      const res = await apiRequest('PUT', `/api/faces/people/${personId}`, updates);
+    mutationFn: async ({
+      personId,
+      updates,
+    }: {
+      personId: string;
+      updates: Partial<Person>;
+    }) => {
+      const res = await apiRequest(
+        "PUT",
+        `/api/faces/people/${personId}`,
+        updates,
+      );
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['people'] });
-      queryClient.invalidateQueries({ queryKey: ['face-stats'] });
+      queryClient.invalidateQueries({ queryKey: ["people"] });
+      queryClient.invalidateQueries({ queryKey: ["face-stats"] });
     },
     onError: (error) => {
-      console.error('Failed to update person:', error);
-      Alert.alert('Error', getErrorMessage(error));
+      console.error("Failed to update person:", error);
+      Alert.alert("Error", getErrorMessage(error));
     },
   });
 
   // ═══════════════════════════════════════════════════════════
   // MERGE PEOPLE MUTATION
   // ═══════════════════════════════════════════════════════════
-  
+
   const mergePeopleMutation = useMutation({
-    mutationFn: async ({ sourcePersonId, targetPersonId }: { sourcePersonId: string; targetPersonId: string }) => {
-      const res = await apiRequest('PUT', `/api/faces/people/${sourcePersonId}/merge`, { targetPersonId });
+    mutationFn: async ({
+      sourcePersonId,
+      targetPersonId,
+    }: {
+      sourcePersonId: string;
+      targetPersonId: string;
+    }) => {
+      const res = await apiRequest(
+        "PUT",
+        `/api/faces/people/${sourcePersonId}/merge`,
+        { targetPersonId },
+      );
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['people'] });
-      queryClient.invalidateQueries({ queryKey: ['face-stats'] });
+      queryClient.invalidateQueries({ queryKey: ["people"] });
+      queryClient.invalidateQueries({ queryKey: ["face-stats"] });
       setMergeModalVisible(false);
       setTargetPersonId("");
-      Alert.alert('Success', 'People merged successfully');
+      Alert.alert("Success", "People merged successfully");
     },
     onError: (error) => {
-      console.error('Failed to merge people:', error);
-      Alert.alert('Error', getErrorMessage(error));
+      console.error("Failed to merge people:", error);
+      Alert.alert("Error", getErrorMessage(error));
     },
   });
 
   // ═══════════════════════════════════════════════════════════
   // CLUSTER FACES MUTATION
   // ═══════════════════════════════════════════════════════════
-  
+
   const clusterFacesMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest('POST', '/api/faces/cluster');
+      const res = await apiRequest("POST", "/api/faces/cluster");
       return res.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['people'] });
-      queryClient.invalidateQueries({ queryKey: ['face-stats'] });
-      Alert.alert('Success', `Found ${data.count} new people`);
+      queryClient.invalidateQueries({ queryKey: ["people"] });
+      queryClient.invalidateQueries({ queryKey: ["face-stats"] });
+      Alert.alert("Success", `Found ${data.count} new people`);
     },
     onError: (error) => {
-      console.error('Failed to cluster faces:', error);
-      Alert.alert('Error', getErrorMessage(error));
+      console.error("Failed to cluster faces:", error);
+      Alert.alert("Error", getErrorMessage(error));
     },
   });
 
   // ═══════════════════════════════════════════════════════════
   // EVENT HANDLERS
   // ═══════════════════════════════════════════════════════════
-  
+
   const handlePersonPress = (person: Person) => {
     navigation.navigate("PersonPhotos", { personId: person.id });
   };
@@ -222,7 +248,12 @@ export default function PeopleScreen() {
   };
 
   const handleMergePeople = () => {
-    if (!selectedPerson || !targetPersonId || selectedPerson.id === targetPersonId) return;
+    if (
+      !selectedPerson ||
+      !targetPersonId ||
+      selectedPerson.id === targetPersonId
+    )
+      return;
 
     mergePeopleMutation.mutate({
       sourcePersonId: selectedPerson.id,
@@ -232,16 +263,16 @@ export default function PeopleScreen() {
 
   const handleClusterFaces = () => {
     Alert.alert(
-      'Cluster Faces',
-      'This will group unassigned faces into new people. Continue?',
+      "Cluster Faces",
+      "This will group unassigned faces into new people. Continue?",
       [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Cluster', 
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Cluster",
           onPress: () => clusterFacesMutation.mutate(),
-          style: 'default',
+          style: "default",
         },
-      ]
+      ],
     );
   };
 
@@ -259,19 +290,22 @@ export default function PeopleScreen() {
   // ═══════════════════════════════════════════════════════════
   // RENDER HELPERS
   // ═══════════════════════════════════════════════════════════
-  
-  const filteredPeople = people.filter(person => 
-    showHidden ? true : !person.isHidden
-  ).sort((a, b) => {
-    // Sort by pinned first, then by face count
-    if (a.isPinned && !b.isPinned) return -1;
-    if (!a.isPinned && b.isPinned) return 1;
-    return b.faceCount - a.faceCount;
-  });
+
+  const filteredPeople = people
+    .filter((person) => (showHidden ? true : !person.isHidden))
+    .sort((a, b) => {
+      // Sort by pinned first, then by face count
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      return b.faceCount - a.faceCount;
+    });
 
   const renderPersonItem = ({ item: person }: { item: Person }) => (
     <TouchableOpacity
-      style={[styles.personCard, { backgroundColor: theme.backgroundSecondary }]}
+      style={[
+        styles.personCard,
+        { backgroundColor: theme.backgroundSecondary },
+      ]}
       onPress={() => handlePersonPress(person)}
       activeOpacity={0.7}
     >
@@ -288,37 +322,47 @@ export default function PeopleScreen() {
             </View>
           )}
         </View>
-        
+
         <View style={styles.personInfo}>
           <Text style={[styles.personName, { color: theme.textPrimary }]}>
             {person.name || "Unnamed Person"}
           </Text>
           <Text style={[styles.faceCount, { color: theme.textSecondary }]}>
-            {person.faceCount} photos • Quality: {Math.round(person.clusterQuality * 100)}%
+            {person.faceCount} photos • Quality:{" "}
+            {Math.round(person.clusterQuality * 100)}%
           </Text>
         </View>
 
         <View style={styles.personActions}>
           <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: theme.backgroundTertiary }]}
+            style={[
+              styles.actionButton,
+              { backgroundColor: theme.backgroundTertiary },
+            ]}
             onPress={() => handleTogglePin(person)}
           >
-            <Feather 
-              name="pin" 
-              size={16} 
-              color={person.isPinned ? theme.accent : theme.textSecondary} 
+            <Feather
+              name="pin"
+              size={16}
+              color={person.isPinned ? theme.accent : theme.textSecondary}
             />
           </TouchableOpacity>
-          
+
           <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: theme.backgroundTertiary }]}
+            style={[
+              styles.actionButton,
+              { backgroundColor: theme.backgroundTertiary },
+            ]}
             onPress={() => openRenameModal(person)}
           >
             <Feather name="edit-2" size={16} color={theme.textSecondary} />
           </TouchableOpacity>
-          
+
           <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: theme.backgroundTertiary }]}
+            style={[
+              styles.actionButton,
+              { backgroundColor: theme.backgroundTertiary },
+            ]}
             onPress={() => openMergeModal(person)}
           >
             <Feather name="users" size={16} color={theme.textSecondary} />
@@ -331,7 +375,10 @@ export default function PeopleScreen() {
   const renderMergeOption = (person: Person) => (
     <TouchableOpacity
       key={person.id}
-      style={[styles.mergeOption, { backgroundColor: theme.backgroundSecondary }]}
+      style={[
+        styles.mergeOption,
+        { backgroundColor: theme.backgroundSecondary },
+      ]}
       onPress={() => setTargetPersonId(person.id)}
       disabled={person.id === selectedPerson?.id}
     >
@@ -352,33 +399,51 @@ export default function PeopleScreen() {
   // ═══════════════════════════════════════════════════════════
   // MAIN RENDER
   // ═══════════════════════════════════════════════════════════
-  
+
   return (
     <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: headerHeight }]}>
         <View style={styles.headerContent}>
-          <Text style={[styles.title, { color: theme.textPrimary }]}>People</Text>
-          
+          <Text style={[styles.title, { color: theme.textPrimary }]}>
+            People
+          </Text>
+
           <View style={styles.headerActions}>
             <TouchableOpacity
-              style={[styles.headerButton, { backgroundColor: theme.backgroundSecondary }]}
+              style={[
+                styles.headerButton,
+                { backgroundColor: theme.backgroundSecondary },
+              ]}
               onPress={handleClusterFaces}
               disabled={clusterFacesMutation.isPending}
             >
               <Feather name="users" size={20} color={theme.textSecondary} />
-              <Text style={[styles.headerButtonText, { color: theme.textSecondary }]}>
+              <Text
+                style={[
+                  styles.headerButtonText,
+                  { color: theme.textSecondary },
+                ]}
+              >
                 Cluster
               </Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
-              style={[styles.headerButton, { backgroundColor: theme.backgroundSecondary }]}
+              style={[
+                styles.headerButton,
+                { backgroundColor: theme.backgroundSecondary },
+              ]}
               onPress={() => setShowHidden(!showHidden)}
             >
               <Feather name="eye" size={20} color={theme.textSecondary} />
-              <Text style={[styles.headerButtonText, { color: theme.textSecondary }]}>
-                {showHidden ? 'Hide' : 'Show'}
+              <Text
+                style={[
+                  styles.headerButtonText,
+                  { color: theme.textSecondary },
+                ]}
+              >
+                {showHidden ? "Hide" : "Show"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -386,7 +451,12 @@ export default function PeopleScreen() {
 
         {/* Stats */}
         {stats && (
-          <View style={[styles.statsContainer, { backgroundColor: theme.backgroundSecondary }]}>
+          <View
+            style={[
+              styles.statsContainer,
+              { backgroundColor: theme.backgroundSecondary },
+            ]}
+          >
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: theme.textPrimary }]}>
                 {stats.totalPeople}
@@ -431,7 +501,12 @@ export default function PeopleScreen() {
             style={[styles.retryButton, { backgroundColor: theme.accent }]}
             onPress={() => refetch()}
           >
-            <Feather name="refresh-cw" size={20} color="white" style={{ marginRight: Spacing.sm }} />
+            <Feather
+              name="refresh-cw"
+              size={20}
+              color="white"
+              style={{ marginRight: Spacing.sm }}
+            />
             <Text style={{ color: "white", fontWeight: "600" }}>Retry</Text>
           </TouchableOpacity>
         </View>
@@ -452,8 +527,15 @@ export default function PeopleScreen() {
                 <ActivityIndicator size="small" color="white" />
               ) : (
                 <>
-                  <Feather name="users" size={20} color="white" style={{ marginRight: Spacing.sm }} />
-                  <Text style={{ color: "white", fontWeight: "600" }}>Cluster Faces</Text>
+                  <Feather
+                    name="users"
+                    size={20}
+                    color="white"
+                    style={{ marginRight: Spacing.sm }}
+                  />
+                  <Text style={{ color: "white", fontWeight: "600" }}>
+                    Cluster Faces
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
@@ -466,7 +548,7 @@ export default function PeopleScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={[
             styles.listContainer,
-            { paddingBottom: tabBarHeight + Spacing.lg }
+            { paddingBottom: tabBarHeight + Spacing.lg },
           ]}
           showsVerticalScrollIndicator={false}
           refreshing={isLoading}
@@ -482,19 +564,24 @@ export default function PeopleScreen() {
         onRequestClose={() => setRenameModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.backgroundSecondary }]}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: theme.backgroundSecondary },
+            ]}
+          >
             <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>
               Rename Person
             </Text>
-            
+
             <TextInput
               style={[
                 styles.textInput,
-                { 
+                {
                   backgroundColor: theme.backgroundTertiary,
                   color: theme.textPrimary,
                   borderColor: theme.border,
-                }
+                },
               ]}
               value={newName}
               onChangeText={setNewName}
@@ -505,16 +592,29 @@ export default function PeopleScreen() {
 
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton, { backgroundColor: theme.backgroundTertiary }]}
+                style={[
+                  styles.modalButton,
+                  styles.cancelButton,
+                  { backgroundColor: theme.backgroundTertiary },
+                ]}
                 onPress={() => setRenameModalVisible(false)}
               >
-                <Text style={[styles.modalButtonText, { color: theme.textSecondary }]}>
+                <Text
+                  style={[
+                    styles.modalButtonText,
+                    { color: theme.textSecondary },
+                  ]}
+                >
                   Cancel
                 </Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
-                style={[styles.modalButton, styles.confirmButton, { backgroundColor: theme.accent }]}
+                style={[
+                  styles.modalButton,
+                  styles.confirmButton,
+                  { backgroundColor: theme.accent },
+                ]}
                 onPress={handleRenamePerson}
                 disabled={!newName.trim() || updatePersonMutation.isPending}
               >
@@ -539,16 +639,24 @@ export default function PeopleScreen() {
         onRequestClose={() => setMergeModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.backgroundSecondary }]}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: theme.backgroundSecondary },
+            ]}
+          >
             <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>
               Merge Person
             </Text>
-            <Text style={[styles.modalSubtitle, { color: theme.textSecondary }]}>
-              Merge "{selectedPerson?.name || 'Unnamed Person'}" with another person:
+            <Text
+              style={[styles.modalSubtitle, { color: theme.textSecondary }]}
+            >
+              Merge "{selectedPerson?.name || "Unnamed Person"}" with another
+              person:
             </Text>
 
             <FlatList
-              data={people.filter(p => p.id !== selectedPerson?.id)}
+              data={people.filter((p) => p.id !== selectedPerson?.id)}
               renderItem={({ item }) => renderMergeOption(item)}
               keyExtractor={(item) => item.id}
               style={styles.mergeList}
@@ -557,16 +665,29 @@ export default function PeopleScreen() {
 
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton, { backgroundColor: theme.backgroundTertiary }]}
+                style={[
+                  styles.modalButton,
+                  styles.cancelButton,
+                  { backgroundColor: theme.backgroundTertiary },
+                ]}
                 onPress={() => setMergeModalVisible(false)}
               >
-                <Text style={[styles.modalButtonText, { color: theme.textSecondary }]}>
+                <Text
+                  style={[
+                    styles.modalButtonText,
+                    { color: theme.textSecondary },
+                  ]}
+                >
                   Cancel
                 </Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
-                style={[styles.modalButton, styles.confirmButton, { backgroundColor: theme.accent }]}
+                style={[
+                  styles.modalButton,
+                  styles.confirmButton,
+                  { backgroundColor: theme.accent },
+                ]}
                 onPress={handleMergePeople}
                 disabled={!targetPersonId || mergePeopleMutation.isPending}
               >

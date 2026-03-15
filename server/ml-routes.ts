@@ -65,7 +65,9 @@ export interface MLAnalysisResult {
 
 const analysisRequestSchema = z.object({
   photoId: z.string().uuid(),
-  analysisTypes: z.array(z.enum(["object_detection", "ocr", "perceptual_hash"])).min(1),
+  analysisTypes: z
+    .array(z.enum(["object_detection", "ocr", "perceptual_hash"]))
+    .min(1),
 });
 
 const updatePhotoMlSchema = z.object({
@@ -113,7 +115,7 @@ router.post("/analyze", async (req: Request, res: Response) => {
     // For now, process synchronously as placeholder
     try {
       const result = await processMLAnalysis(analysisRequest);
-      
+
       // Update photo with ML results
       await updatePhotoWithMLResults(photoId, result);
 
@@ -123,12 +125,14 @@ router.post("/analyze", async (req: Request, res: Response) => {
       });
     } catch (processingError) {
       console.error("ML processing failed:", processingError);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "ML processing failed",
-        details: processingError instanceof Error ? processingError.message : "Unknown error"
+        details:
+          processingError instanceof Error
+            ? processingError.message
+            : "Unknown error",
       });
     }
-
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
@@ -174,25 +178,32 @@ router.get("/status/:photoId", async (req: Request, res: Response) => {
     }
 
     const photoData = photo[0];
-    
+
     // Determine analysis status
     const isProcessed = !!photoData.mlProcessedAt;
-    const hasResults = !!(photoData.mlLabels?.length || photoData.ocrText || photoData.perceptualHash);
+    const hasResults = !!(
+      photoData.mlLabels?.length ||
+      photoData.ocrText ||
+      photoData.perceptualHash
+    );
 
     res.json({
       photoId,
-      status: isProcessed ? (hasResults ? "completed" : "processed_no_results") : "pending",
+      status: isProcessed
+        ? hasResults
+          ? "completed"
+          : "processed_no_results"
+        : "pending",
       processedAt: photoData.mlProcessedAt,
       mlVersion: photoData.mlVersion,
       results: {
-        hasObjectDetection: !!(photoData.mlLabels?.length),
+        hasObjectDetection: !!photoData.mlLabels?.length,
         hasOCR: !!photoData.ocrText,
         hasPerceptualHash: !!photoData.perceptualHash,
         objectCount: photoData.mlLabels?.length || 0,
         textLength: photoData.ocrText?.length || 0,
       },
     });
-
   } catch (error) {
     console.error("Error getting ML status:", error);
     res.status(500).json({ error: "Failed to get ML analysis status" });
@@ -211,7 +222,9 @@ router.post("/batch", async (req: Request, res: Response) => {
 
     const batchRequestSchema = z.object({
       photoIds: z.array(z.string().uuid()).min(1).max(50), // Limit batch size
-      analysisTypes: z.array(z.enum(["object_detection", "ocr", "perceptual_hash"])).min(1),
+      analysisTypes: z
+        .array(z.enum(["object_detection", "ocr", "perceptual_hash"]))
+        .min(1),
     });
 
     const validatedData = batchRequestSchema.parse(req.body);
@@ -223,8 +236,8 @@ router.post("/batch", async (req: Request, res: Response) => {
       .from(photos)
       .where(and(eq(photos.userId, userId), isNull(photos.deletedAt)));
 
-    const userPhotoIds = userPhotos.map(p => p.id);
-    const invalidPhotoIds = photoIds.filter(id => !userPhotoIds.includes(id));
+    const userPhotoIds = userPhotos.map((p) => p.id);
+    const invalidPhotoIds = photoIds.filter((id) => !userPhotoIds.includes(id));
 
     if (invalidPhotoIds.length > 0) {
       return res.status(400).json({
@@ -234,7 +247,7 @@ router.post("/batch", async (req: Request, res: Response) => {
     }
 
     // Create batch analysis requests
-    const batchRequests: MLAnalysisRequest[] = photoIds.map(photoId => ({
+    const batchRequests: MLAnalysisRequest[] = photoIds.map((photoId) => ({
       photoId,
       userId,
       analysisTypes: analysisTypes as AnalysisType[],
@@ -249,7 +262,6 @@ router.post("/batch", async (req: Request, res: Response) => {
       analysisTypes,
       estimatedTime: photoIds.length * 2, // 2 seconds per photo estimate
     });
-
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
@@ -287,41 +299,49 @@ router.get("/stats", async (req: Request, res: Response) => {
 
     // Calculate statistics
     const totalPhotos = userPhotos.length;
-    const processedPhotos = userPhotos.filter(p => !!p.mlProcessedAt).length;
-    const photosWithObjects = userPhotos.filter(p => p.mlLabels && p.mlLabels.length > 0).length;
-    const photosWithText = userPhotos.filter(p => p.ocrText && p.ocrText.length > 0).length;
-    const photosWithHash = userPhotos.filter(p => !!p.perceptualHash).length;
+    const processedPhotos = userPhotos.filter((p) => !!p.mlProcessedAt).length;
+    const photosWithObjects = userPhotos.filter(
+      (p) => p.mlLabels && p.mlLabels.length > 0,
+    ).length;
+    const photosWithText = userPhotos.filter(
+      (p) => p.ocrText && p.ocrText.length > 0,
+    ).length;
+    const photosWithHash = userPhotos.filter((p) => !!p.perceptualHash).length;
 
     // Count total objects detected
-    const totalObjects = userPhotos.reduce((sum, p) => sum + (p.mlLabels?.length || 0), 0);
+    const totalObjects = userPhotos.reduce(
+      (sum, p) => sum + (p.mlLabels?.length || 0),
+      0,
+    );
 
     // Find most common objects
     const objectCounts: { [key: string]: number } = {};
-    userPhotos.forEach(p => {
+    userPhotos.forEach((p) => {
       if (p.mlLabels) {
-        p.mlLabels.forEach(label => {
+        p.mlLabels.forEach((label) => {
           objectCounts[label] = (objectCounts[label] || 0) + 1;
         });
       }
     });
 
     const commonObjects = Object.entries(objectCounts)
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .slice(0, 10)
       .map(([label, count]) => ({ label, count }));
 
     res.json({
       totalPhotos,
       processedPhotos,
-      processingRate: totalPhotos > 0 ? (processedPhotos / totalPhotos) * 100 : 0,
+      processingRate:
+        totalPhotos > 0 ? (processedPhotos / totalPhotos) * 100 : 0,
       photosWithObjects,
       photosWithText,
       photosWithHash,
       totalObjects,
-      averageObjectsPerPhoto: processedPhotos > 0 ? totalObjects / processedPhotos : 0,
+      averageObjectsPerPhoto:
+        processedPhotos > 0 ? totalObjects / processedPhotos : 0,
       commonObjects,
     });
-
   } catch (error) {
     console.error("Error getting ML stats:", error);
     res.status(500).json({ error: "Failed to get ML processing statistics" });
@@ -336,15 +356,17 @@ router.get("/stats", async (req: Request, res: Response) => {
  * Process ML analysis (placeholder implementation)
  * In production, this would be handled by BullMQ workers
  */
-async function processMLAnalysis(request: MLAnalysisRequest): Promise<MLAnalysisResult> {
+async function processMLAnalysis(
+  request: MLAnalysisRequest,
+): Promise<MLAnalysisResult> {
   const startTime = Date.now();
-  
+
   // Placeholder implementation
   // In production, this would:
   // 1. Load the photo from storage
   // 2. Run ML models based on analysisTypes
   // 3. Return structured results
-  
+
   const result: MLAnalysisResult = {
     photoId: request.photoId,
     userId: request.userId,
@@ -384,7 +406,10 @@ async function processMLAnalysis(request: MLAnalysisRequest): Promise<MLAnalysis
 /**
  * Update photo record with ML analysis results
  */
-async function updatePhotoWithMLResults(photoId: string, results: MLAnalysisResult): Promise<void> {
+async function updatePhotoWithMLResults(
+  photoId: string,
+  results: MLAnalysisResult,
+): Promise<void> {
   try {
     const updateData: any = {
       mlProcessedAt: results.timestamp,
@@ -392,7 +417,7 @@ async function updatePhotoWithMLResults(photoId: string, results: MLAnalysisResu
     };
 
     if (results.objects) {
-      updateData.mlLabels = results.objects.map(obj => obj.label);
+      updateData.mlLabels = results.objects.map((obj) => obj.label);
     }
 
     if (results.ocrText) {
@@ -404,11 +429,7 @@ async function updatePhotoWithMLResults(photoId: string, results: MLAnalysisResu
       updateData.perceptualHash = results.perceptualHash;
     }
 
-    await db
-      .update(photos)
-      .set(updateData)
-      .where(eq(photos.id, photoId));
-
+    await db.update(photos).set(updateData).where(eq(photos.id, photoId));
   } catch (error) {
     console.error("Failed to update photo with ML results:", error);
     throw error;

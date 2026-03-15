@@ -21,7 +21,13 @@ import * as Haptics from "expo-haptics";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Photo } from "@/types";
 import { groupPhotosByDate } from "@/lib/storage";
-import { apiRequest, AuthenticationError, ValidationError, NetworkError, ServerError } from "@/lib/query-client";
+import {
+  apiRequest,
+  AuthenticationError,
+  ValidationError,
+  NetworkError,
+  ServerError,
+} from "@/lib/query-client";
 import { PhotoGrid } from "@/components/PhotoGrid";
 import { FloatingActionButton } from "@/components/FloatingActionButton";
 import { EmptyState } from "@/components/EmptyState";
@@ -43,7 +49,7 @@ export default function PhotosScreen() {
   // ═══════════════════════════════════════════════════════════
   // ERROR MESSAGE FORMATTING
   // ═══════════════════════════════════════════════════════════
-  
+
   const getErrorMessage = (error: unknown): string => {
     if (error instanceof AuthenticationError) {
       return "Session expired. Please log in again.";
@@ -55,7 +61,7 @@ export default function PhotosScreen() {
       return "Server error. Please try again later.";
     }
     if (error instanceof ValidationError) {
-      return `Validation error: ${error.validationDetails.map(d => d.message).join(', ')}`;
+      return `Validation error: ${error.validationDetails.map((d) => d.message).join(", ")}`;
     }
     if (error instanceof Error) {
       return error.message;
@@ -87,16 +93,16 @@ export default function PhotosScreen() {
   //   • Handles loading/error states
   //   • Caches results
   //   • Refetches when needed
-  
-  const { 
-    data: photos = [], 
-    isLoading, 
+
+  const {
+    data: photos = [],
+    isLoading,
     error,
-    refetch 
+    refetch,
   } = useQuery<Photo[]>({
-    queryKey: ['photos'],
+    queryKey: ["photos"],
     queryFn: async () => {
-      const res = await apiRequest('GET', '/api/photos');
+      const res = await apiRequest("GET", "/api/photos");
       const data = await res.json();
       return data.photos;
     },
@@ -109,76 +115,79 @@ export default function PhotosScreen() {
   // ═══════════════════════════════════════════════════════════
   // useMutation for creating/updating/deleting data
   // Includes OPTIMISTIC UPDATE (show immediately, sync later)
-  
+
   const addPhotoMutation = useMutation({
     // The actual API call
-    mutationFn: async (photo: Omit<Photo, 'id' | 'createdAt' | 'modifiedAt'>) => {
-      const res = await apiRequest('POST', '/api/photos', photo);
+    mutationFn: async (
+      photo: Omit<Photo, "id" | "createdAt" | "modifiedAt">,
+    ) => {
+      const res = await apiRequest("POST", "/api/photos", photo);
       return res.json();
     },
-    
+
     // BEFORE sending to server (optimistic update)
     onMutate: async (newPhoto) => {
       // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
-      await queryClient.cancelQueries({ queryKey: ['photos'] });
-      
+      await queryClient.cancelQueries({ queryKey: ["photos"] });
+
       // Save current state (for rollback if error)
-      const previousPhotos = queryClient.getQueryData(['photos']);
-      
+      const previousPhotos = queryClient.getQueryData(["photos"]);
+
       // Optimistically update UI (show photo immediately with temp ID)
-      queryClient.setQueryData(['photos'], (old: Photo[] = []) => [
+      queryClient.setQueryData(["photos"], (old: Photo[] = []) => [
         {
           ...newPhoto,
-          id: 'temp-' + Date.now(),  // Temporary ID until server responds
+          id: "temp-" + Date.now(), // Temporary ID until server responds
           createdAt: Date.now(),
           modifiedAt: Date.now(),
         } as Photo,
         ...old,
       ]);
-      
+
       // Return context for rollback
       return { previousPhotos };
     },
-    
+
     // If API call FAILS
     onError: (err, newPhoto, context) => {
       // Rollback to previous state
       if (context?.previousPhotos) {
-        queryClient.setQueryData(['photos'], context.previousPhotos);
+        queryClient.setQueryData(["photos"], context.previousPhotos);
       }
-      
+
       // Log error for debugging
-      console.error('Failed to upload photo:', err);
-      
+      console.error("Failed to upload photo:", err);
+
       // Show user-friendly error message
-      let errorMessage = 'Failed to upload photo';
+      let errorMessage = "Failed to upload photo";
       if (err instanceof ValidationError) {
-        errorMessage = `Upload failed: ${err.validationDetails.map(d => d.message).join(', ')}`;
+        errorMessage = `Upload failed: ${err.validationDetails.map((d) => d.message).join(", ")}`;
       } else if (err instanceof NetworkError) {
-        errorMessage = 'Cannot upload while offline. Please check your connection.';
+        errorMessage =
+          "Cannot upload while offline. Please check your connection.";
       } else if (err instanceof ServerError) {
-        errorMessage = 'Server error. Please try again later.';
+        errorMessage = "Server error. Please try again later.";
       } else if (err instanceof Error) {
         errorMessage = `Upload failed: ${err.message}`;
       }
-      
+
       // TODO: Show toast notification with errorMessage
       // For now, just log it
       console.warn(errorMessage);
     },
-    
+
     // After API call completes (success OR failure)
     onSettled: () => {
       // Refetch from server to get accurate data
       // (Real IDs, server timestamps, etc.)
-      queryClient.invalidateQueries({ queryKey: ['photos'] });
+      queryClient.invalidateQueries({ queryKey: ["photos"] });
     },
   });
 
   // ═══════════════════════════════════════════════════════════
   // UPLOAD PHOTO HANDLER
   // ═══════════════════════════════════════════════════════════
-  
+
   const handleUpload = async () => {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -203,11 +212,11 @@ export default function PhotosScreen() {
           isFavorite: false,
           albumIds: [] as string[],
         };
-        
+
         // Send to server (with optimistic update)
         addPhotoMutation.mutate(newPhoto);
       }
-      
+
       // Success haptic feedback
       if (Platform.OS !== "web" && result.assets.length > 0) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -237,12 +246,19 @@ export default function PhotosScreen() {
             title={getErrorTitle(error)}
             subtitle={getErrorMessage(error)}
           />
-          <Pressable 
+          <Pressable
             style={[styles.retryButton, { backgroundColor: theme.accent }]}
             onPress={() => refetch()}
           >
-            <Feather name="refresh-cw" size={20} color={theme.buttonText} style={{ marginRight: Spacing.sm }} />
-            <Text style={{ color: theme.buttonText, fontWeight: '600' }}>Retry</Text>
+            <Feather
+              name="refresh-cw"
+              size={20}
+              color={theme.buttonText}
+              style={{ marginRight: Spacing.sm }}
+            />
+            <Text style={{ color: theme.buttonText, fontWeight: "600" }}>
+              Retry
+            </Text>
           </Pressable>
         </View>
       ) : (

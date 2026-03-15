@@ -30,8 +30,6 @@ import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, Colors } from "@/constants/theme";
 
-
-
 interface PhotoGridProps {
   photos: Photo[];
   onPhotoPress: (photo: Photo, index: number) => void;
@@ -52,7 +50,13 @@ interface PhotoItemProps {
   style?: any;
 }
 
-function PhotoItem({ photo, index, onPress, onLongPress, style }: PhotoItemProps) {
+function PhotoItem({
+  photo,
+  index,
+  onPress,
+  onLongPress,
+  style,
+}: PhotoItemProps) {
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -122,8 +126,7 @@ export function PhotoGrid({
 
   // Responsive column calculation
   // Mobile: 3, Large Mobile/Tablet Portrait: 4, Tablet Landscape: 6, Desktop: 8
-  const numColumns =
-    width > 1200 ? 8 : width > 900 ? 6 : width > 600 ? 4 : 3;
+  const numColumns = width > 1200 ? 8 : width > 900 ? 6 : width > 600 ? 4 : 3;
 
   const photoSize = (width - GAP * (numColumns - 1)) / numColumns;
 
@@ -139,7 +142,7 @@ export function PhotoGrid({
   // Memoize overrideItemLayout to avoid re-renders if dimensions don't change
   // But since dimensions change on rotate/resize, we need to recalculate.
 
-  const renderItem = ({ item, index }: { item: any, index: number }) => {
+  const renderItem = ({ item, index }: { item: any; index: number }) => {
     if ("type" in item && item.type === "header") {
       return (
         <View style={[styles.sectionHeader, { width }]}>

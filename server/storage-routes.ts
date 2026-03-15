@@ -20,20 +20,20 @@ import { authenticateToken } from "./auth";
 import { db } from "./db";
 import { photos } from "../shared/schema";
 import { eq, and, isNull, isNotNull } from "drizzle-orm"; // Add missing isNotNull import
-import fs from 'fs/promises';
-import path from 'path';
+import fs from "fs/promises";
+import path from "path";
 
 const router = Router();
 
 // ═══════════════════════════════════════════════════════════
 // MIDDLEWARE: All storage routes require authentication
 // ═══════════════════════════════════════════════════════════
-if (process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV !== "test") {
   router.use(authenticateToken);
 } else {
   // In test environment, add a mock user directly
   router.use((req: Request, res: Response, next: NextFunction) => {
-    req.user = { id: 'test-user-id', email: 'test@example.com' };
+    req.user = { id: "test-user-id", email: "test@example.com" };
     next();
   });
 }
@@ -49,16 +49,16 @@ router.get("/usage", async (req: Request, res: Response) => {
     }
 
     const breakdown = await storageUsageService.getStorageBreakdown(userId);
-    
+
     res.json({
       success: true,
       data: breakdown,
     });
   } catch (error) {
     console.error("Error getting storage usage:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Internal server error",
-      message: "Failed to retrieve storage usage information"
+      message: "Failed to retrieve storage usage information",
     });
   }
 });
@@ -74,16 +74,16 @@ router.post("/update", async (req: Request, res: Response) => {
     }
 
     await storageUsageService.updateStorageUsage(userId);
-    
+
     res.json({
       success: true,
       message: "Storage usage updated successfully",
     });
   } catch (error) {
     console.error("Error updating storage usage:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Internal server error",
-      message: "Failed to update storage usage"
+      message: "Failed to update storage usage",
     });
   }
 });
@@ -92,7 +92,9 @@ router.post("/update", async (req: Request, res: Response) => {
 // POST /api/storage/free-up - Free up local storage space
 // ═══════════════════════════════════════════════════════════
 const freeUpSpaceSchema = z.object({
-  strategy: z.enum(["old-photos", "large-files", "duplicates", "all"]).default("old-photos"),
+  strategy: z
+    .enum(["old-photos", "large-files", "duplicates", "all"])
+    .default("old-photos"),
   limit: z.number().int().min(1).max(1000).default(50),
   dryRun: z.boolean().default(false),
 });
@@ -113,11 +115,12 @@ router.post("/free-up", async (req: Request, res: Response) => {
       case "old-photos":
         filesToDelete = await storageUsageService.getFilesForCleanup(userId);
         break;
-      
+
       case "large-files":
-        filesToDelete = await storageUsageService.getCompressionCandidates(userId);
+        filesToDelete =
+          await storageUsageService.getCompressionCandidates(userId);
         break;
-      
+
       case "duplicates":
         // Get duplicate photos (excluding best photo in each group)
         const duplicates = await db
@@ -127,19 +130,23 @@ router.post("/free-up", async (req: Request, res: Response) => {
             and(
               eq(photos.userId, userId),
               isNotNull(photos.duplicateGroupId),
-              isNull(photos.deletedAt)
-            )
+              isNull(photos.deletedAt),
+            ),
           )
           .limit(limit)
           .execute();
-        
-        filesToDelete = duplicates.map(d => d.id);
-        freedSpace = duplicates.reduce((sum, d) => sum + (d.originalSize || 0), 0);
+
+        filesToDelete = duplicates.map((d) => d.id);
+        freedSpace = duplicates.reduce(
+          (sum, d) => sum + (d.originalSize || 0),
+          0,
+        );
         break;
-      
+
       case "all":
         const oldFiles = await storageUsageService.getFilesForCleanup(userId);
-        const largeFiles = await storageUsageService.getCompressionCandidates(userId);
+        const largeFiles =
+          await storageUsageService.getCompressionCandidates(userId);
         filesToDelete = [...oldFiles, ...largeFiles].slice(0, limit);
         break;
     }
@@ -152,14 +159,17 @@ router.post("/free-up", async (req: Request, res: Response) => {
         .where(
           and(
             eq(photos.userId, userId),
-            filesToDelete.length > 0 
+            filesToDelete.length > 0
               ? eq(photos.id, filesToDelete[0]) // Simplified for demo
-              : eq(photos.id, '') // No files
-          )
+              : eq(photos.id, ""), // No files
+          ),
         )
         .execute();
-      
-      freedSpace = photoSizes.reduce((sum, p) => sum + (p.originalSize || 0), 0);
+
+      freedSpace = photoSizes.reduce(
+        (sum, p) => sum + (p.originalSize || 0),
+        0,
+      );
     }
 
     // If not dry run, actually delete the files
@@ -171,8 +181,10 @@ router.post("/free-up", async (req: Request, res: Response) => {
         .where(
           and(
             eq(photos.userId, userId),
-            filesToDelete.length > 0 ? eq(photos.id, filesToDelete[0]) : eq(photos.id, '')
-          )
+            filesToDelete.length > 0
+              ? eq(photos.id, filesToDelete[0])
+              : eq(photos.id, ""),
+          ),
         )
         .execute();
     }
@@ -188,9 +200,9 @@ router.post("/free-up", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error freeing up space:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Internal server error",
-      message: "Failed to free up storage space"
+      message: "Failed to free up storage space",
     });
   }
 });
@@ -201,7 +213,11 @@ router.post("/free-up", async (req: Request, res: Response) => {
 const compressPhotosSchema = z.object({
   photoIds: z.array(z.string()).optional(),
   quality: z.number().min(0.1).max(1.0).default(0.8),
-  threshold: z.number().int().min(1024).default(1024 * 1024), // 1MB default
+  threshold: z
+    .number()
+    .int()
+    .min(1024)
+    .default(1024 * 1024), // 1MB default
 });
 
 router.post("/compress", async (req: Request, res: Response) => {
@@ -211,34 +227,46 @@ router.post("/compress", async (req: Request, res: Response) => {
       return res.status(401).json({ error: "User not authenticated" });
     }
 
-    const { photoIds, quality, threshold } = compressPhotosSchema.parse(req.body);
+    const { photoIds, quality, threshold } = compressPhotosSchema.parse(
+      req.body,
+    );
 
     // Get photos to compress
     let photosToCompress;
     if (photoIds && photoIds.length > 0) {
       photosToCompress = await db
-        .select({ id: photos.id, uri: photos.uri, originalSize: photos.originalSize })
+        .select({
+          id: photos.id,
+          uri: photos.uri,
+          originalSize: photos.originalSize,
+        })
         .from(photos)
         .where(
           and(
             eq(photos.userId, userId),
-            photoIds.length > 0 ? eq(photos.id, photoIds[0]) : eq(photos.id, ''),
-            isNull(photos.deletedAt)
-          )
+            photoIds.length > 0
+              ? eq(photos.id, photoIds[0])
+              : eq(photos.id, ""),
+            isNull(photos.deletedAt),
+          ),
         )
         .execute();
     } else {
       // Get all photos above threshold that aren't compressed
       photosToCompress = await db
-        .select({ id: photos.id, uri: photos.uri, originalSize: photos.originalSize })
+        .select({
+          id: photos.id,
+          uri: photos.uri,
+          originalSize: photos.originalSize,
+        })
         .from(photos)
         .where(
           and(
             eq(photos.userId, userId),
             eq(photos.isVideo, false),
             isNull(photos.compressedSize),
-            isNull(photos.deletedAt)
-          )
+            isNull(photos.deletedAt),
+          ),
         )
         .limit(50)
         .execute();
@@ -251,7 +279,9 @@ router.post("/compress", async (req: Request, res: Response) => {
       try {
         // Simulate compression (in real implementation, use image processing library)
         const originalSize = photo.originalSize || 0;
-        const estimatedCompressedSize = Math.floor(originalSize * (1 - quality * 0.5));
+        const estimatedCompressedSize = Math.floor(
+          originalSize * (1 - quality * 0.5),
+        );
         const saved = originalSize - estimatedCompressedSize;
 
         // Update photo with compression info
@@ -291,9 +321,9 @@ router.post("/compress", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error compressing photos:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Internal server error",
-      message: "Failed to compress photos"
+      message: "Failed to compress photos",
     });
   }
 });
@@ -308,12 +338,12 @@ router.get("/large-files", async (req: Request, res: Response) => {
       return res.status(401).json({ error: "User not authenticated" });
     }
 
-    const threshold = req.query.threshold 
-      ? parseInt(req.query.threshold as string) 
+    const threshold = req.query.threshold
+      ? parseInt(req.query.threshold as string)
       : 10 * 1024 * 1024; // 10MB default
 
     const breakdown = await storageUsageService.getStorageBreakdown(userId);
-    
+
     res.json({
       success: true,
       data: {
@@ -324,9 +354,9 @@ router.get("/large-files", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error getting large files:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Internal server error",
-      message: "Failed to retrieve large files"
+      message: "Failed to retrieve large files",
     });
   }
 });
@@ -351,7 +381,10 @@ router.get("/status", async (req: Request, res: Response) => {
     if (breakdown.largeFiles.length > 10) {
       warnings.push("Many large files detected");
     }
-    if (breakdown.compressionStats.compressedCount < breakdown.totalItemCount * 0.5) {
+    if (
+      breakdown.compressionStats.compressedCount <
+      breakdown.totalItemCount * 0.5
+    ) {
       warnings.push("Many files not compressed");
     }
 
@@ -360,8 +393,8 @@ router.get("/status", async (req: Request, res: Response) => {
       data: {
         totalUsed: breakdown.totalBytesUsed,
         totalLimit: breakdown.storageLimit,
-        usagePercentage: breakdown.storageLimit 
-          ? (breakdown.totalBytesUsed / breakdown.storageLimit) * 100 
+        usagePercentage: breakdown.storageLimit
+          ? (breakdown.totalBytesUsed / breakdown.storageLimit) * 100
           : 0,
         isNearLimit,
         warnings,
@@ -370,9 +403,9 @@ router.get("/status", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error getting storage status:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Internal server error",
-      message: "Failed to retrieve storage status"
+      message: "Failed to retrieve storage status",
     });
   }
 });
@@ -391,12 +424,21 @@ function generateRecommendations(breakdown: StorageBreakdown): string[] {
     recommendations.push("Enable higher compression for better space savings");
   }
 
-  const videoCategory = breakdown.categories.find((c: any) => c.category === 'videos');
-  if (videoCategory?.bytesUsed && videoCategory.bytesUsed > breakdown.totalBytesUsed * 0.5) {
-    recommendations.push("Videos consume significant space; consider offloading");
+  const videoCategory = breakdown.categories.find(
+    (c: any) => c.category === "videos",
+  );
+  if (
+    videoCategory?.bytesUsed &&
+    videoCategory.bytesUsed > breakdown.totalBytesUsed * 0.5
+  ) {
+    recommendations.push(
+      "Videos consume significant space; consider offloading",
+    );
   }
 
-  const cacheCategory = breakdown.categories.find((c: any) => c.category === 'cache');
+  const cacheCategory = breakdown.categories.find(
+    (c: any) => c.category === "cache",
+  );
   if (cacheCategory?.bytesUsed && cacheCategory.bytesUsed > 100 * 1024 * 1024) {
     recommendations.push("Clear cache to free up space");
   }

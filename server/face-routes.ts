@@ -70,7 +70,7 @@ router.put("/people/:id", async (req: Request, res: Response) => {
     const updatedPerson = await faceRecognitionService.updatePerson(
       userId,
       personId,
-      validatedData
+      validatedData,
     );
 
     if (!updatedPerson) {
@@ -114,14 +114,16 @@ router.put("/people/:id/merge", async (req: Request, res: Response) => {
     const { targetPersonId } = mergePersonSchema.parse(req.body);
 
     if (sourcePersonId === targetPersonId) {
-      return res.status(400).json({ error: "Cannot merge person with themselves" });
+      return res
+        .status(400)
+        .json({ error: "Cannot merge person with themselves" });
     }
 
     // Merge people
     const mergedPerson = await faceRecognitionService.mergePeople(
       userId,
       sourcePersonId,
-      targetPersonId
+      targetPersonId,
     );
 
     if (!mergedPerson) {
@@ -161,7 +163,10 @@ router.get("/people/:id/photos", async (req: Request, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 50;
     const offset = parseInt(req.query.offset as string) || 0;
 
-    const personPhotos = await faceRecognitionService.getPersonPhotos(userId, personId);
+    const personPhotos = await faceRecognitionService.getPersonPhotos(
+      userId,
+      personId,
+    );
 
     // Apply pagination
     const paginatedPhotos = personPhotos.slice(offset, offset + limit);
@@ -287,8 +292,14 @@ router.get("/search", async (req: Request, res: Response) => {
     const searchSchema = z.object({
       embedding: z.string().optional(), // JSON string of embedding array
       faceId: z.string().uuid().optional(), // Reference face ID
-      threshold: z.string().optional().transform((val) => val ? parseFloat(val) : 0.6),
-      limit: z.string().optional().transform((val) => val ? parseInt(val) : 10),
+      threshold: z
+        .string()
+        .optional()
+        .transform((val) => (val ? parseFloat(val) : 0.6)),
+      limit: z
+        .string()
+        .optional()
+        .transform((val) => (val ? parseInt(val) : 10)),
     });
 
     const validatedQuery = searchSchema.parse(req.query);
@@ -314,8 +325,8 @@ router.get("/search", async (req: Request, res: Response) => {
           and(
             eq(faces.id, validatedQuery.faceId),
             eq(photos.userId, userId),
-            isNotNull(faces.embedding)
-          )
+            isNotNull(faces.embedding),
+          ),
         )
         .limit(1);
 
@@ -325,20 +336,22 @@ router.get("/search", async (req: Request, res: Response) => {
 
       embedding = face[0].embedding;
     } else {
-      return res.status(400).json({ 
-        error: "Either embedding or faceId must be provided" 
+      return res.status(400).json({
+        error: "Either embedding or faceId must be provided",
       });
     }
 
     if (!embedding) {
-      return res.status(400).json({ error: "No embedding available for search" });
+      return res
+        .status(400)
+        .json({ error: "No embedding available for search" });
     }
 
     // Find similar faces
     const similarFaces = await faceRecognitionService.findSimilarFaces(
       userId,
       embedding!,
-      validatedQuery.threshold
+      validatedQuery.threshold,
     );
 
     // Apply limit

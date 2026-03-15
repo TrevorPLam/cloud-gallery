@@ -8,10 +8,10 @@
 // TESTS: client/lib/ml/photo-analyzer.test.ts
 // AI-META-END
 
-import { Platform } from 'react-native';
-import { loadTensorflowModel, TensorflowModel } from 'react-native-fast-tflite';
-import RNMlkitOcr from 'react-native-mlkit-ocr';
-import { InteractionManager } from 'react-native';
+import { Platform } from "react-native";
+import { loadTensorflowModel, TensorflowModel } from "react-native-fast-tflite";
+import RNMlkitOcr from "react-native-mlkit-ocr";
+import { InteractionManager } from "react-native";
 
 // ─────────────────────────────────────────────────────────
 // TYPES AND INTERFACES
@@ -33,14 +33,14 @@ export interface TextRecognitionResult {
 export interface MLAnalysisResult {
   // Object detection results
   objects?: DetectedObject[];
-  
+
   // OCR text extraction results
   ocrText?: string;
   ocrLanguage?: string;
-  
+
   // Perceptual hash for duplicate detection
   perceptualHash?: string;
-  
+
   // Processing metadata
   processingTime: number;
   mlVersion: string;
@@ -70,13 +70,13 @@ export interface ModelConfig {
 // ─────────────────────────────────────────────────────────
 
 const OBJECT_DETECTION_CONFIG: ModelConfig = {
-  name: 'mobilenet_v3',
+  name: "mobilenet_v3",
   inputSize: 192,
   outputLabels: [], // Will be loaded from model metadata
   threshold: 0.7,
 };
 
-const ML_VERSION = '1.0.0';
+const ML_VERSION = "1.0.0";
 
 // ─────────────────────────────────────────────────────────
 // PHOTO ANALYZER CLASS
@@ -92,14 +92,14 @@ export class PhotoAnalyzer {
   }
 
   // ─── INITIALIZATION ──────────────────────────────────────
-  
+
   /**
    * Initialize ML models asynchronously
    * Uses factory pattern for platform-specific model loading
    */
   private async initializeModels(): Promise<void> {
     if (this.isInitialized) return;
-    
+
     if (this.initializationPromise) {
       return this.initializationPromise;
     }
@@ -112,11 +112,11 @@ export class PhotoAnalyzer {
     try {
       // Load object detection model
       await this.loadObjectDetectionModel();
-      
+
       this.isInitialized = true;
-      console.log('PhotoAnalyzer: ML models initialized successfully');
+      console.log("PhotoAnalyzer: ML models initialized successfully");
     } catch (error) {
-      console.error('PhotoAnalyzer: Failed to initialize models:', error);
+      console.error("PhotoAnalyzer: Failed to initialize models:", error);
       throw error;
     }
   }
@@ -128,17 +128,20 @@ export class PhotoAnalyzer {
   private async loadObjectDetectionModel(): Promise<void> {
     try {
       // Try loading from app assets first
-      const modelPath = this.getModelPath('mobilenet_v3');
-      
+      const modelPath = this.getModelPath("mobilenet_v3");
+
       this.objectDetectionModel = await loadTensorflowModel(modelPath);
-      
+
       if (!this.objectDetectionModel) {
-        throw new Error('Failed to load object detection model');
+        throw new Error("Failed to load object detection model");
       }
-      
-      console.log('PhotoAnalyzer: Object detection model loaded');
+
+      console.log("PhotoAnalyzer: Object detection model loaded");
     } catch (error) {
-      console.error('PhotoAnalyzer: Error loading object detection model:', error);
+      console.error(
+        "PhotoAnalyzer: Error loading object detection model:",
+        error,
+      );
       throw error;
     }
   }
@@ -152,7 +155,7 @@ export class PhotoAnalyzer {
     if (__DEV__) {
       return { url: `assets/models/${modelName}.tflite` };
     }
-    
+
     // Production model loading - use require format for react-native-fast-tflite
     try {
       return require(`assets/models/${modelName}.tflite`);
@@ -170,13 +173,13 @@ export class PhotoAnalyzer {
    */
   public async analyzePhoto(imageUri: string): Promise<MLAnalysisResult> {
     const startTime = Date.now();
-    
+
     // Run in background to avoid blocking UI thread
     const result = await new Promise<MLAnalysisResult>((resolve, reject) => {
       InteractionManager.runAfterInteractions(async () => {
         try {
           await this.initializeModels();
-          
+
           const analysisResult: MLAnalysisResult = {
             processingTime: 0,
             mlVersion: ML_VERSION,
@@ -201,7 +204,7 @@ export class PhotoAnalyzer {
           analysisResult.perceptualHash = hash;
 
           analysisResult.processingTime = Date.now() - startTime;
-          
+
           resolve(analysisResult);
         } catch (error) {
           reject(error);
@@ -217,22 +220,25 @@ export class PhotoAnalyzer {
    */
   private async detectObjects(imageUri: string): Promise<DetectedObject[]> {
     if (!this.objectDetectionModel) {
-      throw new Error('Object detection model not loaded');
+      throw new Error("Object detection model not loaded");
     }
 
     try {
       // Preprocess image to match model input requirements
-      const preprocessedImage = await this.preprocessImage(imageUri, OBJECT_DETECTION_CONFIG.inputSize);
-      
+      const preprocessedImage = await this.preprocessImage(
+        imageUri,
+        OBJECT_DETECTION_CONFIG.inputSize,
+      );
+
       // Run inference
       const outputs = await this.objectDetectionModel.run([preprocessedImage]);
-      
+
       // Post-process results
       const detections = this.postprocessObjectDetection(outputs);
-      
+
       return detections;
     } catch (error) {
-      console.error('PhotoAnalyzer: Object detection failed:', error);
+      console.error("PhotoAnalyzer: Object detection failed:", error);
       return [];
     }
   }
@@ -245,12 +251,14 @@ export class PhotoAnalyzer {
       // Use the correct API method for react-native-mlkit-ocr
       // TODO: Verify the correct API method name from the library documentation
       // For now, implement placeholder functionality
-      console.log('PhotoAnalyzer: OCR extraction not yet implemented - placeholder');
-      
-      return { text: '' }; // Placeholder result
+      console.log(
+        "PhotoAnalyzer: OCR extraction not yet implemented - placeholder",
+      );
+
+      return { text: "" }; // Placeholder result
     } catch (error) {
-      console.error('PhotoAnalyzer: OCR failed:', error);
-      return { text: '' };
+      console.error("PhotoAnalyzer: OCR failed:", error);
+      return { text: "" };
     }
   }
 
@@ -263,14 +271,14 @@ export class PhotoAnalyzer {
       // This is a simplified implementation
       // In production, would use a proper image processing library
       // or implement the dHash algorithm from scratch
-      
+
       // For now, return a placeholder hash
       // TODO: Implement actual perceptual hashing
       const hash = await this.computeDifferenceHash(imageUri);
       return hash;
     } catch (error) {
-      console.error('PhotoAnalyzer: Perceptual hashing failed:', error);
-      return '';
+      console.error("PhotoAnalyzer: Perceptual hashing failed:", error);
+      return "";
     }
   }
 
@@ -280,11 +288,14 @@ export class PhotoAnalyzer {
    * Preprocess image for model input
    * Resize and normalize to match model requirements
    */
-  private async preprocessImage(imageUri: string, targetSize: number): Promise<Uint8Array> {
+  private async preprocessImage(
+    imageUri: string,
+    targetSize: number,
+  ): Promise<Uint8Array> {
     // This is a placeholder implementation
     // In production, would use proper image processing library
     // to resize, normalize, and convert to tensor format
-    
+
     // TODO: Implement actual image preprocessing
     const dummyData = new Uint8Array(targetSize * targetSize * 3);
     return dummyData;
@@ -298,7 +309,7 @@ export class PhotoAnalyzer {
     // This is a placeholder implementation
     // In production, would parse actual model outputs
     // and apply confidence threshold
-    
+
     // TODO: Implement actual post-processing
     return [];
   }
@@ -313,9 +324,9 @@ export class PhotoAnalyzer {
     // 2. Resize to (hash_size+1, hash_size)
     // 3. Calculate horizontal gradient
     // 4. Generate binary hash
-    
+
     // TODO: Implement actual difference hashing
-    return 'placeholder_hash';
+    return "placeholder_hash";
   }
 
   /**
@@ -324,16 +335,16 @@ export class PhotoAnalyzer {
    */
   private detectLanguage(text: string): string {
     // Simple language detection based on character sets
-    if (!text || text.length === 0) return 'en';
-    
+    if (!text || text.length === 0) return "en";
+
     // Check for common language patterns
-    if (/[\u4e00-\u9fff]/.test(text)) return 'zh'; // Chinese
-    if (/[\u0400-\u04ff]/.test(text)) return 'ru'; // Russian
-    if (/[\u0590-\u05ff]/.test(text)) return 'he'; // Hebrew
-    if (/[\u0600-\u06ff]/.test(text)) return 'ar'; // Arabic
-    
+    if (/[\u4e00-\u9fff]/.test(text)) return "zh"; // Chinese
+    if (/[\u0400-\u04ff]/.test(text)) return "ru"; // Russian
+    if (/[\u0590-\u05ff]/.test(text)) return "he"; // Hebrew
+    if (/[\u0600-\u06ff]/.test(text)) return "ar"; // Arabic
+
     // Default to English
-    return 'en';
+    return "en";
   }
 
   // ─── MEMORY MANAGEMENT ─────────────────────────────────────
@@ -349,13 +360,13 @@ export class PhotoAnalyzer {
         // Models are automatically cleaned up when garbage collected
         this.objectDetectionModel = null;
       }
-      
+
       this.isInitialized = false;
       this.initializationPromise = null;
-      
-      console.log('PhotoAnalyzer: Cleanup completed');
+
+      console.log("PhotoAnalyzer: Cleanup completed");
     } catch (error) {
-      console.error('PhotoAnalyzer: Cleanup failed:', error);
+      console.error("PhotoAnalyzer: Cleanup failed:", error);
     }
   }
 

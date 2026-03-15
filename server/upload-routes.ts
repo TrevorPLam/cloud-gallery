@@ -13,7 +13,11 @@
 
 import { Router, Request, Response } from "express";
 import multer from "multer";
-import { validateFile, sanitizeFilename, getAllowedFileTypes } from "./file-validation";
+import {
+  validateFile,
+  sanitizeFilename,
+  getAllowedFileTypes,
+} from "./file-validation";
 import { authenticateToken } from "./auth";
 import * as fs from "fs";
 import * as path from "path";
@@ -112,7 +116,9 @@ router.post(
       };
 
       // Log successful upload
-      console.log(`File uploaded successfully: ${fileMetadata.originalName} (${fileMetadata.size} bytes) -> ${fileMetadata.uri}`);
+      console.log(
+        `File uploaded successfully: ${fileMetadata.originalName} (${fileMetadata.size} bytes) -> ${fileMetadata.uri}`,
+      );
 
       res.status(201).json({
         message: "File uploaded successfully",
@@ -182,7 +188,9 @@ router.post(
       }
 
       // Log upload results
-      console.log(`Batch upload: ${results.length} successful, ${errors.length} failed`);
+      console.log(
+        `Batch upload: ${results.length} successful, ${errors.length} failed`,
+      );
 
       res.status(201).json({
         message: `Upload completed: ${results.length} successful, ${errors.length} failed`,

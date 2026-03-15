@@ -45,28 +45,28 @@ function setupSecurityHeaders(app: express.Application) {
   // Environment-aware CSP configuration
   const cspDirectives = isDevelopment
     ? {
-      // Development: Relaxed CSP for hot reload and dev tools
-      "default-src": ["'self'"],
-      "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Allow dev tools
-      "style-src": ["'self'", "'unsafe-inline'"],
-      "img-src": ["'self'", "data:", "https:", "http:"], // Allow localhost images
-      "font-src": ["'self'", "data:"],
-      "connect-src": ["'self'", "ws:", "wss:", "http:", "https:"], // Allow hot reload
-      "frame-ancestors": ["'none'"],
-    }
+        // Development: Relaxed CSP for hot reload and dev tools
+        "default-src": ["'self'"],
+        "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Allow dev tools
+        "style-src": ["'self'", "'unsafe-inline'"],
+        "img-src": ["'self'", "data:", "https:", "http:"], // Allow localhost images
+        "font-src": ["'self'", "data:"],
+        "connect-src": ["'self'", "ws:", "wss:", "http:", "https:"], // Allow hot reload
+        "frame-ancestors": ["'none'"],
+      }
     : {
-      // Production: Strict CSP
-      "default-src": ["'self'"],
-      "script-src": ["'self'"],
-      "style-src": ["'self'", "'unsafe-inline'"], // React Native Web needs inline styles
-      "img-src": ["'self'", "data:", "https:"],
-      "font-src": ["'self'", "data:"],
-      "connect-src": ["'self'"],
-      "frame-ancestors": ["'none'"],
-      "base-uri": ["'self'"],
-      "form-action": ["'self'"],
-      "upgrade-insecure-requests": [],
-    };
+        // Production: Strict CSP
+        "default-src": ["'self'"],
+        "script-src": ["'self'"],
+        "style-src": ["'self'", "'unsafe-inline'"], // React Native Web needs inline styles
+        "img-src": ["'self'", "data:", "https:"],
+        "font-src": ["'self'", "data:"],
+        "connect-src": ["'self'"],
+        "frame-ancestors": ["'none'"],
+        "base-uri": ["'self'"],
+        "form-action": ["'self'"],
+        "upgrade-insecure-requests": [],
+      };
 
   app.use(
     securityHeaders({
@@ -122,7 +122,6 @@ function setupCors(app: express.Application) {
   }
 
   app.use((req, res, next) => {
-
     const origin = req.header("origin");
 
     // Strict origin validation - no wildcards when credentials are used

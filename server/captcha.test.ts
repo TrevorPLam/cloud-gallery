@@ -51,10 +51,10 @@ describe("CAPTCHA System", () => {
 
   it("should reject expired CAPTCHA", () => {
     const challenge = generateCaptcha();
-    
+
     // Mock the expiration time to be in the past
     challenge.expiresAt = Date.now() - 1000;
-    
+
     const isValid = verifyCaptcha(challenge.id, challenge.answer);
 
     expect(isValid).toBe(false);
@@ -66,8 +66,8 @@ describe("CAPTCHA System", () => {
       challenges.push(generateCaptcha());
     }
 
-    const hasAddition = challenges.some(c => c.question.includes("+"));
-    const hasSubtraction = challenges.some(c => c.question.includes("-"));
+    const hasAddition = challenges.some((c) => c.question.includes("+"));
+    const hasSubtraction = challenges.some((c) => c.question.includes("-"));
 
     expect(hasAddition).toBe(true);
     expect(hasSubtraction).toBe(true);
@@ -79,8 +79,10 @@ describe("CAPTCHA System", () => {
       challenges.push(generateCaptcha());
     }
 
-    const subtractionChallenges = challenges.filter(c => c.question.includes("-"));
-    
+    const subtractionChallenges = challenges.filter((c) =>
+      c.question.includes("-"),
+    );
+
     for (const challenge of subtractionChallenges) {
       // Extract numbers from the question
       const matches = challenge.question.match(/(\d+) - (\d+)/);
@@ -88,7 +90,7 @@ describe("CAPTCHA System", () => {
         const num1 = parseInt(matches[1]);
         const num2 = parseInt(matches[2]);
         const result = num1 - num2;
-        
+
         // Result should match the answer and be non-negative
         expect(result).toBe(challenge.answer);
         expect(result).toBeGreaterThanOrEqual(0);
@@ -98,11 +100,11 @@ describe("CAPTCHA System", () => {
 
   it("should not allow reuse of CAPTCHA", () => {
     const challenge = generateCaptcha();
-    
+
     // First verification should succeed
     const firstAttempt = verifyCaptcha(challenge.id, challenge.answer);
     expect(firstAttempt).toBe(true);
-    
+
     // Second verification should fail
     const secondAttempt = verifyCaptcha(challenge.id, challenge.answer);
     expect(secondAttempt).toBe(false);

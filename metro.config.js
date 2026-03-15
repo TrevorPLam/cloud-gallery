@@ -1,8 +1,8 @@
-const { getDefaultConfig } = require('expo/metro-config');
+const { getDefaultConfig } = require("expo/metro-config");
 
 const config = getDefaultConfig(__dirname);
 
 // Add support for .tflite model files
-config.resolver.assetExts.push('tflite');
+config.resolver.assetExts.push("tflite");
 
 module.exports = config;

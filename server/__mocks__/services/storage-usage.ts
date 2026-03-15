@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { vi } from "vitest";
 
 export const storageUsageService = {
   getStorageBreakdown: vi.fn().mockResolvedValue({
@@ -6,8 +6,20 @@ export const storageUsageService = {
     totalItemCount: 50,
     storageLimit: 5000000,
     categories: [
-      { category: 'photos', bytesUsed: 800000, itemCount: 40, percentage: 80, calculatedAt: new Date() },
-      { category: 'videos', bytesUsed: 200000, itemCount: 10, percentage: 20, calculatedAt: new Date() },
+      {
+        category: "photos",
+        bytesUsed: 800000,
+        itemCount: 40,
+        percentage: 80,
+        calculatedAt: new Date(),
+      },
+      {
+        category: "videos",
+        bytesUsed: 200000,
+        itemCount: 10,
+        percentage: 20,
+        calculatedAt: new Date(),
+      },
     ],
     largeFiles: [],
     compressionStats: {
@@ -31,8 +43,8 @@ export const storageUsageService = {
     totalFreed: 0,
   }),
   updateStorageUsage: vi.fn().mockResolvedValue(undefined),
-  getFilesForCleanup: vi.fn().mockResolvedValue(['photo1', 'photo2', 'photo3']),
-  getCompressionCandidates: vi.fn().mockResolvedValue(['photo1', 'photo2']),
+  getFilesForCleanup: vi.fn().mockResolvedValue(["photo1", "photo2", "photo3"]),
+  getCompressionCandidates: vi.fn().mockResolvedValue(["photo1", "photo2"]),
 };
 
 export const StorageUsageService = vi.fn();

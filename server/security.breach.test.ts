@@ -96,7 +96,9 @@ describe("Password Breach Checking", () => {
     const url = fetchCall[0];
 
     // Verify that only the prefix (first 5 chars) is sent
-    expect(url).toMatch(/^https:\/\/api\.pwnedpasswords\.com\/range\/[A-F0-9]{5}$/);
+    expect(url).toMatch(
+      /^https:\/\/api\.pwnedpasswords\.com\/range\/[A-F0-9]{5}$/,
+    );
     expect(url).not.toContain("TestPassword");
   });
 });

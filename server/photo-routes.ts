@@ -14,7 +14,11 @@ import { db } from "./db";
 import { photos, insertPhotoSchema } from "../shared/schema";
 import { eq, and, desc, isNull, isNotNull } from "drizzle-orm";
 import { authenticateToken } from "./auth";
-import { processMLAnalysis, updatePhotoWithMLResults, AnalysisType } from "./ml-routes";
+import {
+  processMLAnalysis,
+  updatePhotoWithMLResults,
+  AnalysisType,
+} from "./ml-routes";
 import { updateDuplicateGroups } from "./services/duplicate-detection";
 import { faceRecognitionService } from "./services/face-recognition";
 
@@ -59,8 +63,8 @@ router.get("/", async (req: Request, res: Response) => {
           and(
             eq(photos.userId, userId),
             eq(photos.isFavorite, true),
-            isNull(photos.deletedAt)
-          )
+            isNull(photos.deletedAt),
+          ),
         )
         .orderBy(desc(photos.createdAt))
         .limit(limit)
@@ -138,7 +142,11 @@ router.post("/", async (req: Request, res: Response) => {
     // Trigger ML analysis asynchronously
     // Don't wait for it to complete to avoid blocking the upload response
     triggerMLAnalysis(newPhoto.id, userId).catch((error: Error) => {
-      console.error("Failed to trigger ML analysis for photo:", newPhoto.id, error);
+      console.error(
+        "Failed to trigger ML analysis for photo:",
+        newPhoto.id,
+        error,
+      );
     });
 
     res.status(201).json({ photo: newPhoto });
@@ -250,7 +258,6 @@ router.put("/:id/favorite", async (req: Request, res: Response) => {
   }
 });
 
-
 // ═══════════════════════════════════════════════════════════
 // GET /api/photos/trash - Get deleted photos
 // ═══════════════════════════════════════════════════════════
@@ -352,11 +359,19 @@ router.delete("/:id", async (req: Request, res: Response) => {
     const existingPhoto = await db
       .select()
       .from(photos)
-      .where(and(eq(photos.id, photoId), eq(photos.userId, userId), isNull(photos.deletedAt))) // Only soft delete if not already deleted
+      .where(
+        and(
+          eq(photos.id, photoId),
+          eq(photos.userId, userId),
+          isNull(photos.deletedAt),
+        ),
+      ) // Only soft delete if not already deleted
       .limit(1);
 
     if (existingPhoto.length === 0) {
-      return res.status(404).json({ error: "Photo not found or already deleted" });
+      return res
+        .status(404)
+        .json({ error: "Photo not found or already deleted" });
     }
 
     // Soft delete photo
@@ -385,18 +400,25 @@ router.delete("/:id", async (req: Request, res: Response) => {
  * Trigger ML analysis for a newly uploaded photo
  * This function calls the ML analysis functions directly
  */
-async function triggerMLAnalysis(photoId: string, userId: string): Promise<void> {
+async function triggerMLAnalysis(
+  photoId: string,
+  userId: string,
+): Promise<void> {
   try {
     // Create ML analysis request
     const analysisRequest = {
       photoId,
       userId,
-      analysisTypes: [AnalysisType.OBJECT_DETECTION, AnalysisType.OCR, AnalysisType.PERCEPTUAL_HASH],
+      analysisTypes: [
+        AnalysisType.OBJECT_DETECTION,
+        AnalysisType.OCR,
+        AnalysisType.PERCEPTUAL_HASH,
+      ],
     };
 
     // Process ML analysis
     const result = await processMLAnalysis(analysisRequest);
-    
+
     // Update photo with ML results
     await updatePhotoWithMLResults(photoId, result);
 
@@ -405,12 +427,19 @@ async function triggerMLAnalysis(photoId: string, userId: string): Promise<void>
 
     // Trigger face detection asynchronously (don't block upload)
     triggerFaceDetection(photoId, userId).catch((error: Error) => {
-      console.error('Failed to trigger face detection for photo:', photoId, error);
+      console.error(
+        "Failed to trigger face detection for photo:",
+        photoId,
+        error,
+      );
     });
 
-    console.log('ML analysis and duplicate detection completed successfully for photo:', photoId);
+    console.log(
+      "ML analysis and duplicate detection completed successfully for photo:",
+      photoId,
+    );
   } catch (error) {
-    console.error('Error in ML analysis:', error);
+    console.error("Error in ML analysis:", error);
     // Don't throw error to avoid failing the entire upload process
     // ML analysis can be retried later
   }
@@ -420,24 +449,26 @@ async function triggerMLAnalysis(photoId: string, userId: string): Promise<void>
  * Trigger face detection for a photo
  * This runs asynchronously after photo upload and ML analysis
  */
-async function triggerFaceDetection(photoId: string, userId: string): Promise<void> {
+async function triggerFaceDetection(
+  photoId: string,
+  userId: string,
+): Promise<void> {
   try {
     // In a real implementation, you would:
     // 1. Fetch the image file from storage
     // 2. Convert to buffer
     // 3. Run face detection
     // 4. Store detected faces
-    
+
     // For now, just call the face detection API to trigger the process
     // This would be implemented with actual model integration
-    console.log('Face detection triggered for photo:', photoId);
-    
+    console.log("Face detection triggered for photo:", photoId);
+
     // Placeholder for actual face detection implementation
     // const detectedFaces = await faceRecognitionService.detectFaces(photoId, imageBuffer);
     // console.log(`Detected ${detectedFaces.length} faces in photo: ${photoId}`);
-    
   } catch (error) {
-    console.error('Error in face detection:', error);
+    console.error("Error in face detection:", error);
     // Don't throw - face detection is non-critical background processing
   }
 }

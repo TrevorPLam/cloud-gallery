@@ -11,7 +11,12 @@
 // Database encryption utilities for Cloud Gallery
 // Provides field-level encryption for sensitive data
 
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "crypto";
+import {
+  createCipheriv,
+  createDecipheriv,
+  randomBytes,
+  scryptSync,
+} from "crypto";
 import { SECURITY_CONFIG } from "./security";
 
 /**
@@ -21,7 +26,7 @@ const DB_ENCRYPTION_CONFIG = {
   // Key derivation
   SALT: process.env.DB_ENCRYPTION_SALT || "default-salt-change-in-production",
   KEY_LENGTH: 32, // 256 bits for AES-256
-  
+
   // Encryption
   ALGORITHM: "aes-256-gcm",
   IV_LENGTH: 16, // 128 bits for AES-GCM
@@ -32,8 +37,13 @@ const DB_ENCRYPTION_CONFIG = {
  * Derive encryption key from master password and salt
  */
 function deriveEncryptionKey(): Buffer {
-  const masterPassword = process.env.DB_ENCRYPTION_KEY || "default-key-change-in-production";
-  return scryptSync(masterPassword, DB_ENCRYPTION_CONFIG.SALT, DB_ENCRYPTION_CONFIG.KEY_LENGTH);
+  const masterPassword =
+    process.env.DB_ENCRYPTION_KEY || "default-key-change-in-production";
+  return scryptSync(
+    masterPassword,
+    DB_ENCRYPTION_CONFIG.SALT,
+    DB_ENCRYPTION_CONFIG.KEY_LENGTH,
+  );
 }
 
 /**
@@ -48,25 +58,25 @@ function deriveEncryptionKey(): Buffer {
  */
 export function encryptField(plaintext: string): string {
   if (!plaintext) return plaintext;
-  
+
   try {
     const key = deriveEncryptionKey();
     const iv = randomBytes(DB_ENCRYPTION_CONFIG.IV_LENGTH);
-    
+
     const cipher = createCipheriv(DB_ENCRYPTION_CONFIG.ALGORITHM, key, iv);
-    
+
     let encrypted = cipher.update(plaintext, "utf8", "hex");
     encrypted += cipher.final("hex");
-    
+
     const tag = cipher.getAuthTag();
-    
+
     // Combine IV, encrypted data, and tag
     const result = {
       iv: iv.toString("hex"),
       data: encrypted,
       tag: tag.toString("hex"),
     };
-    
+
     return JSON.stringify(result);
   } catch (error) {
     console.error("Encryption error:", error);
@@ -85,7 +95,7 @@ export function encryptField(plaintext: string): string {
  */
 export function decryptField(encryptedData: string): string {
   if (!encryptedData) return encryptedData;
-  
+
   try {
     // Check if data is encrypted (JSON format)
     let parsed;
@@ -95,22 +105,22 @@ export function decryptField(encryptedData: string): string {
       // Not encrypted, return as-is
       return encryptedData;
     }
-    
+
     if (!parsed.iv || !parsed.data || !parsed.tag) {
       // Not properly encrypted, return as-is
       return encryptedData;
     }
-    
+
     const key = deriveEncryptionKey();
     const iv = Buffer.from(parsed.iv, "hex");
     const tag = Buffer.from(parsed.tag, "hex");
-    
+
     const decipher = createDecipheriv(DB_ENCRYPTION_CONFIG.ALGORITHM, key, iv);
     decipher.setAuthTag(tag);
-    
+
     let decrypted = decipher.update(parsed.data, "hex", "utf8");
     decrypted += decipher.final("utf8");
-    
+
     return decrypted;
   } catch (error) {
     console.error("Decryption error:", error);
@@ -126,7 +136,7 @@ export function decryptField(encryptedData: string): string {
  */
 export function isEncrypted(value: string): boolean {
   if (!value) return false;
-  
+
   try {
     const parsed = JSON.parse(value);
     return !!(parsed.iv && parsed.data && parsed.tag);
@@ -143,13 +153,13 @@ export function encryptSensitiveFields<T extends Record<string, any>>(
   sensitiveFields: (keyof T)[],
 ): T {
   const encrypted = { ...data };
-  
+
   for (const field of sensitiveFields) {
     if (encrypted[field] && typeof encrypted[field] === "string") {
       encrypted[field] = encryptField(encrypted[field]);
     }
   }
-  
+
   return encrypted;
 }
 
@@ -161,7 +171,7 @@ export function decryptSensitiveFields<T extends Record<string, any>>(
   sensitiveFields: (keyof T)[],
 ): T {
   const decrypted = { ...data };
-  
+
   for (const field of sensitiveFields) {
     if (decrypted[field] && typeof decrypted[field] === "string") {
       try {
@@ -172,7 +182,7 @@ export function decryptSensitiveFields<T extends Record<string, any>>(
       }
     }
   }
-  
+
   return decrypted;
 }
 
@@ -192,19 +202,25 @@ export function validateEncryptionConfig(): {
   warnings: string[];
 } {
   const warnings: string[] = [];
-  
+
   if (!process.env.DB_ENCRYPTION_KEY) {
-    warnings.push("DB_ENCRYPTION_KEY not set, using default (insecure for production)");
+    warnings.push(
+      "DB_ENCRYPTION_KEY not set, using default (insecure for production)",
+    );
   }
-  
+
   if (!process.env.DB_ENCRYPTION_SALT) {
-    warnings.push("DB_ENCRYPTION_SALT not set, using default (insecure for production)");
+    warnings.push(
+      "DB_ENCRYPTION_SALT not set, using default (insecure for production)",
+    );
   }
-  
+
   if (process.env.DB_ENCRYPTION_KEY === "default-key-change-in-production") {
-    warnings.push("Using default encryption key - please set a secure key for production");
+    warnings.push(
+      "Using default encryption key - please set a secure key for production",
+    );
   }
-  
+
   return {
     isValid: warnings.length === 0,
     warnings,

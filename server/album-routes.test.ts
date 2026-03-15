@@ -10,7 +10,7 @@
 
 /**
  * Album Routes Unit Tests
- * 
+ *
  * Tests all album CRUD operations and photo management:
  * - Album creation (POST /api/albums)
  * - Album listing (GET /api/albums)
@@ -20,7 +20,7 @@
  * - Photo addition (POST /api/albums/:id/photos)
  * - Photo removal (DELETE /api/albums/:id/photos/:photoId)
  * - Authorization checks (user ownership validation)
- * 
+ *
  * Validates Requirements: 6.2, 6.3, 6.4, 6.5
  */
 
@@ -54,7 +54,7 @@ function rewireMockDb() {
       execute: vi.fn().mockReturnValue(Promise.resolve([...mockAlbums])),
     }),
   });
-  
+
   mockDb.insert.mockReturnValue({
     values: vi.fn().mockReturnValue({
       returning: vi.fn().mockImplementation((data) => {
@@ -69,7 +69,7 @@ function rewireMockDb() {
       }),
     }),
   });
-  
+
   mockDb.update.mockReturnValue({
     set: vi.fn().mockReturnValue({
       where: vi.fn().mockReturnValue({
@@ -78,7 +78,7 @@ function rewireMockDb() {
       }),
     }),
   });
-  
+
   mockDb.delete.mockReturnValue({
     where: vi.fn().mockReturnValue({
       execute: vi.fn().mockResolvedValue(undefined),
@@ -87,12 +87,12 @@ function rewireMockDb() {
 }
 
 // Mock jsonwebtoken to prevent JWT verification errors
-vi.mock('jsonwebtoken', () => ({
+vi.mock("jsonwebtoken", () => ({
   default: {
     sign: vi.fn((payload, secret) => `mock_token_${JSON.stringify(payload)}`),
     verify: vi.fn((token, secret) => {
       // Parse the mock token to extract payload
-      if (token.startsWith('mock_token_')) {
+      if (token.startsWith("mock_token_")) {
         return JSON.parse(token.slice(11));
       }
       // For specific test tokens, return corresponding users
@@ -108,7 +108,7 @@ vi.mock('jsonwebtoken', () => ({
 }));
 
 // Mock security module to bypass JWT verification
-vi.mock('./security', () => ({
+vi.mock("./security", () => ({
   verifyAccessToken: vi.fn((token) => {
     if (token === "valid-token") {
       return { id: "user123", email: "test@example.com" };
@@ -117,8 +117,8 @@ vi.mock('./security', () => ({
     }
     return { id: "user123", email: "test@example.com" };
   }),
-  generateAccessToken: vi.fn(() => 'mock_access_token'),
-  JWT_SECRET: 'test_secret',
+  generateAccessToken: vi.fn(() => "mock_access_token"),
+  JWT_SECRET: "test_secret",
 }));
 
 // Mock database module using module-scope mockDb
@@ -167,7 +167,7 @@ vi.mock("./auth", () => ({
     } else if (token === "other-user-token") {
       req.user = { id: "user456", email: "other@example.com" };
       next();
-    } else if (token && token.startsWith('mock_token_')) {
+    } else if (token && token.startsWith("mock_token_")) {
       // Parse mock token
       try {
         const payload = JSON.parse(token.slice(11));
@@ -234,7 +234,7 @@ describe("Album Routes", () => {
           coverPhotoUri: null,
           createdAt: new Date("2024-01-02"),
           modifiedAt: new Date("2024-01-02"),
-        }
+        },
       );
 
       const response = await request(app)
@@ -260,9 +260,7 @@ describe("Album Routes", () => {
     });
 
     it("should reject request without authentication", async () => {
-      const response = await request(app)
-        .get("/api/albums")
-        .expect(401);
+      const response = await request(app).get("/api/albums").expect(401);
 
       expect(response.body).toMatchObject({
         error: "User not authenticated",
@@ -291,7 +289,7 @@ describe("Album Routes", () => {
       mockAlbumPhotos.push(
         { albumId: "album1", photoId: "photo1", position: 0 },
         { albumId: "album1", photoId: "photo2", position: 1 },
-        { albumId: "album1", photoId: "photo3", position: 2 }
+        { albumId: "album1", photoId: "photo3", position: 2 },
       );
 
       const response = await request(app)
@@ -338,9 +336,7 @@ describe("Album Routes", () => {
     });
 
     it("should reject request without authentication", async () => {
-      const response = await request(app)
-        .get("/api/albums/album1")
-        .expect(401);
+      const response = await request(app).get("/api/albums/album1").expect(401);
 
       expect(response.body).toMatchObject({
         error: "User not authenticated",
@@ -644,9 +640,11 @@ describe("Album Routes", () => {
       });
 
       // Setup existing album photos (for position calculation)
-      mockAlbumPhotos.push(
-        { albumId: "album1", photoId: "photo0", position: 0 }
-      );
+      mockAlbumPhotos.push({
+        albumId: "album1",
+        photoId: "photo0",
+        position: 0,
+      });
 
       const response = await request(app)
         .post("/api/albums/album1/photos")

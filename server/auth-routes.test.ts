@@ -4,7 +4,6 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import request from "supertest";
 import express from "express";
 
-
 // Mock the security functions
 vi.mock("./security", () => ({
   hashPassword: vi

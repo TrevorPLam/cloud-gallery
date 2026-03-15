@@ -64,10 +64,10 @@ export default function PhotoDetailScreen() {
 
   // Fetch photos using React Query
   const { data: photos = [] } = useQuery<Photo[]>({
-    queryKey: isTrash ? ['trash-photos'] : ['photos'],
+    queryKey: isTrash ? ["trash-photos"] : ["photos"],
     queryFn: async () => {
-      const endpoint = isTrash ? '/api/photos/user/trash' : '/api/photos';
-      const res = await apiRequest('GET', endpoint);
+      const endpoint = isTrash ? "/api/photos/user/trash" : "/api/photos";
+      const res = await apiRequest("GET", endpoint);
       const data = await res.json();
       return data.photos;
     },
@@ -81,116 +81,152 @@ export default function PhotoDetailScreen() {
 
   // Mutation for favorite toggle
   const toggleFavoriteMutation = useMutation({
-    mutationFn: async ({ photoId, isFavorite }: { photoId: string; isFavorite: boolean }) => {
-      const res = await apiRequest('PUT', `/api/photos/${photoId}`, { isFavorite });
+    mutationFn: async ({
+      photoId,
+      isFavorite,
+    }: {
+      photoId: string;
+      isFavorite: boolean;
+    }) => {
+      const res = await apiRequest("PUT", `/api/photos/${photoId}`, {
+        isFavorite,
+      });
       return res.json();
     },
     onMutate: async ({ photoId, isFavorite }) => {
-      await queryClient.cancelQueries({ queryKey: ['photos'] });
-      const previousPhotos = queryClient.getQueryData(['photos']);
+      await queryClient.cancelQueries({ queryKey: ["photos"] });
+      const previousPhotos = queryClient.getQueryData(["photos"]);
 
       // Optimistic update
-      queryClient.setQueryData(['photos'], (old: Photo[] = []) =>
-        old.map(photo =>
-          photo.id === photoId ? { ...photo, isFavorite, modifiedAt: Date.now() } : photo
-        )
+      queryClient.setQueryData(["photos"], (old: Photo[] = []) =>
+        old.map((photo) =>
+          photo.id === photoId
+            ? { ...photo, isFavorite, modifiedAt: Date.now() }
+            : photo,
+        ),
       );
 
       return { previousPhotos };
     },
     onError: (err, variables, context) => {
       if (context?.previousPhotos) {
-        queryClient.setQueryData(['photos'], context.previousPhotos);
+        queryClient.setQueryData(["photos"], context.previousPhotos);
       }
-      console.error('Failed to toggle favorite:', err);
+      console.error("Failed to toggle favorite:", err);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['photos'] });
+      queryClient.invalidateQueries({ queryKey: ["photos"] });
     },
   });
 
   // Mutation for tags update
   const updateTagsMutation = useMutation({
-    mutationFn: async ({ photoId, tags }: { photoId: string; tags: string[] }) => {
-      const res = await apiRequest('PUT', `/api/photos/${photoId}`, { tags });
+    mutationFn: async ({
+      photoId,
+      tags,
+    }: {
+      photoId: string;
+      tags: string[];
+    }) => {
+      const res = await apiRequest("PUT", `/api/photos/${photoId}`, { tags });
       return res.json();
     },
     onMutate: async ({ photoId, tags }) => {
-      await queryClient.cancelQueries({ queryKey: ['photos'] });
-      const previousPhotos = queryClient.getQueryData(['photos']);
+      await queryClient.cancelQueries({ queryKey: ["photos"] });
+      const previousPhotos = queryClient.getQueryData(["photos"]);
 
-      queryClient.setQueryData(['photos'], (old: Photo[] = []) =>
-        old.map(photo =>
-          photo.id === photoId ? { ...photo, tags, modifiedAt: Date.now() } : photo
-        )
+      queryClient.setQueryData(["photos"], (old: Photo[] = []) =>
+        old.map((photo) =>
+          photo.id === photoId
+            ? { ...photo, tags, modifiedAt: Date.now() }
+            : photo,
+        ),
       );
 
       return { previousPhotos };
     },
     onError: (err, variables, context) => {
       if (context?.previousPhotos) {
-        queryClient.setQueryData(['photos'], context.previousPhotos);
+        queryClient.setQueryData(["photos"], context.previousPhotos);
       }
-      console.error('Failed to update tags:', err);
+      console.error("Failed to update tags:", err);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['photos'] });
+      queryClient.invalidateQueries({ queryKey: ["photos"] });
     },
   });
 
   // Mutation for ML labels update
   const updateMlLabelsMutation = useMutation({
-    mutationFn: async ({ photoId, mlLabels }: { photoId: string; mlLabels: string[] }) => {
-      const res = await apiRequest('PUT', `/api/photos/${photoId}`, { mlLabels });
+    mutationFn: async ({
+      photoId,
+      mlLabels,
+    }: {
+      photoId: string;
+      mlLabels: string[];
+    }) => {
+      const res = await apiRequest("PUT", `/api/photos/${photoId}`, {
+        mlLabels,
+      });
       return res.json();
     },
     onMutate: async ({ photoId, mlLabels }) => {
-      await queryClient.cancelQueries({ queryKey: ['photos'] });
-      const previousPhotos = queryClient.getQueryData(['photos']);
+      await queryClient.cancelQueries({ queryKey: ["photos"] });
+      const previousPhotos = queryClient.getQueryData(["photos"]);
 
-      queryClient.setQueryData(['photos'], (old: Photo[] = []) =>
-        old.map(photo =>
-          photo.id === photoId ? { ...photo, mlLabels, modifiedAt: Date.now() } : photo
-        )
+      queryClient.setQueryData(["photos"], (old: Photo[] = []) =>
+        old.map((photo) =>
+          photo.id === photoId
+            ? { ...photo, mlLabels, modifiedAt: Date.now() }
+            : photo,
+        ),
       );
 
       return { previousPhotos };
     },
     onError: (err, variables, context) => {
       if (context?.previousPhotos) {
-        queryClient.setQueryData(['photos'], context.previousPhotos);
+        queryClient.setQueryData(["photos"], context.previousPhotos);
       }
-      console.error('Failed to update ML labels:', err);
+      console.error("Failed to update ML labels:", err);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['photos'] });
+      queryClient.invalidateQueries({ queryKey: ["photos"] });
     },
   });
   const updateNotesMutation = useMutation({
-    mutationFn: async ({ photoId, notes }: { photoId: string; notes: string }) => {
-      const res = await apiRequest('PUT', `/api/photos/${photoId}`, { notes });
+    mutationFn: async ({
+      photoId,
+      notes,
+    }: {
+      photoId: string;
+      notes: string;
+    }) => {
+      const res = await apiRequest("PUT", `/api/photos/${photoId}`, { notes });
       return res.json();
     },
     onMutate: async ({ photoId, notes }) => {
-      await queryClient.cancelQueries({ queryKey: ['photos'] });
-      const previousPhotos = queryClient.getQueryData(['photos']);
+      await queryClient.cancelQueries({ queryKey: ["photos"] });
+      const previousPhotos = queryClient.getQueryData(["photos"]);
 
-      queryClient.setQueryData(['photos'], (old: Photo[] = []) =>
-        old.map(photo =>
-          photo.id === photoId ? { ...photo, notes, modifiedAt: Date.now() } : photo
-        )
+      queryClient.setQueryData(["photos"], (old: Photo[] = []) =>
+        old.map((photo) =>
+          photo.id === photoId
+            ? { ...photo, notes, modifiedAt: Date.now() }
+            : photo,
+        ),
       );
 
       return { previousPhotos };
     },
     onError: (err, variables, context) => {
       if (context?.previousPhotos) {
-        queryClient.setQueryData(['photos'], context.previousPhotos);
+        queryClient.setQueryData(["photos"], context.previousPhotos);
       }
-      console.error('Failed to update notes:', err);
+      console.error("Failed to update notes:", err);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['photos'] });
+      queryClient.invalidateQueries({ queryKey: ["photos"] });
     },
   });
 
@@ -206,33 +242,39 @@ export default function PhotoDetailScreen() {
    * Debounced tags update handler
    * Waits 500ms after last change before sending to server
    */
-  const handleTagsUpdate = useCallback((photoId: string, tags: string[]) => {
-    // Clear existing timer
-    if (tagsDebounceTimer.current) {
-      clearTimeout(tagsDebounceTimer.current);
-    }
+  const handleTagsUpdate = useCallback(
+    (photoId: string, tags: string[]) => {
+      // Clear existing timer
+      if (tagsDebounceTimer.current) {
+        clearTimeout(tagsDebounceTimer.current);
+      }
 
-    // Set new timer
-    tagsDebounceTimer.current = setTimeout(() => {
-      updateTagsMutation.mutate({ photoId, tags });
-    }, 500);
-  }, [updateTagsMutation]);
+      // Set new timer
+      tagsDebounceTimer.current = setTimeout(() => {
+        updateTagsMutation.mutate({ photoId, tags });
+      }, 500);
+    },
+    [updateTagsMutation],
+  );
 
   /**
    * Debounced notes update handler
    * Waits 500ms after last change before sending to server
    */
-  const handleNotesUpdate = useCallback((photoId: string, notes: string) => {
-    // Clear existing timer
-    if (notesDebounceTimer.current) {
-      clearTimeout(notesDebounceTimer.current);
-    }
+  const handleNotesUpdate = useCallback(
+    (photoId: string, notes: string) => {
+      // Clear existing timer
+      if (notesDebounceTimer.current) {
+        clearTimeout(notesDebounceTimer.current);
+      }
 
-    // Set new timer
-    notesDebounceTimer.current = setTimeout(() => {
-      updateNotesMutation.mutate({ photoId, notes });
-    }, 500);
-  }, [updateNotesMutation]);
+      // Set new timer
+      notesDebounceTimer.current = setTimeout(() => {
+        updateNotesMutation.mutate({ photoId, notes });
+      }, 500);
+    },
+    [updateNotesMutation],
+  );
 
   // Cleanup timers on unmount
   useEffect(() => {
@@ -254,43 +296,43 @@ export default function PhotoDetailScreen() {
   const deletePhotoMutation = useMutation({
     // Requirement 5.1: Send DELETE /api/photos/:id to the Server
     mutationFn: async (photoId: string) => {
-      const res = await apiRequest('DELETE', `/api/photos/${photoId}`);
+      const res = await apiRequest("DELETE", `/api/photos/${photoId}`);
       return res.json();
     },
     // Requirement 5.2: Remove photo from UI immediately (Optimistic_Update)
     onMutate: async (photoId) => {
-      await queryClient.cancelQueries({ queryKey: ['photos'] });
-      const previousPhotos = queryClient.getQueryData(['photos']);
+      await queryClient.cancelQueries({ queryKey: ["photos"] });
+      const previousPhotos = queryClient.getQueryData(["photos"]);
 
       // Optimistic deletion - remove from UI immediately
-      queryClient.setQueryData(['photos'], (old: Photo[] = []) =>
-        old.filter(photo => photo.id !== photoId)
+      queryClient.setQueryData(["photos"], (old: Photo[] = []) =>
+        old.filter((photo) => photo.id !== photoId),
       );
 
       return { previousPhotos };
     },
     onError: (err, photoId, context) => {
       if (context?.previousPhotos) {
-        queryClient.setQueryData(['photos'], context.previousPhotos);
+        queryClient.setQueryData(["photos"], context.previousPhotos);
       }
-      console.error('Failed to delete photo:', err);
+      console.error("Failed to delete photo:", err);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['photos'] });
-      queryClient.invalidateQueries({ queryKey: ['albums'] });
+      queryClient.invalidateQueries({ queryKey: ["photos"] });
+      queryClient.invalidateQueries({ queryKey: ["albums"] });
       // Also invalidate trash
-      queryClient.invalidateQueries({ queryKey: ['trash-photos'] });
+      queryClient.invalidateQueries({ queryKey: ["trash-photos"] });
     },
   });
 
   const restorePhotoMutation = useMutation({
     mutationFn: async (photoId: string) => {
-      const res = await apiRequest('PUT', `/api/photos/${photoId}/restore`);
+      const res = await apiRequest("PUT", `/api/photos/${photoId}/restore`);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['photos'] });
-      queryClient.invalidateQueries({ queryKey: ['trash-photos'] });
+      queryClient.invalidateQueries({ queryKey: ["photos"] });
+      queryClient.invalidateQueries({ queryKey: ["trash-photos"] });
 
       // Navigate back if only one photo (or remove from list logic below)
       if (photos.length === 1) {
@@ -303,17 +345,20 @@ export default function PhotoDetailScreen() {
         // Similar logic to delete.
         // But we need to update state.
       }
-    }
+    },
   });
 
   const permanentDeleteMutation = useMutation({
     mutationFn: async (photoId: string) => {
-      const res = await apiRequest('DELETE', `/api/photos/${photoId}/permanent`);
+      const res = await apiRequest(
+        "DELETE",
+        `/api/photos/${photoId}/permanent`,
+      );
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['trash-photos'] });
-    }
+      queryClient.invalidateQueries({ queryKey: ["trash-photos"] });
+    },
   });
 
   const handleRestore = () => {
@@ -324,7 +369,7 @@ export default function PhotoDetailScreen() {
     if (photos.length === 1) {
       navigation.goBack();
     } else {
-      // Optimistic removed from list? 
+      // Optimistic removed from list?
       // For now rely on invalidate. But we need to update index if item disappears.
       // Actually, if we invalidate, the data changes, re-render happens.
       // But FlashList needs care.
@@ -335,30 +380,28 @@ export default function PhotoDetailScreen() {
     if (!currentPhoto) return;
 
     if (Platform.OS === "web") {
-      if (window.confirm("Permanently delete this photo? This cannot be undone.")) {
+      if (
+        window.confirm("Permanently delete this photo? This cannot be undone.")
+      ) {
         permanentDeleteMutation.mutate(currentPhoto.id);
         if (photos.length === 1) {
           navigation.goBack();
         }
       }
     } else {
-      Alert.alert(
-        "Delete Permanently",
-        "This cannot be undone.",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Delete",
-            style: "destructive",
-            onPress: () => {
-              permanentDeleteMutation.mutate(currentPhoto.id);
-              if (photos.length === 1) {
-                navigation.goBack();
-              }
+      Alert.alert("Delete Permanently", "This cannot be undone.", [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            permanentDeleteMutation.mutate(currentPhoto.id);
+            if (photos.length === 1) {
+              navigation.goBack();
             }
-          }
-        ]
-      );
+          },
+        },
+      ]);
     }
   };
 
@@ -416,7 +459,9 @@ export default function PhotoDetailScreen() {
 
     // Requirement 5.5: Show confirmation dialog before proceeding
     if (Platform.OS === "web") {
-      const confirmed = window.confirm("Are you sure you want to delete this photo? This action cannot be undone.");
+      const confirmed = window.confirm(
+        "Are you sure you want to delete this photo? This action cannot be undone.",
+      );
       if (!confirmed) return;
       performDelete();
     } else {
@@ -434,23 +479,31 @@ export default function PhotoDetailScreen() {
             style: "destructive",
             onPress: performDelete,
           },
-        ]
+        ],
       );
     }
   };
 
-  const handleValidation = useCallback((tags: string[], notes: string, mlLabels?: string[]) => {
-    if (!currentPhoto) return;
-    // Mutate directly - debouncing handled in component if needed, or we just save immediately on "Save" press
-    // The Editor component calls this on "Save" click, so we want immediate update
-    updateTagsMutation.mutate({ photoId: currentPhoto.id, tags });
-    updateNotesMutation.mutate({ photoId: currentPhoto.id, notes });
-    
-    // Update ML labels if provided
-    if (mlLabels) {
-      updateMlLabelsMutation.mutate({ photoId: currentPhoto.id, mlLabels });
-    }
-  }, [currentPhoto, updateTagsMutation, updateNotesMutation, updateMlLabelsMutation]);
+  const handleValidation = useCallback(
+    (tags: string[], notes: string, mlLabels?: string[]) => {
+      if (!currentPhoto) return;
+      // Mutate directly - debouncing handled in component if needed, or we just save immediately on "Save" press
+      // The Editor component calls this on "Save" click, so we want immediate update
+      updateTagsMutation.mutate({ photoId: currentPhoto.id, tags });
+      updateNotesMutation.mutate({ photoId: currentPhoto.id, notes });
+
+      // Update ML labels if provided
+      if (mlLabels) {
+        updateMlLabelsMutation.mutate({ photoId: currentPhoto.id, mlLabels });
+      }
+    },
+    [
+      currentPhoto,
+      updateTagsMutation,
+      updateNotesMutation,
+      updateMlLabelsMutation,
+    ],
+  );
 
   const toggleControls = () => {
     setShowControls(!showControls);
@@ -549,11 +602,28 @@ export default function PhotoDetailScreen() {
               <>
                 <Pressable onPress={handleRestore} style={styles.footerButton}>
                   <Feather name="refresh-ccw" size={24} color="#FFFFFF" />
-                  <ThemedText type="small" style={{ color: "#FFFFFF", fontSize: 10 }}>Restore</ThemedText>
+                  <ThemedText
+                    type="small"
+                    style={{ color: "#FFFFFF", fontSize: 10 }}
+                  >
+                    Restore
+                  </ThemedText>
                 </Pressable>
-                <Pressable onPress={handlePermanentDelete} style={styles.footerButton}>
-                  <Feather name="trash-2" size={24} color={Colors.light.error} />
-                  <ThemedText type="small" style={{ color: Colors.light.error, fontSize: 10 }}>Delete</ThemedText>
+                <Pressable
+                  onPress={handlePermanentDelete}
+                  style={styles.footerButton}
+                >
+                  <Feather
+                    name="trash-2"
+                    size={24}
+                    color={Colors.light.error}
+                  />
+                  <ThemedText
+                    type="small"
+                    style={{ color: Colors.light.error, fontSize: 10 }}
+                  >
+                    Delete
+                  </ThemedText>
                 </Pressable>
               </>
             ) : (
@@ -586,7 +656,10 @@ export default function PhotoDetailScreen() {
                 <Pressable
                   onPress={() => {
                     if (currentPhoto) {
-                      navigation.navigate("EditPhoto", { photoId: currentPhoto.id, initialUri: currentPhoto.uri });
+                      navigation.navigate("EditPhoto", {
+                        photoId: currentPhoto.id,
+                        initialUri: currentPhoto.uri,
+                      });
                     }
                   }}
                   style={styles.footerButton}
@@ -614,7 +687,10 @@ export default function PhotoDetailScreen() {
           initialNotes={currentPhoto.notes || ""}
           initialMlLabels={currentPhoto.mlLabels || []}
           onMlLabelsUpdate={(mlLabels) => {
-            updateMlLabelsMutation.mutate({ photoId: currentPhoto.id, mlLabels });
+            updateMlLabelsMutation.mutate({
+              photoId: currentPhoto.id,
+              mlLabels,
+            });
           }}
         />
       )}

@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { vi } from "vitest";
 
 export const db = {
   select: vi.fn().mockReturnValue({
@@ -15,9 +15,9 @@ export const db = {
   insert: vi.fn().mockReturnValue({
     values: vi.fn().mockReturnValue({
       returning: vi.fn().mockReturnValue({
-        execute: vi.fn().mockResolvedValue([{ id: 'test-id' }]),
+        execute: vi.fn().mockResolvedValue([{ id: "test-id" }]),
       }),
-      execute: vi.fn().mockResolvedValue([{ id: 'test-id' }]),
+      execute: vi.fn().mockResolvedValue([{ id: "test-id" }]),
     }),
   }),
   update: vi.fn().mockReturnValue({

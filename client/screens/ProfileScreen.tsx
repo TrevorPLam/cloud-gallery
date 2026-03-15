@@ -186,19 +186,19 @@ export default function ProfileScreen() {
           icon={isDark ? "moon" : "sun"}
           title="Appearance"
           subtitle={isDark ? "Dark mode" : "Light mode"}
-          onPress={() => { }}
+          onPress={() => {}}
         />
         <SettingsRow
           icon="bell"
           title="Notifications"
           subtitle="Manage notification settings"
-          onPress={() => { }}
+          onPress={() => {}}
         />
         <SettingsRow
           icon="lock"
           title="Privacy"
           subtitle="Control your data and privacy"
-          onPress={() => { }}
+          onPress={() => {}}
         />
       </View>
 

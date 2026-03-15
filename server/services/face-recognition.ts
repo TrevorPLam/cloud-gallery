@@ -8,9 +8,24 @@
 // TESTS: Property tests for embedding determinism, similarity bounds, cluster stability
 // AI-META-END
 
-import { db } from '../db';
-import { faces, people, photos, insertFaceSchema, insertPersonSchema } from '../../shared/schema';
-import { eq, and, isNull, isNotNull, desc, lte, gte, inArray } from 'drizzle-orm';
+import { db } from "../db";
+import {
+  faces,
+  people,
+  photos,
+  insertFaceSchema,
+  insertPersonSchema,
+} from "../../shared/schema";
+import {
+  eq,
+  and,
+  isNull,
+  isNotNull,
+  desc,
+  lte,
+  gte,
+  inArray,
+} from "drizzle-orm";
 // TensorFlow.js will be added as dependency when models are integrated
 // import * as tf from '@tensorflow/tfjs-node';
 
@@ -98,7 +113,7 @@ class FaceDetectionModel {
   async loadModel(): Promise<void> {
     // Placeholder for actual model loading
     // In production, load MediaPipe BlazeFace or TensorFlow Lite model
-    console.log('Loading face detection model...');
+    console.log("Loading face detection model...");
     this.isLoaded = true;
   }
 
@@ -113,17 +128,28 @@ class FaceDetectionModel {
     // 2. Run face detection model
     // 3. Extract face regions
     // 4. Generate embeddings for each face
-    
+
     // For now, return empty array
     // This will be implemented with actual model integration
     return [];
   }
 
   async generateEmbedding(faceImage: Buffer): Promise<number[]> {
+    // Input validation
+    if (!faceImage || faceImage.length === 0) {
+      throw new Error("Invalid face image: buffer is null or empty");
+    }
+
     // Placeholder for embedding generation
     // In production, this would use FaceNet or ArcFace model
     // Return 128-dimensional embedding vector
     const embedding = new Array(128).fill(0).map(() => Math.random() * 2 - 1);
+
+    // Normalize the embedding to unit vector
+    const norm = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
+    if (norm > 0) {
+      return embedding.map((val) => val / norm);
+    }
     return embedding;
   }
 }
@@ -143,9 +169,9 @@ class DBSCANClusterer {
   /**
    * Calculate cosine similarity between two embedding vectors
    */
-  private cosineSimilarity(a: number[], b: number[]): number {
+  cosineSimilarity(a: number[], b: number[]): number {
     if (a.length !== b.length) {
-      throw new Error('Embedding dimensions must match');
+      throw new Error("Embedding dimensions must match");
     }
 
     let dotProduct = 0;
@@ -153,9 +179,17 @@ class DBSCANClusterer {
     let normB = 0;
 
     for (let i = 0; i < a.length; i++) {
-      dotProduct += a[i] * b[i];
-      normA += a[i] * a[i];
-      normB += b[i] * b[i];
+      const valA = a[i];
+      const valB = b[i];
+
+      // Skip NaN values
+      if (isNaN(valA) || isNaN(valB)) {
+        return 0;
+      }
+
+      dotProduct += valA * valB;
+      normA += valA * valA;
+      normB += valB * valB;
     }
 
     if (normA === 0 || normB === 0) {
@@ -174,10 +208,10 @@ class DBSCANClusterer {
 
     for (let i = 0; i < points.length; i++) {
       if (i === pointIndex) continue;
-      
+
       const similarity = this.cosineSimilarity(point, points[i]);
       const distance = 1 - similarity; // Convert similarity to distance
-      
+
       if (distance <= this.epsilon) {
         neighbors.push(i);
       }
@@ -194,29 +228,38 @@ class DBSCANClusterer {
     labels: number[],
     pointIndex: number,
     clusterId: number,
-    visited: boolean[]
+    visited: boolean[],
   ): boolean {
-    visited[pointIndex] = true;
-    labels[pointIndex] = clusterId;
-
     const neighbors = this.findNeighbors(points, pointIndex);
-    
+
     if (neighbors.length < this.minPts) {
       labels[pointIndex] = -1; // Noise
       return false;
     }
 
-    // Add neighbors to cluster
+    // Mark the initial point as part of the cluster
+    labels[pointIndex] = clusterId;
+
+    // Process all neighbors
+    const seedSet = new Set(neighbors);
+
     for (const neighborIndex of neighbors) {
       if (!visited[neighborIndex]) {
         visited[neighborIndex] = true;
         const neighborNeighbors = this.findNeighbors(points, neighborIndex);
-        
+
         if (neighborNeighbors.length >= this.minPts) {
-          neighbors.push(...neighborNeighbors.filter(n => !neighbors.includes(n)));
+          // Add new neighbors to the seed set
+          for (const n of neighborNeighbors) {
+            if (!seedSet.has(n)) {
+              seedSet.add(n);
+              neighbors.push(n);
+            }
+          }
         }
       }
 
+      // Assign neighbor to cluster if it's noise or unclassified
       if (labels[neighborIndex] === -1 || labels[neighborIndex] === 0) {
         labels[neighborIndex] = clusterId;
       }
@@ -265,21 +308,24 @@ export class FaceRecognitionService {
     this.detectionModel = new FaceDetectionModel();
     this.clusterer = new DBSCANClusterer(
       this.config.clusteringEpsilon,
-      this.config.clusteringMinPts
+      this.config.clusteringMinPts,
     );
   }
 
   /**
    * Detect faces in a photo and generate embeddings
    */
-  async detectFaces(photoId: string, imageBuffer: Buffer): Promise<FaceDetection[]> {
+  async detectFaces(
+    photoId: string,
+    imageBuffer: Buffer,
+  ): Promise<FaceDetection[]> {
     try {
       // Detect faces in the image
       const detections = await this.detectionModel.detectFaces(imageBuffer);
-      
+
       // Filter by confidence threshold
       const validDetections = detections.filter(
-        detection => detection.confidence >= this.config.detectionConfidence
+        (detection) => detection.confidence >= this.config.detectionConfidence,
       );
 
       // Store face detections in database
@@ -297,8 +343,10 @@ export class FaceRecognitionService {
 
       return validDetections;
     } catch (error) {
-      console.error('Error detecting faces:', error);
-      throw new Error(`Face detection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Error detecting faces:", error);
+      throw new Error(
+        `Face detection failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -317,34 +365,32 @@ export class FaceRecognitionService {
         })
         .from(faces)
         .innerJoin(photos, eq(faces.photoId, photos.id))
-        .where(
-          and(
-            eq(photos.userId, userId),
-            isNull(faces.personId)
-          )
-        );
+        .where(and(eq(photos.userId, userId), isNull(faces.personId)));
 
       if (unassignedFaces.length === 0) {
         return [];
       }
 
       // Extract embeddings for clustering (filter out null embeddings)
-      const validFaces = unassignedFaces.filter(face => face.embedding != null);
-      const embeddings = validFaces.map(face => face.embedding!);
-      
+      const validFaces = unassignedFaces.filter(
+        (face) => face.embedding != null,
+      );
+      const embeddings = validFaces.map((face) => face.embedding!);
+
       if (embeddings.length === 0) {
         return [];
       }
-      
+
       // Perform DBSCAN clustering
       const clusterLabels = this.clusterer.cluster(embeddings);
 
       // Group faces by cluster
       const clusters = new Map<number, typeof validFaces>();
-      
+
       for (let i = 0; i < clusterLabels.length; i++) {
         const label = clusterLabels[i];
-        if (label > 0) { // Ignore noise (-1) and unclassified (0)
+        if (label > 0) {
+          // Ignore noise (-1) and unclassified (0)
           if (!clusters.has(label)) {
             clusters.set(label, []);
           }
@@ -354,12 +400,15 @@ export class FaceRecognitionService {
 
       // Create person entries for each cluster
       const personClusters: PersonCluster[] = [];
-      
+
       for (const [clusterId, clusterFaces] of Array.from(clusters.entries())) {
         if (clusterFaces.length >= this.config.clusteringMinPts) {
           // Calculate cluster quality
-          const clusterQuality = this.calculateClusterQuality(clusterFaces, embeddings);
-          
+          const clusterQuality = this.calculateClusterQuality(
+            clusterFaces,
+            embeddings,
+          );
+
           // Create person entry
           const personData = {
             userId,
@@ -369,20 +418,23 @@ export class FaceRecognitionService {
           };
 
           const validatedPerson = insertPersonSchema.parse(personData);
-          const [newPerson] = await db.insert(people).values(validatedPerson).returning();
+          const [newPerson] = await db
+            .insert(people)
+            .values(validatedPerson)
+            .returning();
 
           // Update faces with person ID
           await db
             .update(faces)
-            .set({ 
-              'personId': newPerson.id,
-              'updatedAt': new Date() 
+            .set({
+              personId: newPerson.id,
+              updatedAt: new Date(),
             })
             .where(
               inArray(
                 faces.id,
-                clusterFaces.map(face => face.id)
-              )
+                clusterFaces.map((face) => face.id),
+              ),
             );
 
           personClusters.push({
@@ -392,22 +444,29 @@ export class FaceRecognitionService {
             clusterQuality: newPerson.clusterQuality || 0,
             isPinned: newPerson.isPinned,
             isHidden: newPerson.isHidden,
-            sampleEmbeddings: clusterFaces.slice(0, 3).map((face: any) => face.embedding!),
+            sampleEmbeddings: clusterFaces
+              .slice(0, 3)
+              .map((face: any) => face.embedding!),
           });
         }
       }
 
       return personClusters;
     } catch (error) {
-      console.error('Error clustering faces:', error);
-      throw new Error(`Face clustering failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Error clustering faces:", error);
+      throw new Error(
+        `Face clustering failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
   /**
    * Calculate cluster quality score
    */
-  private calculateClusterQuality(clusterFaces: any[], embeddings: number[][]): number {
+  private calculateClusterQuality(
+    clusterFaces: any[],
+    embeddings: number[][],
+  ): number {
     if (clusterFaces.length < 2) return 0;
 
     let totalSimilarity = 0;
@@ -417,9 +476,12 @@ export class FaceRecognitionService {
       for (let j = i + 1; j < clusterFaces.length; j++) {
         const embedding1 = embeddings[i];
         const embedding2 = embeddings[j];
-        
+
         if (embedding1 && embedding2) {
-          const similarity = this.clusterer['cosineSimilarity'](embedding1, embedding2);
+          const similarity = this.clusterer["cosineSimilarity"](
+            embedding1,
+            embedding2,
+          );
           totalSimilarity += similarity;
           comparisons++;
         }
@@ -435,12 +497,12 @@ export class FaceRecognitionService {
   async findSimilarFaces(
     userId: string,
     embedding: number[],
-    threshold: number = DEFAULT_CONFIG.similarityThreshold
+    threshold: number = DEFAULT_CONFIG.similarityThreshold,
   ): Promise<Array<{ face: any; similarity: number }>> {
     try {
       // Use pgvector for similarity search
-      const embeddingString = `[${embedding.join(',')}]`;
-      
+      const embeddingString = `[${embedding.join(",")}]`;
+
       const similarFaces = await db
         .select({
           id: faces.id,
@@ -457,20 +519,22 @@ export class FaceRecognitionService {
             eq(photos.userId, userId),
             // Use pgvector cosine similarity operator
             // This would be: faces.embedding <=> embeddingString >= threshold
-          )
+          ),
         )
         .orderBy(desc(faces.confidence))
         .limit(10);
 
       // Calculate similarities (placeholder - in production use pgvector)
-      const results = similarFaces.map(face => ({
-        face,
-        similarity: Math.random(), // Placeholder - calculate actual similarity
-      })).filter(result => result.similarity >= threshold);
+      const results = similarFaces
+        .map((face) => ({
+          face,
+          similarity: Math.random(), // Placeholder - calculate actual similarity
+        }))
+        .filter((result) => result.similarity >= threshold);
 
       return results;
     } catch (error) {
-      console.error('Error finding similar faces:', error);
+      console.error("Error finding similar faces:", error);
       return [];
     }
   }
@@ -485,7 +549,7 @@ export class FaceRecognitionService {
       name?: string;
       isPinned?: boolean;
       isHidden?: boolean;
-    }
+    },
   ): Promise<PersonCluster | null> {
     try {
       // Verify person belongs to user
@@ -535,20 +599,34 @@ export class FaceRecognitionService {
         sampleEmbeddings: sampleFaces.map((face: any) => face.embedding!),
       };
     } catch (error) {
-      console.error('Error updating person:', error);
-      throw new Error(`Person update failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Error updating person:", error);
+      throw new Error(
+        `Person update failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
   /**
    * Merge two people
    */
-  async mergePeople(userId: string, sourcePersonId: string, targetPersonId: string): Promise<PersonCluster | null> {
+  async mergePeople(
+    userId: string,
+    sourcePersonId: string,
+    targetPersonId: string,
+  ): Promise<PersonCluster | null> {
     try {
       // Verify both people belong to user
       const [sourcePerson, targetPerson] = await Promise.all([
-        db.select().from(people).where(and(eq(people.id, sourcePersonId), eq(people.userId, userId))).limit(1),
-        db.select().from(people).where(and(eq(people.id, targetPersonId), eq(people.userId, userId))).limit(1),
+        db
+          .select()
+          .from(people)
+          .where(and(eq(people.id, sourcePersonId), eq(people.userId, userId)))
+          .limit(1),
+        db
+          .select()
+          .from(people)
+          .where(and(eq(people.id, targetPersonId), eq(people.userId, userId)))
+          .limit(1),
       ]);
 
       if (sourcePerson.length === 0 || targetPerson.length === 0) {
@@ -558,9 +636,9 @@ export class FaceRecognitionService {
       // Update all faces from source person to target person
       await db
         .update(faces)
-        .set({ 
-          'personId': targetPersonId,
-          'updatedAt': new Date() 
+        .set({
+          personId: targetPersonId,
+          updatedAt: new Date(),
         })
         .where(eq(faces.personId, sourcePersonId));
 
@@ -575,8 +653,8 @@ export class FaceRecognitionService {
 
       const [updatedTargetPerson] = await db
         .update(people)
-        .set({ 
-          'updatedAt': new Date(),
+        .set({
+          updatedAt: new Date(),
         })
         .where(eq(people.id, targetPersonId))
         .returning();
@@ -591,8 +669,10 @@ export class FaceRecognitionService {
         sampleEmbeddings: [], // Would need to re-fetch if needed
       };
     } catch (error) {
-      console.error('Error merging people:', error);
-      throw new Error(`People merge failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Error merging people:", error);
+      throw new Error(
+        `People merge failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -630,8 +710,10 @@ export class FaceRecognitionService {
 
       return result;
     } catch (error) {
-      console.error('Error getting people:', error);
-      throw new Error(`Failed to get people: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Error getting people:", error);
+      throw new Error(
+        `Failed to get people: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -669,15 +751,17 @@ export class FaceRecognitionService {
           and(
             eq(faces.personId, personId),
             eq(photos.userId, userId),
-            isNull(photos.deletedAt)
-          )
+            isNull(photos.deletedAt),
+          ),
         )
         .orderBy(desc(photos.createdAt));
 
       return personPhotos;
     } catch (error) {
-      console.error('Error getting person photos:', error);
-      throw new Error(`Failed to get person photos: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Error getting person photos:", error);
+      throw new Error(
+        `Failed to get person photos: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 }

@@ -80,41 +80,45 @@ export class APIError extends Error {
   constructor(
     message: string,
     public status: number,
-    public details?: unknown
+    public details?: unknown,
   ) {
     super(message);
-    this.name = 'APIError';
+    this.name = "APIError";
   }
 }
 
 export class AuthenticationError extends APIError {
-  constructor(message: string = "Authentication required. Please log in again.") {
+  constructor(
+    message: string = "Authentication required. Please log in again.",
+  ) {
     super(message, 401);
-    this.name = 'AuthenticationError';
+    this.name = "AuthenticationError";
   }
 }
 
 export class ValidationError extends APIError {
   constructor(
     message: string,
-    public validationDetails: Array<{ path: string[]; message: string }>
+    public validationDetails: Array<{ path: string[]; message: string }>,
   ) {
     super(message, 400, validationDetails);
-    this.name = 'ValidationError';
+    this.name = "ValidationError";
   }
 }
 
 export class NetworkError extends Error {
-  constructor(message: string = "Network request failed. Please check your connection.") {
+  constructor(
+    message: string = "Network request failed. Please check your connection.",
+  ) {
     super(message);
-    this.name = 'NetworkError';
+    this.name = "NetworkError";
   }
 }
 
 export class ServerError extends APIError {
   constructor(message: string = "Server error. Please try again later.") {
     super(message, 500);
-    this.name = 'ServerError';
+    this.name = "ServerError";
   }
 }
 
@@ -124,11 +128,11 @@ export class ServerError extends APIError {
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const contentType = res.headers.get('content-type');
+    const contentType = res.headers.get("content-type");
     let errorData: any;
-    
+
     // Try to parse JSON error response
-    if (contentType?.includes('application/json')) {
+    if (contentType?.includes("application/json")) {
       try {
         errorData = await res.json();
       } catch {
@@ -143,24 +147,26 @@ async function throwIfResNotOk(res: Response) {
     if (res.status === 401) {
       throw new AuthenticationError(errorData.message);
     }
-    
+
     if (res.status === 400 && errorData.details) {
       throw new ValidationError(
-        errorData.error || errorData.message || 'Validation failed',
-        errorData.details
+        errorData.error || errorData.message || "Validation failed",
+        errorData.details,
       );
     }
-    
+
     if (res.status >= 500) {
-      console.error('Server error:', res.status, errorData);
-      throw new ServerError(`${res.status}: ${errorData.message || 'Server error'}`);
+      console.error("Server error:", res.status, errorData);
+      throw new ServerError(
+        `${res.status}: ${errorData.message || "Server error"}`,
+      );
     }
-    
+
     // Generic API error
     throw new APIError(
       errorData.message || `Request failed with status ${res.status}`,
       res.status,
-      errorData
+      errorData,
     );
   }
 }
@@ -220,15 +226,15 @@ export async function apiRequest(
     if (error instanceof APIError || error instanceof NetworkError) {
       throw error;
     }
-    
+
     // Handle network errors (fetch failures)
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      console.error('Network error:', error);
+    if (error instanceof TypeError && error.message.includes("fetch")) {
+      console.error("Network error:", error);
       throw new NetworkError();
     }
-    
+
     // Log and re-throw unexpected errors
-    console.error('Unexpected API error:', error);
+    console.error("Unexpected API error:", error);
     throw error;
   }
 }
@@ -280,7 +286,7 @@ export const getQueryFn: <T>(options: {
 
 /**
  * React Query client with optimized caching strategy for client-server integration
- * 
+ *
  * Configuration:
  * - staleTime: 5 minutes (data considered fresh for 5 min)
  * - cacheTime: 30 minutes (cached data kept for 30 min)
@@ -297,8 +303,7 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: true, // Sync on app foreground
       refetchOnReconnect: true, // Sync on network restore
       retry: 3, // Retry failed requests 3 times
-      retryDelay: (attemptIndex) =>
-        Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
     },
     mutations: {
       retry: 1, // Retry mutations once

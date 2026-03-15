@@ -177,14 +177,14 @@ describe("Audit Logger", () => {
 
     it("should log request completion on response finish", () => {
       const middleware = auditLogger.middleware();
-      
+
       middleware(mockReq as Request, mockRes as Response, nextFn);
 
       // Simulate response finish
       const finishCallback = (mockRes.on as any).mock.calls.find(
-        (call: any) => call[0] === "finish"
+        (call: any) => call[0] === "finish",
       )?.[1];
-      
+
       finishCallback?.();
 
       const events = (auditLogger as any).events;
@@ -257,13 +257,19 @@ describe("Audit Logger", () => {
 
     it("should get all events sorted by timestamp descending", () => {
       const events = auditLogger.getEvents();
-      
+
       expect(events).toHaveLength(3);
       // Events should be sorted by timestamp descending (newest first)
       // Since we're using a mock date, they're all the same time, so order depends on insertion
-      expect(events.map((e: any) => e.eventType)).toContain(AuditEventType.AUTH_LOGIN_SUCCESS);
-      expect(events.map((e: any) => e.eventType)).toContain(AuditEventType.SECURITY_RATE_LIMIT_EXCEEDED);
-      expect(events.map((e: any) => e.eventType)).toContain(AuditEventType.DATA_PHOTO_CREATE);
+      expect(events.map((e: any) => e.eventType)).toContain(
+        AuditEventType.AUTH_LOGIN_SUCCESS,
+      );
+      expect(events.map((e: any) => e.eventType)).toContain(
+        AuditEventType.SECURITY_RATE_LIMIT_EXCEEDED,
+      );
+      expect(events.map((e: any) => e.eventType)).toContain(
+        AuditEventType.DATA_PHOTO_CREATE,
+      );
     });
 
     it("should filter events by user ID", () => {
@@ -296,7 +302,7 @@ describe("Audit Logger", () => {
         startDate: new Date("2022-01-01T10:30:00Z"),
         endDate: new Date("2022-01-01T11:30:00Z"),
       });
-      
+
       // Since all events have the same mock timestamp, they all match the filter
       expect(events).toHaveLength(3);
       // Just verify we get the expected events, order doesn't matter due to same timestamp

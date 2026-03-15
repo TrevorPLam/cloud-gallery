@@ -54,7 +54,9 @@ describe("File Validation", () => {
       const result = await validateFile(largeBuffer, "large.png");
 
       expect(result.isValid).toBe(false);
-      expect(result.errors.some(err => err.includes("exceeds limit"))).toBe(true);
+      expect(result.errors.some((err) => err.includes("exceeds limit"))).toBe(
+        true,
+      );
     }, 30000); // Increase timeout to 30 seconds for large buffer
 
     it("should detect malicious content in text files", async () => {
@@ -70,7 +72,12 @@ describe("File Validation", () => {
         expect(result.hash).toBeDefined();
       } else {
         // If invalid, check for malicious content error
-        expect(result.errors.some(err => err.includes("malicious") || err.includes("Unable to determine"))).toBe(true);
+        expect(
+          result.errors.some(
+            (err) =>
+              err.includes("malicious") || err.includes("Unable to determine"),
+          ),
+        ).toBe(true);
       }
     });
 
@@ -96,7 +103,7 @@ describe("File Validation", () => {
         "file<script>.txt",
         "file|pipe.txt",
         "file:colon.txt",
-        "file\"quote.txt",
+        'file"quote.txt',
         "file?question.txt",
         "file*asterisk.txt",
         "file\x00null.txt",
@@ -104,7 +111,7 @@ describe("File Validation", () => {
         "..double",
       ];
 
-      dangerousNames.forEach(name => {
+      dangerousNames.forEach((name) => {
         const sanitized = sanitizeFilename(name);
         expect(sanitized).not.toContain("..");
         expect(sanitized).not.toContain("/");
@@ -135,7 +142,7 @@ describe("File Validation", () => {
         "notes.txt",
       ];
 
-      safeNames.forEach(name => {
+      safeNames.forEach((name) => {
         const sanitized = sanitizeFilename(name);
         expect(sanitized).toBe(name);
       });
@@ -160,7 +167,7 @@ describe("File Validation", () => {
       expect(types).toHaveProperty("text/plain");
 
       // Check structure
-      Object.values(types).forEach(config => {
+      Object.values(types).forEach((config) => {
         expect(config).toHaveProperty("extension");
         expect(config).toHaveProperty("maxSize");
         expect(typeof config.extension).toBe("string");
@@ -182,16 +189,51 @@ describe("File Validation", () => {
     it("should detect PNG files", async () => {
       // Create a minimal valid PNG file
       const pngBuffer = Buffer.from([
-        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, // PNG signature
-        0x00, 0x00, 0x00, 0x0d, // IHDR chunk length
-        0x49, 0x48, 0x44, 0x52, // IHDR
-        0x00, 0x00, 0x00, 0x01, // Width: 1
-        0x00, 0x00, 0x00, 0x01, // Height: 1
-        0x08, 0x02, 0x00, 0x00, 0x00, // Bit depth, color type, compression, filter, interlace
-        0x90, 0x77, 0x53, 0xde, // CRC
-        0x00, 0x00, 0x00, 0x00, // IEND chunk length
-        0x49, 0x45, 0x4e, 0x44, // IEND
-        0xae, 0x42, 0x60, 0x82, // CRC
+        0x89,
+        0x50,
+        0x4e,
+        0x47,
+        0x0d,
+        0x0a,
+        0x1a,
+        0x0a, // PNG signature
+        0x00,
+        0x00,
+        0x00,
+        0x0d, // IHDR chunk length
+        0x49,
+        0x48,
+        0x44,
+        0x52, // IHDR
+        0x00,
+        0x00,
+        0x00,
+        0x01, // Width: 1
+        0x00,
+        0x00,
+        0x00,
+        0x01, // Height: 1
+        0x08,
+        0x02,
+        0x00,
+        0x00,
+        0x00, // Bit depth, color type, compression, filter, interlace
+        0x90,
+        0x77,
+        0x53,
+        0xde, // CRC
+        0x00,
+        0x00,
+        0x00,
+        0x00, // IEND chunk length
+        0x49,
+        0x45,
+        0x4e,
+        0x44, // IEND
+        0xae,
+        0x42,
+        0x60,
+        0x82, // CRC
       ]);
 
       const result = await validateFile(pngBuffer, "test.png");
@@ -203,7 +245,12 @@ describe("File Validation", () => {
 
     it("should detect GIF files", async () => {
       const gifBuffer = Buffer.from([
-        0x47, 0x49, 0x46, 0x38, 0x39, 0x61, // GIF89a
+        0x47,
+        0x49,
+        0x46,
+        0x38,
+        0x39,
+        0x61, // GIF89a
       ]);
 
       const result = await validateFile(gifBuffer, "test.gif");
@@ -215,7 +262,14 @@ describe("File Validation", () => {
 
     it("should detect PDF files", async () => {
       const pdfBuffer = Buffer.from([
-        0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34, // %PDF-1.4
+        0x25,
+        0x50,
+        0x44,
+        0x46,
+        0x2d,
+        0x31,
+        0x2e,
+        0x34, // %PDF-1.4
       ]);
 
       const result = await validateFile(pdfBuffer, "test.pdf");
@@ -227,7 +281,10 @@ describe("File Validation", () => {
 
     it("should detect ZIP files", async () => {
       const zipBuffer = Buffer.from([
-        0x50, 0x4b, 0x03, 0x04, // Local file header signature
+        0x50,
+        0x4b,
+        0x03,
+        0x04, // Local file header signature
       ]);
 
       const result = await validateFile(zipBuffer, "test.zip");

@@ -18,11 +18,7 @@ import {
   FlatList,
   Dimensions,
 } from "react-native";
-import {
-  useRoute,
-  useNavigation,
-  RouteProp,
-} from "@react-navigation/native";
+import { useRoute, useNavigation, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -64,79 +60,80 @@ export default function AlbumDetailScreen() {
   // ═══════════════════════════════════════════════════════════
   // FETCH ALBUM DATA (React Query)
   // ═══════════════════════════════════════════════════════════
-  
+
   const { data: album } = useQuery<Album>({
-    queryKey: ['albums', albumId],
+    queryKey: ["albums", albumId],
     queryFn: async () => {
-      const res = await apiRequest('GET', `/api/albums/${albumId}`);
+      const res = await apiRequest("GET", `/api/albums/${albumId}`);
       const data = await res.json();
       return data.album;
     },
   });
 
   const { data: allPhotos = [] } = useQuery<Photo[]>({
-    queryKey: ['photos'],
+    queryKey: ["photos"],
     queryFn: async () => {
-      const res = await apiRequest('GET', '/api/photos');
+      const res = await apiRequest("GET", "/api/photos");
       const data = await res.json();
       return data.photos;
     },
   });
 
   // Filter photos that are in this album
-  const albumPhotos = allPhotos.filter((p) =>
-    album?.photoIds?.includes(p.id)
-  );
+  const albumPhotos = allPhotos.filter((p) => album?.photoIds?.includes(p.id));
 
   // ═══════════════════════════════════════════════════════════
   // ADD PHOTO TO ALBUM MUTATION (React Query)
   // ═══════════════════════════════════════════════════════════
   // Task 5.3: Add photos to album with optimistic update
-  
+
   const addPhotosMutation = useMutation({
     mutationFn: async (photoIds: string[]) => {
       // Add each photo to the album
       await Promise.all(
-        photoIds.map(photoId =>
-          apiRequest('POST', `/api/albums/${albumId}/photos`, { photoId })
-        )
+        photoIds.map((photoId) =>
+          apiRequest("POST", `/api/albums/${albumId}/photos`, { photoId }),
+        ),
       );
     },
-    
+
     // BEFORE sending to server (optimistic update)
     onMutate: async (photoIds) => {
       // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['albums', albumId] });
-      
+      await queryClient.cancelQueries({ queryKey: ["albums", albumId] });
+
       // Save current state for rollback
-      const previousAlbum = queryClient.getQueryData(['albums', albumId]);
-      
+      const previousAlbum = queryClient.getQueryData(["albums", albumId]);
+
       // Optimistically update album to include new photos
-      queryClient.setQueryData(['albums', albumId], (old: Album | undefined) => {
-        if (!old) return old;
-        return {
-          ...old,
-          photoIds: [...old.photoIds, ...photoIds],
-        };
-      });
-      
+      queryClient.setQueryData(
+        ["albums", albumId],
+        (old: Album | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            photoIds: [...old.photoIds, ...photoIds],
+          };
+        },
+      );
+
       return { previousAlbum };
     },
-    
+
     // If API call FAILS
     onError: (err, photoIds, context) => {
       // Rollback to previous state
       if (context?.previousAlbum) {
-        queryClient.setQueryData(['albums', albumId], context.previousAlbum);
+        queryClient.setQueryData(["albums", albumId], context.previousAlbum);
       }
-      console.error('Failed to add photos to album:', err);
+      console.error("Failed to add photos to album:", err);
     },
-    
+
     // After API call completes (success OR failure)
     onSettled: () => {
       // Refetch both albums and photos (dual cache invalidation)
-      queryClient.invalidateQueries({ queryKey: ['albums'] });
-      queryClient.invalidateQueries({ queryKey: ['photos'] });
+      queryClient.invalidateQueries({ queryKey: ["albums"] });
+      queryClient.invalidateQueries({ queryKey: ["photos"] });
     },
   });
 
@@ -144,47 +141,53 @@ export default function AlbumDetailScreen() {
   // REMOVE PHOTO FROM ALBUM MUTATION (React Query)
   // ═══════════════════════════════════════════════════════════
   // Task 5.3: Remove photo from album with optimistic update
-  
+
   const removePhotoMutation = useMutation({
     mutationFn: async (photoId: string) => {
-      const res = await apiRequest('DELETE', `/api/albums/${albumId}/photos/${photoId}`);
+      const res = await apiRequest(
+        "DELETE",
+        `/api/albums/${albumId}/photos/${photoId}`,
+      );
       return res.json();
     },
-    
+
     // BEFORE sending to server (optimistic update)
     onMutate: async (photoId) => {
       // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['albums', albumId] });
-      
+      await queryClient.cancelQueries({ queryKey: ["albums", albumId] });
+
       // Save current state for rollback
-      const previousAlbum = queryClient.getQueryData(['albums', albumId]);
-      
+      const previousAlbum = queryClient.getQueryData(["albums", albumId]);
+
       // Optimistically remove photo from album
-      queryClient.setQueryData(['albums', albumId], (old: Album | undefined) => {
-        if (!old) return old;
-        return {
-          ...old,
-          photoIds: old.photoIds.filter(id => id !== photoId),
-        };
-      });
-      
+      queryClient.setQueryData(
+        ["albums", albumId],
+        (old: Album | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            photoIds: old.photoIds.filter((id) => id !== photoId),
+          };
+        },
+      );
+
       return { previousAlbum };
     },
-    
+
     // If API call FAILS
     onError: (err, photoId, context) => {
       // Rollback to previous state
       if (context?.previousAlbum) {
-        queryClient.setQueryData(['albums', albumId], context.previousAlbum);
+        queryClient.setQueryData(["albums", albumId], context.previousAlbum);
       }
-      console.error('Failed to remove photo from album:', err);
+      console.error("Failed to remove photo from album:", err);
     },
-    
+
     // After API call completes (success OR failure)
     onSettled: () => {
       // Refetch both albums and photos (dual cache invalidation)
-      queryClient.invalidateQueries({ queryKey: ['albums'] });
-      queryClient.invalidateQueries({ queryKey: ['photos'] });
+      queryClient.invalidateQueries({ queryKey: ["albums"] });
+      queryClient.invalidateQueries({ queryKey: ["photos"] });
     },
   });
 

@@ -295,7 +295,6 @@ describe("React Query Configuration", () => {
   });
 });
 
-
 // ═══════════════════════════════════════════════════════════
 // PROPERTY-BASED TESTS
 // ═══════════════════════════════════════════════════════════
@@ -304,14 +303,14 @@ import fc from "fast-check";
 
 /**
  * Property 1: Authorization Header Inclusion
- * 
+ *
  * Validates: Requirements 1.2, 8.1, 8.6
- * 
- * For any API request made by the API_Client, the request SHALL include 
- * an Authorization header with the format "Bearer {token}" where token 
+ *
+ * For any API request made by the API_Client, the request SHALL include
+ * an Authorization header with the format "Bearer {token}" where token
  * is retrieved from AsyncStorage.
- * 
- * Test Strategy: Generate random API requests (different methods, endpoints, 
+ *
+ * Test Strategy: Generate random API requests (different methods, endpoints,
  * bodies) and verify each includes the Authorization header with correct format.
  */
 describe("Property 1: Authorization Header Inclusion", () => {
@@ -332,7 +331,7 @@ describe("Property 1: Authorization Header Inclusion", () => {
           "/api/albums",
           "/api/photos/123",
           "/api/albums/456",
-          "/api/users/profile"
+          "/api/users/profile",
         ),
         // Generate random token (base64-like string, minimum 20 chars)
         fc.base64String({ minLength: 20, maxLength: 100 }),
@@ -345,15 +344,15 @@ describe("Property 1: Authorization Header Inclusion", () => {
             filename: fc.string({ minLength: 1, maxLength: 50 }),
             isFavorite: fc.boolean(),
           }),
-          { nil: undefined }
+          { nil: undefined },
         ),
         async (method, endpoint, token, body) => {
           // Clear mocks for this iteration
           vi.clearAllMocks();
-          
+
           // Setup: Mock AsyncStorage to return the generated token
           vi.mocked(AsyncStorage.getItem).mockResolvedValue(token);
-          
+
           // Setup: Mock fetch to return success
           vi.mocked(fetch).mockResolvedValue({
             ok: true,
@@ -368,18 +367,18 @@ describe("Property 1: Authorization Header Inclusion", () => {
           expect(fetch).toHaveBeenCalled();
           const fetchCall = vi.mocked(fetch).mock.calls[0];
           const headers = fetchCall[1]?.headers as Record<string, string>;
-          
+
           // Property assertion: Authorization header MUST exist
           expect(headers).toHaveProperty("Authorization");
-          
+
           // Property assertion: Authorization header MUST have Bearer format
           expect(headers.Authorization).toBe(`Bearer ${token}`);
-          
+
           // Property assertion: Token MUST match what was in AsyncStorage
           expect(headers.Authorization).toContain(token);
-        }
+        },
       ),
-      { numRuns: 100 } // Run 100 iterations as specified in design
+      { numRuns: 100 }, // Run 100 iterations as specified in design
     );
   });
 
@@ -389,15 +388,11 @@ describe("Property 1: Authorization Header Inclusion", () => {
         // Generate random HTTP method
         fc.constantFrom("GET", "POST", "PUT", "DELETE"),
         // Generate random valid endpoint path
-        fc.constantFrom(
-          "/api/photos",
-          "/api/albums",
-          "/api/users"
-        ),
+        fc.constantFrom("/api/photos", "/api/albums", "/api/users"),
         async (method, endpoint) => {
           // Setup: Mock AsyncStorage to return null (no token)
           vi.mocked(AsyncStorage.getItem).mockResolvedValue(null);
-          
+
           // Setup: Mock fetch to return success
           vi.mocked(fetch).mockResolvedValue({
             ok: true,
@@ -412,12 +407,12 @@ describe("Property 1: Authorization Header Inclusion", () => {
           expect(fetch).toHaveBeenCalled();
           const fetchCall = vi.mocked(fetch).mock.calls[0];
           const headers = fetchCall[1]?.headers as Record<string, string>;
-          
+
           // Property assertion: Authorization header MUST NOT exist when no token
           expect(headers.Authorization).toBeUndefined();
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -431,7 +426,7 @@ describe("Property 1: Authorization Header Inclusion", () => {
         async (method, token) => {
           // Clear mocks for this iteration
           vi.clearAllMocks();
-          
+
           // Setup
           vi.mocked(AsyncStorage.getItem).mockResolvedValue(token);
           vi.mocked(fetch).mockResolvedValue({
@@ -446,16 +441,16 @@ describe("Property 1: Authorization Header Inclusion", () => {
           // Verify: Bearer prefix is always present
           const fetchCall = vi.mocked(fetch).mock.calls[0];
           const headers = fetchCall[1]?.headers as Record<string, string>;
-          
+
           // Property assertion: Authorization MUST start with "Bearer "
           expect(headers.Authorization).toMatch(/^Bearer .+$/);
-          
+
           // Property assertion: Token MUST be after "Bearer " prefix
           expect(headers.Authorization.split(" ")[0]).toBe("Bearer");
           expect(headers.Authorization.split(" ")[1]).toBe(token);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -479,29 +474,29 @@ describe("Property 1: Authorization Header Inclusion", () => {
 
           // Property assertion: AsyncStorage.getItem MUST be called
           expect(AsyncStorage.getItem).toHaveBeenCalled();
-          
+
           // Property assertion: Must request the correct key
           expect(AsyncStorage.getItem).toHaveBeenCalledWith("@auth_token");
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });
 
 /**
  * Property 2: Photo Sorting Consistency
- * 
+ *
  * Validates: Requirements 2.3
- * 
- * For any set of photos returned from the server, when displayed in the 
- * PhotosScreen grid, they SHALL be sorted by createdAt timestamp in 
+ *
+ * For any set of photos returned from the server, when displayed in the
+ * PhotosScreen grid, they SHALL be sorted by createdAt timestamp in
  * descending order (newest first).
- * 
- * Rationale: Users expect to see their most recent photos first. This 
+ *
+ * Rationale: Users expect to see their most recent photos first. This
  * property ensures consistent ordering regardless of server response order.
- * 
- * Test Strategy: Generate random photo sets with various timestamps and 
+ *
+ * Test Strategy: Generate random photo sets with various timestamps and
  * verify sorting is always newest-first.
  */
 describe("Property 2: Photo Sorting Consistency", () => {
@@ -509,7 +504,9 @@ describe("Property 2: Photo Sorting Consistency", () => {
    * Helper function to sort photos by createdAt descending (newest first)
    * This mimics the expected behavior from the server and client display
    */
-  function sortPhotosByCreatedAt(photos: Array<{ createdAt: number }>): Array<{ createdAt: number }> {
+  function sortPhotosByCreatedAt(
+    photos: Array<{ createdAt: number }>,
+  ): Array<{ createdAt: number }> {
     return [...photos].sort((a, b) => b.createdAt - a.createdAt);
   }
 
@@ -529,7 +526,7 @@ describe("Property 2: Photo Sorting Consistency", () => {
             isFavorite: fc.boolean(),
             albumIds: fc.array(fc.uuid(), { maxLength: 5 }),
           }),
-          { minLength: 0, maxLength: 100 } // Test with 0 to 100 photos
+          { minLength: 0, maxLength: 100 }, // Test with 0 to 100 photos
         ),
         (photos) => {
           // Execute: Sort photos
@@ -537,19 +534,21 @@ describe("Property 2: Photo Sorting Consistency", () => {
 
           // Property assertion: For any adjacent pair, first photo MUST be newer or equal
           for (let i = 0; i < sorted.length - 1; i++) {
-            expect(sorted[i].createdAt).toBeGreaterThanOrEqual(sorted[i + 1].createdAt);
+            expect(sorted[i].createdAt).toBeGreaterThanOrEqual(
+              sorted[i + 1].createdAt,
+            );
           }
 
           // Property assertion: Sorted array MUST have same length as input
           expect(sorted.length).toBe(photos.length);
 
           // Property assertion: All photos from input MUST be in sorted output
-          const inputIds = photos.map(p => p.id).sort();
-          const sortedIds = sorted.map(p => p.id).sort();
+          const inputIds = photos.map((p) => p.id).sort();
+          const sortedIds = sorted.map((p) => p.id).sort();
           expect(sortedIds).toEqual(inputIds);
-        }
+        },
       ),
-      { numRuns: 100 } // Run 100 iterations as specified in design
+      { numRuns: 100 }, // Run 100 iterations as specified in design
     );
   });
 
@@ -569,11 +568,11 @@ describe("Property 2: Photo Sorting Consistency", () => {
             isFavorite: fc.boolean(),
             albumIds: fc.array(fc.uuid(), { maxLength: 5 }),
           }),
-          { minLength: 2, maxLength: 10 }
+          { minLength: 2, maxLength: 10 },
         ),
         (timestamp, photoData) => {
           // Create photos with identical timestamps
-          const photos = photoData.map(p => ({
+          const photos = photoData.map((p) => ({
             ...p,
             createdAt: timestamp,
             modifiedAt: timestamp,
@@ -589,9 +588,9 @@ describe("Property 2: Photo Sorting Consistency", () => {
 
           // Property assertion: Stable sort - all photos present
           expect(sorted.length).toBe(photos.length);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -606,9 +605,9 @@ describe("Property 2: Photo Sorting Consistency", () => {
           // Property assertion: Empty input MUST produce empty output
           expect(sorted).toEqual([]);
           expect(sorted.length).toBe(0);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -634,9 +633,9 @@ describe("Property 2: Photo Sorting Consistency", () => {
           expect(sorted).toEqual([photo]);
           expect(sorted.length).toBe(1);
           expect(sorted[0].id).toBe(photo.id);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -661,7 +660,7 @@ describe("Property 2: Photo Sorting Consistency", () => {
             isFavorite: fc.boolean(),
             albumIds: fc.array(fc.uuid(), { maxLength: 5 }),
           }),
-          { minLength: 2, maxLength: 20 }
+          { minLength: 2, maxLength: 20 },
         ),
         (photos) => {
           // Execute: Sort photos with extreme values
@@ -669,19 +668,21 @@ describe("Property 2: Photo Sorting Consistency", () => {
 
           // Property assertion: Descending order MUST be maintained
           for (let i = 0; i < sorted.length - 1; i++) {
-            expect(sorted[i].createdAt).toBeGreaterThanOrEqual(sorted[i + 1].createdAt);
+            expect(sorted[i].createdAt).toBeGreaterThanOrEqual(
+              sorted[i + 1].createdAt,
+            );
           }
 
           // Property assertion: Most recent photo MUST be first
-          const maxTimestamp = Math.max(...photos.map(p => p.createdAt));
+          const maxTimestamp = Math.max(...photos.map((p) => p.createdAt));
           expect(sorted[0].createdAt).toBe(maxTimestamp);
 
           // Property assertion: Oldest photo MUST be last
-          const minTimestamp = Math.min(...photos.map(p => p.createdAt));
+          const minTimestamp = Math.min(...photos.map((p) => p.createdAt));
           expect(sorted[sorted.length - 1].createdAt).toBe(minTimestamp);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -700,17 +701,17 @@ describe("Property 2: Photo Sorting Consistency", () => {
             isFavorite: fc.boolean(),
             albumIds: fc.array(fc.uuid(), { maxLength: 5 }),
           }),
-          { minLength: 1, maxLength: 50 }
+          { minLength: 1, maxLength: 50 },
         ),
         (photos) => {
           // Execute: Sort photos
           const sorted = sortPhotosByCreatedAt(photos);
 
           // Property assertion: Each photo's data MUST be unchanged
-          sorted.forEach(sortedPhoto => {
-            const originalPhoto = photos.find(p => p.id === sortedPhoto.id);
+          sorted.forEach((sortedPhoto) => {
+            const originalPhoto = photos.find((p) => p.id === sortedPhoto.id);
             expect(originalPhoto).toBeDefined();
-            
+
             // Verify all fields are preserved
             expect(sortedPhoto.uri).toBe(originalPhoto!.uri);
             expect(sortedPhoto.width).toBe(originalPhoto!.width);
@@ -720,25 +721,25 @@ describe("Property 2: Photo Sorting Consistency", () => {
             expect(sortedPhoto.createdAt).toBe(originalPhoto!.createdAt);
             expect(sortedPhoto.modifiedAt).toBe(originalPhoto!.modifiedAt);
           });
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });
 
 /**
  * Property 3: Upload Request Completeness
- * 
+ *
  * Validates: Requirements 3.1, 3.2
- * 
- * For any photo upload, the POST request to /api/photos SHALL include all 
+ *
+ * For any photo upload, the POST request to /api/photos SHALL include all
  * required fields: uri, width, height, filename, and isFavorite.
- * 
- * Rationale: Server validation requires these fields. Missing fields cause 
+ *
+ * Rationale: Server validation requires these fields. Missing fields cause
  * 400 errors. This property ensures uploads never fail due to incomplete data.
- * 
- * Test Strategy: Generate random photo objects and verify upload requests 
+ *
+ * Test Strategy: Generate random photo objects and verify upload requests
  * always include all required fields.
  */
 describe("Property 3: Upload Request Completeness", () => {
@@ -761,13 +762,14 @@ describe("Property 3: Upload Request Completeness", () => {
         async (photoData) => {
           // Clear mocks for this iteration
           vi.clearAllMocks();
-          
+
           // Setup
           vi.mocked(AsyncStorage.getItem).mockResolvedValue("test-token");
           vi.mocked(fetch).mockResolvedValue({
             ok: true,
             status: 201,
-            text: async () => JSON.stringify({ photo: { id: "123", ...photoData } }),
+            text: async () =>
+              JSON.stringify({ photo: { id: "123", ...photoData } }),
           } as Response);
 
           // Execute: Upload photo
@@ -791,9 +793,9 @@ describe("Property 3: Upload Request Completeness", () => {
           expect(requestBody.height).toBe(photoData.height);
           expect(requestBody.filename).toBe(photoData.filename);
           expect(requestBody.isFavorite).toBe(photoData.isFavorite);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -813,13 +815,14 @@ describe("Property 3: Upload Request Completeness", () => {
         async (photoData) => {
           // Clear mocks for this iteration
           vi.clearAllMocks();
-          
+
           // Setup
           vi.mocked(AsyncStorage.getItem).mockResolvedValue("test-token");
           vi.mocked(fetch).mockResolvedValue({
             ok: true,
             status: 201,
-            text: async () => JSON.stringify({ photo: { id: "123", ...photoData } }),
+            text: async () =>
+              JSON.stringify({ photo: { id: "123", ...photoData } }),
           } as Response);
 
           // Execute
@@ -843,9 +846,9 @@ describe("Property 3: Upload Request Completeness", () => {
           if (photoData.notes !== null && photoData.notes !== undefined) {
             expect(requestBody.notes).toBe(photoData.notes);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -865,7 +868,8 @@ describe("Property 3: Upload Request Completeness", () => {
           vi.mocked(fetch).mockResolvedValue({
             ok: true,
             status: 201,
-            text: async () => JSON.stringify({ photo: { id: "123", ...photoData } }),
+            text: async () =>
+              JSON.stringify({ photo: { id: "123", ...photoData } }),
           } as Response);
 
           // Execute
@@ -878,9 +882,9 @@ describe("Property 3: Upload Request Completeness", () => {
           // Property assertion: Endpoint MUST be /api/photos
           const url = fetchCall[0] as URL;
           expect(url.pathname).toBe("/api/photos");
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -900,7 +904,8 @@ describe("Property 3: Upload Request Completeness", () => {
           vi.mocked(fetch).mockResolvedValue({
             ok: true,
             status: 201,
-            text: async () => JSON.stringify({ photo: { id: "123", ...photoData } }),
+            text: async () =>
+              JSON.stringify({ photo: { id: "123", ...photoData } }),
           } as Response);
 
           // Execute
@@ -910,27 +915,27 @@ describe("Property 3: Upload Request Completeness", () => {
           const fetchCall = vi.mocked(fetch).mock.calls[0];
           const headers = fetchCall[1]?.headers as Record<string, string>;
           expect(headers["Content-Type"]).toBe("application/json");
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });
 
 /**
  * Property 4: Optimistic Update Replacement
- * 
+ *
  * Validates: Requirements 3.4
- * 
- * For any successful photo upload, the temporary photo with ID prefix "temp-" 
+ *
+ * For any successful photo upload, the temporary photo with ID prefix "temp-"
  * SHALL be replaced with the server-returned photo containing a real UUID.
- * 
- * Rationale: Optimistic updates use temporary IDs for instant feedback. After 
+ *
+ * Rationale: Optimistic updates use temporary IDs for instant feedback. After
  * server confirmation, real IDs must replace temps to maintain data integrity.
- * 
- * Test Strategy: Upload photos and verify temporary IDs are replaced with 
+ *
+ * Test Strategy: Upload photos and verify temporary IDs are replaced with
  * UUIDs matching server response.
- * 
+ *
  * Note: This property tests the expected behavior of React Query mutations.
  * The actual implementation is in PhotosScreen component.
  */
@@ -940,7 +945,7 @@ describe("Property 4: Optimistic Update Replacement", () => {
       fc.property(
         // Generate temporary photo with temp- prefix
         fc.record({
-          id: fc.string().map(s => `temp-${Date.now()}-${s}`),
+          id: fc.string().map((s) => `temp-${Date.now()}-${s}`),
           uri: fc.webUrl(),
           width: fc.integer({ min: 1, max: 4000 }),
           height: fc.integer({ min: 1, max: 4000 }),
@@ -954,7 +959,7 @@ describe("Property 4: Optimistic Update Replacement", () => {
         (tempPhoto, serverUuid) => {
           // Simulate optimistic update behavior
           const optimisticPhoto = { ...tempPhoto };
-          
+
           // Property assertion: Temporary ID MUST have "temp-" prefix
           expect(optimisticPhoto.id).toMatch(/^temp-/);
 
@@ -966,7 +971,7 @@ describe("Property 4: Optimistic Update Replacement", () => {
 
           // Property assertion: Server ID MUST be valid UUID
           expect(serverPhoto.id).toMatch(
-            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
           );
 
           // Property assertion: Server ID MUST NOT have "temp-" prefix
@@ -978,9 +983,9 @@ describe("Property 4: Optimistic Update Replacement", () => {
           expect(serverPhoto.height).toBe(tempPhoto.height);
           expect(serverPhoto.filename).toBe(tempPhoto.filename);
           expect(serverPhoto.isFavorite).toBe(tempPhoto.isFavorite);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -996,7 +1001,7 @@ describe("Property 4: Optimistic Update Replacement", () => {
             filename: fc.string({ minLength: 1, maxLength: 100 }),
             isFavorite: fc.boolean(),
           }),
-          { minLength: 2, maxLength: 10 }
+          { minLength: 2, maxLength: 10 },
         ),
         (photos) => {
           // Simulate generating temporary IDs
@@ -1008,17 +1013,17 @@ describe("Property 4: Optimistic Update Replacement", () => {
           }));
 
           // Property assertion: All temporary IDs MUST be unique
-          const tempIds = tempPhotos.map(p => p.id);
+          const tempIds = tempPhotos.map((p) => p.id);
           const uniqueIds = new Set(tempIds);
           expect(uniqueIds.size).toBe(tempIds.length);
 
           // Property assertion: All IDs MUST have "temp-" prefix
-          tempPhotos.forEach(photo => {
+          tempPhotos.forEach((photo) => {
             expect(photo.id).toMatch(/^temp-/);
           });
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -1056,34 +1061,34 @@ describe("Property 4: Optimistic Update Replacement", () => {
           expect(serverPhoto.height).toBe(photoData.height);
           expect(serverPhoto.filename).toBe(photoData.filename);
           expect(serverPhoto.isFavorite).toBe(photoData.isFavorite);
-          
+
           if (photoData.tags !== null && photoData.tags !== undefined) {
             expect(serverPhoto.tags).toEqual(photoData.tags);
           }
           if (photoData.notes !== null && photoData.notes !== undefined) {
             expect(serverPhoto.notes).toBe(photoData.notes);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });
 
 /**
  * Property 5: Sequential Upload Ordering
- * 
+ *
  * Validates: Requirements 3.6
- * 
- * For any batch of multiple selected photos, uploads SHALL be initiated 
+ *
+ * For any batch of multiple selected photos, uploads SHALL be initiated
  * sequentially (one completes before next starts), not concurrently.
- * 
- * Rationale: Concurrent uploads can overwhelm server and mobile network. 
+ *
+ * Rationale: Concurrent uploads can overwhelm server and mobile network.
  * Sequential uploads ensure reliable completion and easier error handling.
- * 
- * Test Strategy: Upload multiple photos and verify only one upload request 
+ *
+ * Test Strategy: Upload multiple photos and verify only one upload request
  * is in-flight at any time.
- * 
+ *
  * Note: This property tests the expected behavior. The actual implementation
  * is in PhotosScreen component's upload handler.
  */
@@ -1100,12 +1105,12 @@ describe("Property 5: Sequential Upload Ordering", () => {
             filename: fc.string({ minLength: 1, maxLength: 100 }),
             isFavorite: fc.boolean(),
           }),
-          { minLength: 2, maxLength: 5 } // Test with 2-5 photos
+          { minLength: 2, maxLength: 5 }, // Test with 2-5 photos
         ),
         async (photos) => {
           // Clear mocks for this iteration
           vi.clearAllMocks();
-          
+
           // Setup: Track upload order
           let activeUploads = 0;
           let maxConcurrentUploads = 0;
@@ -1114,17 +1119,21 @@ describe("Property 5: Sequential Upload Ordering", () => {
           vi.mocked(AsyncStorage.getItem).mockResolvedValue("test-token");
           vi.mocked(fetch).mockImplementation(async () => {
             activeUploads++;
-            maxConcurrentUploads = Math.max(maxConcurrentUploads, activeUploads);
-            
+            maxConcurrentUploads = Math.max(
+              maxConcurrentUploads,
+              activeUploads,
+            );
+
             // Simulate upload delay - reduced for faster tests
-            await new Promise(resolve => setTimeout(resolve, 1));
-            
+            await new Promise((resolve) => setTimeout(resolve, 1));
+
             activeUploads--;
-            
+
             return {
               ok: true,
               status: 201,
-              text: async () => JSON.stringify({ photo: { id: fc.sample(fc.uuid(), 1)[0] } }),
+              text: async () =>
+                JSON.stringify({ photo: { id: fc.sample(fc.uuid(), 1)[0] } }),
             } as Response;
           });
 
@@ -1138,9 +1147,9 @@ describe("Property 5: Sequential Upload Ordering", () => {
 
           // Property assertion: All uploads MUST complete
           expect(fetch).toHaveBeenCalledTimes(photos.length);
-        }
+        },
       ),
-      { numRuns: 10, timeout: 10000 } // Reduced runs and added timeout
+      { numRuns: 10, timeout: 10000 }, // Reduced runs and added timeout
     );
   }, 15000); // Increased test timeout to 15 seconds
 
@@ -1155,7 +1164,7 @@ describe("Property 5: Sequential Upload Ordering", () => {
             filename: fc.string({ minLength: 1, maxLength: 100 }),
             isFavorite: fc.boolean(),
           }),
-          { minLength: 2, maxLength: 5 }
+          { minLength: 2, maxLength: 5 },
         ),
         async (photos) => {
           // Setup: Track upload order by filename
@@ -1165,11 +1174,12 @@ describe("Property 5: Sequential Upload Ordering", () => {
           vi.mocked(fetch).mockImplementation(async (url, options) => {
             const body = JSON.parse(options?.body as string);
             uploadedFilenames.push(body.filename);
-            
+
             return {
               ok: true,
               status: 201,
-              text: async () => JSON.stringify({ photo: { id: fc.sample(fc.uuid(), 1)[0] } }),
+              text: async () =>
+                JSON.stringify({ photo: { id: fc.sample(fc.uuid(), 1)[0] } }),
             } as Response;
           });
 
@@ -1179,11 +1189,11 @@ describe("Property 5: Sequential Upload Ordering", () => {
           }
 
           // Property assertion: Upload order MUST match input order
-          const expectedOrder = photos.map(p => p.filename);
+          const expectedOrder = photos.map((p) => p.filename);
           expect(uploadedFilenames).toEqual(expectedOrder);
-        }
+        },
       ),
-      { numRuns: 10, timeout: 10000 } // Reduced runs and added timeout
+      { numRuns: 10, timeout: 10000 }, // Reduced runs and added timeout
     );
   }, 15000); // Increased test timeout to 15 seconds
 
@@ -1198,17 +1208,17 @@ describe("Property 5: Sequential Upload Ordering", () => {
             filename: fc.string({ minLength: 1, maxLength: 100 }),
             isFavorite: fc.boolean(),
           }),
-          { minLength: 3, maxLength: 5 }
+          { minLength: 3, maxLength: 5 },
         ),
         fc.integer({ min: 0, max: 2 }), // Index of photo that will fail
         async (photos, failIndex) => {
           // Setup: Make one upload fail
           let uploadCount = 0;
-          
+
           vi.mocked(AsyncStorage.getItem).mockResolvedValue("test-token");
           vi.mocked(fetch).mockImplementation(async () => {
             const currentIndex = uploadCount++;
-            
+
             if (currentIndex === failIndex) {
               return {
                 ok: false,
@@ -1216,11 +1226,12 @@ describe("Property 5: Sequential Upload Ordering", () => {
                 text: async () => "Server error",
               } as Response;
             }
-            
+
             return {
               ok: true,
               status: 201,
-              text: async () => JSON.stringify({ photo: { id: fc.sample(fc.uuid(), 1)[0] } }),
+              text: async () =>
+                JSON.stringify({ photo: { id: fc.sample(fc.uuid(), 1)[0] } }),
             } as Response;
           });
 
@@ -1239,32 +1250,32 @@ describe("Property 5: Sequential Upload Ordering", () => {
           expect(results.length).toBe(photos.length);
 
           // Property assertion: Exactly one upload MUST fail
-          const errorCount = results.filter(r => r === "error").length;
+          const errorCount = results.filter((r) => r === "error").length;
           expect(errorCount).toBe(1);
 
           // Property assertion: Failed upload MUST be at expected index
           expect(results[failIndex]).toBe("error");
-        }
+        },
       ),
-      { numRuns: 50 }
+      { numRuns: 50 },
     );
   });
 });
 
 /**
  * Property 6: Cache Invalidation After Upload
- * 
+ *
  * Validates: Requirements 3.7
- * 
- * For any completed photo upload (success or failure), the React Query cache 
+ *
+ * For any completed photo upload (success or failure), the React Query cache
  * for key ['photos'] SHALL be invalidated to trigger a refetch.
- * 
- * Rationale: After upload, the server may have modified data (timestamps, IDs). 
+ *
+ * Rationale: After upload, the server may have modified data (timestamps, IDs).
  * Invalidation ensures UI shows accurate server state.
- * 
- * Test Strategy: Monitor cache invalidation calls after uploads and verify 
+ *
+ * Test Strategy: Monitor cache invalidation calls after uploads and verify
  * ['photos'] is always invalidated.
- * 
+ *
  * Note: This property tests the expected behavior of React Query mutations.
  * The actual implementation is in PhotosScreen component.
  */
@@ -1302,9 +1313,9 @@ describe("Property 6: Cache Invalidation After Upload", () => {
           expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
             queryKey: ["photos"],
           });
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -1339,9 +1350,9 @@ describe("Property 6: Cache Invalidation After Upload", () => {
           expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
             queryKey: ["photos"],
           });
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -1356,7 +1367,7 @@ describe("Property 6: Cache Invalidation After Upload", () => {
             filename: fc.string({ minLength: 1, maxLength: 100 }),
             isFavorite: fc.boolean(),
           }),
-          { minLength: 1, maxLength: 10 }
+          { minLength: 1, maxLength: 10 },
         ),
         (photos) => {
           // Simulate React Query mutation behavior
@@ -1375,15 +1386,17 @@ describe("Property 6: Cache Invalidation After Upload", () => {
           });
 
           // Property assertion: Cache MUST be invalidated for each upload
-          expect(mockQueryClient.invalidateQueries).toHaveBeenCalledTimes(photos.length);
+          expect(mockQueryClient.invalidateQueries).toHaveBeenCalledTimes(
+            photos.length,
+          );
 
           // Property assertion: All calls MUST target ['photos'] key
-          mockQueryClient.invalidateQueries.mock.calls.forEach(call => {
+          mockQueryClient.invalidateQueries.mock.calls.forEach((call) => {
             expect(call[0]).toEqual({ queryKey: ["photos"] });
           });
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -1421,25 +1434,25 @@ describe("Property 6: Cache Invalidation After Upload", () => {
 
           // Property assertion: Query key element MUST be "photos"
           expect(call.queryKey[0]).toBe("photos");
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });
 
 /**
  * Property 7: Metadata Update Propagation
- * 
+ *
  * Validates: Requirements 4.1, 4.2, 4.3
- * 
- * For any photo metadata update (favorite, tags, notes), a PUT request to 
+ *
+ * For any photo metadata update (favorite, tags, notes), a PUT request to
  * /api/photos/:id SHALL be sent with the updated fields.
- * 
- * Rationale: Metadata changes must persist to server for multi-device sync. 
+ *
+ * Rationale: Metadata changes must persist to server for multi-device sync.
  * This property ensures all metadata updates reach the database.
- * 
- * Test Strategy: Generate random metadata changes and verify PUT requests 
+ *
+ * Test Strategy: Generate random metadata changes and verify PUT requests
  * are sent with correct data.
  */
 describe("Property 7: Metadata Update Propagation", () => {
@@ -1472,16 +1485,16 @@ describe("Property 7: Metadata Update Propagation", () => {
           expect(fetchCall[1]).toEqual(
             expect.objectContaining({
               method: "PUT",
-            })
+            }),
           );
 
           // Property assertion: Request body MUST include isFavorite field
           const callArgs = (global.fetch as any).mock.calls[0];
           const requestBody = JSON.parse(callArgs[1].body);
           expect(requestBody).toHaveProperty("isFavorite", isFavorite);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -1508,7 +1521,7 @@ describe("Property 7: Metadata Update Propagation", () => {
           expect(fetchCall[1]).toEqual(
             expect.objectContaining({
               method: "PUT",
-            })
+            }),
           );
 
           // Property assertion: Request body MUST include tags field
@@ -1516,9 +1529,9 @@ describe("Property 7: Metadata Update Propagation", () => {
           const requestBody = JSON.parse(callArgs[1].body);
           expect(requestBody).toHaveProperty("tags");
           expect(requestBody.tags).toEqual(tags);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -1545,16 +1558,16 @@ describe("Property 7: Metadata Update Propagation", () => {
           expect(fetchCall[1]).toEqual(
             expect.objectContaining({
               method: "PUT",
-            })
+            }),
           );
 
           // Property assertion: Request body MUST include notes field
           const callArgs = (global.fetch as any).mock.calls[0];
           const requestBody = JSON.parse(callArgs[1].body);
           expect(requestBody).toHaveProperty("notes", notes);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -1565,7 +1578,7 @@ describe("Property 7: Metadata Update Propagation", () => {
         fc.oneof(
           fc.record({ isFavorite: fc.boolean() }),
           fc.record({ tags: fc.array(fc.string()) }),
-          fc.record({ notes: fc.string() })
+          fc.record({ notes: fc.string() }),
         ), // Any metadata update
         async (photoId, metadata) => {
           // Mock successful response
@@ -1584,9 +1597,9 @@ describe("Property 7: Metadata Update Propagation", () => {
           const pathname = url.pathname;
           expect(pathname).toMatch(/\/api\/photos\/[a-f0-9-]{36}$/);
           expect(pathname).toContain(photoId);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -1597,7 +1610,7 @@ describe("Property 7: Metadata Update Propagation", () => {
         fc.oneof(
           fc.record({ isFavorite: fc.boolean() }),
           fc.record({ tags: fc.array(fc.string()) }),
-          fc.record({ notes: fc.string() })
+          fc.record({ notes: fc.string() }),
         ), // Any metadata update
         async (photoId, metadata) => {
           // Mock successful response
@@ -1614,27 +1627,27 @@ describe("Property 7: Metadata Update Propagation", () => {
           const callArgs = (global.fetch as any).mock.calls[0];
           const headers = callArgs[1].headers;
           expect(headers).toHaveProperty("Authorization", "Bearer test-token");
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });
 
 /**
  * Property 8: Optimistic Metadata Updates
- * 
+ *
  * Validates: Requirements 4.4
- * 
- * For any metadata mutation, the UI SHALL reflect the change immediately 
+ *
+ * For any metadata mutation, the UI SHALL reflect the change immediately
  * before the server responds.
- * 
- * Rationale: Optimistic updates make the app feel instant. Users shouldn't 
+ *
+ * Rationale: Optimistic updates make the app feel instant. Users shouldn't
  * wait for network round-trips for simple changes.
- * 
- * Test Strategy: Trigger metadata changes and verify UI updates synchronously 
+ *
+ * Test Strategy: Trigger metadata changes and verify UI updates synchronously
  * (within 50ms) before async server response.
- * 
+ *
  * Note: This property tests the expected behavior of React Query mutations.
  * The actual implementation is in PhotoDetailScreen component.
  */
@@ -1656,7 +1669,7 @@ describe("Property 8: Optimistic Metadata Updates", () => {
             modifiedAt: fc.integer({ min: 0, max: Date.now() }),
             albumIds: fc.array(fc.uuid()),
           }),
-          { minLength: 1, maxLength: 20 }
+          { minLength: 1, maxLength: 20 },
         ), // existing photos
         (photoId, newFavoriteValue, existingPhotos) => {
           // Ensure photoId exists in photos array
@@ -1676,17 +1689,23 @@ describe("Property 8: Optimistic Metadata Updates", () => {
           ];
 
           // Simulate the optimistic update logic directly
-          const updatedPhotos = photos.map(photo =>
-            photo.id === photoId ? { ...photo, isFavorite: newFavoriteValue, modifiedAt: Date.now() } : photo
+          const updatedPhotos = photos.map((photo) =>
+            photo.id === photoId
+              ? {
+                  ...photo,
+                  isFavorite: newFavoriteValue,
+                  modifiedAt: Date.now(),
+                }
+              : photo,
           );
 
           const updatedPhoto = updatedPhotos.find((p: any) => p.id === photoId);
-          
+
           // Property assertion: Updated data MUST include new favorite value
           expect(updatedPhoto?.isFavorite).toBe(newFavoriteValue);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -1708,7 +1727,7 @@ describe("Property 8: Optimistic Metadata Updates", () => {
             albumIds: fc.array(fc.uuid()),
             tags: fc.option(fc.array(fc.string())),
           }),
-          { minLength: 0, maxLength: 20 }
+          { minLength: 0, maxLength: 20 },
         ), // existing photos
         (photoId, newTags, existingPhotos) => {
           // Ensure photoId exists in photos array
@@ -1729,17 +1748,19 @@ describe("Property 8: Optimistic Metadata Updates", () => {
           ];
 
           // Simulate the optimistic update logic directly
-          const updatedPhotos = photos.map(photo =>
-            photo.id === photoId ? { ...photo, tags: newTags, modifiedAt: Date.now() } : photo
+          const updatedPhotos = photos.map((photo) =>
+            photo.id === photoId
+              ? { ...photo, tags: newTags, modifiedAt: Date.now() }
+              : photo,
           );
 
           const updatedPhoto = updatedPhotos.find((p: any) => p.id === photoId);
-          
+
           // Property assertion: Updated data MUST include new tags
           expect(updatedPhoto?.tags).toEqual(newTags);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -1761,7 +1782,7 @@ describe("Property 8: Optimistic Metadata Updates", () => {
             albumIds: fc.array(fc.uuid()),
             notes: fc.option(fc.string()),
           }),
-          { minLength: 0, maxLength: 20 }
+          { minLength: 0, maxLength: 20 },
         ), // existing photos
         (photoId, newNotes, existingPhotos) => {
           // Ensure photoId exists in photos array
@@ -1782,17 +1803,19 @@ describe("Property 8: Optimistic Metadata Updates", () => {
           ];
 
           // Simulate the optimistic update logic directly
-          const updatedPhotos = photos.map(photo =>
-            photo.id === photoId ? { ...photo, notes: newNotes, modifiedAt: Date.now() } : photo
+          const updatedPhotos = photos.map((photo) =>
+            photo.id === photoId
+              ? { ...photo, notes: newNotes, modifiedAt: Date.now() }
+              : photo,
           );
 
           const updatedPhoto = updatedPhotos.find((p: any) => p.id === photoId);
-          
+
           // Property assertion: Updated data MUST include new notes
           expect(updatedPhoto?.notes).toBe(newNotes);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -1803,7 +1826,7 @@ describe("Property 8: Optimistic Metadata Updates", () => {
         fc.oneof(
           fc.record({ isFavorite: fc.boolean() }),
           fc.record({ tags: fc.array(fc.string()) }),
-          fc.record({ notes: fc.string() })
+          fc.record({ notes: fc.string() }),
         ), // Any metadata update
         fc.array(
           fc.record({
@@ -1817,7 +1840,7 @@ describe("Property 8: Optimistic Metadata Updates", () => {
             modifiedAt: fc.integer({ min: 0, max: Date.now() - 10000 }), // Old timestamp
             albumIds: fc.array(fc.uuid()),
           }),
-          { minLength: 0, maxLength: 20 }
+          { minLength: 0, maxLength: 20 },
         ), // existing photos
         (photoId, metadata, existingPhotos) => {
           // Ensure photoId exists in photos array
@@ -1839,40 +1862,42 @@ describe("Property 8: Optimistic Metadata Updates", () => {
 
           // Simulate the optimistic update logic directly
           const beforeUpdate = Date.now();
-          const updatedPhotos = photos.map(photo =>
-            photo.id === photoId ? { ...photo, ...metadata, modifiedAt: Date.now() } : photo
+          const updatedPhotos = photos.map((photo) =>
+            photo.id === photoId
+              ? { ...photo, ...metadata, modifiedAt: Date.now() }
+              : photo,
           );
           const afterUpdate = Date.now();
 
           const updatedPhoto = updatedPhotos.find((p: any) => p.id === photoId);
-          
+
           // Property assertion: New modifiedAt MUST be greater than old value
           expect(updatedPhoto?.modifiedAt).toBeGreaterThan(oldModifiedAt);
-          
+
           // Property assertion: New modifiedAt MUST be recent (within test execution window)
           expect(updatedPhoto?.modifiedAt).toBeGreaterThanOrEqual(beforeUpdate);
           expect(updatedPhoto?.modifiedAt).toBeLessThanOrEqual(afterUpdate);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });
 
 /**
  * Property 9: Cache Update After Metadata Success
- * 
+ *
  * Validates: Requirements 4.6
- * 
- * For any successful metadata update, the React Query cache SHALL be updated 
+ *
+ * For any successful metadata update, the React Query cache SHALL be updated
  * with the new metadata values.
- * 
- * Rationale: Cache must stay in sync with server. After successful updates, 
+ *
+ * Rationale: Cache must stay in sync with server. After successful updates,
  * cache should reflect new values without full refetch.
- * 
- * Test Strategy: Update metadata and verify cache contains new values after 
+ *
+ * Test Strategy: Update metadata and verify cache contains new values after
  * mutation succeeds.
- * 
+ *
  * Note: This property tests the expected behavior of React Query mutations.
  * The actual implementation is in PhotoDetailScreen component.
  */
@@ -1884,7 +1909,7 @@ describe("Property 9: Cache Update After Metadata Success", () => {
         fc.oneof(
           fc.record({ isFavorite: fc.boolean() }),
           fc.record({ tags: fc.array(fc.string()) }),
-          fc.record({ notes: fc.string() })
+          fc.record({ notes: fc.string() }),
         ), // Any metadata update
         (photoId, metadata) => {
           // Simulate React Query mutation behavior
@@ -1910,9 +1935,9 @@ describe("Property 9: Cache Update After Metadata Success", () => {
           expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
             queryKey: ["photos"],
           });
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -1940,8 +1965,10 @@ describe("Property 9: Cache Update After Metadata Success", () => {
           const photos = [photo];
 
           // Simulate the optimistic update logic directly
-          const updatedPhotos = photos.map(p =>
-            p.id === photoId ? { ...p, isFavorite: newFavoriteValue, modifiedAt: Date.now() } : p
+          const updatedPhotos = photos.map((p) =>
+            p.id === photoId
+              ? { ...p, isFavorite: newFavoriteValue, modifiedAt: Date.now() }
+              : p,
           );
 
           const updatedPhoto = updatedPhotos.find((p: any) => p.id === photoId);
@@ -1954,13 +1981,13 @@ describe("Property 9: Cache Update After Metadata Success", () => {
           expect(updatedPhoto?.filename).toBe(photo.filename);
           expect(updatedPhoto?.createdAt).toBe(photo.createdAt);
           expect(updatedPhoto?.albumIds).toEqual(photo.albumIds);
-          
+
           // Property assertion: Only isFavorite and modifiedAt MUST change
           expect(updatedPhoto?.isFavorite).toBe(newFavoriteValue);
           expect(updatedPhoto?.modifiedAt).toBeGreaterThan(photo.modifiedAt);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -1985,12 +2012,14 @@ describe("Property 9: Cache Update After Metadata Success", () => {
             modifiedAt: fc.integer({ min: 0, max: Date.now() }),
             albumIds: fc.array(fc.uuid()),
           }),
-          { minLength: 1, maxLength: 20 }
+          { minLength: 1, maxLength: 20 },
         ), // existing photos
         (photoId, metadata, existingPhotos) => {
           // Filter out undefined/null values
           const updates = Object.fromEntries(
-            Object.entries(metadata).filter(([_, v]) => v !== null && v !== undefined)
+            Object.entries(metadata).filter(
+              ([_, v]) => v !== null && v !== undefined,
+            ),
           );
 
           // Skip if no updates (property doesn't apply)
@@ -2028,8 +2057,10 @@ describe("Property 9: Cache Update After Metadata Success", () => {
           };
 
           // Simulate the optimistic update logic directly
-          const updatedPhotos = photos.map(photo =>
-            photo.id === photoId ? { ...photo, ...updates, modifiedAt: Date.now() } : photo
+          const updatedPhotos = photos.map((photo) =>
+            photo.id === photoId
+              ? { ...photo, ...updates, modifiedAt: Date.now() }
+              : photo,
           );
 
           const updatedPhoto = updatedPhotos.find((p: any) => p.id === photoId);
@@ -2038,9 +2069,9 @@ describe("Property 9: Cache Update After Metadata Success", () => {
           Object.entries(updates).forEach(([key, value]) => {
             expect(updatedPhoto).toHaveProperty(key, value);
           });
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -2051,7 +2082,7 @@ describe("Property 9: Cache Update After Metadata Success", () => {
         fc.oneof(
           fc.record({ isFavorite: fc.boolean() }),
           fc.record({ tags: fc.array(fc.string()) }),
-          fc.record({ notes: fc.string() })
+          fc.record({ notes: fc.string() }),
         ), // Any metadata update
         (photoId, metadata) => {
           // Simulate React Query mutation behavior
@@ -2077,26 +2108,25 @@ describe("Property 9: Cache Update After Metadata Success", () => {
           expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
             queryKey: ["photos"],
           });
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });
 
-
 /**
  * Property 10: Deletion Request Propagation
- * 
+ *
  * Validates: Requirements 5.1
- * 
- * For any confirmed photo deletion, a DELETE request to /api/photos/:id 
+ *
+ * For any confirmed photo deletion, a DELETE request to /api/photos/:id
  * SHALL be sent to the server.
- * 
- * Rationale: Deletions must propagate to server for multi-device sync. 
+ *
+ * Rationale: Deletions must propagate to server for multi-device sync.
  * This property ensures deletions aren't just local.
- * 
- * Test Strategy: Delete photos and verify DELETE requests are sent with 
+ *
+ * Test Strategy: Delete photos and verify DELETE requests are sent with
  * correct photo IDs.
  */
 describe("Property 10: Deletion Request Propagation", () => {
@@ -2114,13 +2144,14 @@ describe("Property 10: Deletion Request Propagation", () => {
         async (photoId) => {
           // Clear mocks for this iteration
           vi.clearAllMocks();
-          
+
           // Setup
           vi.mocked(AsyncStorage.getItem).mockResolvedValue("test-token");
           vi.mocked(fetch).mockResolvedValue({
             ok: true,
             status: 200,
-            text: async () => JSON.stringify({ message: "Photo deleted successfully" }),
+            text: async () =>
+              JSON.stringify({ message: "Photo deleted successfully" }),
           } as Response);
 
           // Execute: Delete photo
@@ -2128,7 +2159,7 @@ describe("Property 10: Deletion Request Propagation", () => {
 
           // Property assertion: DELETE request MUST be sent
           expect(fetch).toHaveBeenCalled();
-          
+
           // Property assertion: Method MUST be DELETE
           const fetchCall = vi.mocked(fetch).mock.calls[0];
           expect(fetchCall[1]?.method).toBe("DELETE");
@@ -2137,9 +2168,9 @@ describe("Property 10: Deletion Request Propagation", () => {
           const url = fetchCall[0] as URL;
           expect(url.pathname).toContain(`/api/photos/${photoId}`);
           expect(url.pathname).toMatch(/\/api\/photos\/[a-f0-9-]+$/);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -2152,13 +2183,14 @@ describe("Property 10: Deletion Request Propagation", () => {
           // Clear all mocks for this iteration
           vi.clearAllMocks();
           vi.mocked(fetch).mockClear();
-          
+
           // Setup
           vi.mocked(AsyncStorage.getItem).mockResolvedValue(token);
           vi.mocked(fetch).mockResolvedValue({
             ok: true,
             status: 200,
-            text: async () => JSON.stringify({ message: "Photo deleted successfully" }),
+            text: async () =>
+              JSON.stringify({ message: "Photo deleted successfully" }),
           } as Response);
 
           // Execute
@@ -2168,9 +2200,9 @@ describe("Property 10: Deletion Request Propagation", () => {
           const fetchCall = vi.mocked(fetch).mock.calls[0];
           const headers = fetchCall[1]?.headers as Record<string, string>;
           expect(headers.Authorization).toBe(`Bearer ${token}`);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -2183,13 +2215,14 @@ describe("Property 10: Deletion Request Propagation", () => {
           // Clear all mocks for this iteration
           vi.clearAllMocks();
           vi.mocked(fetch).mockClear();
-          
+
           // Setup
           vi.mocked(AsyncStorage.getItem).mockResolvedValue("test-token");
           vi.mocked(fetch).mockResolvedValue({
             ok: true,
             status: 200,
-            text: async () => JSON.stringify({ message: "Photo deleted successfully" }),
+            text: async () =>
+              JSON.stringify({ message: "Photo deleted successfully" }),
           } as Response);
 
           // Execute
@@ -2198,67 +2231,65 @@ describe("Property 10: Deletion Request Propagation", () => {
           // Property assertion: Request MUST be made with correct ID
           const fetchCall = vi.mocked(fetch).mock.calls[0];
           const url = fetchCall[0] as URL;
-          
+
           // Verify the endpoint contains the photo ID (check the pathname since URL is constructed)
           expect(url.pathname).toContain(photoId);
-          
+
           // Verify UUID format is maintained (8-4-4-4-12 hex digits)
-          const uuidRegex = /[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/;
+          const uuidRegex =
+            /[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/;
           expect(url.pathname).toMatch(uuidRegex);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
   it("should propagate deletion request even if photo doesn't exist locally", async () => {
     await fc.assert(
-      fc.asyncProperty(
-        fc.uuid(),
-        async (photoId) => {
-          // Clear all mocks for this iteration
-          vi.clearAllMocks();
-          vi.mocked(fetch).mockClear();
-          
-          // Setup: Mock server returns 404 (photo not found)
-          vi.mocked(AsyncStorage.getItem).mockResolvedValue("test-token");
-          vi.mocked(fetch).mockResolvedValue({
-            ok: false,
-            status: 404,
-            text: async () => JSON.stringify({ error: "Photo not found" }),
-          } as Response);
+      fc.asyncProperty(fc.uuid(), async (photoId) => {
+        // Clear all mocks for this iteration
+        vi.clearAllMocks();
+        vi.mocked(fetch).mockClear();
 
-          // Execute: Attempt deletion
-          try {
-            await apiRequest("DELETE", `/api/photos/${photoId}`);
-          } catch (error) {
-            // Expected to throw due to 404
-          }
+        // Setup: Mock server returns 404 (photo not found)
+        vi.mocked(AsyncStorage.getItem).mockResolvedValue("test-token");
+        vi.mocked(fetch).mockResolvedValue({
+          ok: false,
+          status: 404,
+          text: async () => JSON.stringify({ error: "Photo not found" }),
+        } as Response);
 
-          // Property assertion: DELETE request MUST still be sent to server
-          expect(fetch).toHaveBeenCalled();
-          const fetchCall = vi.mocked(fetch).mock.calls[0];
-          expect(fetchCall[1]?.method).toBe("DELETE");
-          expect((fetchCall[0] as URL).pathname).toContain(photoId);
+        // Execute: Attempt deletion
+        try {
+          await apiRequest("DELETE", `/api/photos/${photoId}`);
+        } catch (error) {
+          // Expected to throw due to 404
         }
-      ),
-      { numRuns: 100 }
+
+        // Property assertion: DELETE request MUST still be sent to server
+        expect(fetch).toHaveBeenCalled();
+        const fetchCall = vi.mocked(fetch).mock.calls[0];
+        expect(fetchCall[1]?.method).toBe("DELETE");
+        expect((fetchCall[0] as URL).pathname).toContain(photoId);
+      }),
+      { numRuns: 100 },
     );
   });
 });
 
 /**
  * Property 11: Optimistic Deletion
- * 
+ *
  * Validates: Requirements 5.2
- * 
- * For any photo deletion, the photo SHALL be removed from the UI immediately 
+ *
+ * For any photo deletion, the photo SHALL be removed from the UI immediately
  * when deletion is initiated.
- * 
- * Rationale: Users expect instant feedback. Optimistic deletion makes the 
+ *
+ * Rationale: Users expect instant feedback. Optimistic deletion makes the
  * app feel responsive.
- * 
- * Test Strategy: Initiate deletion and verify photo disappears from UI 
+ *
+ * Test Strategy: Initiate deletion and verify photo disappears from UI
  * synchronously before server response.
  */
 describe("Property 11: Optimistic Deletion", () => {
@@ -2266,8 +2297,11 @@ describe("Property 11: Optimistic Deletion", () => {
    * Helper function to simulate optimistic deletion behavior
    * This mimics the onMutate callback in useMutation
    */
-  function applyOptimisticDeletion(photos: Array<{ id: string }>, photoIdToDelete: string): Array<{ id: string }> {
-    return photos.filter(photo => photo.id !== photoIdToDelete);
+  function applyOptimisticDeletion(
+    photos: Array<{ id: string }>,
+    photoIdToDelete: string,
+  ): Array<{ id: string }> {
+    return photos.filter((photo) => photo.id !== photoIdToDelete);
   }
 
   it("should remove photo from UI immediately for any deletion", () => {
@@ -2286,29 +2320,35 @@ describe("Property 11: Optimistic Deletion", () => {
             modifiedAt: fc.integer({ min: 0, max: Date.now() }),
             albumIds: fc.array(fc.uuid(), { maxLength: 5 }),
           }),
-          { minLength: 1, maxLength: 50 }
+          { minLength: 1, maxLength: 50 },
         ),
         (photos) => {
           // Select random photo to delete
-          const photoToDelete = photos[Math.floor(Math.random() * photos.length)];
+          const photoToDelete =
+            photos[Math.floor(Math.random() * photos.length)];
 
           // Execute: Apply optimistic deletion
-          const updatedPhotos = applyOptimisticDeletion(photos, photoToDelete.id);
+          const updatedPhotos = applyOptimisticDeletion(
+            photos,
+            photoToDelete.id,
+          );
 
           // Property assertion: Deleted photo MUST NOT be in result
-          expect(updatedPhotos.find(p => p.id === photoToDelete.id)).toBeUndefined();
+          expect(
+            updatedPhotos.find((p) => p.id === photoToDelete.id),
+          ).toBeUndefined();
 
           // Property assertion: Result length MUST be one less
           expect(updatedPhotos.length).toBe(photos.length - 1);
 
           // Property assertion: All other photos MUST remain
-          const otherPhotos = photos.filter(p => p.id !== photoToDelete.id);
-          otherPhotos.forEach(photo => {
-            expect(updatedPhotos.find(p => p.id === photo.id)).toBeDefined();
+          const otherPhotos = photos.filter((p) => p.id !== photoToDelete.id);
+          otherPhotos.forEach((photo) => {
+            expect(updatedPhotos.find((p) => p.id === photo.id)).toBeDefined();
           });
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -2321,7 +2361,7 @@ describe("Property 11: Optimistic Deletion", () => {
             uri: fc.webUrl(),
             createdAt: fc.integer({ min: 0, max: Date.now() }),
           }),
-          { minLength: 1, maxLength: 50 }
+          { minLength: 1, maxLength: 50 },
         ),
         (photos) => {
           // Execute: Delete first photo
@@ -2329,15 +2369,17 @@ describe("Property 11: Optimistic Deletion", () => {
           const updatedPhotos = applyOptimisticDeletion(photos, firstPhotoId);
 
           // Property assertion: First photo MUST be removed
-          expect(updatedPhotos.find(p => p.id === firstPhotoId)).toBeUndefined();
+          expect(
+            updatedPhotos.find((p) => p.id === firstPhotoId),
+          ).toBeUndefined();
 
           // Property assertion: If there were more photos, second becomes first
           if (photos.length > 1) {
             expect(updatedPhotos[0].id).toBe(photos[1].id);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -2350,7 +2392,7 @@ describe("Property 11: Optimistic Deletion", () => {
             uri: fc.webUrl(),
             createdAt: fc.integer({ min: 0, max: Date.now() }),
           }),
-          { minLength: 1, maxLength: 50 }
+          { minLength: 1, maxLength: 50 },
         ),
         (photos) => {
           // Execute: Delete last photo
@@ -2358,13 +2400,15 @@ describe("Property 11: Optimistic Deletion", () => {
           const updatedPhotos = applyOptimisticDeletion(photos, lastPhotoId);
 
           // Property assertion: Last photo MUST be removed
-          expect(updatedPhotos.find(p => p.id === lastPhotoId)).toBeUndefined();
+          expect(
+            updatedPhotos.find((p) => p.id === lastPhotoId),
+          ).toBeUndefined();
 
           // Property assertion: Length MUST be reduced by 1
           expect(updatedPhotos.length).toBe(photos.length - 1);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -2377,7 +2421,7 @@ describe("Property 11: Optimistic Deletion", () => {
             uri: fc.webUrl(),
             createdAt: fc.integer({ min: 0, max: Date.now() }),
           }),
-          { minLength: 3, maxLength: 50 }
+          { minLength: 3, maxLength: 50 },
         ),
         (photos) => {
           // Delete middle photo
@@ -2385,14 +2429,21 @@ describe("Property 11: Optimistic Deletion", () => {
           const photoToDelete = photos[middleIndex];
 
           // Execute
-          const updatedPhotos = applyOptimisticDeletion(photos, photoToDelete.id);
+          const updatedPhotos = applyOptimisticDeletion(
+            photos,
+            photoToDelete.id,
+          );
 
           // Property assertion: Relative order of remaining photos MUST be preserved
-          const remainingOriginalPhotos = photos.filter(p => p.id !== photoToDelete.id);
-          expect(updatedPhotos.map(p => p.id)).toEqual(remainingOriginalPhotos.map(p => p.id));
-        }
+          const remainingOriginalPhotos = photos.filter(
+            (p) => p.id !== photoToDelete.id,
+          );
+          expect(updatedPhotos.map((p) => p.id)).toEqual(
+            remainingOriginalPhotos.map((p) => p.id),
+          );
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -2405,21 +2456,26 @@ describe("Property 11: Optimistic Deletion", () => {
             uri: fc.webUrl(),
             createdAt: fc.integer({ min: 0, max: Date.now() }),
           }),
-          { minLength: 1, maxLength: 10 }
+          { minLength: 1, maxLength: 10 },
         ),
         (duplicateId, photoData) => {
           // Create photos with duplicate IDs (edge case)
-          const photos = photoData.map(data => ({ ...data, id: duplicateId }));
+          const photos = photoData.map((data) => ({
+            ...data,
+            id: duplicateId,
+          }));
 
           // Execute: Delete by ID
           const updatedPhotos = applyOptimisticDeletion(photos, duplicateId);
 
           // Property assertion: ALL photos with that ID MUST be removed
           expect(updatedPhotos.length).toBe(0);
-          expect(updatedPhotos.find(p => p.id === duplicateId)).toBeUndefined();
-        }
+          expect(
+            updatedPhotos.find((p) => p.id === duplicateId),
+          ).toBeUndefined();
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -2438,25 +2494,25 @@ describe("Property 11: Optimistic Deletion", () => {
           // Property assertion: Result MUST be empty array
           expect(updatedPhotos).toEqual([]);
           expect(updatedPhotos.length).toBe(0);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });
 
 /**
  * Property 12: Cache Cleanup After Deletion
- * 
+ *
  * Validates: Requirements 5.3
- * 
- * For any successful photo deletion, the photo SHALL be removed from the 
+ *
+ * For any successful photo deletion, the photo SHALL be removed from the
  * React Query cache.
- * 
- * Rationale: Deleted photos shouldn't reappear from cache. Cache cleanup 
+ *
+ * Rationale: Deleted photos shouldn't reappear from cache. Cache cleanup
  * ensures consistency.
- * 
- * Test Strategy: Delete photos and verify they're removed from cache after 
+ *
+ * Test Strategy: Delete photos and verify they're removed from cache after
  * successful deletion.
  */
 describe("Property 12: Cache Cleanup After Deletion", () => {
@@ -2471,17 +2527,14 @@ describe("Property 12: Cache Cleanup After Deletion", () => {
 
   it("should invalidate photos cache for any successful deletion", () => {
     fc.assert(
-      fc.property(
-        fc.uuid(),
-        (photoId) => {
-          // Execute: Check if cache should be invalidated after deletion
-          const shouldInvalidate = shouldInvalidatePhotosCache("DELETE");
+      fc.property(fc.uuid(), (photoId) => {
+        // Execute: Check if cache should be invalidated after deletion
+        const shouldInvalidate = shouldInvalidatePhotosCache("DELETE");
 
-          // Property assertion: Cache invalidation MUST be triggered
-          expect(shouldInvalidate).toBe(true);
-        }
-      ),
-      { numRuns: 100 }
+        // Property assertion: Cache invalidation MUST be triggered
+        expect(shouldInvalidate).toBe(true);
+      }),
+      { numRuns: 100 },
     );
   });
 
@@ -2507,12 +2560,12 @@ describe("Property 12: Cache Cleanup After Deletion", () => {
 
           // Property assertion: Cache MUST be invalidated for any photo
           expect(shouldInvalidate).toBe(true);
-          
+
           // Property assertion: Invalidation doesn't depend on photo properties
           // (This is implicit in the design - all deletions trigger invalidation)
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -2534,42 +2587,39 @@ describe("Property 12: Cache Cleanup After Deletion", () => {
           // - Number of albums
           // - Presence of tags
           expect(shouldInvalidate).toBe(true);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
   it("should trigger cache cleanup even for non-existent photo IDs", () => {
     fc.assert(
-      fc.property(
-        fc.uuid(),
-        (nonExistentPhotoId) => {
-          // Execute: Verify cache invalidation happens even for non-existent IDs
-          // (Server will return 404, but cache should still be invalidated)
-          const shouldInvalidate = shouldInvalidatePhotosCache("DELETE");
+      fc.property(fc.uuid(), (nonExistentPhotoId) => {
+        // Execute: Verify cache invalidation happens even for non-existent IDs
+        // (Server will return 404, but cache should still be invalidated)
+        const shouldInvalidate = shouldInvalidatePhotosCache("DELETE");
 
-          // Property assertion: Cache cleanup MUST happen regardless of photo existence
-          expect(shouldInvalidate).toBe(true);
-        }
-      ),
-      { numRuns: 100 }
+        // Property assertion: Cache cleanup MUST happen regardless of photo existence
+        expect(shouldInvalidate).toBe(true);
+      }),
+      { numRuns: 100 },
     );
   });
 });
 
 /**
  * Property 13: Album Cache Invalidation After Photo Deletion
- * 
+ *
  * Validates: Requirements 5.6
- * 
- * For any photo deletion, all album-related React Query caches SHALL be 
+ *
+ * For any photo deletion, all album-related React Query caches SHALL be
  * invalidated.
- * 
- * Rationale: Deleting a photo affects albums containing it. Album caches 
+ *
+ * Rationale: Deleting a photo affects albums containing it. Album caches
  * must refetch to show updated photo counts and covers.
- * 
- * Test Strategy: Delete photos that are in albums and verify album caches 
+ *
+ * Test Strategy: Delete photos that are in albums and verify album caches
  * are invalidated.
  */
 describe("Property 13: Album Cache Invalidation After Photo Deletion", () => {
@@ -2587,23 +2637,20 @@ describe("Property 13: Album Cache Invalidation After Photo Deletion", () => {
 
   it("should invalidate both photos and albums caches for any deletion", () => {
     fc.assert(
-      fc.property(
-        fc.uuid(),
-        (photoId) => {
-          // Execute: Get caches to invalidate
-          const cachesToInvalidate = getCachesToInvalidate("DELETE");
+      fc.property(fc.uuid(), (photoId) => {
+        // Execute: Get caches to invalidate
+        const cachesToInvalidate = getCachesToInvalidate("DELETE");
 
-          // Property assertion: MUST invalidate photos cache
-          expect(cachesToInvalidate).toContain("photos");
+        // Property assertion: MUST invalidate photos cache
+        expect(cachesToInvalidate).toContain("photos");
 
-          // Property assertion: MUST invalidate albums cache
-          expect(cachesToInvalidate).toContain("albums");
+        // Property assertion: MUST invalidate albums cache
+        expect(cachesToInvalidate).toContain("albums");
 
-          // Property assertion: MUST invalidate exactly these two caches
-          expect(cachesToInvalidate.length).toBe(2);
-        }
-      ),
-      { numRuns: 100 }
+        // Property assertion: MUST invalidate exactly these two caches
+        expect(cachesToInvalidate.length).toBe(2);
+      }),
+      { numRuns: 100 },
     );
   });
 
@@ -2623,9 +2670,9 @@ describe("Property 13: Album Cache Invalidation After Photo Deletion", () => {
 
           // Property assertion: Album cache MUST be invalidated even if photo in multiple albums
           expect(cachesToInvalidate).toContain("albums");
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -2644,9 +2691,9 @@ describe("Property 13: Album Cache Invalidation After Photo Deletion", () => {
           // Property assertion: Album cache MUST still be invalidated
           // (Defensive invalidation - ensures consistency)
           expect(cachesToInvalidate).toContain("albums");
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -2663,12 +2710,14 @@ describe("Property 13: Album Cache Invalidation After Photo Deletion", () => {
 
           // Property assertion: Album cache MUST be invalidated
           expect(cachesToInvalidate).toContain("albums");
-          
+
           // Property assertion: Both caches MUST be invalidated
-          expect(cachesToInvalidate).toEqual(expect.arrayContaining(["photos", "albums"]));
-        }
+          expect(cachesToInvalidate).toEqual(
+            expect.arrayContaining(["photos", "albums"]),
+          );
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -2688,28 +2737,27 @@ describe("Property 13: Album Cache Invalidation After Photo Deletion", () => {
 
           // Property assertion: Number of albums doesn't affect invalidation
           // (All album caches invalidated, not individual album caches)
-          expect(cachesToInvalidate.filter(c => c === "albums").length).toBe(1);
-        }
+          expect(cachesToInvalidate.filter((c) => c === "albums").length).toBe(
+            1,
+          );
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
   it("should ensure dual cache invalidation is atomic", () => {
     fc.assert(
-      fc.property(
-        fc.uuid(),
-        (photoId) => {
-          // Execute
-          const cachesToInvalidate = getCachesToInvalidate("DELETE");
+      fc.property(fc.uuid(), (photoId) => {
+        // Execute
+        const cachesToInvalidate = getCachesToInvalidate("DELETE");
 
-          // Property assertion: Both caches MUST be in the same invalidation call
-          // (Not separate calls that could fail independently)
-          expect(cachesToInvalidate).toHaveLength(2);
-          expect(new Set(cachesToInvalidate).size).toBe(2); // No duplicates
-        }
-      ),
-      { numRuns: 100 }
+        // Property assertion: Both caches MUST be in the same invalidation call
+        // (Not separate calls that could fail independently)
+        expect(cachesToInvalidate).toHaveLength(2);
+        expect(new Set(cachesToInvalidate).size).toBe(2); // No duplicates
+      }),
+      { numRuns: 100 },
     );
   });
 
@@ -2729,9 +2777,9 @@ describe("Property 13: Album Cache Invalidation After Photo Deletion", () => {
           // Property assertion: Album cache MUST be invalidated
           // (Critical for updating album covers when cover photo is deleted)
           expect(cachesToInvalidate).toContain("albums");
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });

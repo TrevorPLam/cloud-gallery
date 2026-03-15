@@ -35,14 +35,14 @@ router.get("/", async (req: Request, res: Response) => {
     }
 
     // Optional query parameters for configuration
-    const hammingThreshold = req.query.hammingThreshold 
-      ? parseInt(req.query.hammingThreshold as string) 
+    const hammingThreshold = req.query.hammingThreshold
+      ? parseInt(req.query.hammingThreshold as string)
       : undefined;
-    const burstTimeWindow = req.query.burstTimeWindow 
-      ? parseInt(req.query.burstTimeWindow as string) 
+    const burstTimeWindow = req.query.burstTimeWindow
+      ? parseInt(req.query.burstTimeWindow as string)
       : undefined;
-    const minBurstSize = req.query.minBurstSize 
-      ? parseInt(req.query.minBurstSize as string) 
+    const minBurstSize = req.query.minBurstSize
+      ? parseInt(req.query.minBurstSize as string)
       : undefined;
 
     // Build configuration from query parameters
@@ -86,27 +86,36 @@ router.post("/resolve", async (req: Request, res: Response) => {
 
     // Validate request body
     const resolveSchema = z.object({
-      resolutions: z.array(z.object({
-        groupId: z.string().min(1),
-        keepPhotoIds: z.array(z.string()),
-        deletePhotoIds: z.array(z.string()),
-      })),
+      resolutions: z.array(
+        z.object({
+          groupId: z.string().min(1),
+          keepPhotoIds: z.array(z.string()),
+          deletePhotoIds: z.array(z.string()),
+        }),
+      ),
     });
 
     const validatedData = resolveSchema.parse(req.body);
 
     // Validate each resolution
     for (const resolution of validatedData.resolutions) {
-      if (resolution.keepPhotoIds.length === 0 && resolution.deletePhotoIds.length === 0) {
+      if (
+        resolution.keepPhotoIds.length === 0 &&
+        resolution.deletePhotoIds.length === 0
+      ) {
         return res.status(400).json({
-          error: "Each resolution must specify either keepPhotoIds or deletePhotoIds",
+          error:
+            "Each resolution must specify either keepPhotoIds or deletePhotoIds",
           groupId: resolution.groupId,
         });
       }
 
-      if (resolution.keepPhotoIds.length > 0 && resolution.deletePhotoIds.length > 0) {
-        const hasOverlap = resolution.keepPhotoIds.some(id => 
-          resolution.deletePhotoIds.includes(id)
+      if (
+        resolution.keepPhotoIds.length > 0 &&
+        resolution.deletePhotoIds.length > 0
+      ) {
+        const hasOverlap = resolution.keepPhotoIds.some((id) =>
+          resolution.deletePhotoIds.includes(id),
         );
         if (hasOverlap) {
           return res.status(400).json({
@@ -117,7 +126,10 @@ router.post("/resolve", async (req: Request, res: Response) => {
       }
     }
 
-    const result = await resolveDuplicateGroups(userId, validatedData.resolutions);
+    const result = await resolveDuplicateGroups(
+      userId,
+      validatedData.resolutions,
+    );
 
     if (result.errors.length > 0) {
       return res.status(207).json({
@@ -159,25 +171,35 @@ router.get("/summary", async (req: Request, res: Response) => {
     const duplicateGroups = await findDuplicatePhotos(userId);
 
     // Calculate statistics
-    const totalDuplicatePhotos = duplicateGroups.reduce((sum, group) => sum + group.photos.length, 0);
+    const totalDuplicatePhotos = duplicateGroups.reduce(
+      (sum, group) => sum + group.photos.length,
+      0,
+    );
     const totalGroups = duplicateGroups.length;
-    
-    const groupTypeCounts = duplicateGroups.reduce((counts, group) => {
-      counts[group.groupType] = (counts[group.groupType] || 0) + 1;
-      return counts;
-    }, {} as Record<string, number>);
 
-    const averageSimilarity = duplicateGroups.length > 0
-      ? duplicateGroups.reduce((sum, group) => sum + group.averageSimilarity, 0) / duplicateGroups.length
-      : 0;
+    const groupTypeCounts = duplicateGroups.reduce(
+      (counts, group) => {
+        counts[group.groupType] = (counts[group.groupType] || 0) + 1;
+        return counts;
+      },
+      {} as Record<string, number>,
+    );
+
+    const averageSimilarity =
+      duplicateGroups.length > 0
+        ? duplicateGroups.reduce(
+            (sum, group) => sum + group.averageSimilarity,
+            0,
+          ) / duplicateGroups.length
+        : 0;
 
     // Calculate potential space savings (if duplicates were deleted)
     const totalDuplicateSpace = duplicateGroups.reduce((sum, group) => {
       if (group.photos.length > 1) {
         // Keep only the best photo, delete others
-        const bestPhoto = group.photos.find(photo => photo.isBest);
+        const bestPhoto = group.photos.find((photo) => photo.isBest);
         const duplicateSpace = group.photos
-          .filter(photo => !photo.isBest)
+          .filter((photo) => !photo.isBest)
           .reduce((spaceSum, photo) => spaceSum + photo.fileSize, 0);
         return sum + duplicateSpace;
       }
@@ -192,13 +214,13 @@ router.get("/summary", async (req: Request, res: Response) => {
         averageSimilarity: Math.round(averageSimilarity * 100) / 100,
         groupTypes: groupTypeCounts,
       },
-      groups: duplicateGroups.map(group => ({
+      groups: duplicateGroups.map((group) => ({
         groupId: group.groupId,
         groupType: group.groupType,
         photoCount: group.photos.length,
         averageSimilarity: Math.round(group.averageSimilarity * 100) / 100,
         potentialSpaceSavings: group.photos
-          .filter(photo => !photo.isBest)
+          .filter((photo) => !photo.isBest)
           .reduce((sum, photo) => sum + photo.fileSize, 0),
       })),
     });
@@ -226,7 +248,10 @@ router.post("/scan", async (req: Request, res: Response) => {
       message: "Duplicate scan completed",
       scannedAt: new Date().toISOString(),
       duplicateGroupsFound: duplicateGroups.length,
-      totalDuplicatePhotos: duplicateGroups.reduce((sum, group) => sum + group.photos.length, 0),
+      totalDuplicatePhotos: duplicateGroups.reduce(
+        (sum, group) => sum + group.photos.length,
+        0,
+      ),
     });
   } catch (error) {
     console.error("Error during duplicate scan:", error);

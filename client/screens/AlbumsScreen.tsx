@@ -58,16 +58,16 @@ export default function AlbumsScreen() {
   //   • Handles loading/error states
   //   • Caches results
   //   • Refetches when needed
-  
-  const { 
-    data: albums = [], 
-    isLoading, 
+
+  const {
+    data: albums = [],
+    isLoading,
     error,
-    refetch 
+    refetch,
   } = useQuery<Album[]>({
-    queryKey: ['albums'],
+    queryKey: ["albums"],
     queryFn: async () => {
-      const res = await apiRequest('GET', '/api/albums');
+      const res = await apiRequest("GET", "/api/albums");
       const data = await res.json();
       return data.albums;
     },
@@ -77,9 +77,9 @@ export default function AlbumsScreen() {
 
   // Fetch photos to compute cover URIs
   const { data: photos = [] } = useQuery<Photo[]>({
-    queryKey: ['photos'],
+    queryKey: ["photos"],
     queryFn: async () => {
-      const res = await apiRequest('GET', '/api/photos');
+      const res = await apiRequest("GET", "/api/photos");
       const data = await res.json();
       return data.photos;
     },
@@ -87,9 +87,9 @@ export default function AlbumsScreen() {
 
   // Task 5.5: Enrich albums with cover photo URIs
   // For each album, set coverPhotoUri to the first photo's URI
-  const enrichedAlbums = albums.map(album => {
+  const enrichedAlbums = albums.map((album) => {
     if (!album.coverPhotoUri && album.photoIds && album.photoIds.length > 0) {
-      const firstPhoto = photos.find(p => p.id === album.photoIds[0]);
+      const firstPhoto = photos.find((p) => p.id === album.photoIds[0]);
       return {
         ...album,
         coverPhotoUri: firstPhoto?.uri || null,
@@ -102,25 +102,25 @@ export default function AlbumsScreen() {
   // CREATE ALBUM MUTATION (React Query)
   // ═══════════════════════════════════════════════════════════
   // Task 5.2: Album creation with optimistic update
-  
+
   const createAlbumMutation = useMutation({
     mutationFn: async (albumData: { title: string; description?: string }) => {
-      const res = await apiRequest('POST', '/api/albums', albumData);
+      const res = await apiRequest("POST", "/api/albums", albumData);
       return res.json();
     },
-    
+
     // BEFORE sending to server (optimistic update)
     onMutate: async (newAlbum) => {
       // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['albums'] });
-      
+      await queryClient.cancelQueries({ queryKey: ["albums"] });
+
       // Save current state for rollback
-      const previousAlbums = queryClient.getQueryData(['albums']);
-      
+      const previousAlbums = queryClient.getQueryData(["albums"]);
+
       // Optimistically update UI (show album immediately with temp ID)
-      queryClient.setQueryData(['albums'], (old: Album[] = []) => [
+      queryClient.setQueryData(["albums"], (old: Album[] = []) => [
         {
-          id: 'temp-' + Date.now(),
+          id: "temp-" + Date.now(),
           title: newAlbum.title,
           description: newAlbum.description,
           coverPhotoUri: null,
@@ -130,23 +130,23 @@ export default function AlbumsScreen() {
         } as Album,
         ...old,
       ]);
-      
+
       return { previousAlbums };
     },
-    
+
     // If API call FAILS
     onError: (err, newAlbum, context) => {
       // Rollback to previous state
       if (context?.previousAlbums) {
-        queryClient.setQueryData(['albums'], context.previousAlbums);
+        queryClient.setQueryData(["albums"], context.previousAlbums);
       }
-      console.error('Failed to create album:', err);
+      console.error("Failed to create album:", err);
     },
-    
+
     // After API call completes (success OR failure)
     onSettled: () => {
       // Refetch from server to get accurate data
-      queryClient.invalidateQueries({ queryKey: ['albums'] });
+      queryClient.invalidateQueries({ queryKey: ["albums"] });
     },
   });
 
@@ -155,7 +155,7 @@ export default function AlbumsScreen() {
 
     // Use mutation to create album
     createAlbumMutation.mutate({ title: newAlbumTitle.trim() });
-    
+
     setNewAlbumTitle("");
     setShowCreateModal(false);
 
@@ -175,43 +175,43 @@ export default function AlbumsScreen() {
   // DELETE ALBUM MUTATION (React Query)
   // ═══════════════════════════════════════════════════════════
   // Task 5.4: Album deletion with optimistic update
-  
+
   const deleteAlbumMutation = useMutation({
     mutationFn: async (albumId: string) => {
-      const res = await apiRequest('DELETE', `/api/albums/${albumId}`);
+      const res = await apiRequest("DELETE", `/api/albums/${albumId}`);
       return res.json();
     },
-    
+
     // BEFORE sending to server (optimistic update)
     onMutate: async (albumId) => {
       // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['albums'] });
-      
+      await queryClient.cancelQueries({ queryKey: ["albums"] });
+
       // Save current state for rollback
-      const previousAlbums = queryClient.getQueryData(['albums']);
-      
+      const previousAlbums = queryClient.getQueryData(["albums"]);
+
       // Optimistically remove album from UI
-      queryClient.setQueryData(['albums'], (old: Album[] = []) =>
-        old.filter(album => album.id !== albumId)
+      queryClient.setQueryData(["albums"], (old: Album[] = []) =>
+        old.filter((album) => album.id !== albumId),
       );
-      
+
       return { previousAlbums };
     },
-    
+
     // If API call FAILS
     onError: (err, albumId, context) => {
       // Rollback to previous state
       if (context?.previousAlbums) {
-        queryClient.setQueryData(['albums'], context.previousAlbums);
+        queryClient.setQueryData(["albums"], context.previousAlbums);
       }
-      console.error('Failed to delete album:', err);
+      console.error("Failed to delete album:", err);
     },
-    
+
     // After API call completes (success OR failure)
     onSettled: () => {
       // Refetch both albums and photos (photos may have albumIds updated)
-      queryClient.invalidateQueries({ queryKey: ['albums'] });
-      queryClient.invalidateQueries({ queryKey: ['photos'] });
+      queryClient.invalidateQueries({ queryKey: ["albums"] });
+      queryClient.invalidateQueries({ queryKey: ["photos"] });
     },
   });
 
@@ -220,7 +220,7 @@ export default function AlbumsScreen() {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     }
-    
+
     // Use mutation to delete album
     deleteAlbumMutation.mutate(album.id);
   };
@@ -258,9 +258,11 @@ export default function AlbumsScreen() {
           <EmptyState
             image={require("../../assets/images/empty-albums.png")}
             title="Failed to load albums"
-            subtitle={error instanceof Error ? error.message : "An error occurred"}
+            subtitle={
+              error instanceof Error ? error.message : "An error occurred"
+            }
           />
-          <Pressable 
+          <Pressable
             style={[styles.retryButton, { backgroundColor: theme.accent }]}
             onPress={() => refetch()}
           >

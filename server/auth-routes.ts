@@ -24,7 +24,7 @@ import {
   checkCaptchaRequirement,
   verifyCaptchaMiddleware,
   recordAuthFailure,
-  recordAuthSuccess
+  recordAuthSuccess,
 } from "./auth-captcha-routes";
 import { logAuthEvent, logSecurityEvent, AuditEventType } from "./audit";
 
@@ -104,7 +104,8 @@ router.post("/register", authRateLimit, async (req: Request, res: Response) => {
     if (isBreached) {
       return res.status(400).json({
         error: "Breached password",
-        message: "This password has been found in known data breaches. Please choose a different password.",
+        message:
+          "This password has been found in known data breaches. Please choose a different password.",
       });
     }
 
@@ -232,7 +233,8 @@ router.post(
         message: "Failed to authenticate user",
       });
     }
-  });
+  },
+);
 
 /**
  * POST /api/auth/refresh

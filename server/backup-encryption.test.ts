@@ -11,7 +11,7 @@ import { existsSync, unlinkSync } from "fs";
 import { join } from "path";
 
 // Mock the encrypted-storage module to avoid database dependency
-vi.mock('./encrypted-storage', () => ({
+vi.mock("./encrypted-storage", () => ({
   db: {
     select: vi.fn().mockReturnValue({
       from: vi.fn().mockReturnValue({
@@ -20,11 +20,11 @@ vi.mock('./encrypted-storage', () => ({
     }),
   },
   users: {
-    id: 'id',
-    username: 'username',
-    email: 'email',
-    password: 'password',
-    createdAt: 'createdAt',
+    id: "id",
+    username: "username",
+    email: "email",
+    password: "password",
+    createdAt: "createdAt",
   },
 }));
 
@@ -90,7 +90,11 @@ describe("Backup Encryption", () => {
       const validation = validateBackupConfig();
 
       expect(validation.isValid).toBe(false);
-      expect(validation.warnings.some(w => w.includes("BACKUP_ENCRYPTION_KEY not set"))).toBe(true);
+      expect(
+        validation.warnings.some((w) =>
+          w.includes("BACKUP_ENCRYPTION_KEY not set"),
+        ),
+      ).toBe(true);
     });
 
     it("should warn about missing salt", () => {
@@ -100,17 +104,26 @@ describe("Backup Encryption", () => {
       const validation = validateBackupConfig();
 
       expect(validation.isValid).toBe(false);
-      expect(validation.warnings.some(w => w.includes("BACKUP_ENCRYPTION_SALT not set"))).toBe(true);
+      expect(
+        validation.warnings.some((w) =>
+          w.includes("BACKUP_ENCRYPTION_SALT not set"),
+        ),
+      ).toBe(true);
     });
 
     it("should warn about default values", () => {
-      process.env.BACKUP_ENCRYPTION_KEY = "default-backup-key-change-in-production";
+      process.env.BACKUP_ENCRYPTION_KEY =
+        "default-backup-key-change-in-production";
       process.env.BACKUP_ENCRYPTION_SALT = "default-salt-change-in-production";
 
       const validation = validateBackupConfig();
 
       expect(validation.isValid).toBe(false);
-      expect(validation.warnings.some(w => w.includes("default backup encryption key"))).toBe(true);
+      expect(
+        validation.warnings.some((w) =>
+          w.includes("default backup encryption key"),
+        ),
+      ).toBe(true);
     });
   });
 
@@ -128,7 +141,9 @@ describe("Backup Encryption", () => {
     it("should create backup with auto-generated name", async () => {
       const backup = await createEncryptedBackup();
 
-      expect(backup.fileName).toMatch(/^backup-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.enc$/);
+      expect(backup.fileName).toMatch(
+        /^backup-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.enc$/,
+      );
       expect(backup.encrypted).toBe(true);
       expect(existsSync(backup.filePath)).toBe(true);
     });
@@ -139,15 +154,15 @@ describe("Backup Encryption", () => {
       // Read and verify backup structure
       const { readFileSync } = require("fs");
       const fileContent = readFileSync(backup.filePath);
-      
+
       // Should contain JSON header
       const content = fileContent.toString();
       const headerEndIndex = content.indexOf("\n");
       expect(headerEndIndex).toBeGreaterThan(0);
-      
+
       const headerLine = content.slice(0, headerEndIndex);
       const header = JSON.parse(headerLine);
-      
+
       expect(header.version).toBe("1.0");
       expect(header.algorithm).toBe("aes-256-gcm");
       expect(header.iv).toMatch(/^[a-f0-9]{32}$/);
@@ -163,12 +178,12 @@ describe("Backup Encryption", () => {
       // Read backup and verify encryption
       const { readFileSync } = require("fs");
       const fileContent = readFileSync(backup.filePath);
-      
+
       const content = fileContent.toString();
       const headerEndIndex = content.indexOf("\n");
       const headerLine = content.slice(0, headerEndIndex);
       const header = JSON.parse(headerLine);
-      
+
       expect(header.algorithm).toBe("aes-256-gcm");
       expect(header.iv).toHaveLength(32); // 16 bytes in hex
     });
@@ -176,11 +191,13 @@ describe("Backup Encryption", () => {
     it("should fail to restore with wrong key", async () => {
       // Create backup with one key
       const backup = await createEncryptedBackup("wrong-key-test");
-      
+
       // Try to restore with different key
       process.env.BACKUP_ENCRYPTION_KEY = "different-backup-key-32-chars";
-      
-      await expect(restoreFromEncryptedBackup(backup.filePath)).rejects.toThrow("Failed to restore from encrypted backup");
+
+      await expect(restoreFromEncryptedBackup(backup.filePath)).rejects.toThrow(
+        "Failed to restore from encrypted backup",
+      );
     });
   });
 
@@ -191,12 +208,12 @@ describe("Backup Encryption", () => {
       // Read backup and verify compression flag
       const { readFileSync } = require("fs");
       const fileContent = readFileSync(backup.filePath);
-      
+
       const content = fileContent.toString();
       const headerEndIndex = content.indexOf("\n");
       const headerLine = content.slice(0, headerEndIndex);
       const header = JSON.parse(headerLine);
-      
+
       expect(header.compressed).toBe(true);
       expect(header.originalSize).toBeGreaterThan(0);
     });
@@ -205,11 +222,19 @@ describe("Backup Encryption", () => {
   describe("Error Handling", () => {
     it("should handle invalid backup file during restore", async () => {
       // Create invalid backup file
-      const { writeFileSync } = require("fs");
+      const { writeFileSync, mkdirSync } = require("fs");
       const invalidBackupPath = join(testBackupDir, "invalid.enc");
+
+      // Ensure directory exists
+      if (!existsSync(testBackupDir)) {
+        mkdirSync(testBackupDir, { recursive: true });
+      }
+
       writeFileSync(invalidBackupPath, "invalid backup content");
 
-      await expect(restoreFromEncryptedBackup(invalidBackupPath)).rejects.toThrow("Failed to restore from encrypted backup");
+      await expect(
+        restoreFromEncryptedBackup(invalidBackupPath),
+      ).rejects.toThrow("Failed to restore from encrypted backup");
     });
 
     it("should handle missing backup file during restore", async () => {
@@ -232,10 +257,14 @@ describe("Backup Encryption", () => {
       const headerEndIndex = content.indexOf("\n");
       const headerLine = content.slice(0, headerEndIndex);
       const header = JSON.parse(headerLine);
-      
+
       const backupTimestamp = new Date(header.timestamp);
-      expect(backupTimestamp.getTime()).toBeGreaterThanOrEqual(beforeCreate.getTime());
-      expect(backupTimestamp.getTime()).toBeLessThanOrEqual(afterCreate.getTime());
+      expect(backupTimestamp.getTime()).toBeGreaterThanOrEqual(
+        beforeCreate.getTime(),
+      );
+      expect(backupTimestamp.getTime()).toBeLessThanOrEqual(
+        afterCreate.getTime(),
+      );
     });
 
     it("should return correct backup metadata", async () => {

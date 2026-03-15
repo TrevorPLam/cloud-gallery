@@ -1,18 +1,18 @@
 import { describe, it, expect } from "vitest";
 import { users, insertUserSchema, type InsertUser, type User } from "./schema";
-import { 
-  photos, 
-  insertPhotoSchema, 
-  faces, 
-  people, 
-  sharedAlbums, 
+import {
+  photos,
+  insertPhotoSchema,
+  faces,
+  people,
+  sharedAlbums,
   sharedAlbumCollaborators,
   photoEdits,
   memories,
   smartAlbums,
   backupQueue,
   userDevices,
-  storageUsage
+  storageUsage,
 } from "./schema";
 import { z } from "zod";
 import * as fc from "fast-check";
@@ -240,119 +240,129 @@ describe("User type", () => {
 describe("Schema Migration Property Tests", () => {
   describe("Photos table ML extensions", () => {
     it("should preserve existing photo data when adding ML fields", () => {
-      fc.assert(fc.property(
-        fc.record({
-          id: fc.uuid(),
-          userId: fc.uuid(),
-          uri: fc.webUrl(),
-          width: fc.integer({ min: 1, max: 10000 }),
-          height: fc.integer({ min: 1, max: 10000 }),
-          filename: fc.string(),
-          isFavorite: fc.boolean(),
-          createdAt: fc.date(),
-          modifiedAt: fc.date(),
-        }),
-        (basePhoto) => {
-          // Simulate migration by adding ML fields
-          const migratedPhoto = {
-            ...basePhoto,
-            // New ML fields should be null or have defaults
-            mlLabels: null,
-            mlProcessedAt: null,
-            mlVersion: null,
-            ocrText: null,
-            ocrLanguage: null,
-            perceptualHash: null,
-            duplicateGroupId: null,
-            isVideo: false,
-            videoDuration: null,
-            videoThumbnailUri: null,
-            backupStatus: null,
-            backupCompletedAt: null,
-            originalSize: null,
-            compressedSize: null,
-          };
+      fc.assert(
+        fc.property(
+          fc.record({
+            id: fc.uuid(),
+            userId: fc.uuid(),
+            uri: fc.webUrl(),
+            width: fc.integer({ min: 1, max: 10000 }),
+            height: fc.integer({ min: 1, max: 10000 }),
+            filename: fc.string(),
+            isFavorite: fc.boolean(),
+            createdAt: fc.date(),
+            modifiedAt: fc.date(),
+          }),
+          (basePhoto) => {
+            // Simulate migration by adding ML fields
+            const migratedPhoto = {
+              ...basePhoto,
+              // New ML fields should be null or have defaults
+              mlLabels: null,
+              mlProcessedAt: null,
+              mlVersion: null,
+              ocrText: null,
+              ocrLanguage: null,
+              perceptualHash: null,
+              duplicateGroupId: null,
+              isVideo: false,
+              videoDuration: null,
+              videoThumbnailUri: null,
+              backupStatus: null,
+              backupCompletedAt: null,
+              originalSize: null,
+              compressedSize: null,
+            };
 
-          // Original data should be preserved
-          return migratedPhoto.id === basePhoto.id &&
-                 migratedPhoto.userId === basePhoto.userId &&
-                 migratedPhoto.uri === basePhoto.uri &&
-                 migratedPhoto.width === basePhoto.width &&
-                 migratedPhoto.height === basePhoto.height &&
-                 migratedPhoto.filename === basePhoto.filename &&
-                 migratedPhoto.isFavorite === basePhoto.isFavorite;
-        }
-      ));
+            // Original data should be preserved
+            return (
+              migratedPhoto.id === basePhoto.id &&
+              migratedPhoto.userId === basePhoto.userId &&
+              migratedPhoto.uri === basePhoto.uri &&
+              migratedPhoto.width === basePhoto.width &&
+              migratedPhoto.height === basePhoto.height &&
+              migratedPhoto.filename === basePhoto.filename &&
+              migratedPhoto.isFavorite === basePhoto.isFavorite
+            );
+          },
+        ),
+      );
     });
   });
 
   describe("Face recognition schema", () => {
     it("should maintain embedding vector dimensions", () => {
-      fc.assert(fc.property(
-        fc.array(fc.float({ min: -1, max: 1 }), { minLength: 128, maxLength: 128 }),
-        (embedding) => {
-          // Embedding should always be 128-dimensional
-          return embedding.length === 128;
-        }
-      ));
+      fc.assert(
+        fc.property(
+          fc.array(fc.float({ min: -1, max: 1 }), {
+            minLength: 128,
+            maxLength: 128,
+          }),
+          (embedding) => {
+            // Embedding should always be 128-dimensional
+            return embedding.length === 128;
+          },
+        ),
+      );
     });
   });
 
   describe("Shared albums security", () => {
     it("should generate unique share tokens", () => {
-      fc.assert(fc.property(
-        fc.uuid(),
-        fc.uuid(),
-        (albumId1, albumId2) => {
+      fc.assert(
+        fc.property(fc.uuid(), fc.uuid(), (albumId1, albumId2) => {
           // Different albums should have different tokens
-          const token1 = albumId1 + '-' + Date.now() + '-' + Math.random();
-          const token2 = albumId2 + '-' + Date.now() + '-' + Math.random();
-          
+          const token1 = albumId1 + "-" + Date.now() + "-" + Math.random();
+          const token2 = albumId2 + "-" + Date.now() + "-" + Math.random();
+
           if (albumId1 !== albumId2) {
             expect(token1).not.toBe(token2);
           }
           return true;
-        }
-      ));
+        }),
+      );
     });
 
     it("should enforce permission levels", () => {
-      const validPermissions = ['view', 'edit', 'admin'];
-      fc.assert(fc.property(
-        fc.constantFrom(...validPermissions),
-        (permission) => {
+      const validPermissions = ["view", "edit", "admin"];
+      fc.assert(
+        fc.property(fc.constantFrom(...validPermissions), (permission) => {
           expect(validPermissions).toContain(permission);
           return true;
-        }
-      ));
+        }),
+      );
     });
   });
 
   describe("Storage usage tracking", () => {
     it("should maintain usage consistency", () => {
-      fc.assert(fc.property(
-        fc.integer({ min: 1, max: 1000000 }),
-        fc.integer({ min: 1, max: 10000 }),
-        (bytesUsed, itemCount) => {
-          // Bytes should be reasonable relative to item count
-          const avgBytesPerItem = bytesUsed / itemCount;
-          return avgBytesPerItem > 0 && avgBytesPerItem < 10000000; // 10MB per item max
-        }
-      ));
+      fc.assert(
+        fc.property(
+          fc.integer({ min: 1, max: 1000000 }),
+          fc.integer({ min: 1, max: 10000 }),
+          (bytesUsed, itemCount) => {
+            // Bytes should be reasonable relative to item count
+            const avgBytesPerItem = bytesUsed / itemCount;
+            return avgBytesPerItem > 0 && avgBytesPerItem < 10000000; // 10MB per item max
+          },
+        ),
+      );
     });
 
     it("should enforce category uniqueness per user", () => {
-      fc.assert(fc.property(
-        fc.uuid(),
-        fc.constantFrom('photos', 'videos', 'thumbnails', 'cache'),
-        (userId, category) => {
-          // Each user should have only one entry per category
-          const usageEntry = { userId, category };
-          expect(typeof usageEntry.userId).toBe('string');
-          expect(typeof usageEntry.category).toBe('string');
-          return true;
-        }
-      ));
+      fc.assert(
+        fc.property(
+          fc.uuid(),
+          fc.constantFrom("photos", "videos", "thumbnails", "cache"),
+          (userId, category) => {
+            // Each user should have only one entry per category
+            const usageEntry = { userId, category };
+            expect(typeof usageEntry.userId).toBe("string");
+            expect(typeof usageEntry.category).toBe("string");
+            return true;
+          },
+        ),
+      );
     });
   });
 });

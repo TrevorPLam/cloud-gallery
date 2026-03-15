@@ -8,7 +8,7 @@
 // TESTS: StorageScreen.test.tsx for UI behavior, integration tests for API calls
 // AI-META-END
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -18,16 +18,16 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
-} from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+} from "react-native";
+import { Feather } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { useTheme } from '@/hooks/useTheme';
-import { Button } from '@/components/Button';
-import { Card } from '@/components/Card';
-import { ThemedText } from '@/components/ThemedText';
-import { Colors } from '@/constants/theme';
+import { useTheme } from "@/hooks/useTheme";
+import { Button } from "@/components/Button";
+import { Card } from "@/components/Card";
+import { ThemedText } from "@/components/ThemedText";
+import { Colors } from "@/constants/theme";
 
 // Types
 interface StorageBreakdown {
@@ -65,14 +65,16 @@ interface StorageStatus {
   recommendations: string[];
 }
 
-const { width: screenWidth } = Dimensions.get('window');
+const { width: screenWidth } = Dimensions.get("window");
 
 export const StorageScreen: React.FC = () => {
   const navigation = useNavigation();
   const theme = useTheme();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedStrategy, setSelectedStrategy] = useState<'old-photos' | 'large-files' | 'duplicates'>('old-photos');
+  const [selectedStrategy, setSelectedStrategy] = useState<
+    "old-photos" | "large-files" | "duplicates"
+  >("old-photos");
 
   // Fetch storage usage data
   const {
@@ -81,24 +83,21 @@ export const StorageScreen: React.FC = () => {
     error: storageError,
     refetch: refetchStorage,
   } = useQuery({
-    queryKey: ['storage', 'usage'],
+    queryKey: ["storage", "usage"],
     queryFn: async () => {
-      const response = await fetch('/api/storage/usage');
-      if (!response.ok) throw new Error('Failed to fetch storage usage');
+      const response = await fetch("/api/storage/usage");
+      if (!response.ok) throw new Error("Failed to fetch storage usage");
       const result = await response.json();
       return result.data as StorageBreakdown;
     },
   });
 
   // Fetch storage status
-  const {
-    data: statusData,
-    isLoading: isLoadingStatus,
-  } = useQuery({
-    queryKey: ['storage', 'status'],
+  const { data: statusData, isLoading: isLoadingStatus } = useQuery({
+    queryKey: ["storage", "status"],
     queryFn: async () => {
-      const response = await fetch('/api/storage/status');
-      if (!response.ok) throw new Error('Failed to fetch storage status');
+      const response = await fetch("/api/storage/status");
+      if (!response.ok) throw new Error("Failed to fetch storage status");
       const result = await response.json();
       return result.data as StorageStatus;
     },
@@ -106,88 +105,91 @@ export const StorageScreen: React.FC = () => {
 
   // Free up space mutation
   const freeUpSpaceMutation = useMutation({
-    mutationFn: async ({ strategy, dryRun = false }: { strategy: string; dryRun?: boolean }) => {
-      const response = await fetch('/api/storage/free-up', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+    mutationFn: async ({
+      strategy,
+      dryRun = false,
+    }: {
+      strategy: string;
+      dryRun?: boolean;
+    }) => {
+      const response = await fetch("/api/storage/free-up", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ strategy, limit: 50, dryRun }),
       });
-      if (!response.ok) throw new Error('Failed to free up space');
+      if (!response.ok) throw new Error("Failed to free up space");
       return response.json();
     },
     onSuccess: (data, variables) => {
       const { filesDeleted, freedSpace, dryRun } = data.data;
-      
+
       if (dryRun) {
         Alert.alert(
-          'Storage Analysis',
-          `Found ${filesDeleted} files that can be deleted to free up ${formatBytes(freedSpace)}`
+          "Storage Analysis",
+          `Found ${filesDeleted} files that can be deleted to free up ${formatBytes(freedSpace)}`,
         );
       } else {
         Alert.alert(
-          'Space Freed',
-          `Successfully deleted ${filesDeleted} files and freed up ${formatBytes(freedSpace)}`
+          "Space Freed",
+          `Successfully deleted ${filesDeleted} files and freed up ${formatBytes(freedSpace)}`,
         );
-        queryClient.invalidateQueries({ queryKey: ['storage'] });
+        queryClient.invalidateQueries({ queryKey: ["storage"] });
       }
     },
     onError: (error) => {
-      Alert.alert('Error', 'Failed to free up space. Please try again.');
+      Alert.alert("Error", "Failed to free up space. Please try again.");
     },
   });
 
   // Compress photos mutation
   const compressPhotosMutation = useMutation({
     mutationFn: async ({ quality = 0.8 }: { quality?: number }) => {
-      const response = await fetch('/api/storage/compress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/storage/compress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ quality }),
       });
-      if (!response.ok) throw new Error('Failed to compress photos');
+      if (!response.ok) throw new Error("Failed to compress photos");
       return response.json();
     },
     onSuccess: (data) => {
       const { photosProcessed, totalSaved } = data.data;
       Alert.alert(
-        'Compression Complete',
-        `Processed ${photosProcessed} photos and saved ${formatBytes(totalSaved)}`
+        "Compression Complete",
+        `Processed ${photosProcessed} photos and saved ${formatBytes(totalSaved)}`,
       );
-      queryClient.invalidateQueries({ queryKey: ['storage'] });
+      queryClient.invalidateQueries({ queryKey: ["storage"] });
     },
     onError: (error) => {
-      Alert.alert('Error', 'Failed to compress photos. Please try again.');
+      Alert.alert("Error", "Failed to compress photos. Please try again.");
     },
   });
 
   // Update storage usage
   const updateStorageMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/storage/update', {
-        method: 'POST',
+      const response = await fetch("/api/storage/update", {
+        method: "POST",
       });
-      if (!response.ok) throw new Error('Failed to update storage');
+      if (!response.ok) throw new Error("Failed to update storage");
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['storage'] });
+      queryClient.invalidateQueries({ queryKey: ["storage"] });
     },
   });
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([
-      refetchStorage(),
-      updateStorageMutation.mutateAsync(),
-    ]);
+    await Promise.all([refetchStorage(), updateStorageMutation.mutateAsync()]);
     setRefreshing(false);
   }, [refetchStorage, updateStorageMutation]);
 
   // Format bytes to human readable format
   const formatBytes = useCallback((bytes: number): string => {
-    if (bytes === 0) return '0 B';
+    if (bytes === 0) return "0 B";
     const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const sizes = ["B", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
   }, []);
@@ -204,19 +206,26 @@ export const StorageScreen: React.FC = () => {
         <ThemedText style={styles.cardTitle}>Storage Usage</ThemedText>
         <View style={styles.gaugeContainer}>
           <View style={styles.gaugeInfo}>
-            <ThemedText style={styles.gaugePercentage}>{percentage.toFixed(1)}%</ThemedText>
+            <ThemedText style={styles.gaugePercentage}>
+              {percentage.toFixed(1)}%
+            </ThemedText>
             <ThemedText style={styles.gaugeLabel}>Used</ThemedText>
             <ThemedText style={styles.gaugeDetails}>
-              {formatBytes(storageData.totalBytesUsed)} / {formatBytes(statusData.totalLimit || 0)}
+              {formatBytes(storageData.totalBytesUsed)} /{" "}
+              {formatBytes(statusData.totalLimit || 0)}
             </ThemedText>
           </View>
-          <View style={[
-            styles.gaugeBar,
-            { 
-              width: `${Math.min(percentage, 100)}%`,
-              backgroundColor: isNearLimit ? Colors.light.error : Colors.light.success
-            }
-          ]} />
+          <View
+            style={[
+              styles.gaugeBar,
+              {
+                width: `${Math.min(percentage, 100)}%`,
+                backgroundColor: isNearLimit
+                  ? Colors.light.error
+                  : Colors.light.success,
+              },
+            ]}
+          />
         </View>
       </Card>
     );
@@ -233,7 +242,8 @@ export const StorageScreen: React.FC = () => {
           <View key={category.category} style={styles.categoryRow}>
             <View style={styles.categoryInfo}>
               <ThemedText style={styles.categoryName}>
-                {category.category.charAt(0).toUpperCase() + category.category.slice(1)}
+                {category.category.charAt(0).toUpperCase() +
+                  category.category.slice(1)}
               </ThemedText>
               <ThemedText style={styles.categoryDetails}>
                 {category.itemCount} items • {formatBytes(category.bytesUsed)}
@@ -266,22 +276,29 @@ export const StorageScreen: React.FC = () => {
     if (!storageData) return null;
 
     const { compressionStats } = storageData;
-    const savings = compressionStats.originalTotal - compressionStats.compressedTotal;
+    const savings =
+      compressionStats.originalTotal - compressionStats.compressedTotal;
 
     return (
       <Card style={styles.card}>
         <ThemedText style={styles.cardTitle}>Compression Statistics</ThemedText>
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <ThemedText style={styles.statValue}>{compressionStats.compressedCount}</ThemedText>
+            <ThemedText style={styles.statValue}>
+              {compressionStats.compressedCount}
+            </ThemedText>
             <ThemedText style={styles.statLabel}>Compressed Files</ThemedText>
           </View>
           <View style={styles.statItem}>
-            <ThemedText style={styles.statValue}>{compressionStats.compressionRatio.toFixed(2)}x</ThemedText>
+            <ThemedText style={styles.statValue}>
+              {compressionStats.compressionRatio.toFixed(2)}x
+            </ThemedText>
             <ThemedText style={styles.statLabel}>Compression Ratio</ThemedText>
           </View>
           <View style={styles.statItem}>
-            <ThemedText style={styles.statValue}>{formatBytes(savings)}</ThemedText>
+            <ThemedText style={styles.statValue}>
+              {formatBytes(savings)}
+            </ThemedText>
             <ThemedText style={styles.statLabel}>Space Saved</ThemedText>
           </View>
         </View>
@@ -294,33 +311,48 @@ export const StorageScreen: React.FC = () => {
     return (
       <Card style={styles.card}>
         <ThemedText style={styles.cardTitle}>Storage Management</ThemedText>
-        
+
         <View style={styles.strategySelector}>
-          <ThemedText style={styles.strategyLabel}>Cleanup Strategy:</ThemedText>
+          <ThemedText style={styles.strategyLabel}>
+            Cleanup Strategy:
+          </ThemedText>
           <View style={styles.strategyButtons}>
-            {(['old-photos', 'large-files', 'duplicates'] as const).map((strategy) => (
-              <Button
-                key={strategy}
-                onPress={() => setSelectedStrategy(strategy)}
-                style={[
-                  styles.strategyButton,
-                  selectedStrategy === strategy && styles.strategyButtonSelected,
-                ]}
-              >
-                <ThemedText style={[
-                  styles.strategyButtonText,
-                  selectedStrategy === strategy && styles.strategyButtonTextSelected,
-                ]}>
-                  {strategy.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                </ThemedText>
-              </Button>
-            ))}
+            {(["old-photos", "large-files", "duplicates"] as const).map(
+              (strategy) => (
+                <Button
+                  key={strategy}
+                  onPress={() => setSelectedStrategy(strategy)}
+                  style={[
+                    styles.strategyButton,
+                    selectedStrategy === strategy &&
+                      styles.strategyButtonSelected,
+                  ]}
+                >
+                  <ThemedText
+                    style={[
+                      styles.strategyButtonText,
+                      selectedStrategy === strategy &&
+                        styles.strategyButtonTextSelected,
+                    ]}
+                  >
+                    {strategy
+                      .replace("-", " ")
+                      .replace(/\b\w/g, (l) => l.toUpperCase())}
+                  </ThemedText>
+                </Button>
+              ),
+            )}
           </View>
         </View>
 
         <View style={styles.actionButtons}>
           <Button
-            onPress={() => freeUpSpaceMutation.mutate({ strategy: selectedStrategy, dryRun: true })}
+            onPress={() =>
+              freeUpSpaceMutation.mutate({
+                strategy: selectedStrategy,
+                dryRun: true,
+              })
+            }
             style={styles.analyzeButton}
           >
             <ThemedText style={styles.buttonText}>Analyze</ThemedText>
@@ -328,14 +360,20 @@ export const StorageScreen: React.FC = () => {
           <Button
             onPress={() => {
               Alert.alert(
-                'Confirm Cleanup',
-                'This will permanently delete files. Continue?',
+                "Confirm Cleanup",
+                "This will permanently delete files. Continue?",
                 [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Delete', style: 'destructive', onPress: () => 
-                    freeUpSpaceMutation.mutate({ strategy: selectedStrategy, dryRun: false })
+                  { text: "Cancel", style: "cancel" },
+                  {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: () =>
+                      freeUpSpaceMutation.mutate({
+                        strategy: selectedStrategy,
+                        dryRun: false,
+                      }),
                   },
-                ]
+                ],
               );
             }}
             style={styles.cleanupButton}
@@ -362,7 +400,11 @@ export const StorageScreen: React.FC = () => {
         {statusData.warnings.length > 0 && (
           <Card style={[styles.card, styles.warningCard]}>
             <View style={styles.warningHeader}>
-              <Feather name="alert-triangle" size={20} color={Colors.light.error} />
+              <Feather
+                name="alert-triangle"
+                size={20}
+                color={Colors.light.error}
+              />
               <ThemedText style={styles.warningTitle}>Warnings</ThemedText>
             </View>
             {statusData.warnings.map((warning, index) => (
@@ -377,7 +419,9 @@ export const StorageScreen: React.FC = () => {
           <Card style={[styles.card, styles.recommendationCard]}>
             <View style={styles.recommendationHeader}>
               <Feather name="info" size={20} color={Colors.light.primary} />
-              <ThemedText style={styles.recommendationTitle}>Recommendations</ThemedText>
+              <ThemedText style={styles.recommendationTitle}>
+                Recommendations
+              </ThemedText>
             </View>
             {statusData.recommendations.map((recommendation, index) => (
               <ThemedText key={index} style={styles.recommendationText}>
@@ -394,7 +438,9 @@ export const StorageScreen: React.FC = () => {
     return (
       <View style={styles.errorContainer}>
         <Feather name="alert-circle" size={48} color={Colors.light.error} />
-        <ThemedText style={styles.errorText}>Failed to load storage information</ThemedText>
+        <ThemedText style={styles.errorText}>
+          Failed to load storage information
+        </ThemedText>
         <Button onPress={refetchStorage}>
           <ThemedText style={styles.buttonText}>Retry</ThemedText>
         </Button>
@@ -404,7 +450,10 @@ export const StorageScreen: React.FC = () => {
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: theme.theme.backgroundDefault }]}
+      style={[
+        styles.container,
+        { backgroundColor: theme.theme.backgroundDefault },
+      ]}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
@@ -433,9 +482,9 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 24,
-    textAlign: 'center',
+    textAlign: "center",
   },
   card: {
     padding: 16,
@@ -444,19 +493,19 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 16,
   },
   gaugeContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginVertical: 16,
   },
   gaugeInfo: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   gaugePercentage: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   gaugeLabel: {
     fontSize: 14,
@@ -465,18 +514,18 @@ const styles = StyleSheet.create({
   gaugeDetails: {
     fontSize: 12,
     opacity: 0.6,
-    textAlign: 'center',
+    textAlign: "center",
   },
   gaugeBar: {
     height: 8,
     borderRadius: 4,
     marginTop: 8,
-    maxWidth: '100%',
+    maxWidth: "100%",
   },
   categoryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
   },
   categoryInfo: {
@@ -484,57 +533,57 @@ const styles = StyleSheet.create({
   },
   categoryName: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   categoryDetails: {
     fontSize: 14,
     opacity: 0.7,
   },
   categoryStats: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
     flex: 1,
   },
   categoryPercentage: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   categoryBar: {
-    width: '100%',
+    width: "100%",
     height: 4,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: "#e0e0e0",
     borderRadius: 2,
     marginTop: 4,
   },
   categoryBarFill: {
-    height: '100%',
+    height: "100%",
     borderRadius: 2,
   },
   statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
   },
   statItem: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   statValue: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   statLabel: {
     fontSize: 12,
     opacity: 0.7,
-    textAlign: 'center',
+    textAlign: "center",
   },
   strategySelector: {
     marginBottom: 16,
   },
   strategyLabel: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
     marginBottom: 8,
   },
   strategyButtons: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
   },
   strategyButton: {
@@ -543,8 +592,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
-    backgroundColor: 'transparent',
+    borderColor: "#e0e0e0",
+    backgroundColor: "transparent",
   },
   strategyButtonSelected: {
     backgroundColor: Colors.light.primary,
@@ -552,18 +601,18 @@ const styles = StyleSheet.create({
   },
   strategyButtonText: {
     fontSize: 12,
-    color: '#333',
-    textAlign: 'center',
+    color: "#333",
+    textAlign: "center",
   },
   strategyButtonTextSelected: {
-    color: 'white',
-    textAlign: 'center',
+    color: "white",
+    textAlign: "center",
   },
   actionButtons: {
     gap: 12,
   },
   analyzeButton: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: "#f0f0f0",
   },
   cleanupButton: {
     backgroundColor: Colors.light.error,
@@ -572,62 +621,62 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.success,
   },
   buttonText: {
-    color: 'white',
-    textAlign: 'center',
-    fontWeight: '500',
+    color: "white",
+    textAlign: "center",
+    fontWeight: "500",
   },
   warningCard: {
-    backgroundColor: '#FFF3F3',
+    backgroundColor: "#FFF3F3",
     borderLeftWidth: 4,
     borderLeftColor: Colors.light.error,
   },
   warningHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 8,
   },
   warningTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginLeft: 8,
     color: Colors.light.error,
   },
   warningText: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
     marginBottom: 4,
   },
   recommendationCard: {
-    backgroundColor: '#F0F8FF',
+    backgroundColor: "#F0F8FF",
     borderLeftWidth: 4,
     borderLeftColor: Colors.light.primary,
   },
   recommendationHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 8,
   },
   recommendationTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginLeft: 8,
     color: Colors.light.primary,
   },
   recommendationText: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
     marginBottom: 4,
   },
   errorContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 16,
   },
   errorText: {
     fontSize: 16,
     marginVertical: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
 });
 

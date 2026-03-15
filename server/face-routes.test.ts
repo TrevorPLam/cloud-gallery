@@ -14,7 +14,13 @@ import { app } from "./app";
 import { db } from "./db";
 import { users, photos, faces, people } from "../shared/schema";
 import { eq } from "drizzle-orm";
-import { generateTestUser, generateTestPhoto, generateTestPerson, setupTestDatabase, cleanupTestDatabase } from "../tests/factories";
+import {
+  generateTestUser,
+  generateTestPhoto,
+  generateTestPerson,
+  setupTestDatabase,
+  cleanupTestDatabase,
+} from "../tests/factories";
 
 describe("Face Recognition API", () => {
   let testUser: any;
@@ -24,16 +30,16 @@ describe("Face Recognition API", () => {
 
   beforeEach(async () => {
     await setupTestDatabase();
-    
+
     // Create test user
     testUser = await generateTestUser();
-    
+
     // Create test photo
     testPhoto = await generateTestPhoto(testUser.id);
-    
+
     // Create test person
     testPerson = await generateTestPerson(testUser.id);
-    
+
     // Get auth token (in a real app, this would be a JWT token)
     authToken = `Bearer ${testUser.id}`;
   });
@@ -56,9 +62,7 @@ describe("Face Recognition API", () => {
     });
 
     it("should require authentication", async () => {
-      await request(app)
-        .get("/api/faces/people")
-        .expect(401);
+      await request(app).get("/api/faces/people").expect(401);
     });
 
     it("should only return people belonging to authenticated user", async () => {
@@ -246,7 +250,9 @@ describe("Face Recognition API", () => {
         .send({ photoId: testPhoto.id })
         .expect(200);
 
-      expect(response.body.message).toBe("Faces already detected for this photo");
+      expect(response.body.message).toBe(
+        "Faces already detected for this photo",
+      );
       expect(response.body.faces).toHaveLength(1);
     });
 
@@ -311,23 +317,21 @@ describe("Face Recognition API", () => {
     });
 
     it("should require authentication", async () => {
-      await request(app)
-        .post("/api/faces/cluster")
-        .expect(401);
+      await request(app).post("/api/faces/cluster").expect(401);
     });
   });
 
   describe("GET /api/faces/search", () => {
     it("should search for similar faces using embedding", async () => {
       const embedding = new Array(128).fill(0.5);
-      
+
       const response = await request(app)
         .get("/api/faces/search")
         .set("Authorization", authToken)
-        .query({ 
+        .query({
           embedding: JSON.stringify(embedding),
           threshold: 0.6,
-          limit: 5
+          limit: 5,
         })
         .expect(200);
 
@@ -381,9 +385,7 @@ describe("Face Recognition API", () => {
     });
 
     it("should require authentication", async () => {
-      await request(app)
-        .get("/api/faces/search")
-        .expect(401);
+      await request(app).get("/api/faces/search").expect(401);
     });
   });
 
@@ -484,14 +486,16 @@ describe("Face Recognition API", () => {
       expect(typeof response.body.unnamedPeople).toBe("number");
 
       // Verify the math adds up
-      expect(response.body.assignedFaces + response.body.unassignedFaces).toBe(response.body.totalFaces);
-      expect(response.body.namedPeople + response.body.unnamedPeople).toBe(response.body.totalPeople);
+      expect(response.body.assignedFaces + response.body.unassignedFaces).toBe(
+        response.body.totalFaces,
+      );
+      expect(response.body.namedPeople + response.body.unnamedPeople).toBe(
+        response.body.totalPeople,
+      );
     });
 
     it("should require authentication", async () => {
-      await request(app)
-        .get("/api/faces/stats")
-        .expect(401);
+      await request(app).get("/api/faces/stats").expect(401);
     });
 
     it("should only return stats for authenticated user", async () => {
@@ -565,9 +569,9 @@ describe("Face Recognition API", () => {
         .get("/api/faces/people")
         .set("Authorization", otherToken)
         .expect(200)
-        .then(response => {
+        .then((response) => {
           expect(response.body.people).not.toContain(
-            expect.objectContaining({ id: testPerson.id })
+            expect.objectContaining({ id: testPerson.id }),
           );
         });
     });
@@ -585,9 +589,7 @@ describe("Face Recognition API", () => {
         .set("Authorization", "")
         .expect(401);
 
-      await request(app)
-        .get("/api/faces/people")
-        .expect(401);
+      await request(app).get("/api/faces/people").expect(401);
     });
 
     it("should prevent cross-user data access", async () => {

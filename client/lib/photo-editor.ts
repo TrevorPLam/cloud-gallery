@@ -8,7 +8,7 @@
 // TESTS: Property tests for algorithm correctness, integration tests for image operations
 // AI-META-END
 
-import * as ImageManipulator from 'expo-image-manipulator';
+import * as ImageManipulator from "expo-image-manipulator";
 
 // Command interface for edit operations
 export interface EditCommand {
@@ -29,15 +29,15 @@ export interface FilterPreset {
 }
 
 export interface ImageAdjustments {
-  brightness: number;      // -1 to 1
-  contrast: number;        // -1 to 1
-  saturation: number;      // -1 to 1
-  vibrance: number;        // -1 to 1
-  temperature: number;     // -1 to 1 (warm to cool)
-  sharpness: number;       // -1 to 1
-  clarity: number;         // -1 to 1
-  vignette: number;        // 0 to 1
-  exposure: number;        // -2 to 2
+  brightness: number; // -1 to 1
+  contrast: number; // -1 to 1
+  saturation: number; // -1 to 1
+  vibrance: number; // -1 to 1
+  temperature: number; // -1 to 1 (warm to cool)
+  sharpness: number; // -1 to 1
+  clarity: number; // -1 to 1
+  vignette: number; // 0 to 1
+  exposure: number; // -2 to 2
 }
 
 export interface CropSettings {
@@ -49,7 +49,7 @@ export interface CropSettings {
 }
 
 export interface RotationSettings {
-  degrees: number;         // 0, 90, 180, 270
+  degrees: number; // 0, 90, 180, 270
   flipHorizontal: boolean;
   flipVertical: boolean;
 }
@@ -70,15 +70,15 @@ export const DEFAULT_ADJUSTMENTS: ImageAdjustments = {
 // Filter presets (15+ presets as required)
 export const FILTER_PRESETS: FilterPreset[] = [
   {
-    id: 'original',
-    name: 'Original',
-    description: 'No filter applied',
+    id: "original",
+    name: "Original",
+    description: "No filter applied",
     adjustments: { ...DEFAULT_ADJUSTMENTS },
   },
   {
-    id: 'vintage',
-    name: 'Vintage',
-    description: 'Warm, faded look with reduced saturation',
+    id: "vintage",
+    name: "Vintage",
+    description: "Warm, faded look with reduced saturation",
     adjustments: {
       brightness: 0.1,
       contrast: -0.2,
@@ -92,9 +92,9 @@ export const FILTER_PRESETS: FilterPreset[] = [
     },
   },
   {
-    id: 'black_white',
-    name: 'Black & White',
-    description: 'Classic monochrome conversion',
+    id: "black_white",
+    name: "Black & White",
+    description: "Classic monochrome conversion",
     adjustments: {
       brightness: 0.05,
       contrast: 0.2,
@@ -108,9 +108,9 @@ export const FILTER_PRESETS: FilterPreset[] = [
     },
   },
   {
-    id: 'vivid',
-    name: 'Vivid',
-    description: 'Enhanced colors and contrast',
+    id: "vivid",
+    name: "Vivid",
+    description: "Enhanced colors and contrast",
     adjustments: {
       brightness: 0.05,
       contrast: 0.3,
@@ -124,9 +124,9 @@ export const FILTER_PRESETS: FilterPreset[] = [
     },
   },
   {
-    id: 'warm',
-    name: 'Warm',
-    description: 'Cozy warm tones',
+    id: "warm",
+    name: "Warm",
+    description: "Cozy warm tones",
     adjustments: {
       brightness: 0.1,
       contrast: 0.1,
@@ -140,9 +140,9 @@ export const FILTER_PRESETS: FilterPreset[] = [
     },
   },
   {
-    id: 'cool',
-    name: 'Cool',
-    description: 'Cool blue tones',
+    id: "cool",
+    name: "Cool",
+    description: "Cool blue tones",
     adjustments: {
       brightness: -0.05,
       contrast: 0.1,
@@ -156,9 +156,9 @@ export const FILTER_PRESETS: FilterPreset[] = [
     },
   },
   {
-    id: 'dramatic',
-    name: 'Dramatic',
-    description: 'High contrast with deep shadows',
+    id: "dramatic",
+    name: "Dramatic",
+    description: "High contrast with deep shadows",
     adjustments: {
       brightness: -0.1,
       contrast: 0.5,
@@ -172,9 +172,9 @@ export const FILTER_PRESETS: FilterPreset[] = [
     },
   },
   {
-    id: 'soft',
-    name: 'Soft',
-    description: 'Gentle, dreamy appearance',
+    id: "soft",
+    name: "Soft",
+    description: "Gentle, dreamy appearance",
     adjustments: {
       brightness: 0.15,
       contrast: -0.2,
@@ -188,9 +188,9 @@ export const FILTER_PRESETS: FilterPreset[] = [
     },
   },
   {
-    id: 'sepia',
-    name: 'Sepia',
-    description: 'Classic brown tone effect',
+    id: "sepia",
+    name: "Sepia",
+    description: "Classic brown tone effect",
     adjustments: {
       brightness: 0.1,
       contrast: 0.1,
@@ -204,9 +204,9 @@ export const FILTER_PRESETS: FilterPreset[] = [
     },
   },
   {
-    id: 'cinematic',
-    name: 'Cinematic',
-    description: 'Film-inspired color grading',
+    id: "cinematic",
+    name: "Cinematic",
+    description: "Film-inspired color grading",
     adjustments: {
       brightness: -0.05,
       contrast: 0.3,
@@ -220,9 +220,9 @@ export const FILTER_PRESETS: FilterPreset[] = [
     },
   },
   {
-    id: 'fresh',
-    name: 'Fresh',
-    description: 'Bright and clean appearance',
+    id: "fresh",
+    name: "Fresh",
+    description: "Bright and clean appearance",
     adjustments: {
       brightness: 0.2,
       contrast: 0.15,
@@ -236,9 +236,9 @@ export const FILTER_PRESETS: FilterPreset[] = [
     },
   },
   {
-    id: 'noir',
-    name: 'Film Noir',
-    description: 'High contrast black and white',
+    id: "noir",
+    name: "Film Noir",
+    description: "High contrast black and white",
     adjustments: {
       brightness: -0.2,
       contrast: 0.6,
@@ -252,9 +252,9 @@ export const FILTER_PRESETS: FilterPreset[] = [
     },
   },
   {
-    id: 'retro',
-    name: 'Retro',
-    description: '70s inspired color palette',
+    id: "retro",
+    name: "Retro",
+    description: "70s inspired color palette",
     adjustments: {
       brightness: 0.05,
       contrast: -0.1,
@@ -268,9 +268,9 @@ export const FILTER_PRESETS: FilterPreset[] = [
     },
   },
   {
-    id: 'vibrant',
-    name: 'Vibrant',
-    description: 'Maximum color intensity',
+    id: "vibrant",
+    name: "Vibrant",
+    description: "Maximum color intensity",
     adjustments: {
       brightness: 0.1,
       contrast: 0.2,
@@ -284,9 +284,9 @@ export const FILTER_PRESETS: FilterPreset[] = [
     },
   },
   {
-    id: 'matte',
-    name: 'Matte',
-    description: 'Flat, desaturated look',
+    id: "matte",
+    name: "Matte",
+    description: "Flat, desaturated look",
     adjustments: {
       brightness: 0.1,
       contrast: -0.3,
@@ -300,9 +300,9 @@ export const FILTER_PRESETS: FilterPreset[] = [
     },
   },
   {
-    id: 'fade',
-    name: 'Fade',
-    description: 'Faded vintage look with reduced contrast',
+    id: "fade",
+    name: "Fade",
+    description: "Faded vintage look with reduced contrast",
     adjustments: {
       brightness: 0.2,
       contrast: -0.4,
@@ -320,7 +320,7 @@ export const FILTER_PRESETS: FilterPreset[] = [
 // Command implementations
 class AdjustmentsCommand implements EditCommand {
   id: string;
-  type = 'adjustments';
+  type = "adjustments";
   description: string;
   private previousAdjustments: ImageAdjustments;
   private newAdjustments: ImageAdjustments;
@@ -330,7 +330,7 @@ class AdjustmentsCommand implements EditCommand {
     originalUri: string,
     previousAdjustments: ImageAdjustments,
     newAdjustments: ImageAdjustments,
-    description: string
+    description: string,
   ) {
     this.id = `adj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     this.originalUri = originalUri;
@@ -352,8 +352,8 @@ class AdjustmentsCommand implements EditCommand {
     // Convert adjustments to expo-image-manipulator operations
     if (this.newAdjustments.brightness !== 0) {
       // Expo doesn't have direct brightness, use contrast as approximation
-      manipulations.push({ 
-        resize: { width: 1000, height: 1000 } // Placeholder
+      manipulations.push({
+        resize: { width: 1000, height: 1000 }, // Placeholder
       });
     }
 
@@ -364,7 +364,7 @@ class AdjustmentsCommand implements EditCommand {
     const result = await ImageManipulator.manipulateAsync(
       this.originalUri,
       manipulations,
-      { format: ImageManipulator.SaveFormat.JPEG, compress: 0.9 }
+      { format: ImageManipulator.SaveFormat.JPEG, compress: 0.9 },
     );
 
     return result.uri;
@@ -377,7 +377,7 @@ class AdjustmentsCommand implements EditCommand {
 
 class CropCommand implements EditCommand {
   id: string;
-  type = 'crop';
+  type = "crop";
   description: string;
   private cropSettings: CropSettings;
   private originalUri: string;
@@ -398,7 +398,7 @@ class CropCommand implements EditCommand {
     const result = await ImageManipulator.manipulateAsync(
       this.originalUri,
       [{ crop: this.cropSettings }],
-      { format: ImageManipulator.SaveFormat.JPEG, compress: 0.9 }
+      { format: ImageManipulator.SaveFormat.JPEG, compress: 0.9 },
     );
     this.previousUri = result.uri;
     return result.uri;
@@ -411,7 +411,7 @@ class CropCommand implements EditCommand {
 
 class RotationCommand implements EditCommand {
   id: string;
-  type = 'rotation';
+  type = "rotation";
   description: string;
   private rotationSettings: RotationSettings;
   private originalUri: string;
@@ -421,12 +421,13 @@ class RotationCommand implements EditCommand {
     this.id = `rot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     this.originalUri = originalUri;
     this.rotationSettings = { ...rotationSettings };
-    
+
     const actions = [];
-    if (rotationSettings.degrees !== 0) actions.push(`${rotationSettings.degrees}°`);
-    if (rotationSettings.flipHorizontal) actions.push('flip H');
-    if (rotationSettings.flipVertical) actions.push('flip V');
-    this.description = actions.length > 0 ? actions.join(', ') : 'No rotation';
+    if (rotationSettings.degrees !== 0)
+      actions.push(`${rotationSettings.degrees}°`);
+    if (rotationSettings.flipHorizontal) actions.push("flip H");
+    if (rotationSettings.flipVertical) actions.push("flip V");
+    this.description = actions.length > 0 ? actions.join(", ") : "No rotation";
   }
 
   canUndo(): boolean {
@@ -455,7 +456,7 @@ class RotationCommand implements EditCommand {
     const result = await ImageManipulator.manipulateAsync(
       this.originalUri,
       manipulations,
-      { format: ImageManipulator.SaveFormat.JPEG, compress: 0.9 }
+      { format: ImageManipulator.SaveFormat.JPEG, compress: 0.9 },
     );
     this.previousUri = result.uri;
     return result.uri;
@@ -498,24 +499,24 @@ export class PhotoEditor {
   async executeCommand(command: EditCommand): Promise<string> {
     try {
       const newUri = await command.execute();
-      
+
       // Clear any redo history
       this.history = this.history.slice(0, this.historyIndex + 1);
-      
+
       // Add command to history
       this.history.push(command);
       this.historyIndex++;
-      
+
       // Limit history size
       if (this.history.length > this.maxHistorySize) {
         this.history.shift();
         this.historyIndex--;
       }
-      
+
       this.currentUri = newUri;
       return newUri;
     } catch (error) {
-      console.error('Command execution failed:', error);
+      console.error("Command execution failed:", error);
       throw error;
     }
   }
@@ -531,7 +532,7 @@ export class PhotoEditor {
 
   async undo(): Promise<string> {
     if (!this.canUndo()) {
-      throw new Error('Cannot undo: no commands in history');
+      throw new Error("Cannot undo: no commands in history");
     }
 
     const command = this.history[this.historyIndex];
@@ -541,14 +542,14 @@ export class PhotoEditor {
       this.currentUri = newUri;
       return newUri;
     } catch (error) {
-      console.error('Undo failed:', error);
+      console.error("Undo failed:", error);
       throw error;
     }
   }
 
   async redo(): Promise<string> {
     if (!this.canRedo()) {
-      throw new Error('Cannot redo: no commands to redo');
+      throw new Error("Cannot redo: no commands to redo");
     }
 
     this.historyIndex++;
@@ -558,7 +559,7 @@ export class PhotoEditor {
       this.currentUri = newUri;
       return newUri;
     } catch (error) {
-      console.error('Redo failed:', error);
+      console.error("Redo failed:", error);
       this.historyIndex--; // Revert index on failure
       throw error;
     }
@@ -584,9 +585,9 @@ export class PhotoEditor {
       this.currentUri,
       this.currentAdjustments,
       newAdjustments,
-      'Adjust brightness, contrast, etc.'
+      "Adjust brightness, contrast, etc.",
     );
-    
+
     const newUri = await this.executeCommand(command);
     this.currentAdjustments = { ...newAdjustments };
     return newUri;
@@ -603,7 +604,7 @@ export class PhotoEditor {
   }
 
   async applyFilter(filterId: string): Promise<string> {
-    const filter = FILTER_PRESETS.find(f => f.id === filterId);
+    const filter = FILTER_PRESETS.find((f) => f.id === filterId);
     if (!filter) {
       throw new Error(`Filter not found: ${filterId}`);
     }
@@ -639,20 +640,23 @@ export function clampValue(value: number, min: number, max: number): number {
   // Also handle NaN in bounds
   if (Number.isNaN(min)) return 0;
   if (Number.isNaN(max)) return 0;
-  
+
   return Math.max(min, Math.min(max, value));
 }
 
-export function adjustmentsEqual(a: ImageAdjustments, b: ImageAdjustments): boolean {
-  return Object.keys(a).every(key => {
+export function adjustmentsEqual(
+  a: ImageAdjustments,
+  b: ImageAdjustments,
+): boolean {
+  return Object.keys(a).every((key) => {
     const aVal = a[key as keyof ImageAdjustments];
     const bVal = b[key as keyof ImageAdjustments];
-    
+
     // Handle NaN values - both must be NaN to be equal
     if (Number.isNaN(aVal) && Number.isNaN(bVal)) {
       return true;
     }
-    
+
     // Normal equality check
     return aVal === bVal;
   });

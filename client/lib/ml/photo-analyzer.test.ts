@@ -8,16 +8,20 @@
 // TESTS: npm run test:watch
 // AI-META-END
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import fc from 'fast-check';
-import { PhotoAnalyzer, getPhotoAnalyzer, cleanupPhotoAnalyzer } from './photo-analyzer';
-import type { MLAnalysisResult, DetectedObject } from './photo-analyzer';
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import fc from "fast-check";
+import {
+  PhotoAnalyzer,
+  getPhotoAnalyzer,
+  cleanupPhotoAnalyzer,
+} from "./photo-analyzer";
+import type { MLAnalysisResult, DetectedObject } from "./photo-analyzer";
 
 // ─────────────────────────────────────────────────────────
 // TEST SETUP AND TEARDOWN
 // ─────────────────────────────────────────────────────────
 
-describe('PhotoAnalyzer', () => {
+describe("PhotoAnalyzer", () => {
   let analyzer: PhotoAnalyzer;
 
   beforeEach(() => {
@@ -32,17 +36,17 @@ describe('PhotoAnalyzer', () => {
   // INITIALIZATION TESTS
   // ─────────────────────────────────────────────────────────
 
-  describe('Initialization', () => {
-    it('should create analyzer instance', () => {
+  describe("Initialization", () => {
+    it("should create analyzer instance", () => {
       expect(analyzer).toBeDefined();
       expect(analyzer.isReady).toBe(false); // Models not loaded yet
     });
 
-    it('should provide model information', () => {
+    it("should provide model information", () => {
       const info = analyzer.getModelInfo();
-      expect(info).toHaveProperty('isInitialized');
-      expect(info).toHaveProperty('mlVersion');
-      expect(info).toHaveProperty('platform');
+      expect(info).toHaveProperty("isInitialized");
+      expect(info).toHaveProperty("mlVersion");
+      expect(info).toHaveProperty("platform");
     });
   });
 
@@ -50,17 +54,17 @@ describe('PhotoAnalyzer', () => {
   // PROPERTY TESTS
   // ─────────────────────────────────────────────────────────
 
-  describe('Property Tests', () => {
-    it('Property 1: Perceptual hash consistency - same image should produce same hash', async () => {
+  describe("Property Tests", () => {
+    it("Property 1: Perceptual hash consistency - same image should produce same hash", async () => {
       const property = fc.assert(
         fc.asyncProperty(fc.webUrl(), async (imageUri: string) => {
           // Skip invalid URIs
-          if (!imageUri || !imageUri.startsWith('http')) return;
+          if (!imageUri || !imageUri.startsWith("http")) return;
 
           try {
             // Generate hash twice for same image
-            const hash1 = await analyzer['generatePerceptualHash'](imageUri);
-            const hash2 = await analyzer['generatePerceptualHash'](imageUri);
+            const hash1 = await analyzer["generatePerceptualHash"](imageUri);
+            const hash2 = await analyzer["generatePerceptualHash"](imageUri);
 
             // Hashes should be identical for same image
             expect(hash1).toBe(hash2);
@@ -69,13 +73,13 @@ describe('PhotoAnalyzer', () => {
             expect(error).toBeDefined();
           }
         }),
-        { numRuns: 10 }
+        { numRuns: 10 },
       );
 
       expect(property).resolves.not.toThrow();
     });
 
-    it('Property 2: ML confidence bounds validation - confidence values should be between 0 and 1', async () => {
+    it("Property 2: ML confidence bounds validation - confidence values should be between 0 and 1", async () => {
       const property = fc.assert(
         fc.asyncProperty(
           fc.webUrl(),
@@ -90,32 +94,32 @@ describe('PhotoAnalyzer', () => {
             }),
           }),
           async (imageUri: string, mockObject: DetectedObject) => {
-            if (!imageUri || !imageUri.startsWith('http')) return;
+            if (!imageUri || !imageUri.startsWith("http")) return;
 
             try {
               // Mock object detection with controlled confidence
               const mockDetection = [mockObject];
-              
+
               // Verify confidence bounds
-              mockDetection.forEach(obj => {
+              mockDetection.forEach((obj) => {
                 expect(obj.confidence).toBeGreaterThanOrEqual(0);
                 expect(obj.confidence).toBeLessThanOrEqual(1);
               });
             } catch (error) {
               // Expected for placeholder implementation
             }
-          }
+          },
         ),
-        { numRuns: 10 }
+        { numRuns: 10 },
       );
 
       expect(property).resolves.not.toThrow();
     });
 
-    it('Property 3: Processing time consistency - analysis should complete within reasonable time', async () => {
+    it("Property 3: Processing time consistency - analysis should complete within reasonable time", async () => {
       const property = fc.assert(
         fc.asyncProperty(fc.webUrl(), async (imageUri: string) => {
-          if (!imageUri || !imageUri.startsWith('http')) return;
+          if (!imageUri || !imageUri.startsWith("http")) return;
 
           try {
             const startTime = Date.now();
@@ -124,13 +128,15 @@ describe('PhotoAnalyzer', () => {
 
             // Processing time should be recorded
             expect(result.processingTime).toBeGreaterThan(0);
-            expect(result.processingTime).toBeLessThan(endTime - startTime + 100); // Allow 100ms tolerance
+            expect(result.processingTime).toBeLessThan(
+              endTime - startTime + 100,
+            ); // Allow 100ms tolerance
           } catch (error) {
             // Expected for placeholder implementation
             expect(error).toBeDefined();
           }
         }),
-        { numRuns: 5 }
+        { numRuns: 5 },
       );
 
       expect(property).resolves.not.toThrow();
@@ -141,61 +147,61 @@ describe('PhotoAnalyzer', () => {
   // UNIT TESTS
   // ─────────────────────────────────────────────────────────
 
-  describe('Language Detection', () => {
-    it('should detect English text', () => {
-      const text = 'Hello world';
-      const language = analyzer['detectLanguage'](text);
-      expect(language).toBe('en');
+  describe("Language Detection", () => {
+    it("should detect English text", () => {
+      const text = "Hello world";
+      const language = analyzer["detectLanguage"](text);
+      expect(language).toBe("en");
     });
 
-    it('should detect Chinese text', () => {
-      const text = '你好世界';
-      const language = analyzer['detectLanguage'](text);
-      expect(language).toBe('zh');
+    it("should detect Chinese text", () => {
+      const text = "你好世界";
+      const language = analyzer["detectLanguage"](text);
+      expect(language).toBe("zh");
     });
 
-    it('should detect Russian text', () => {
-      const text = 'Привет мир';
-      const language = analyzer['detectLanguage'](text);
-      expect(language).toBe('ru');
+    it("should detect Russian text", () => {
+      const text = "Привет мир";
+      const language = analyzer["detectLanguage"](text);
+      expect(language).toBe("ru");
     });
 
-    it('should default to English for empty text', () => {
-      const language = analyzer['detectLanguage']('');
-      expect(language).toBe('en');
+    it("should default to English for empty text", () => {
+      const language = analyzer["detectLanguage"]("");
+      expect(language).toBe("en");
     });
 
-    it('should default to English for unknown text', () => {
-      const language = analyzer['detectLanguage']('abc123');
-      expect(language).toBe('en');
+    it("should default to English for unknown text", () => {
+      const language = analyzer["detectLanguage"]("abc123");
+      expect(language).toBe("en");
     });
   });
 
-  describe('Model Path Generation', () => {
-    it('should return URL format for development', () => {
+  describe("Model Path Generation", () => {
+    it("should return URL format for development", () => {
       const originalDev = __DEV__;
       (global as any).__DEV__ = true;
-      
-      const path = analyzer['getModelPath']('test_model');
-      
-      expect(path).toHaveProperty('url');
-      expect(path.url).toContain('test_model.tflite');
-      
+
+      const path = analyzer["getModelPath"]("test_model");
+
+      expect(path).toHaveProperty("url");
+      expect(path.url).toContain("test_model.tflite");
+
       (global as any).__DEV__ = originalDev;
     });
   });
 
-  describe('Analysis Result Structure', () => {
-    it('should create properly structured analysis result', async () => {
-      const mockUri = 'file:///test/image.jpg';
-      
+  describe("Analysis Result Structure", () => {
+    it("should create properly structured analysis result", async () => {
+      const mockUri = "file:///test/image.jpg";
+
       try {
         const result = await analyzer.analyzePhoto(mockUri);
-        
+
         // Verify result structure
-        expect(result).toHaveProperty('processingTime');
-        expect(result).toHaveProperty('mlVersion');
-        expect(result).toHaveProperty('timestamp');
+        expect(result).toHaveProperty("processingTime");
+        expect(result).toHaveProperty("mlVersion");
+        expect(result).toHaveProperty("timestamp");
         expect(result.timestamp).toBeInstanceOf(Date);
       } catch (error) {
         // Expected for placeholder implementation
@@ -208,20 +214,20 @@ describe('PhotoAnalyzer', () => {
   // SINGLETON TESTS
   // ─────────────────────────────────────────────────────────
 
-  describe('Singleton Pattern', () => {
-    it('should return same instance for getPhotoAnalyzer()', () => {
+  describe("Singleton Pattern", () => {
+    it("should return same instance for getPhotoAnalyzer()", () => {
       const instance1 = getPhotoAnalyzer();
       const instance2 = getPhotoAnalyzer();
-      
+
       expect(instance1).toBe(instance2);
     });
 
-    it('should cleanup singleton instance', async () => {
+    it("should cleanup singleton instance", async () => {
       const instance = getPhotoAnalyzer();
       expect(instance).toBeDefined();
-      
+
       await cleanupPhotoAnalyzer();
-      
+
       // New instance should be created after cleanup
       const newInstance = getPhotoAnalyzer();
       expect(newInstance).not.toBe(instance);
@@ -232,10 +238,10 @@ describe('PhotoAnalyzer', () => {
   // ERROR HANDLING TESTS
   // ─────────────────────────────────────────────────────────
 
-  describe('Error Handling', () => {
-    it('should handle invalid image URI gracefully', async () => {
-      const invalidUri = '';
-      
+  describe("Error Handling", () => {
+    it("should handle invalid image URI gracefully", async () => {
+      const invalidUri = "";
+
       try {
         await analyzer.analyzePhoto(invalidUri);
       } catch (error) {
@@ -243,7 +249,7 @@ describe('PhotoAnalyzer', () => {
       }
     });
 
-    it('should handle cleanup errors gracefully', async () => {
+    it("should handle cleanup errors gracefully", async () => {
       // Multiple cleanups should not throw
       await expect(analyzer.cleanup()).resolves.not.toThrow();
       await expect(analyzer.cleanup()).resolves.not.toThrow();
@@ -254,8 +260,8 @@ describe('PhotoAnalyzer', () => {
   // MEMORY MANAGEMENT TESTS
   // ─────────────────────────────────────────────────────────
 
-  describe('Memory Management', () => {
-    it('should cleanup resources properly', async () => {
+  describe("Memory Management", () => {
+    it("should cleanup resources properly", async () => {
       // Create and cleanup multiple instances
       for (let i = 0; i < 5; i++) {
         const tempAnalyzer = new PhotoAnalyzer();
@@ -269,24 +275,26 @@ describe('PhotoAnalyzer', () => {
 // INTEGRATION TESTS
 // ─────────────────────────────────────────────────────────
 
-describe('PhotoAnalyzer Integration', () => {
+describe("PhotoAnalyzer Integration", () => {
   afterEach(async () => {
     await cleanupPhotoAnalyzer();
   });
 
-  it('should handle concurrent analysis requests', async () => {
+  it("should handle concurrent analysis requests", async () => {
     const analyzer = getPhotoAnalyzer();
-    const mockUri = 'file:///test/image.jpg';
-    
+    const mockUri = "file:///test/image.jpg";
+
     try {
       // Run multiple analyses concurrently
-      const promises = Array(3).fill(null).map(() => analyzer.analyzePhoto(mockUri));
+      const promises = Array(3)
+        .fill(null)
+        .map(() => analyzer.analyzePhoto(mockUri));
       const results = await Promise.all(promises);
-      
+
       // All should complete successfully
-      results.forEach(result => {
-        expect(result).toHaveProperty('processingTime');
-        expect(result).toHaveProperty('mlVersion');
+      results.forEach((result) => {
+        expect(result).toHaveProperty("processingTime");
+        expect(result).toHaveProperty("mlVersion");
       });
     } catch (error) {
       // Expected for placeholder implementation

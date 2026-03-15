@@ -39,7 +39,10 @@ const SENSITIVE_USER_FIELDS = ["password"] as const;
  */
 const encryptionValidation = validateEncryptionConfig();
 if (!encryptionValidation.isValid) {
-  console.warn("Database encryption configuration warnings:", encryptionValidation.warnings);
+  console.warn(
+    "Database encryption configuration warnings:",
+    encryptionValidation.warnings,
+  );
 }
 
 /**
@@ -51,10 +54,13 @@ export async function createEncryptedUser(userData: {
 }) {
   try {
     // Encrypt sensitive fields before insertion
-    const encryptedData = encryptSensitiveFields(userData, SENSITIVE_USER_FIELDS);
-    
+    const encryptedData = encryptSensitiveFields(
+      userData,
+      SENSITIVE_USER_FIELDS,
+    );
+
     const [user] = await db.insert(users).values(encryptedData).returning();
-    
+
     // Decrypt sensitive fields for response
     return decryptSensitiveFields(user, SENSITIVE_USER_FIELDS);
   } catch (error) {
@@ -73,9 +79,9 @@ export async function getEncryptedUserByUsername(username: string) {
       .from(users)
       .where((users) => users.username.eq(username))
       .limit(1);
-    
+
     if (!user) return null;
-    
+
     // Decrypt sensitive fields for response
     return decryptSensitiveFields(user, SENSITIVE_USER_FIELDS);
   } catch (error) {
@@ -94,9 +100,9 @@ export async function getEncryptedUserById(id: string) {
       .from(users)
       .where((users) => users.id.eq(id))
       .limit(1);
-    
+
     if (!user) return null;
-    
+
     // Decrypt sensitive fields for response
     return decryptSensitiveFields(user, SENSITIVE_USER_FIELDS);
   } catch (error) {
@@ -113,18 +119,21 @@ export async function updateEncryptedUser(
   updateData: Partial<{
     username: string;
     password: string;
-  }>
+  }>,
 ) {
   try {
     // Encrypt sensitive fields before update
-    const encryptedData = encryptSensitiveFields(updateData, SENSITIVE_USER_FIELDS);
-    
+    const encryptedData = encryptSensitiveFields(
+      updateData,
+      SENSITIVE_USER_FIELDS,
+    );
+
     const [user] = await db
       .update(users)
       .set(encryptedData)
       .where((users) => users.id.eq(id))
       .returning();
-    
+
     // Decrypt sensitive fields for response
     return decryptSensitiveFields(user, SENSITIVE_USER_FIELDS);
   } catch (error) {
@@ -142,7 +151,7 @@ export async function deleteEncryptedUser(id: string) {
       .delete(users)
       .where((users) => users.id.eq(id))
       .returning();
-    
+
     return user;
   } catch (error) {
     console.error("Error deleting encrypted user:", error);
@@ -157,28 +166,30 @@ export async function deleteEncryptedUser(id: string) {
 export async function migrateToEncryption() {
   try {
     console.log("Starting migration to encrypted storage...");
-    
+
     // Get all users
     const allUsers = await db.select().from(users);
-    
+
     let migratedCount = 0;
-    
+
     for (const user of allUsers) {
       // Check if password is already encrypted
       if (user.password && !user.password.startsWith("{")) {
         // Encrypt the password
         const encryptedPassword = encryptField(user.password);
-        
+
         await db
           .update(users)
           .set({ password: encryptedPassword })
           .where((users) => users.id.eq(user.id));
-        
+
         migratedCount++;
       }
     }
-    
-    console.log(`Migration completed. Encrypted ${migratedCount} user records.`);
+
+    console.log(
+      `Migration completed. Encrypted ${migratedCount} user records.`,
+    );
     return migratedCount;
   } catch (error) {
     console.error("Error during encryption migration:", error);
@@ -196,22 +207,22 @@ export async function verifyEncryption() {
       username: "encryption-test-" + Date.now(),
       password: "test-password-123",
     };
-    
+
     // Create user with encryption
     const createdUser = await createEncryptedUser(testUserData);
-    
+
     // Verify password is encrypted in database
     const rawUser = await db
       .select()
       .from(users)
       .where((users) => users.id.eq(createdUser.id))
       .limit(1);
-    
+
     const isPasswordEncrypted = rawUser[0]?.password?.startsWith("{") || false;
-    
+
     // Clean up test user
     await deleteEncryptedUser(createdUser.id);
-    
+
     return {
       success: true,
       passwordEncrypted: isPasswordEncrypted,

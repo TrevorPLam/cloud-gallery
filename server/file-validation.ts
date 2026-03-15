@@ -24,12 +24,12 @@ export const ALLOWED_FILE_TYPES = {
   "image/gif": { ext: "gif", maxSize: 10 * 1024 * 1024 }, // 10MB
   "image/webp": { ext: "webp", maxSize: 10 * 1024 * 1024 }, // 10MB
   "image/avif": { ext: "avif", maxSize: 10 * 1024 * 1024 }, // 10MB
-  
+
   // Documents
   "application/pdf": { ext: "pdf", maxSize: 5 * 1024 * 1024 }, // 5MB
   "text/plain": { ext: "txt", maxSize: 1 * 1024 * 1024 }, // 1MB
   "text/csv": { ext: "csv", maxSize: 2 * 1024 * 1024 }, // 2MB
-  
+
   // Archives
   "application/zip": { ext: "zip", maxSize: 20 * 1024 * 1024 }, // 20MB
 } as const;
@@ -87,7 +87,7 @@ export async function validateFile(
 
     // Detect file type from content
     const fileType = await fileTypeFromBuffer(buffer);
-    
+
     if (!fileType) {
       result.isValid = false;
       result.errors.push("Unable to determine file type");
@@ -133,7 +133,9 @@ export async function validateFile(
     return result;
   } catch (error) {
     result.isValid = false;
-    result.errors.push(`File validation error: ${error instanceof Error ? error.message : "Unknown error"}`);
+    result.errors.push(
+      `File validation error: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
     return result;
   }
 }
@@ -149,7 +151,7 @@ async function performSecurityChecks(
   // Check for malicious content in text files
   if (mimeType.startsWith("text/") || mimeType.includes("script")) {
     const content = buffer.toString("utf8", 0, Math.min(1024, buffer.length)); // First 1KB
-    
+
     // Check for suspicious patterns
     const suspiciousPatterns = [
       /<script/i,
@@ -175,7 +177,8 @@ async function performSecurityChecks(
   if (mimeType === "application/zip") {
     // Simple check: if a small file decompresses to a very large size, it might be a zip bomb
     // This is a basic implementation - in production, you'd want more sophisticated checks
-    if (buffer.length < 1024 * 1024) { // Less than 1MB
+    if (buffer.length < 1024 * 1024) {
+      // Less than 1MB
       // Would need actual decompression to check, but for now we'll just warn
       // In a real implementation, you'd use a library like yauzl to check actual decompressed size
     }
@@ -229,15 +232,18 @@ export function sanitizeFilename(filename: string): string {
 /**
  * Get allowed file types for API responses
  */
-export function getAllowedFileTypes(): Record<string, { extension: string; maxSize: number }> {
+export function getAllowedFileTypes(): Record<
+  string,
+  { extension: string; maxSize: number }
+> {
   const result: Record<string, { extension: string; maxSize: number }> = {};
-  
+
   for (const [mimeType, config] of Object.entries(ALLOWED_FILE_TYPES)) {
     result[mimeType] = {
       extension: config.ext,
       maxSize: config.maxSize,
     };
   }
-  
+
   return result;
 }
