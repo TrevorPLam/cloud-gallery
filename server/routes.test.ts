@@ -36,6 +36,19 @@ vi.mock("./upload-routes", () => {
   return { default: router };
 });
 
+vi.mock("./backup-routes", () => ({ default: Router() }));
+vi.mock("./album-routes", () => ({ default: Router() }));
+vi.mock("./ml-routes", () => ({ default: Router() }));
+vi.mock("./duplicate-routes", () => ({ default: Router() }));
+vi.mock("./search-routes", () => ({ default: Router() }));
+vi.mock("./smart-album-routes", () => ({ default: Router() }));
+vi.mock("./memory-routes", () => ({ default: Router() }));
+vi.mock("./face-routes", () => ({ default: Router() }));
+vi.mock("./sharing-routes", () => ({ default: Router() }));
+vi.mock("./public-routes", () => ({ default: Router() }));
+vi.mock("./partner-sharing-routes", () => ({ default: Router() }));
+vi.mock("./sync-routes", () => ({ default: Router() }));
+
 vi.mock("./auth", () => ({
   authenticateToken: vi.fn((req, _res, next) => {
     req.user = { id: "user-1", email: "user@example.com", username: "user" };

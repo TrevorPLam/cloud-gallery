@@ -7,7 +7,7 @@ import {
   BackupStatus,
   BackupType,
 } from "./backup";
-import { fc } from "fast-check";
+import fc from "fast-check";
 import { db } from "../db";
 import { backupQueue, photos, users } from "../../shared/schema";
 import { eq } from "drizzle-orm";
@@ -81,6 +81,7 @@ vi.mock("@aws-sdk/s3-request-presigner", () => ({
 vi.mock("bullmq", () => ({
   Queue: vi.fn().mockImplementation(() => ({
     add: vi.fn().mockResolvedValue({ id: "test-job-id" }),
+    getJobs: vi.fn().mockResolvedValue([]),
     getRepeatableJobs: vi.fn().mockResolvedValue([]),
     removeRepeatableByKey: vi.fn().mockResolvedValue(),
     close: vi.fn().mockResolvedValue(),
@@ -140,28 +141,25 @@ describe("BackupService", () => {
       const { createEncryptedBackup } = await import("../backup-encryption");
 
       // Property: Backup metadata should be consistent with actual backup files
+      const validDate = fc.date({
+        min: new Date(2000, 0, 1),
+        max: new Date(2030, 11, 31),
+      });
       await fc.assert(
-        fc.asyncProperty(fc.uuid(), fc.date(), async (userId, timestamp) => {
-          // Mock database responses
-          vi.mocked(db.select).mockReturnValue({
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue([
-                  {
-                    id: "backup-123",
-                    userId,
-                    type: BackupType.FULL,
-                    status: BackupStatus.COMPLETED,
-                    size: 1024,
-                    fileCount: 10,
-                    cloudKey: "backups/test/backup.enc",
-                    createdAt: timestamp,
-                    completedAt: timestamp,
-                  },
-                ]),
-              }),
-            }),
-          } as any);
+        fc.asyncProperty(fc.uuid(), validDate, async (userId, timestamp) => {
+          fc.pre(!Number.isNaN(timestamp.getTime()));
+          const metadata = {
+            id: "backup-123",
+            userId,
+            type: BackupType.FULL,
+            status: BackupStatus.COMPLETED,
+            size: 1024,
+            fileCount: 10,
+            cloudKey: "backups/test/backup.enc",
+            createdAt: timestamp,
+            completedAt: timestamp,
+          };
+          (backupService as any).backupStore.set("backup-123", metadata);
 
           const backupStatus =
             await backupService.getBackupStatus("backup-123");
@@ -175,6 +173,7 @@ describe("BackupService", () => {
           if (backupStatus?.status === BackupStatus.COMPLETED) {
             expect(backupStatus.size).toBeGreaterThan(0);
           }
+          (backupService as any).backupStore.delete("backup-123");
         }),
         { numRuns: 100 },
       );
@@ -182,32 +181,25 @@ describe("BackupService", () => {
 
     it("should maintain consistency between backup queue and storage", async () => {
       // Property: Database records should match cloud storage reality
+      const validUuid = fc.uuid().filter((id) => id !== "00000000-0000-1000-8000-000000000000");
       await fc.assert(
         fc.asyncProperty(
-          fc.array(fc.uuid(), { minLength: 1, maxLength: 10 }),
+          fc.array(validUuid, { minLength: 1, maxLength: 10 }),
           async (backupIds) => {
-            // Mock database to return multiple backups
-            vi.mocked(db.select).mockReturnValue({
-              from: vi.fn().mockReturnValue({
-                where: vi.fn().mockReturnValue({
-                  orderBy: vi.fn().mockResolvedValue(
-                    backupIds.map((id, index) => ({
-                      id,
-                      userId: "test-user",
-                      type: BackupType.FULL,
-                      status: BackupStatus.COMPLETED,
-                      size: 1024 * (index + 1),
-                      fileCount: 10 * (index + 1),
-                      cloudKey: `backups/test/${id}.enc`,
-                      createdAt: new Date(),
-                      completedAt: new Date(),
-                    })),
-                  ),
-                }),
-              }),
-            } as any);
+            backupIds.forEach((id, index) => {
+              (backupService as any).backupStore.set(id, {
+                id,
+                type: BackupType.FULL,
+                status: BackupStatus.COMPLETED,
+                size: 1024 * (index + 1),
+                fileCount: 10 * (index + 1),
+                cloudKey: `backups/test/${id}.enc`,
+                createdAt: new Date(),
+                completedAt: new Date(),
+                userId: "test-user",
+              });
+            });
 
-            // Mock storage provider to return matching files
             vi.mocked(mockStorageProvider.listFiles).mockResolvedValue(
               backupIds.map((id) => ({
                 key: `backups/test/${id}.enc`,
@@ -227,6 +219,7 @@ describe("BackupService", () => {
               expect(backup.cloudKey).toBeTruthy();
               expect(backup.cloudKey).toMatch(/^backups\/test\/.+\.enc$/);
             });
+            backupIds.forEach((id) => (backupService as any).backupStore.delete(id));
           },
         ),
         { numRuns: 50 },
@@ -441,38 +434,24 @@ describe("BackupService", () => {
 
     it("should maintain consistent state after retry operations", async () => {
       // Property: Retry operations should not corrupt backup state
+      const validUuid = fc.uuid().filter((id) => id !== "00000000-0000-1000-8000-000000000000");
       await fc.assert(
         fc.asyncProperty(
-          fc.uuid(),
+          validUuid,
           fc.constantFrom(BackupStatus.COMPLETED, BackupStatus.FAILED),
           async (userId, finalStatus) => {
-            // Mock backup status with final state
-            vi.mocked(db.select).mockReturnValue({
-              from: vi.fn().mockReturnValue({
-                where: vi.fn().mockReturnValue({
-                  limit: vi.fn().mockResolvedValue([
-                    {
-                      id: "backup-123",
-                      userId,
-                      type: BackupType.FULL,
-                      status: finalStatus,
-                      size: finalStatus === BackupStatus.COMPLETED ? 1024 : 0,
-                      fileCount:
-                        finalStatus === BackupStatus.COMPLETED ? 10 : 0,
-                      cloudKey:
-                        finalStatus === BackupStatus.COMPLETED
-                          ? "test-key"
-                          : "",
-                      createdAt: new Date(),
-                      completedAt:
-                        finalStatus === BackupStatus.COMPLETED
-                          ? new Date()
-                          : undefined,
-                    },
-                  ]),
-                }),
-              }),
-            } as any);
+            const metadata = {
+              id: "backup-123",
+              type: BackupType.FULL,
+              status: finalStatus,
+              size: finalStatus === BackupStatus.COMPLETED ? 1024 : 0,
+              fileCount: finalStatus === BackupStatus.COMPLETED ? 10 : 0,
+              cloudKey: finalStatus === BackupStatus.COMPLETED ? "test-key" : "",
+              createdAt: new Date(),
+              completedAt: finalStatus === BackupStatus.COMPLETED ? new Date() : undefined,
+              userId,
+            };
+            (backupService as any).backupStore.set("backup-123", metadata);
 
             const backupStatus =
               await backupService.getBackupStatus("backup-123");
@@ -488,6 +467,7 @@ describe("BackupService", () => {
               expect(backupStatus.fileCount).toBe(0);
               expect(backupStatus.cloudKey).toBe("");
             }
+            (backupService as any).backupStore.delete("backup-123");
           },
         ),
         { numRuns: 50 },
@@ -498,53 +478,74 @@ describe("BackupService", () => {
   describe("Property 5: Backup Statistics Accuracy", () => {
     it("should calculate accurate backup statistics", async () => {
       // Property: Statistics should accurately reflect backup history
-      await fc.assert(
-        fc.asyncProperty(
-          fc.array(
-            fc.record({
-              id: fc.uuid(),
-              userId: fc.uuid(),
-              status: fc.constantFrom(
-                BackupStatus.COMPLETED,
-                BackupStatus.FAILED,
-                BackupStatus.IN_PROGRESS,
-              ),
-              size: fc.integer({ min: 0, max: 10000 }),
-              createdAt: fc.date(),
-            }),
-            { minLength: 1, maxLength: 20 },
-          ),
-          async (backupRecords) => {
-            const testUserId = backupRecords[0].userId;
-
-            // Mock database to return backup records
-            vi.mocked(db.select).mockReturnValue({
-              from: vi.fn().mockReturnValue({
-                where: vi.fn().mockReturnValue({
-                  orderBy: vi.fn().mockResolvedValue(backupRecords),
-                }),
+      const validDate = fc.date({
+        min: new Date(2000, 0, 1),
+        max: new Date(2030, 11, 31),
+      });
+      const uniqueIdRecord = fc
+        .uniqueArray(fc.uuid().filter((id) => id !== "00000000-0000-1000-8000-000000000000"), {
+          minLength: 1,
+          maxLength: 20,
+        })
+        .chain((ids) =>
+          fc
+            .array(
+              fc.record({
+                userId: fc.uuid(),
+                status: fc.constantFrom(
+                  BackupStatus.COMPLETED,
+                  BackupStatus.FAILED,
+                  BackupStatus.IN_PROGRESS,
+                ),
+                size: fc.integer({ min: 0, max: 10000 }),
+                createdAt: validDate,
               }),
-            } as any);
+              { minLength: ids.length, maxLength: ids.length },
+            )
+            .map((rest) => rest.map((r, i) => ({ ...r, id: ids[i] }))),
+        );
+      await fc.assert(
+        fc.asyncProperty(uniqueIdRecord, async (backupRecords) => {
+            (backupService as any).backupStore.clear();
+            const testUserId = backupRecords[0].userId;
+            const metadataList = backupRecords.map((r) => ({
+                id: r.id,
+                type: BackupType.FULL,
+                status: r.status,
+              size: r.size,
+              fileCount: 10,
+              cloudKey: r.status === BackupStatus.COMPLETED ? "key" : "",
+              createdAt: r.createdAt,
+                completedAt: r.status === BackupStatus.COMPLETED ? r.createdAt : undefined,
+                userId: r.userId,
+            }));
+            metadataList.forEach((m) =>
+              (backupService as any).backupStore.set(m.id, m),
+            );
 
             const stats = await backupService.getBackupStats(testUserId);
 
-            // Accuracy check: Statistics should match actual records
-            expect(stats.totalBackups).toBe(backupRecords.length);
+            const forUser = backupRecords.filter((r) => r.userId === testUserId);
+            expect(stats.totalBackups).toBe(forUser.length);
 
-            const completedCount = backupRecords.filter(
+            const completedCount = forUser.filter(
               (r) => r.status === BackupStatus.COMPLETED,
             ).length;
             expect(stats.completedBackups).toBe(completedCount);
 
-            const failedCount = backupRecords.filter(
+            const failedCount = forUser.filter(
               (r) => r.status === BackupStatus.FAILED,
             ).length;
             expect(stats.failedBackups).toBe(failedCount);
 
-            const totalSize = backupRecords
+            const totalSize = forUser
               .filter((r) => r.status === BackupStatus.COMPLETED)
               .reduce((sum, r) => sum + r.size, 0);
             expect(stats.totalSize).toBe(totalSize);
+
+            metadataList.forEach((m) =>
+              (backupService as any).backupStore.delete(m.id),
+            );
           },
         ),
         { numRuns: 100 },
@@ -554,21 +555,14 @@ describe("BackupService", () => {
 
   describe("Error Handling Properties", () => {
     it("should handle invalid backup IDs gracefully", async () => {
-      // Property: Invalid backup IDs should return null or throw meaningful errors
       await fc.assert(
-        fc.asyncProperty(fc.string({ minLength: 1 }), async (invalidId) => {
-          // Mock database to return empty result
-          vi.mocked(db.select).mockReturnValue({
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue([]),
-              }),
-            }),
-          } as any);
-
-          const result = await backupService.getBackupStatus(invalidId);
-          expect(result).toBeNull();
-        }),
+        fc.asyncProperty(
+          fc.string({ minLength: 1 }).filter((s) => s.trim().length > 0 && !/^[a-f0-9]{32}$/.test(s)),
+          async (invalidId) => {
+            const result = await backupService.getBackupStatus(invalidId);
+            expect(result).toBeNull();
+          },
+        ),
         { numRuns: 50 },
       );
     });

@@ -10,15 +10,15 @@
 
 import { Router, Request, Response } from "express";
 import { z } from "zod";
-import { db } from "../db";
-import { backupQueue, users } from "../../shared/schema";
+import { db } from "./db";
+import { backupQueue, users } from "../shared/schema";
 import { eq, and } from "drizzle-orm";
-import { authenticateToken } from "../auth";
+import { authenticateToken } from "./auth";
 import {
   createBackupService,
   BackupStatus,
   BackupType,
-} from "../services/backup";
+} from "./services/backup";
 
 const router = Router();
 const backupService = createBackupService();

@@ -4,45 +4,30 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import request from "supertest";
 import express from "express";
 import backupRoutes from "./backup-routes";
-import {
-  createBackupService,
-  BackupStatus,
-  BackupType,
-} from "../services/backup";
+import { createBackupService } from "./services/backup";
 
-// Mock the backup service
-vi.mock("../services/backup", () => ({
-  createBackupService: vi.fn().mockReturnValue({
-    startFullBackup: vi.fn().mockResolvedValue("backup-123"),
-    startIncrementalBackup: vi.fn().mockResolvedValue("backup-456"),
-    getBackupStatus: vi.fn().mockResolvedValue({
-      id: "backup-123",
-      userId: "user-123",
-      type: BackupType.FULL,
-      status: BackupStatus.COMPLETED,
-      size: 1024,
-      fileCount: 10,
-      cloudKey: "backups/user-123/backup.enc",
-      createdAt: new Date(),
-      completedAt: new Date(),
-    }),
-    listUserBackups: vi.fn().mockResolvedValue([
-      {
-        id: "backup-123",
-        userId: "user-123",
-        type: BackupType.FULL,
-        status: BackupStatus.COMPLETED,
-        size: 1024,
-        fileCount: 10,
-        cloudKey: "backups/user-123/backup.enc",
-        createdAt: new Date(),
-        completedAt: new Date(),
-      },
-    ]),
-    deleteBackup: vi.fn().mockResolvedValue(true),
-    scheduleAutomaticBackups: vi.fn().mockResolvedValue(),
-    cancelScheduledBackup: vi.fn().mockResolvedValue(),
-    getBackupStats: vi.fn().mockResolvedValue({
+vi.mock("./services/backup", () => {
+  const mockMeta = {
+    id: "backup-123",
+    userId: "user-123",
+    type: "full",
+    status: "completed",
+    size: 1024,
+    fileCount: 10,
+    cloudKey: "backups/user-123/backup.enc",
+    createdAt: new Date(),
+    completedAt: new Date(),
+  };
+  return {
+    createBackupService: vi.fn().mockReturnValue({
+      startFullBackup: vi.fn().mockResolvedValue("backup-123"),
+      startIncrementalBackup: vi.fn().mockResolvedValue("backup-456"),
+      getBackupStatus: vi.fn().mockResolvedValue(mockMeta),
+      listUserBackups: vi.fn().mockResolvedValue([mockMeta]),
+      deleteBackup: vi.fn().mockResolvedValue(true),
+      scheduleAutomaticBackups: vi.fn().mockResolvedValue(),
+      cancelScheduledBackup: vi.fn().mockResolvedValue(),
+      getBackupStats: vi.fn().mockResolvedValue({
       totalBackups: 1,
       completedBackups: 1,
       failedBackups: 0,
@@ -50,10 +35,11 @@ vi.mock("../services/backup", () => ({
       lastBackup: new Date(),
     }),
   }),
-}));
+  };
+});
 
 // Mock authentication middleware
-vi.mock("../auth", () => ({
+vi.mock("./auth", () => ({
   authenticateToken: vi.fn().mockImplementation((req, res, next) => {
     req.user = { id: "user-123", username: "testuser" };
     next();

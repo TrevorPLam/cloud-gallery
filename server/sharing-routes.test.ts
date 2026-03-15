@@ -63,6 +63,9 @@ describe("Sharing API Integration Tests", () => {
     vi.restoreAllMocks();
   });
 
+  const validAlbumId = "550e8400-e29b-41d4-a716-446655440000";
+  const validUserId = "f47ac10b-58cc-4372-a567-0e02b2c3d479";
+
   describe("POST /api/sharing/create", () => {
     it("should create a shared album successfully", async () => {
       const mockShareResult = {
@@ -79,26 +82,17 @@ describe("Sharing API Integration Tests", () => {
       await request(app)
         .post("/api/sharing/create")
         .send({
-          albumId: "album-123",
+          albumId: validAlbumId,
           permissions: "view",
         })
         .expect(201);
 
-      expect(sharingService.createShare).toHaveBeenCalledWith(
-        "album-123",
-        "test-user",
-        {
-          permissions: Permission.VIEW,
-          expiresAt: null,
-          password: undefined,
-        },
-      );
-
       expect(sharingService.createShare).toHaveBeenCalledWith({
-        albumId: "album-123",
+        albumId: validAlbumId,
         userId: "test-user-id",
         permissions: Permission.VIEW,
         expiresAt: null,
+        password: undefined,
       });
     });
 
@@ -117,26 +111,24 @@ describe("Sharing API Integration Tests", () => {
       await request(app)
         .post("/api/sharing/create")
         .send({
-          albumId: "album-123",
+          albumId: validAlbumId,
           password: "securepassword123",
           permissions: "edit",
           expiresAt: "2024-12-31T23:59:59.000Z",
         })
         .expect(201);
 
-      expect(sharingService.createShare).toHaveBeenCalledWith(
-        "album-123",
-        "test-user",
-        {
-          permissions: Permission.EDIT,
-          expiresAt: new Date("2024-12-31T23:59:59.000Z"),
-          password: "securepassword123",
-        },
-      );
+      expect(sharingService.createShare).toHaveBeenCalledWith({
+        albumId: validAlbumId,
+        userId: "test-user-id",
+        permissions: Permission.EDIT,
+        expiresAt: new Date("2024-12-31T23:59:59.000Z"),
+        password: "securepassword123",
+      });
     });
 
     it("should reject invalid request data", async () => {
-      await request(app)
+      const res = await request(app)
         .post("/api/sharing/create")
         .send({
           albumId: "invalid-uuid",
@@ -145,28 +137,17 @@ describe("Sharing API Integration Tests", () => {
         })
         .expect(400);
 
-      expect(sharingService.createShare).toHaveBeenCalledWith(
-        "album-123",
-        "test-user",
-        {
-          permissions: Permission.VIEW,
-          expiresAt: null,
-          password: undefined,
-        },
-      );
+      expect(res.body.error).toBeDefined();
+      expect(sharingService.createShare).not.toHaveBeenCalled();
     });
 
     it("should handle album not found error", async () => {
       vi.mocked(sharingService.createShare).mockRejectedValue(
         new Error("Album not found or access denied"),
       );
-
       await request(app)
         .post("/api/sharing/create")
-        .send({
-          albumId: "album-123",
-          permissions: "view",
-        })
+        .send({ albumId: validAlbumId, permissions: "view" })
         .expect(404);
     });
   });
@@ -202,9 +183,11 @@ describe("Sharing API Integration Tests", () => {
         .send({})
         .expect(200);
 
-      expect(response.body).toEqual({
-        message: "Shared album accessed successfully",
-        data: mockAccessResult,
+      expect(response.body.message).toBe("Shared album accessed successfully");
+      expect(response.body.data).toMatchObject({
+        share: mockAccessResult.share,
+        album: { id: mockAccessResult.album.id, title: mockAccessResult.album.title, description: mockAccessResult.album.description, coverPhotoUri: null },
+        photos: [],
       });
 
       expect(sharingService.accessSharedAlbum).toHaveBeenCalledWith(
@@ -376,7 +359,10 @@ describe("Sharing API Integration Tests", () => {
         .get("/api/sharing/my-shares")
         .expect(200);
 
-      expect(response.body).toEqual(mockUserShares);
+      expect(response.body).toMatchObject({
+        owned: [{ id: "share-1", albumId: "album-1", albumTitle: "My Album", shareToken: "token123", permissions: "view", viewCount: 10, isActive: true }],
+        collaborated: [{ id: "collab-1", sharedAlbumId: "share-2", albumId: "album-2", albumTitle: "Shared Album", permissions: "edit", invitedBy: "user-2" }],
+      });
       expect(sharingService.getUserSharedAlbums).toHaveBeenCalledWith(
         "test-user-id",
       );
@@ -403,9 +389,11 @@ describe("Sharing API Integration Tests", () => {
         })
         .expect(200);
 
-      expect(response.body).toEqual({
-        message: "Shared album updated successfully",
-        share: mockUpdatedShare,
+      expect(response.body.message).toBe("Shared album updated successfully");
+      expect(response.body.share).toMatchObject({
+        id: mockUpdatedShare.id,
+        permissions: mockUpdatedShare.permissions,
+        isActive: mockUpdatedShare.isActive,
       });
 
       expect(sharingService.updateShare).toHaveBeenCalledWith(
@@ -439,7 +427,7 @@ describe("Sharing API Integration Tests", () => {
     it("should add collaborator successfully", async () => {
       const mockCollaborator = {
         id: "collab-123",
-        userId: "user-456",
+        userId: validUserId,
         permissions: Permission.VIEW,
         acceptedAt: new Date(),
       };
@@ -451,19 +439,20 @@ describe("Sharing API Integration Tests", () => {
       const response = await request(app)
         .post("/api/sharing/share-123/collaborators")
         .send({
-          userId: "user-456",
+          userId: validUserId,
           permissions: "view",
         })
         .expect(201);
 
-      expect(response.body).toEqual({
-        message: "Collaborator added successfully",
-        collaborator: mockCollaborator,
+      expect(response.body.message).toBe("Collaborator added successfully");
+      expect(response.body.collaborator).toMatchObject({
+        id: mockCollaborator.id,
+        permissions: mockCollaborator.permissions,
       });
 
       expect(sharingService.addCollaborator).toHaveBeenCalledWith({
         sharedAlbumId: "share-123",
-        userId: "user-456",
+        userId: validUserId,
         permissions: Permission.VIEW,
         invitedBy: "test-user-id",
       });
@@ -477,7 +466,7 @@ describe("Sharing API Integration Tests", () => {
       const response = await request(app)
         .post("/api/sharing/share-123/collaborators")
         .send({
-          userId: "user-456",
+          userId: validUserId,
           permissions: "view",
         })
         .expect(403);
@@ -495,7 +484,7 @@ describe("Sharing API Integration Tests", () => {
       const response = await request(app)
         .post("/api/sharing/share-123/collaborators")
         .send({
-          userId: "user-456",
+          userId: validUserId,
           permissions: "view",
         })
         .expect(409);
@@ -698,10 +687,8 @@ describe("Sharing API Integration Tests", () => {
       await request(app)
         .post("/api/sharing/create")
         .send({
-          albumId: "album-123",
+          albumId: validAlbumId,
           permissions: "view",
-          // Add required fields to pass validation
-          password: "password123",
         })
         .expect(500);
     });

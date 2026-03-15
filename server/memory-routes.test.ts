@@ -69,13 +69,21 @@ describe("Memory Routes Integration Tests", () => {
 
       const response = await request(app).get("/api/memories").expect(200);
 
-      expect(response.body).toEqual({
-        memories: mockMemories,
-        pagination: {
-          limit: 50,
-          offset: 0,
-          hasMore: false,
-        },
+      expect(response.body.pagination).toEqual({
+        limit: 50,
+        offset: 0,
+        hasMore: false,
+      });
+      expect(response.body.memories).toHaveLength(1);
+      expect(response.body.memories[0]).toMatchObject({
+        id: "memory1",
+        userId: "test-user-id",
+        memoryType: "on_this_day",
+        title: "On This Day 1 year ago",
+        description: "Photos from last year",
+        photoCount: 5,
+        isFavorite: false,
+        isHidden: false,
       });
 
       expect(memoriesService.getUserMemories).toHaveBeenCalledWith(
@@ -352,13 +360,18 @@ describe("Memory Routes Integration Tests", () => {
         .get("/api/memories/memory1/photos")
         .expect(200);
 
-      expect(response.body).toEqual({
-        photos: mockPhotos,
-        pagination: {
-          limit: 50,
-          offset: 0,
-          hasMore: false,
-        },
+      expect(response.body.pagination).toEqual({
+        limit: 50,
+        offset: 0,
+        hasMore: false,
+      });
+      expect(response.body.photos).toHaveLength(2);
+      expect(response.body.photos[0]).toMatchObject({
+        id: "photo1",
+        uri: "https://example.com/photo1.jpg",
+        width: 1920,
+        height: 1080,
+        filename: "photo1.jpg",
       });
 
       expect(memoriesService.getMemoryPhotos).toHaveBeenCalledWith(

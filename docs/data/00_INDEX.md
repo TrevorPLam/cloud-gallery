@@ -4,7 +4,7 @@
 
 ## Overview
 
-Cloud Gallery's data layer in MVP is **local-first**, using React Native's AsyncStorage for all persistence. No cloud backend or database is connected yet, though PostgreSQL schema is prepared for future migration.
+Cloud Gallery's data layer is **hybrid**: local storage (AsyncStorage) with optional client-side encryption for metadata, plus PostgreSQL on the server when the user is authenticated and the backend is configured. Client-side encryption is AES-256-GCM for photo/album metadata stored on device; the encryption key is stored in SecureStore. Server-stored photos and backup use separate encryption (see server backup and security docs); end-to-end zero-knowledge for server-held photo blobs is not currently documented.
 
 ## Data Storage
 

@@ -10,27 +10,25 @@
 
 import request from "supertest";
 import express from "express";
-import { describe, it, expect, beforeEach, jest } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import searchRoutes from "./search-routes";
 import { SearchService } from "./services/search";
 import { SearchIndexService } from "./services/search-index";
 import { authenticateToken } from "./auth";
 
 // Mock services
-jest.mock("./services/search");
-jest.mock("./services/search-index");
-jest.mock("./auth");
-jest.mock("./db");
+vi.mock("./services/search");
+vi.mock("./services/search-index");
+vi.mock("./auth");
+vi.mock("./db");
 
-const mockSearchService = SearchService as jest.MockedClass<
-  typeof SearchService
->;
-const mockSearchIndexService = SearchIndexService as jest.MockedClass<
-  typeof SearchIndexService
->;
-const mockAuthenticateToken = authenticateToken as jest.MockedFunction<
-  typeof authenticateToken
->;
+const mockSearchService = SearchService as unknown as {
+  prototype: { search: ReturnType<typeof vi.fn>; getSuggestions: ReturnType<typeof vi.fn>; getPopularSearches: ReturnType<typeof vi.fn> };
+};
+const mockSearchIndexService = SearchIndexService as unknown as {
+  prototype: { getSearchSuggestions: ReturnType<typeof vi.fn>; getPopularSearchTerms: ReturnType<typeof vi.fn>; fullTextSearch: ReturnType<typeof vi.fn> };
+};
+const mockAuthenticateToken = vi.mocked(authenticateToken);
 
 // Mock app
 const app = express();
@@ -68,7 +66,7 @@ const mockPhotos = [
 
 describe("Search Routes", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Mock authentication middleware
     mockAuthenticateToken.mockImplementation((req, res, next) => {
@@ -77,36 +75,36 @@ describe("Search Routes", () => {
     });
 
     // Mock search service
-    mockSearchService.prototype.search = jest.fn().mockResolvedValue({
+    mockSearchService.prototype.search = vi.fn().mockResolvedValue({
       photos: mockPhotos,
       total: 2,
       query: { text: "beach" },
       suggestions: ["beach photos", "sunset photos"],
     });
 
-    mockSearchService.prototype.getSuggestions = jest
+    mockSearchService.prototype.getSuggestions = vi
       .fn()
       .mockResolvedValue(["beach", "sunset", "ocean"]);
-    mockSearchService.prototype.getPopularSearches = jest
+    mockSearchService.prototype.getPopularSearches = vi
       .fn()
       .mockResolvedValue(["beach photos", "sunset photos"]);
 
     // Mock search index service
-    mockSearchIndexService.prototype.getSearchSuggestions = jest
+    mockSearchIndexService.prototype.getSearchSuggestions = vi
       .fn()
       .mockResolvedValue([
         { suggestion: "beach", type: "label", count: 10 },
         { suggestion: "vacation", type: "tag", count: 5 },
       ]);
 
-    mockSearchIndexService.prototype.getPopularSearchTerms = jest
+    mockSearchIndexService.prototype.getPopularSearchTerms = vi
       .fn()
       .mockResolvedValue([
         { search_term: "beach", photo_count: 10, user_count: 3 },
         { search_term: "sunset", photo_count: 8, user_count: 2 },
       ]);
 
-    mockSearchIndexService.prototype.fullTextSearch = jest
+    mockSearchIndexService.prototype.fullTextSearch = vi
       .fn()
       .mockResolvedValue([
         {

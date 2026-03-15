@@ -7,14 +7,14 @@
 **Cloud Gallery** (also known as "Photo Vault") is a premium mobile photo storage and organization application. It competes with Google Photos by providing:
 
 - **Gallery-quality presentation** of user photos with museum-like spacing and elegance
-- **Local-first storage** using device AsyncStorage (no cloud backend in MVP)
+- **Hybrid data model**: local storage (AsyncStorage, with optional client-side encryption) plus backend API when the user is authenticated
 - **Album organization** with manual photo curation
-- **Smart search** by favorites and photo metadata
+- **Smart search** by favorites, metadata, and server-side search when connected
 - **Cross-platform support** via React Native (iOS, Android, Web)
 
-**Target Users**: Mobile users who want premium, elegant photo management without complex cloud sync.
+**Target Users**: Mobile users who want premium, elegant photo management with optional cloud sync and backup.
 
-**Current State**: MVP prototype with local storage. Backend server exists but is minimal (serves static files only).
+**Current State**: Full backend API is implemented. The client uses local storage always; when authenticated, it also uses the server for photos, albums, backup, sync, memories, sharing, partner sharing, faces, search, and smart albums. The server uses PostgreSQL via Drizzle when `DATABASE_URL` is set (otherwise runs in no-DB mode for development).
 
 ## High-Level Architecture
 
@@ -28,25 +28,22 @@
 │  └──────────────┘  └──────────────┘  └──────────────┘     │
 │                                                              │
 │  ┌──────────────────────────────────────────────────────┐  │
-│  │          Local Storage (AsyncStorage)                │  │
-│  │  - Photos with metadata                              │  │
-│  │  - Albums with photo references                      │  │
-│  │  - User profile                                      │  │
+│  │  Local Storage (AsyncStorage, optional encryption)   │  │
+│  │  - Photos, albums, user profile                      │  │
 │  └──────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
                             │
-                            │ HTTP (static files, future API)
+                            │ HTTP: static files + REST API at /api/*
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                   Backend Server (Node.js)                   │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │  Express     │  │  Static File │  │  Future API  │     │
-│  │  Server      │  │  Serving     │  │  Routes      │     │
+│  │  Express     │  │  Static     │  │  REST API    │     │
+│  │  Server      │  │  Serving    │  │  /api/*      │     │
 │  └──────────────┘  └──────────────┘  └──────────────┘     │
-│                                                              │
 │  ┌──────────────────────────────────────────────────────┐  │
-│  │     Database (Postgres - configured but unused)      │  │
-│  │     - User schema defined via Drizzle ORM           │  │
+│  │  PostgreSQL + Drizzle ORM (when DATABASE_URL set)    │  │
+│  │  - users, photos, albums, sharing, backup, sync, etc. │  │
 │  └──────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -77,42 +74,35 @@
 **Technology**: Express 5.x on Node.js
 
 **Responsibilities** (current):
-- Serve Expo static build files
-- Provide landing page for Expo Go
-- CORS configuration for development
+- Serve Expo static build files and landing page for Expo Go
+- CORS and security middleware
+- Full REST API at `/api/*`: auth, photos, albums, upload, ML, search, smart albums, memories, faces, sharing, partner-sharing, backup, sync
+- PostgreSQL persistence via Drizzle when `DATABASE_URL` is set; optional no-DB mode for development
 
-**Responsibilities** (future):
-- REST API for photo uploads
-- User authentication
-- Database operations
-
-**Current State**: Minimal - no active API routes yet
+**Current State**: Full API implemented and mounted in `server/routes.ts`
 
 ### 3. Shared Layer (shared/)
 
 **Technology**: TypeScript + Drizzle ORM
 
 **Responsibilities**:
-- Database schema definitions
-- Type definitions shared between client/server
+- Database schema definitions (users, photos, albums, faces, people, sharing, memories, smart albums, backup, sync, partner-sharing, storage usage, etc.)
+- Zod validation schemas and type exports shared between client/server
 
-**Current State**: User schema defined but not actively used
+**Current State**: Full schema in use by the server when database is enabled
 
 ### 4. Data Storage
 
-**Current (MVP)**: AsyncStorage (on-device key-value store)
-- Photos array: `@photo_vault_photos`
-- Albums array: `@photo_vault_albums`
-- User profile: `@photo_vault_user`
+**Client (always)**: AsyncStorage (on-device), with optional AES-256-GCM encryption for metadata via `client/lib/secure-storage.ts`
+- Keys: `@photo_vault_photos`, `@photo_vault_albums`, `@photo_vault_user`
 
-**Future**: PostgreSQL via Drizzle ORM (schema defined in `shared/schema.ts`)
+**Server (when authenticated and DB configured)**: PostgreSQL via Drizzle ORM; schema in `shared/schema.ts` (photos, albums, users, sharing, backup, sync, etc.)
 
 ## Major Boundaries
 
 ### Client ↔ Server
-- **Current**: Client is standalone (no server calls except static files)
-- **Future**: REST API at `/api/*` endpoints
-- **Protocol**: HTTP/HTTPS with CORS
+- **Current**: Client uses local storage always; when authenticated, it calls REST API at `/api/*` for photos, albums, backup, sync, sharing, memories, search, smart albums, etc.
+- **Protocol**: HTTP/HTTPS with CORS; JWT in `Authorization` header for protected routes
 
 ### App ↔ Device
 - **Media Access**: Via Expo permissions (camera roll, media library)
@@ -141,19 +131,19 @@
 
 ## Key Design Decisions
 
-1. **Local-first architecture**: All data stored on device for MVP, enabling offline-first experience
+1. **Hybrid local + server**: Local storage (with optional encryption) for device data; backend API for sync, backup, sharing, and ML when user is authenticated
 2. **Expo framework**: Simplified native module access and OTA updates
 3. **React Query**: Centralized data fetching with built-in caching
-4. **Minimal backend**: Server infrastructure ready but not required for MVP
+4. **Full backend**: Express API and PostgreSQL (when configured) for auth, photos, albums, upload, search, memories, sharing, backup, sync
 5. **Bidirectional relationships**: Photos know their albums AND albums know their photos (easier queries)
-6. **AsyncStorage for persistence**: Simple, no-setup storage solution for MVP
+6. **AsyncStorage + optional encryption**: Local persistence; optional client-side AES-256-GCM for sensitive metadata
 
 ## Security & Privacy Boundaries
 
-1. **No cloud storage in MVP**: All photos stay on device
+1. **Local storage**: Photos and metadata can stay on device only, or sync/backup to server when authenticated
 2. **Media permissions**: Required for camera roll access
-3. **No authentication in MVP**: Single local user per device
-4. **Future auth**: PostgreSQL user schema prepared for username/password
+3. **Authentication**: JWT-based auth; optional client-side encryption for local metadata (AES-256-GCM)
+4. **Server**: PostgreSQL user and photo schema; Argon2 password hashing; protected routes require JWT
 
 ## Evidence
 
@@ -167,10 +157,10 @@
 - Package manifest: `/package.json` - Dependencies and scripts
 
 **Key Directories**:
-- `/client/screens/` - Main UI screens (6 files)
-- `/client/components/` - Reusable UI components (16 files)
-- `/client/navigation/` - Navigation configuration (6 files)
-- `/server/` - Backend server code (4 files)
+- `/client/screens/` - Main UI screens (Photos, Albums, Search, Profile, Backup, Sync, Memories, etc.)
+- `/client/components/` - Reusable UI components
+- `/client/navigation/` - Navigation configuration (auth stack, main stack, tabs)
+- `/server/` - Backend server (routes, auth, services, middleware)
 
 **Configuration Files**:
 - `/app.json` - Expo app configuration

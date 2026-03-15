@@ -2,20 +2,42 @@
 
 [← Back to Architecture Index](../architecture/00_INDEX.md)
 
-## Current State: No Active API
+## Current State: Active API
 
-**MVP Status**: The mobile app operates entirely with local AsyncStorage. No API calls are made to the backend server.
+**Architecture**: The mobile app is **hybrid**: it uses local AsyncStorage (with optional client-side encryption) and, when the user is authenticated, calls the backend API for photos, albums, backup, sync, sharing, memories, search, smart albums, and related features.
 
-**Server State**: Express server exists but only serves:
-- Static files (Expo production builds)
-- Landing page HTML for Expo Go
-- No `/api/*` routes implemented
+**Server State**: Express server serves:
+- Static files (Expo production builds) and landing page HTML for Expo Go
+- **Full REST API** at `/api/*` (see mounted routes below)
+- Database: PostgreSQL via Drizzle ORM when `DATABASE_URL` is set and `DISABLE_DB` is not set; otherwise the server can run in no-DB mode (`npm run server:dev:nodb`)
 
-**Evidence**: `/server/routes.ts` line 15-22 (empty route registration)
+**Mounted API Routes** (see `/server/routes.ts`):
+
+| Path | Router | Auth |
+|------|--------|------|
+| `/api/auth` | auth-routes | Rate-limited (no JWT on login/register) |
+| `/api/photos` | photo-routes | Yes |
+| `/api/photos/duplicates` | duplicate-routes | Yes |
+| `/api/albums` | album-routes | Yes |
+| `/api/upload` | upload-routes | Yes |
+| `/api/ml` | ml-routes | Yes |
+| `/api/search` | search-routes | Yes |
+| `/api/smart-albums` | smart-album-routes | Yes |
+| `/api/memories` | memory-routes | Yes |
+| `/api/faces` | face-routes | Yes |
+| `/api/sharing` | sharing-routes | Yes |
+| `/api/partner-sharing` | partner-sharing-routes | Yes |
+| `/api/backup` | backup-routes | Yes |
+| `/api/sync` | sync-routes | Yes |
+| `/api/storage` | storage-routes | Yes |
+| `/public` | public-routes | No (anonymous) |
+| `/api/protected` | inline | Yes |
+
+**Evidence**: `/server/routes.ts` (route registration), `/server/index.ts` (middleware, `registerRoutes(app)`)
 
 ---
 
-## Future API Architecture
+## API Architecture
 
 ### Base URL
 
@@ -511,18 +533,18 @@ describe('POST /api/photos', () => {
 ## Evidence Files
 
 **Server Setup**:
-- `/server/index.ts` - Express app + middleware (150 lines)
-- `/server/routes.ts` - Route registration (empty) (23 lines)
+- `/server/index.ts` - Express app bootstrap, middleware, `registerRoutes(app)`
+- `/server/routes.ts` - Route registration; mounts all API routers and creates HTTP server
 
 **Schema**:
-- `/shared/schema.ts` - User schema for auth (32 lines)
+- `/shared/schema.ts` - Full Drizzle schema: users, photos, albums, albumPhotos, faces, people, sharedAlbums, memories, smartAlbums, backup, sync, partner-sharing, storage usage, etc.
 
 **Configuration**:
-- `/drizzle.config.ts` - Database config (future)
+- `/drizzle.config.ts` - Database connection and migrations
 
 **Dependencies**:
 - `express@5.0.1` - HTTP server
-- `drizzle-orm@0.39.3` - Database ORM (future)
+- `drizzle-orm@0.39.3` - Database ORM (in use when DB enabled)
 
 ---
 

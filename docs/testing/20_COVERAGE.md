@@ -6,12 +6,12 @@ Complete guide to code coverage requirements, measurement, and enforcement in Cl
 
 **Target: 100% coverage** for all first-party, non-generated code across:
 
-- ✅ **Lines**: 99.11% (near-perfect coverage)
-- ✅ **Branches**: 97.4% (comprehensive branch testing)
-- ✅ **Functions**: 100%
-- ✅ **Statements**: 99.11%
+- **Lines**: 100%
+- **Branches**: 100%
+- **Functions**: 100%
+- **Statements**: 100%
 
-**Current Status**: Excellent coverage with only defensive code paths and error handling edges remaining uncovered.
+**Current Status**: Run `npm run test:coverage` to see current coverage. Thresholds are enforced in `vitest.config.ts`; the build fails if coverage drops below 100% for included files.
 
 ## What "100%" Means
 

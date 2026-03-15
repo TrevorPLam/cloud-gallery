@@ -34,18 +34,15 @@ npm run test:ui
 
 ## 📊 Current Status
 
-- **Total Tests**: 237 tests across 9 test files
-- **Coverage**: 99.11% line + 97.4% branch coverage for first-party, non-generated code
-- **Test Files**:
-  - `client/lib/storage.test.ts` - 67 tests (includes edge cases)
-  - `client/lib/query-client.test.ts` - 28 tests
-  - `client/lib/storage.performance.test.ts` - 15 tests (new performance suite)
-  - `server/index.test.ts` - 39 tests
-  - `server/middleware.test.ts` - 28 tests (includes HSTS preload)
-  - `server/security.test.ts` - 26 tests (includes sanitization fixes)
-  - `server/storage.test.ts` - 17 tests
-  - `server/routes.test.ts` - 5 tests
-  - `shared/schema.test.ts` - 20 tests
+- **Total Tests**: ~730 tests across 61 test files (run `npm test` for current count)
+- **Coverage**: Target 100% for first-party, non-generated code (see [20_COVERAGE.md](./20_COVERAGE.md)); run `npm run test:coverage` to verify
+- **Test Files**: Located under `client/`, `server/`, and `shared/` with `.test.ts` / `.test.tsx` suffix. Key suites include:
+  - `client/lib/storage.test.ts`, `client/lib/query-client.test.ts`, `client/lib/storage.performance.test.ts`
+  - `server/index.test.ts`, `server/routes.test.ts`, `server/middleware.test.ts`, `server/security.test.ts`, `server/storage.test.ts`
+  - `server/*-routes.test.ts` (sharing, memory, smart-album, auth, etc.)
+  - `server/services/*.test.ts` (partner-sharing, backup, memories, sync, smart-albums, etc.)
+  - `shared/schema.test.ts`
+- **Focused/skipped guard**: Run `npm run test:check-focused` before commit to block `.only` and `.skip` in test files (see [10_RUNNING_TESTS.md](./10_RUNNING_TESTS.md)).
 
 ## 🏗️ Testing Architecture
 

@@ -25,6 +25,7 @@ import publicRoutes from "./public-routes";
 import partnerSharingRoutes from "./partner-sharing-routes";
 import backupRoutes from "./backup-routes";
 import syncRoutes from "./sync-routes";
+import storageRoutes from "./storage-routes";
 import { authenticateToken, generalRateLimit } from "./auth";
 
 // AI-NOTE: Currently empty route registration; designed for expansion with /api prefixed routes
@@ -73,6 +74,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Sync routes (with authentication)
   app.use("/api/sync", syncRoutes);
+
+  // Storage usage routes (with authentication)
+  app.use("/api/storage", storageRoutes);
 
   // Public routes (anonymous access - no authentication required)
   app.use("/public", publicRoutes);

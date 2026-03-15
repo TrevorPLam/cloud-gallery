@@ -8,7 +8,7 @@
 // TESTS: npm run check:types, route integration tests
 // AI-META-END
 
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import {
   storageUsageService,

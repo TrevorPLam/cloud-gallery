@@ -12,7 +12,7 @@
 
 Cloud Gallery is a premium React Native photo storage and organization application with enterprise-grade security. This is a monorepo containing React Native client, Node.js backend, and shared TypeScript types.
 
-**One-Liner**: React Native photo gallery app with local-first storage, enterprise security, and bidirectional album-photo relationships.
+**One-Liner**: React Native photo gallery app with hybrid local/server storage, enterprise security, and bidirectional album-photo relationships.
 
 ## 🏗️ Architecture Overview
 
@@ -39,10 +39,10 @@ cloud-gallery/
 # Start React Native development server
 npm run expo:dev
 
-# Start backend server (optional for MVP)
+# Start backend server (requires DATABASE_URL for full API)
 npm run server:dev
 
-# Start backend without database (MVP mode)
+# Start backend without database (no-DB mode for development)
 npm run server:dev:nodb
 ```
 
@@ -154,9 +154,8 @@ server/
 - Rate limiting on all endpoints (100 req/15min, 10 req/15min for auth)
 
 ### Data Protection
-- End-to-end encryption for sensitive photos
-- Field-level encryption for metadata
-- Secure key management with environment variables
+- **Local**: Optional client-side AES-256-GCM encryption for photo/album metadata (key in SecureStore); toggle via `EXPO_PUBLIC_USE_ENCRYPTED_STORAGE`
+- **Server**: Backup and storage encryption (see server docs); key management via environment variables
 - Audit logging for all security-relevant operations
 
 ### Input Validation

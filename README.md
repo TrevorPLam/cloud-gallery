@@ -23,7 +23,7 @@
 - 🏛️ **Gallery-Quality Presentation**: Museum-like photo display with elegant spacing and interactions
 - 🔒 **Security-First Architecture**: Enterprise-grade authentication, encryption, and audit logging
 - 📱 **Cross-Platform Native**: iOS, Android, and Web via React Native with Expo
-- 🌱 **Local-First Design**: Offline-first architecture with optional cloud synchronization
+- 🌱 **Hybrid local + cloud**: Local storage (with optional encryption) and optional backend for sync, backup, and sharing when authenticated
 - 🧪 **100% Test Coverage**: Comprehensive testing with security validation
 - 📚 **Documentation-Driven**: Extensive architecture and security documentation
 
@@ -211,7 +211,8 @@ Cloud Gallery follows a **security-first, local-first architecture** with compre
 - ✅ Album sharing and collaboration
 
 ### 🔒 **Security & Privacy**
-- ✅ End-to-end encryption for sensitive photos
+- ✅ **Local metadata encryption**: Optional client-side AES-256-GCM for photo/album metadata stored on device (key in SecureStore); toggle via `EXPO_PUBLIC_USE_ENCRYPTED_STORAGE`
+- ✅ **Server backup**: Encrypted backup to server; see server backup and key handling for details
 - ✅ Biometric authentication (Face ID, Touch ID)
 - ✅ Private albums with additional protection
 - ✅ Audit logging of all photo operations

@@ -105,21 +105,15 @@ describe('SearchService', () => {
         fc.integer({ min: 0, max: 100 }),
         fc.integer({ min: 0, max: 50 }),
         async (userId, query, limit, offset) => {
-          const mockSelect = vi.fn(() => ({
-            from: vi.fn(() => ({
-              where: vi.fn((condition) => {
-                // Verify that the condition includes user filtering
-                expect(condition).toBeDefined();
-                return {
-                  orderBy: vi.fn(() => ({
-                    limit: vi.fn(() => ({
-                      offset: vi.fn(() => Promise.resolve([]))
-                    }))
-                  }))
-                };
-              }))
-            }))
-          }));
+          const mockOffset = vi.fn(() => Promise.resolve([]));
+          const mockLimit = vi.fn(() => ({ offset: mockOffset }));
+          const mockOrderBy = vi.fn(() => ({ limit: mockLimit }));
+          const mockWhere = vi.fn((condition: unknown) => {
+            expect(condition).toBeDefined();
+            return { orderBy: mockOrderBy };
+          });
+          const mockFrom = vi.fn(() => ({ where: mockWhere }));
+          const mockSelect = vi.fn(() => ({ from: mockFrom }));
 
           const mockDbWithUser = {
             select: mockSelect,
@@ -144,17 +138,12 @@ describe('SearchService', () => {
             { id: '2', userId, filename: 'test2.jpg' }
           ];
 
-          const mockSelect = vi.fn(() => ({
-            from: vi.fn(() => ({
-              where: vi.fn(() => ({
-                orderBy: vi.fn(() => ({
-                  limit: vi.fn(() => ({
-                    offset: vi.fn(() => Promise.resolve(mockPhotos))
-                  }))
-                }
-              }))
-            }))
-          }));
+          const mockOffset = vi.fn(() => Promise.resolve(mockPhotos));
+          const mockLimit = vi.fn(() => ({ offset: mockOffset }));
+          const mockOrderBy = vi.fn(() => ({ limit: mockLimit }));
+          const mockWhere = vi.fn(() => ({ orderBy: mockOrderBy }));
+          const mockFrom = vi.fn(() => ({ where: mockWhere }));
+          const mockSelect = vi.fn(() => ({ from: mockFrom }));
 
           const mockCount = vi.fn(() => Promise.resolve([{ count: 2 }]));
 
@@ -187,23 +176,17 @@ describe('SearchService', () => {
             { id: '2', userId, filename: 'other.jpg', mlLabels: [] }
           ];
 
-          const mockSelect = vi.fn(() => ({
-            from: vi.fn(() => ({
-              where: vi.fn((condition) => {
-                // Verify that ML labels filtering is applied
-                expect(condition).toBeDefined();
-                return {
-                  orderBy: vi.fn(() => ({
-                    limit: vi.fn(() => ({
-                      offset: vi.fn(() => Promise.resolve(
-                        mockPhotos.filter(p => p.mlLabels?.includes(filter))
-                      ))
-                    }))))
-                  }))
-                };
-              }))
-            }))
-          }));
+          const mockOffset = vi.fn(() =>
+            Promise.resolve(mockPhotos.filter((p) => p.mlLabels?.includes(filter))),
+          );
+          const mockLimit = vi.fn(() => ({ offset: mockOffset }));
+          const mockOrderBy = vi.fn(() => ({ limit: mockLimit }));
+          const mockWhere = vi.fn((condition: unknown) => {
+            expect(condition).toBeDefined();
+            return { orderBy: mockOrderBy };
+          });
+          const mockFrom = vi.fn(() => ({ where: mockWhere }));
+          const mockSelect = vi.fn(() => ({ from: mockFrom }));
 
           const mockCount = vi.fn(() => Promise.resolve([{ count: 1 }]));
 

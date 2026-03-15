@@ -8,8 +8,8 @@
 // TESTS: server/services/memories.test.ts (property tests)
 // AI-META-END
 
+import { db } from "../db";
 import {
-  db,
   eq,
   and,
   desc,

@@ -20,6 +20,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
+    "test:check-focused": "node scripts/check-focused-tests.js",
     "security:check": "./scripts/security-check.sh",
     "security:audit": "npm audit --audit-level=moderate",
     "security:sbom": "npx @cyclonedx/cyclonedx-npm --output-file sbom-cyclonedx.json"

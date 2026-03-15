@@ -467,6 +467,10 @@ function setupErrorHandler(app: express.Application) {
     // 7. Expo static serving and routing
     configureExpoAndLanding(app);
 
+    // 7b. View engine for public routes (e.g. /public landing templates)
+    app.set("view engine", "html");
+    app.set("views", path.join(__dirname, "templates"));
+
     // 8. Application routes
     const server = await registerRoutes(app);
 
@@ -524,6 +528,8 @@ export async function setupTestApp() {
   setupRequestLogging(app);
   app.use(auditLogger.middleware());
   configureExpoAndLanding(app);
+  app.set("view engine", "html");
+  app.set("views", path.join(__dirname, "templates"));
   await registerRoutes(app);
   setupErrorHandler(app);
   return app;

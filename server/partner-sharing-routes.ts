@@ -10,13 +10,13 @@
 
 import { Router } from "express";
 import { z } from "zod";
-import { authenticateToken } from "./middleware";
+import { authenticateToken } from "./auth";
 import {
   partnerSharingService,
   PartnershipStatus,
   InvitationStatus,
   AutoShareRuleType,
-} from "../services/partner-sharing";
+} from "./services/partner-sharing";
 import {
   selectPartnerRelationshipSchema,
   selectPartnerInvitationSchema,

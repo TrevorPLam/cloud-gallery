@@ -1,8 +1,8 @@
 # Testing System Implementation - Final Report
 
 **Date**: 2026-02-04  
-**Status**: ✅ Complete  
-**Coverage**: 100% for all first-party, non-generated code
+**Status**: Historical snapshot (Feb 2026). For current test and coverage status, see [docs/testing/00_INDEX.md](../testing/00_INDEX.md) and run `npm test` / `npm run test:coverage`.  
+**Coverage**: Target remains 100% for first-party, non-generated code (see vitest.config.ts).
 
 ---
 

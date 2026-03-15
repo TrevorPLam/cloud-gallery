@@ -110,18 +110,14 @@ const DEFAULT_CONFIG: PublicLinksConfig = {
 };
 
 /**
- * Rate limiting tracker for public links
- */
-const rateLimitTracker = new Map<
-  string,
-  { count: number; resetTime: number }
->();
-
-/**
  * Public links service for anonymous album access
  */
 export class PublicLinksService {
   private config: PublicLinksConfig;
+  private rateLimitTracker = new Map<
+    string,
+    { count: number; resetTime: number }
+  >();
 
   constructor(config: PublicLinksConfig = DEFAULT_CONFIG) {
     this.config = config;
@@ -139,11 +135,11 @@ export class PublicLinksService {
    */
   private checkRateLimit(ip: string): boolean {
     const now = Date.now();
-    const tracker = rateLimitTracker.get(ip);
+    const tracker = this.rateLimitTracker.get(ip);
 
     if (!tracker || now > tracker.resetTime) {
       // Reset or create tracker
-      rateLimitTracker.set(ip, {
+      this.rateLimitTracker.set(ip, {
         count: 1,
         resetTime: now + 60000, // 1 minute from now
       });
@@ -472,9 +468,9 @@ export class PublicLinksService {
    */
   cleanupRateLimit(): void {
     const now = Date.now();
-    for (const [ip, tracker] of rateLimitTracker.entries()) {
+    for (const [ip, tracker] of this.rateLimitTracker.entries()) {
       if (now > tracker.resetTime) {
-        rateLimitTracker.delete(ip);
+        this.rateLimitTracker.delete(ip);
       }
     }
   }

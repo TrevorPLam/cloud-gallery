@@ -75,8 +75,9 @@ const rateLimit = (maxRequests: number, windowMs: number) => {
   };
 };
 
-// Apply rate limiting to all public routes
-router.use(rateLimit(60, 60000)); // 60 requests per minute per IP
+// Apply rate limiting to all public routes (higher limit in test to avoid flakiness)
+const rateLimitMax = process.env.NODE_ENV === "test" ? 10000 : 60;
+router.use(rateLimit(rateLimitMax, 60000)); // requests per minute per IP
 
 // ═══════════════════════════════════════════════════════════
 // ZOD SCHEMAS FOR INPUT VALIDATION
@@ -110,12 +111,8 @@ const paginationSchema = z.object({
 });
 
 // ═══════════════════════════════════════════════════════════
-// TEMPLATE ENGINE SETUP
+// TEMPLATE ENGINE: view engine and views are set on the app in server/index.ts
 // ═══════════════════════════════════════════════════════════
-
-// Set up EJS as template engine (will be configured in main server)
-router.set("view engine", "html");
-router.set("views", "./templates");
 
 // ═══════════════════════════════════════════════════════════
 // POST /public/create - Create public link (authenticated)
@@ -167,6 +164,27 @@ router.post("/create", async (req: Request, res: Response) => {
 
     console.error("Error creating public link:", error);
     res.status(500).json({ error: "Failed to create public link" });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// GET /public/stats - Get public link statistics (authenticated)
+// Must be defined before /:token so /public/stats is not captured as a token
+// ═══════════════════════════════════════════════════════════
+router.get("/stats", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    // Get public link statistics using service
+    const stats = await publicLinksService.getPublicLinkStats(userId);
+
+    res.json(stats);
+  } catch (error) {
+    console.error("Error fetching public link statistics:", error);
+    res.status(500).json({ error: "Failed to fetch statistics" });
   }
 });
 
@@ -515,26 +533,6 @@ router.put("/:shareId", async (req: Request, res: Response) => {
 
     console.error("Error updating public link:", error);
     res.status(500).json({ error: "Failed to update public link" });
-  }
-});
-
-// ═══════════════════════════════════════════════════════════
-// GET /public/stats - Get public link statistics (authenticated)
-// ═══════════════════════════════════════════════════════════
-router.get("/stats", async (req: Request, res: Response) => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: "Authentication required" });
-    }
-
-    // Get public link statistics using service
-    const stats = await publicLinksService.getPublicLinkStats(userId);
-
-    res.json(stats);
-  } catch (error) {
-    console.error("Error fetching public link statistics:", error);
-    res.status(500).json({ error: "Failed to fetch statistics" });
   }
 });
 

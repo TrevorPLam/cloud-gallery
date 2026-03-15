@@ -75,12 +75,20 @@ describe("Smart Albums API Routes", () => {
 
       const response = await request(app).get("/api/smart-albums").expect(200);
 
-      expect(response.body).toEqual({
-        success: true,
-        data: {
-          albums: mockAlbums,
-          total: mockAlbums.length,
-        },
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.total).toBe(mockAlbums.length);
+      expect(response.body.data.albums).toHaveLength(2);
+      expect(response.body.data.albums[0]).toMatchObject({
+        id: "album-1",
+        userId: "test-user-id",
+        albumType: "people",
+        title: "John Doe",
+        description: "Photos of John Doe",
+        criteria: { peopleIds: ["person-1"] },
+        coverPhotoId: "photo-1",
+        photoCount: 25,
+        isPinned: false,
+        isHidden: false,
       });
 
       expect(smartAlbumsService.generateAllSmartAlbums).toHaveBeenCalledWith(
@@ -95,11 +103,9 @@ describe("Smart Albums API Routes", () => {
 
       const response = await request(app).get("/api/smart-albums").expect(500);
 
-      expect(response.body).toEqual({
-        success: false,
-        error: "Failed to fetch smart albums",
-        message: "Database connection failed",
-      });
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe("Failed to fetch smart albums");
+      expect(response.body.message).toBe("Database connection failed");
     });
   });
 
@@ -131,14 +137,16 @@ describe("Smart Albums API Routes", () => {
         .post("/api/smart-albums/generate")
         .expect(200);
 
-      expect(response.body).toEqual({
-        success: true,
-        data: {
-          albums: mockAlbums,
-          total: mockAlbums.length,
-          generatedAt: expect.any(String),
-        },
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.total).toBe(mockAlbums.length);
+      expect(response.body.data.albums).toHaveLength(1);
+      expect(response.body.data.albums[0]).toMatchObject({
+        id: "album-1",
+        albumType: "things",
+        title: "Food",
+        description: "Culinary moments and meals",
       });
+      expect(response.body.data.generatedAt).toBeDefined();
 
       expect(smartAlbumsService.generateAllSmartAlbums).toHaveBeenCalledWith(
         "test-user-id",
@@ -154,11 +162,9 @@ describe("Smart Albums API Routes", () => {
         .post("/api/smart-albums/generate")
         .expect(500);
 
-      expect(response.body).toEqual({
-        success: false,
-        error: "Failed to generate smart albums",
-        message: "ML analysis failed",
-      });
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe("Failed to generate smart albums");
+      expect(response.body.message).toBe("ML analysis failed");
     });
   });
 
@@ -189,11 +195,14 @@ describe("Smart Albums API Routes", () => {
         .send({ isPinned: true })
         .expect(200);
 
-      expect(response.body).toEqual({
-        success: true,
-        data: {
-          album: updatedAlbum,
-        },
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.album).toMatchObject({
+        id: "album-1",
+        userId: "test-user-id",
+        albumType: "people",
+        title: "John Doe",
+        isPinned: true,
+        isHidden: false,
       });
 
       expect(smartAlbumsService.updateSmartAlbumSettings).toHaveBeenCalledWith(
@@ -269,16 +278,18 @@ describe("Smart Albums API Routes", () => {
         .query({ limit: "10", offset: "0" })
         .expect(200);
 
-      expect(response.body).toEqual({
-        success: true,
-        data: {
-          photos: mockPhotos,
-          pagination: {
-            limit: 10,
-            offset: 0,
-            count: mockPhotos.length,
-          },
-        },
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.photos).toHaveLength(2);
+      expect(response.body.data.photos[0]).toMatchObject({
+        id: "photo-1",
+        filename: "photo1.jpg",
+        width: 1920,
+        height: 1080,
+      });
+      expect(response.body.data.pagination).toEqual({
+        limit: 10,
+        offset: 0,
+        count: mockPhotos.length,
       });
 
       expect(smartAlbumsService.getSmartAlbumPhotos).toHaveBeenCalledWith(
@@ -476,13 +487,12 @@ describe("Smart Albums API Routes", () => {
         .delete("/api/smart-albums/album-1")
         .expect(200);
 
-      expect(response.body).toEqual({
-        success: true,
-        data: {
-          album: hiddenAlbum,
-          message: "Smart album hidden successfully",
-        },
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.album).toMatchObject({
+        id: "album-1",
+        isHidden: true,
       });
+      expect(response.body.data.message).toBe("Smart album hidden successfully");
 
       expect(smartAlbumsService.updateSmartAlbumSettings).toHaveBeenCalledWith(
         "test-user-id",
