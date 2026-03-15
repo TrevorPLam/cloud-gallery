@@ -14,6 +14,8 @@ import authRoutes from "./auth-routes";
 import uploadRoutes from "./upload-routes";
 import photoRoutes from "./photo-routes";
 import albumRoutes from "./album-routes";
+import mlRoutes from "./ml-routes";
+import duplicateRoutes from "./duplicate-routes";
 import { authenticateToken, generalRateLimit } from "./auth";
 
 // AI-NOTE: Currently empty route registration; designed for expansion with /api prefixed routes
@@ -27,11 +29,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Photo routes (with authentication)
   app.use("/api/photos", photoRoutes);
 
+  // Duplicate detection routes (with authentication)
+  app.use("/api/photos/duplicates", duplicateRoutes);
+
   // Album routes (with authentication)
   app.use("/api/albums", albumRoutes);
 
   // Upload routes (with authentication)
   app.use("/api/upload", uploadRoutes);
+
+  // ML analysis routes (with authentication)
+  app.use("/api/ml", mlRoutes);
 
   // Example protected route
   app.get("/api/protected", authenticateToken, (req, res) => {

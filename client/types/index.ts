@@ -39,6 +39,21 @@ export interface Photo {
   tags?: string[];
   notes?: string;
   isPrivate?: boolean;
+  // ML/AI fields
+  mlLabels?: string[];
+  mlProcessedAt?: string;
+  mlVersion?: string;
+  ocrText?: string;
+  ocrLanguage?: string;
+  perceptualHash?: string;
+  duplicateGroupId?: string;
+  isVideo?: boolean;
+  videoDuration?: number;
+  videoThumbnailUri?: string;
+  backupStatus?: string;
+  backupCompletedAt?: string;
+  originalSize?: number;
+  compressedSize?: number;
 }
 
 export interface Album {

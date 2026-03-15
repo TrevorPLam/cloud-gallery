@@ -14,6 +14,8 @@ import { db } from "./db";
 import { photos, insertPhotoSchema } from "../shared/schema";
 import { eq, and, desc, isNull, isNotNull } from "drizzle-orm";
 import { authenticateToken } from "./auth";
+import { processMLAnalysis, updatePhotoWithMLResults, AnalysisType } from "./ml-routes";
+import { updateDuplicateGroups } from "./services/duplicate-detection";
 
 const router = Router();
 
@@ -131,6 +133,12 @@ router.post("/", async (req: Request, res: Response) => {
       .insert(photos)
       .values(validatedData)
       .returning();
+
+    // Trigger ML analysis asynchronously
+    // Don't wait for it to complete to avoid blocking the upload response
+    triggerMLAnalysis(newPhoto.id, userId).catch((error: Error) => {
+      console.error("Failed to trigger ML analysis for photo:", newPhoto.id, error);
+    });
 
     res.status(201).json({ photo: newPhoto });
   } catch (error) {
@@ -367,5 +375,39 @@ router.delete("/:id", async (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to delete photo" });
   }
 });
+
+// ═══════════════════════════════════════════════════════════
+// HELPER FUNCTIONS
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Trigger ML analysis for a newly uploaded photo
+ * This function calls the ML analysis functions directly
+ */
+async function triggerMLAnalysis(photoId: string, userId: string): Promise<void> {
+  try {
+    // Create ML analysis request
+    const analysisRequest = {
+      photoId,
+      userId,
+      analysisTypes: [AnalysisType.OBJECT_DETECTION, AnalysisType.OCR, AnalysisType.PERCEPTUAL_HASH],
+    };
+
+    // Process ML analysis
+    const result = await processMLAnalysis(analysisRequest);
+    
+    // Update photo with ML results
+    await updatePhotoWithMLResults(photoId, result);
+
+    // Update duplicate groups after ML analysis (including perceptual hash)
+    await updateDuplicateGroups(userId, photoId);
+
+    console.log('ML analysis and duplicate detection completed successfully for photo:', photoId);
+  } catch (error) {
+    console.error('Error in ML analysis:', error);
+    // Don't throw error to avoid failing the entire upload process
+    // ML analysis can be retried later
+  }
+}
 
 export default router;

@@ -14,6 +14,7 @@ import MainTabNavigator from "@/navigation/MainTabNavigator";
 import PhotoDetailScreen from "@/screens/PhotoDetailScreen";
 import AlbumDetailScreen from "@/screens/AlbumDetailScreen";
 import EditPhotoScreen from "@/screens/EditPhotoScreen";
+import DuplicatesScreen from "@/screens/DuplicatesScreen";
 import TrashScreen from "@/screens/TrashScreen";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
 
@@ -22,6 +23,7 @@ export type RootStackParamList = {
   PhotoDetail: { photoId: string; initialIndex: number };
   AlbumDetail: { albumId: string; albumTitle: string };
   EditPhoto: { photoId: string; initialUri: string };
+  Duplicates: undefined;
   Trash: undefined;
 };
 
@@ -60,6 +62,13 @@ export default function RootStackNavigator() {
         options={{
           headerShown: false,
           presentation: "modal", // Full screen modal for editing
+        }}
+      />
+      <Stack.Screen
+        name="Duplicates"
+        component={DuplicatesScreen}
+        options={{
+          headerTitle: "Duplicates",
         }}
       />
       <Stack.Screen

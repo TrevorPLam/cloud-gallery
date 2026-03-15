@@ -32,6 +32,8 @@ interface PhotoMetadataEditorProps {
     onSave: (tags: string[], notes: string) => void;
     initialTags: string[];
     initialNotes: string | null;
+    initialMlLabels?: string[];
+    onMlLabelsUpdate?: (mlLabels: string[]) => void;
 }
 
 export function PhotoMetadataEditor({
@@ -40,18 +42,22 @@ export function PhotoMetadataEditor({
     onSave,
     initialTags,
     initialNotes,
+    initialMlLabels,
+    onMlLabelsUpdate,
 }: PhotoMetadataEditorProps) {
     const { theme, isDark } = useTheme();
     const [tags, setTags] = useState(initialTags.join(", "));
     const [notes, setNotes] = useState(initialNotes || "");
+    const [mlLabels, setMlLabels] = useState(initialMlLabels?.join(", ") || "");
 
     // AI-NOTE: Reset state when modal opens to ensure fresh data
     useEffect(() => {
         if (visible) {
             setTags(initialTags.join(", "));
             setNotes(initialNotes || "");
+            setMlLabels(initialMlLabels?.join(", ") || "");
         }
-    }, [visible, initialTags, initialNotes]);
+    }, [visible, initialTags, initialNotes, initialMlLabels]);
 
     const handleSave = () => {
         // Split tags by comma, trim whitespace, remove empty strings
@@ -59,7 +65,20 @@ export function PhotoMetadataEditor({
             .split(",")
             .map((t) => t.trim())
             .filter((t) => t.length > 0);
+        
+        // Split ML labels by comma, trim whitespace, remove empty strings
+        const mlLabelArray = mlLabels
+            .split(",")
+            .map((t) => t.trim())
+            .filter((t) => t.length > 0);
+        
         onSave(tagArray, notes);
+        
+        // Call ML labels update handler if provided
+        if (onMlLabelsUpdate) {
+            onMlLabelsUpdate(mlLabelArray);
+        }
+        
         onClose();
     };
 
@@ -123,6 +142,30 @@ export function PhotoMetadataEditor({
                                     value={tags}
                                     onChangeText={setTags}
                                     placeholder="Add tags..."
+                                    placeholderTextColor={theme.textSecondary}
+                                />
+                            </View>
+
+                            {/* ML Labels Input */}
+                            <View style={styles.inputGroup}>
+                                <ThemedText type="body" style={styles.label}>
+                                    AI Detected Labels
+                                </ThemedText>
+                                <ThemedText type="small" style={{ color: theme.textSecondary, marginBottom: Spacing.sm }}>
+                                    Objects and scenes detected by AI (comma separated)
+                                </ThemedText>
+                                <TextInput
+                                    style={[
+                                        styles.input,
+                                        {
+                                            backgroundColor: theme.backgroundDefault,
+                                            color: theme.text,
+                                            borderColor: theme.border,
+                                        },
+                                    ]}
+                                    value={mlLabels}
+                                    onChangeText={setMlLabels}
+                                    placeholder="AI labels will appear here..."
                                     placeholderTextColor={theme.textSecondary}
                                 />
                             </View>

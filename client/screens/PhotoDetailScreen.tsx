@@ -138,7 +138,34 @@ export default function PhotoDetailScreen() {
     },
   });
 
-  // Mutation for notes update
+  // Mutation for ML labels update
+  const updateMlLabelsMutation = useMutation({
+    mutationFn: async ({ photoId, mlLabels }: { photoId: string; mlLabels: string[] }) => {
+      const res = await apiRequest('PUT', `/api/photos/${photoId}`, { mlLabels });
+      return res.json();
+    },
+    onMutate: async ({ photoId, mlLabels }) => {
+      await queryClient.cancelQueries({ queryKey: ['photos'] });
+      const previousPhotos = queryClient.getQueryData(['photos']);
+
+      queryClient.setQueryData(['photos'], (old: Photo[] = []) =>
+        old.map(photo =>
+          photo.id === photoId ? { ...photo, mlLabels, modifiedAt: Date.now() } : photo
+        )
+      );
+
+      return { previousPhotos };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousPhotos) {
+        queryClient.setQueryData(['photos'], context.previousPhotos);
+      }
+      console.error('Failed to update ML labels:', err);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['photos'] });
+    },
+  });
   const updateNotesMutation = useMutation({
     mutationFn: async ({ photoId, notes }: { photoId: string; notes: string }) => {
       const res = await apiRequest('PUT', `/api/photos/${photoId}`, { notes });
@@ -412,13 +439,18 @@ export default function PhotoDetailScreen() {
     }
   };
 
-  const handleValidation = useCallback((tags: string[], notes: string) => {
+  const handleValidation = useCallback((tags: string[], notes: string, mlLabels?: string[]) => {
     if (!currentPhoto) return;
     // Mutate directly - debouncing handled in component if needed, or we just save immediately on "Save" press
     // The Editor component calls this on "Save" click, so we want immediate update
     updateTagsMutation.mutate({ photoId: currentPhoto.id, tags });
     updateNotesMutation.mutate({ photoId: currentPhoto.id, notes });
-  }, [currentPhoto, updateTagsMutation, updateNotesMutation]);
+    
+    // Update ML labels if provided
+    if (mlLabels) {
+      updateMlLabelsMutation.mutate({ photoId: currentPhoto.id, mlLabels });
+    }
+  }, [currentPhoto, updateTagsMutation, updateNotesMutation, updateMlLabelsMutation]);
 
   const toggleControls = () => {
     setShowControls(!showControls);
@@ -487,6 +519,24 @@ export default function PhotoDetailScreen() {
             </View>
             <View style={styles.headerButton} />
           </View>
+
+          {/* ML Labels Section */}
+          {currentPhoto?.mlLabels && currentPhoto.mlLabels.length > 0 && (
+            <View style={styles.mlLabelsContainer}>
+              <ThemedText type="small" style={styles.mlLabelsTitle}>
+                Detected Objects & Scenes
+              </ThemedText>
+              <View style={styles.mlLabelsList}>
+                {currentPhoto.mlLabels.map((label, index) => (
+                  <View key={index} style={styles.mlLabelItem}>
+                    <ThemedText type="small" style={styles.mlLabelText}>
+                      {label}
+                    </ThemedText>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
 
           <View
             style={[
@@ -562,6 +612,10 @@ export default function PhotoDetailScreen() {
           onSave={handleValidation}
           initialTags={currentPhoto.tags || []}
           initialNotes={currentPhoto.notes || ""}
+          initialMlLabels={currentPhoto.mlLabels || []}
+          onMlLabelsUpdate={(mlLabels) => {
+            updateMlLabelsMutation.mutate({ photoId: currentPhoto.id, mlLabels });
+          }}
         />
       )}
     </View>
@@ -636,5 +690,37 @@ const styles = StyleSheet.create({
   counterText: {
     color: "#FFFFFF",
     opacity: 0.7,
+  },
+  // ML Labels styles
+  mlLabelsContainer: {
+    position: "absolute",
+    top: 120,
+    left: Spacing.lg,
+    right: Spacing.lg,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    borderRadius: 8,
+    padding: Spacing.md,
+  },
+  mlLabelsTitle: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+    marginBottom: Spacing.sm,
+    fontSize: 12,
+  },
+  mlLabelsList: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
+  },
+  mlLabelItem: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  mlLabelText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "500",
   },
 });
