@@ -20,6 +20,7 @@ import searchRoutes from "./search-routes";
 import smartAlbumRoutes from "./smart-album-routes";
 import memoryRoutes from "./memory-routes";
 import faceRoutes from "./face-routes";
+import sharingRoutes from "./sharing-routes";
 import { authenticateToken, generalRateLimit } from "./auth";
 
 // AI-NOTE: Currently empty route registration; designed for expansion with /api prefixed routes
@@ -56,6 +57,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Face recognition routes (with authentication)
   app.use("/api/faces", faceRoutes);
+
+  // Sharing routes (with authentication)
+  app.use("/api/sharing", sharingRoutes);
 
   // Example protected route
   app.get("/api/protected", authenticateToken, (req, res) => {
