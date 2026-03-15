@@ -248,6 +248,31 @@ router.post("/restore", async (req: Request, res: Response) => {
 });
 
 /**
+ * DELETE /api/backup/schedule
+ * Cancel scheduled automatic backups
+ */
+router.delete("/schedule", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+
+    await backupService.cancelScheduledBackup(userId);
+
+    res.json({
+      success: true,
+      message: "Automatic backup schedule cancelled",
+    });
+  } catch (error) {
+    console.error("Cancel schedule error:", error);
+
+    res.status(500).json({
+      success: false,
+      error: "Failed to cancel backup schedule",
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+/**
  * DELETE /api/backup/:backupId
  * Delete a backup
  */
@@ -357,31 +382,6 @@ router.post("/schedule", async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       error: "Failed to schedule backup",
-      message: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-});
-
-/**
- * DELETE /api/backup/schedule
- * Cancel scheduled automatic backups
- */
-router.delete("/schedule", async (req: Request, res: Response) => {
-  try {
-    const userId = req.user!.id;
-
-    await backupService.cancelScheduledBackup(userId);
-
-    res.json({
-      success: true,
-      message: "Automatic backup schedule cancelled",
-    });
-  } catch (error) {
-    console.error("Cancel schedule error:", error);
-
-    res.status(500).json({
-      success: false,
-      error: "Failed to cancel backup schedule",
       message: error instanceof Error ? error.message : "Unknown error",
     });
   }

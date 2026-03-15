@@ -62,9 +62,10 @@ describe("SyncService", () => {
     syncService = new SyncService();
   });
 
-  const reserved = new Set(["valueOf", "constructor", "toString", "then", "prototype", "hasOwnProperty", "toLocaleString"]);
-  const safeDeviceId = fc.string({ minLength: 2 }).filter((s) => !reserved.has(s));
-  const safeDict = fc.dictionary(fc.string({ minLength: 2 }).filter((s) => !reserved.has(s)), fc.integer({ min: 0 }));
+  // Filter out all Object prototype properties to avoid conflicts
+  const objectPrototypeProps = Object.getOwnPropertyNames(Object.prototype);
+  const safeDeviceId = fc.string({ minLength: 2 }).filter((s) => !objectPrototypeProps.includes(s));
+  const safeDict = fc.dictionary(fc.string({ minLength: 2 }).filter((s) => !objectPrototypeProps.includes(s)), fc.integer({ min: 0 }));
 
   describe("Version Vector Operations", () => {
     it("Property 1: Version vector monotonicity", () => {

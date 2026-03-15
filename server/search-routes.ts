@@ -31,6 +31,11 @@ const suggestionsRequestSchema = z.object({
   limit: z.number().min(1).max(20).default(5),
 });
 
+const filtersRequestSchema = z.object({
+  limit: z.number().min(1).max(100).optional(),
+  offset: z.number().min(0).optional(),
+});
+
 // Initialize services
 const searchService = new SearchService(db);
 const searchIndexService = new SearchIndexService(db);
@@ -133,6 +138,10 @@ router.get("/suggestions", async (req: Request, res: Response) => {
   }
 });
 
+const popularRequestSchema = z.object({
+  limit: z.coerce.number().min(1).max(20).default(10),
+});
+
 /**
  * GET /api/search/popular
  * Get popular search terms
@@ -140,10 +149,7 @@ router.get("/suggestions", async (req: Request, res: Response) => {
 router.get("/popular", async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
-    const limitQuery = req.query.limit
-      ? parseInt(req.query.limit as string)
-      : 10;
-    const limit = Math.min(Math.max(limitQuery, 1), 20);
+    const { limit } = popularRequestSchema.parse(req.query);
 
     const [popularSearches, popularTerms] = await Promise.all([
       searchService.getPopularSearches(userId, limit),
@@ -152,10 +158,18 @@ router.get("/popular", async (req: Request, res: Response) => {
 
     res.json({
       popularSearches,
-      popularTerms: popularTerms.map((term) => term.search_term),
+      popularTerms: popularTerms?.map((term) => term.term || term.search_term),
     });
   } catch (error) {
     console.error("Popular searches error:", error);
+
+    // Handle Zod validation errors
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        error: "Invalid request parameters",
+        details: error.errors,
+      });
+    }
 
     res.status(500).json({
       error: "Internal server error",
@@ -247,6 +261,8 @@ router.post("/fulltext", async (req: Request, res: Response) => {
  */
 router.get("/filters", async (req: Request, res: Response) => {
   try {
+    // Validate query parameters
+    const { limit, offset } = filtersRequestSchema.parse(req.query);
     const userId = (req as any).user.id;
 
     // Get user's unique ML labels, tags, and locations
@@ -293,6 +309,14 @@ router.get("/filters", async (req: Request, res: Response) => {
     res.json(filters);
   } catch (error) {
     console.error("Filters error:", error);
+
+    // Handle Zod validation errors
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        error: "Invalid request parameters",
+        details: error.errors,
+      });
+    }
 
     res.status(500).json({
       error: "Internal server error",

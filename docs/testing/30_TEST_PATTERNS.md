@@ -604,21 +604,70 @@ it("test 2", () => {
 **Golden Rules:**
 1. **Test behavior**, not implementation
 2. **Mock external dependencies**, use real code
-3. **Test all branches**, including errors
-4. **Keep tests independent** and parallel-safe
-5. **Use descriptive names** for tests
-6. **Prefer simple assertions** over complex logic
-7. **Cover edge cases** and boundaries
-8. **Clean up mocks** between tests
+3. **Use sociable testing patterns** for internal collaborators
+4. **Test all branches**, including errors
+5. **Keep tests independent** and parallel-safe
+6. **Use descriptive names** for tests
+7. **Prefer simple assertions** over complex logic
+8. **Cover edge cases** and boundaries
+9. **Clean up mocks** between tests
+
+## Sociable Testing Principles
+
+Cloud Gallery follows sociable testing patterns to reduce mock maintenance and improve test reliability.
+
+### Key Principles
+- **Mock only boundaries**: External APIs, databases, filesystem, time
+- **Use real implementations**: Internal services, utilities, business logic
+- **Focus on outcomes**: Test what the code does, not how it does it
+- **Behavior-focused assertions**: Verify results, not implementation details
+
+### When to Mock
+✅ **Always Mock**:
+- External APIs (fetch, HTTP clients)
+- Database servers (use in-memory for tests)
+- File system operations
+- Time/date functions
+- Platform APIs (React Native, native modules)
+- Third-party SDKs (AWS, Sentry)
+
+❌ **Never Mock**:
+- Internal business logic
+- Security utilities (hashing, validation)
+- Domain objects and schemas
+- Internal utilities and helpers
+- State management
+
+### Example Pattern
+```typescript
+// ✅ Sociable approach - real database, external mocks only
+it("should create user successfully", async () => {
+  const db = await setupTestDatabase();
+  const userData = createTestUser();
+  
+  const result = await userService.create(db, userData);
+  
+  expect(result.email).toBe(userData.email);
+  expect(result.passwordHash).toMatch(/^\$argon2id/); // Real behavior
+});
+
+// ❌ Solitary approach - over-mocked
+vi.mock("../db", () => ({ db: mockDb }));
+vi.mock("../security", () => ({ hashPassword: vi.fn() }));
+```
+
+For detailed examples and guidelines, see [Sociable Testing Examples](./31_SOCIABLE_TESTING_EXAMPLES.md).
 
 ## Resources
 
 - **Vitest Docs**: https://vitest.dev/
 - **Testing Library**: https://testing-library.com/
 - **Jest Mock Functions**: https://jestjs.io/docs/mock-functions
+- **Sociable Testing Guide**: [Sociable Testing Examples](./31_SOCIABLE_TESTING_EXAMPLES.md)
 
 ## Next Steps
 
 - Review [coverage requirements](./20_COVERAGE.md)
 - Check [exceptions list](./99_EXCEPTIONS.md)
-- Study existing tests for examples
+- Study [sociable testing examples](./31_SOCIABLE_TESTING_EXAMPLES.md)
+- Review existing tests for patterns
