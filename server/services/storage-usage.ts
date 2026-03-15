@@ -220,7 +220,7 @@ export class StorageUsageService {
     const breakdown = await this.getStorageBreakdown(userId);
     const usagePercentage =
       (breakdown.totalBytesUsed / this.config.storageLimit) * 100;
-    return usagePercentage >= this.config.autoCleanupThreshold;
+    return usagePercentage >= this.config.autoCleanupThreshold * 100;
   }
 
   /**

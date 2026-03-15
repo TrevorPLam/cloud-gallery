@@ -95,7 +95,11 @@
     "wink-nlp": "^2.4.0",
     "ws": "^8.18.0",
     "zod": "^3.24.2",
-    "zod-validation-error": "^3.4.0"
+    "zod-validation-error": "^3.4.0",
+    "@aws-sdk/client-s3": "^3.600.0",
+    "@aws-sdk/lib-storage": "^3.600.0",
+    "@aws-sdk/s3-request-presigner": "^3.600.0",
+    "date-fns": "^4.1.0"
   },
   "devDependencies": {
     "@testing-library/react": "^16.1.0",

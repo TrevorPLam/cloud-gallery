@@ -9,18 +9,39 @@
 // AI-META-END
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { fc } from "fast-check";
+import fc from "fast-check";
 import { SmartAlbumsService, type SmartAlbumCriteria } from "./smart-albums";
-import { db } from "../../server/db";
+import { db } from "../db";
 import { photos, people, faces, smartAlbums } from "../../shared/schema";
 
 // Mock the database
-vi.mock("../../server/db", () => ({
+vi.mock("../db", () => ({
   db: {
-    select: vi.fn(),
-    update: vi.fn(),
-    insert: vi.fn(),
-    delete: vi.fn(),
+    select: vi.fn().mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockReturnValue({
+            orderBy: vi.fn().mockResolvedValue([]),
+          }),
+          orderBy: vi.fn().mockResolvedValue([]),
+        }),
+      }),
+    }),
+    update: vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([]),
+        }),
+      }),
+    }),
+    insert: vi.fn().mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([]),
+      }),
+    }),
+    delete: vi.fn().mockReturnValue({
+      where: vi.fn().mockResolvedValue([]),
+    }),
   },
 }));
 
@@ -54,8 +75,10 @@ describe("SmartAlbumsService Property Tests", () => {
           }));
 
           vi.mocked(db.select).mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              orderBy: vi.fn().mockResolvedValue(mockPhotos),
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                orderBy: vi.fn().mockResolvedValue(mockPhotos),
+              }),
             }),
           } as any);
 
@@ -76,7 +99,7 @@ describe("SmartAlbumsService Property Tests", () => {
         },
       );
 
-      await property(fc.sample(100));
+      await fc.assert(property, { numRuns: 100 });
     });
 
     it("should handle empty photo sets gracefully", async () => {
@@ -91,8 +114,10 @@ describe("SmartAlbumsService Property Tests", () => {
         async (criteria) => {
           // Mock empty result
           vi.mocked(db.select).mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              orderBy: vi.fn().mockResolvedValue([]),
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                orderBy: vi.fn().mockResolvedValue([]),
+              }),
             }),
           } as any);
 
@@ -104,7 +129,7 @@ describe("SmartAlbumsService Property Tests", () => {
         },
       );
 
-      await property(fc.sample(50));
+      await fc.assert(property, { numRuns: 50 });
     });
   });
 
@@ -125,8 +150,10 @@ describe("SmartAlbumsService Property Tests", () => {
 
           // Mock existing album check to return null (new album)
           vi.mocked(db.select).mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue([]),
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([]),
+              }),
             }),
           } as any);
 
@@ -166,7 +193,7 @@ describe("SmartAlbumsService Property Tests", () => {
         },
       );
 
-      await property(fc.sample(50));
+      await fc.assert(property, { numRuns: 100 });
     });
 
     it("should handle concurrent updates safely", async () => {
@@ -191,8 +218,10 @@ describe("SmartAlbumsService Property Tests", () => {
           }));
 
           vi.mocked(db.select).mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue(mockAlbums),
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue(mockAlbums),
+              }),
             }),
           } as any);
 
@@ -224,7 +253,7 @@ describe("SmartAlbumsService Property Tests", () => {
         },
       );
 
-      await property(fc.sample(30));
+      await fc.assert(property, { numRuns: 30 });
     });
   });
 
@@ -288,7 +317,7 @@ describe("SmartAlbumsService Property Tests", () => {
         },
       );
 
-      await property(fc.sample(50));
+      await fc.assert(property, { numRuns: 50 });
     });
   });
 
@@ -331,8 +360,10 @@ describe("SmartAlbumsService Property Tests", () => {
           }));
 
           vi.mocked(db.select).mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              orderBy: vi.fn().mockResolvedValue(mockPhotos),
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                orderBy: vi.fn().mockResolvedValue(mockPhotos),
+              }),
             }),
           } as any);
 
@@ -370,7 +401,7 @@ describe("SmartAlbumsService Property Tests", () => {
         },
       );
 
-      await property(fc.sample(30));
+      await fc.assert(property, { numRuns: 30 });
     });
   });
 
@@ -425,7 +456,7 @@ describe("SmartAlbumsService Property Tests", () => {
         },
       );
 
-      await property(fc.sample(20));
+      await fc.assert(property, { numRuns: 20 });
     });
   });
 });
@@ -440,8 +471,10 @@ describe("SmartAlbumsService Unit Tests", () => {
 
   it("should handle empty photo libraries gracefully", async () => {
     vi.mocked(db.select).mockReturnValue({
-      where: vi.fn().mockReturnValue({
-        limit: vi.fn().mockResolvedValue([]),
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([]),
+        }),
       }),
     } as any);
 
@@ -479,10 +512,12 @@ describe("SmartAlbumsService Unit Tests", () => {
     ];
 
     vi.mocked(db.select).mockReturnValue({
-      where: vi.fn().mockReturnValue({
-        orderBy: vi
-          .fn()
-          .mockResolvedValue(mockPhotos.filter((p) => p.userId === "user-1")),
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          orderBy: vi
+            .fn()
+            .mockResolvedValue(mockPhotos.filter((p) => p.userId === "user-1")),
+        }),
       }),
     } as any);
 

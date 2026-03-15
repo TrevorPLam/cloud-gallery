@@ -1,0 +1,608 @@
+// AI-META-BEGIN
+// AI-META: Property tests for sync service algorithms, version vectors, and conflict resolution
+// OWNERSHIP: server/services
+// ENTRYPOINTS: run by test runner
+// DEPENDENCIES: vitest, fast-check, drizzle-orm, ../sync
+// DANGER: Test failures = undetected sync bugs; property test failures = algorithmic errors
+// CHANGE-SAFETY: Maintain property test coverage for all sync algorithms and conflict resolution strategies
+// TESTS: Property tests validate sync consistency, conflict resolution correctness, and version vector operations
+// AI-META-END
+
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { fc } from "fast-check";
+import { SyncService, ConflictStrategy, ConflictType, VersionVector } from "./sync";
+import { db } from "../db";
+import { users, photos, userDevices } from "../../shared/schema";
+import { eq } from "drizzle-orm";
+
+// Mock database
+vi.mock("../db", () => ({
+  db: {
+    select: vi.fn(),
+    insert: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+  },
+}));
+
+// Mock BullMQ queues
+vi.mock("bullmq", () => ({
+  Queue: vi.fn().mockImplementation(() => ({
+    add: vi.fn(),
+  })),
+  Worker: vi.fn(),
+}));
+
+describe("SyncService", () => {
+  let syncService: SyncService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    syncService = new SyncService();
+  });
+
+  describe("Version Vector Operations", () => {
+    it("Property 1: Version vector monotonicity", () => {
+      fc.assert(
+        fc.property(
+          fc.string(),
+          fc.record(fc.string(), fc.integer({ min: 0 })),
+          (deviceId: string, baseVector: VersionVector) => {
+            const vector1 = syncService.generateVersionVector(deviceId, baseVector);
+            const vector2 = syncService.generateVersionVector(deviceId, vector1);
+
+            // The device's counter should always increase
+            expect(vector2[deviceId]).toBeGreaterThan(vector1[deviceId]);
+            expect(vector1[deviceId]).toBeGreaterThan((baseVector[deviceId] || 0));
+
+            // Other device counters should remain unchanged
+            Object.keys(baseVector).forEach(key => {
+              if (key !== deviceId) {
+                expect(vector1[key]).toBe(baseVector[key]);
+                expect(vector2[key]).toBe(baseVector[key]);
+              }
+            });
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+
+    it("Property 2: Version vector comparison consistency", () => {
+      fc.assert(
+        fc.property(
+          fc.record(fc.string(), fc.integer({ min: 0 })),
+          fc.record(fc.string(), fc.integer({ min: 0 })),
+          (vector1: VersionVector, vector2: VersionVector) => {
+            const comparison = syncService.compareVersionVectors(vector1, vector2);
+            const reverseComparison = syncService.compareVersionVectors(vector2, vector1);
+
+            // If vector1 is newer than vector2, then vector2 should not be newer than vector1
+            if (comparison.vector1Newer) {
+              expect(reverseComparison.vector2Newer).toBe(true);
+              expect(reverseComparison.vector1Newer).toBe(false);
+            }
+
+            // If vector2 is newer than vector1, then vector1 should not be newer than vector2
+            if (comparison.vector2Newer) {
+              expect(reverseComparison.vector1Newer).toBe(true);
+              expect(reverseComparison.vector2Newer).toBe(false);
+            }
+
+            // If they are concurrent, the reverse comparison should also be concurrent
+            if (comparison.concurrent) {
+              expect(reverseComparison.concurrent).toBe(true);
+            }
+
+            // Both shouldn't be newer simultaneously
+            expect(comparison.vector1Newer && comparison.vector2Newer).toBe(false);
+            expect(reverseComparison.vector1Newer && reverseComparison.vector2Newer).toBe(false);
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+
+    it("Property 3: Version vector transitivity", () => {
+      fc.assert(
+        fc.property(
+          fc.string(),
+          fc.record(fc.string(), fc.integer({ min: 0 })),
+          (deviceId: string, baseVector: VersionVector) => {
+            const vector1 = syncService.generateVersionVector(deviceId, baseVector);
+            const vector2 = syncService.generateVersionVector(deviceId, vector1);
+            const vector3 = syncService.generateVersionVector(deviceId, vector2);
+
+            // If v3 > v2 and v2 > v1, then v3 > v1
+            const comp12 = syncService.compareVersionVectors(vector1, vector2);
+            const comp23 = syncService.compareVersionVectors(vector2, vector3);
+            const comp13 = syncService.compareVersionVectors(vector1, vector3);
+
+            if (comp12.vector2Newer && comp23.vector2Newer) {
+              expect(comp13.vector2Newer).toBe(true);
+            }
+
+            // Counters should be strictly increasing
+            expect(vector3[deviceId]).toBeGreaterThan(vector2[deviceId]);
+            expect(vector2[deviceId]).toBeGreaterThan(vector1[deviceId]);
+            expect(vector3[deviceId]).toBeGreaterThan(vector1[deviceId]);
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+  });
+
+  describe("Conflict Resolution", () => {
+    it("Property 1: Last Write Wins consistency", () => {
+      fc.assert(
+        fc.property(
+          fc.string(),
+          fc.record({
+            id: fc.string(),
+            modifiedAt: fc.date(),
+            data: fc.record({ value: fc.integer() }),
+          }),
+          fc.record({
+            id: fc.string(),
+            modifiedAt: fc.date(),
+            data: fc.record({ value: fc.integer() }),
+          }),
+          (deviceId: string, localData: any, remoteData: any) => {
+            // Ensure same photo ID for conflict
+            localData.id = remoteData.id;
+
+            const conflict = {
+              id: `conflict-${localData.id}`,
+              type: ConflictType.CONCURRENT_UPDATE,
+              deviceId,
+              photoId: localData.id,
+              localData,
+              remoteData,
+              strategy: ConflictStrategy.LAST_WRITE_WINS,
+              resolved: false,
+              timestamp: new Date(),
+            };
+
+            const resolved = syncService.resolveConflict(conflict, ConflictStrategy.LAST_WRITE_WINS);
+
+            // The resolved data should be either local or remote
+            const isLocal = resolved === localData;
+            const isRemote = resolved === remoteData;
+
+            expect(isLocal || isRemote).toBe(true);
+
+            // The chosen data should have the most recent timestamp
+            if (isLocal) {
+              expect(localData.modifiedAt.getTime()).toBeGreaterThanOrEqual(remoteData.modifiedAt.getTime());
+            } else {
+              expect(remoteData.modifiedAt.getTime()).toBeGreaterThanOrEqual(localData.modifiedAt.getTime());
+            }
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+
+    it("Property 2: Merge strategy preserves data", () => {
+      fc.assert(
+        fc.property(
+          fc.string(),
+          fc.record({
+            id: fc.string(),
+            modifiedAt: fc.date(),
+            isFavorite: fc.boolean(),
+            tags: fc.array(fc.string()),
+            notes: fc.option(fc.string()),
+          }),
+          fc.record({
+            id: fc.string(),
+            modifiedAt: fc.date(),
+            isFavorite: fc.boolean(),
+            tags: fc.array(fc.string()),
+            notes: fc.option(fc.string()),
+          }),
+          (deviceId: string, localData: any, remoteData: any) => {
+            // Ensure same photo ID for conflict
+            localData.id = remoteData.id;
+
+            const conflict = {
+              id: `conflict-${localData.id}`,
+              type: ConflictType.CONCURRENT_UPDATE,
+              deviceId,
+              photoId: localData.id,
+              localData,
+              remoteData,
+              strategy: ConflictStrategy.MERGE,
+              resolved: false,
+              timestamp: new Date(),
+            };
+
+            const merged = syncService.resolveConflict(conflict, ConflictStrategy.MERGE);
+
+            // Merged data should contain all unique tags from both sources
+            const allTags = [...new Set([...(localData.tags || []), ...(remoteData.tags || [])])];
+            expect(merged.tags).toEqual(expect.arrayContaining(allTags));
+
+            // Merged data should preserve the most recent values
+            if (localData.modifiedAt > remoteData.modifiedAt) {
+              expect(merged.isFavorite).toBe(localData.isFavorite);
+              expect(merged.notes).toBe(localData.notes || remoteData.notes);
+            } else {
+              expect(merged.isFavorite).toBe(remoteData.isFavorite);
+              expect(merged.notes).toBe(remoteData.notes || localData.notes);
+            }
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+
+    it("Property 3: Server wins always returns remote data", () => {
+      fc.assert(
+        fc.property(
+          fc.string(),
+          fc.record({
+            id: fc.string(),
+            data: fc.record({ value: fc.integer() }),
+          }),
+          fc.record({
+            id: fc.string(),
+            data: fc.record({ value: fc.integer() }),
+          }),
+          (deviceId: string, localData: any, remoteData: any) => {
+            // Ensure same photo ID for conflict
+            localData.id = remoteData.id;
+
+            const conflict = {
+              id: `conflict-${localData.id}`,
+              type: ConflictType.CONCURRENT_UPDATE,
+              deviceId,
+              photoId: localData.id,
+              localData,
+              remoteData,
+              strategy: ConflictStrategy.SERVER_WINS,
+              resolved: false,
+              timestamp: new Date(),
+            };
+
+            const resolved = syncService.resolveConflict(conflict, ConflictStrategy.SERVER_WINS);
+
+            // Server wins should always return remote data
+            expect(resolved).toBe(remoteData);
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+
+    it("Property 4: Client wins always returns local data", () => {
+      fc.assert(
+        fc.property(
+          fc.string(),
+          fc.record({
+            id: fc.string(),
+            data: fc.record({ value: fc.integer() }),
+          }),
+          fc.record({
+            id: fc.string(),
+            data: fc.record({ value: fc.integer() }),
+          }),
+          (deviceId: string, localData: any, remoteData: any) => {
+            // Ensure same photo ID for conflict
+            localData.id = remoteData.id;
+
+            const conflict = {
+              id: `conflict-${localData.id}`,
+              type: ConflictType.CONCURRENT_UPDATE,
+              deviceId,
+              photoId: localData.id,
+              localData,
+              remoteData,
+              strategy: ConflictStrategy.CLIENT_WINS,
+              resolved: false,
+              timestamp: new Date(),
+            };
+
+            const resolved = syncService.resolveConflict(conflict, ConflictStrategy.CLIENT_WINS);
+
+            // Client wins should always return local data
+            expect(resolved).toBe(localData);
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+  });
+
+  describe("Conflict Detection", () => {
+    it("Property 1: Conflict detection symmetry", () => {
+      fc.assert(
+        fc.property(
+          fc.string(),
+          fc.array(fc.record({
+            id: fc.string(),
+            modifiedAt: fc.date(),
+          })),
+          fc.array(fc.record({
+            id: fc.string(),
+            modifiedAt: fc.date(),
+          })),
+          async (deviceId: string, localData: any[], remoteData: any[]) => {
+            const conflicts1 = await syncService.detectConflicts("user1", deviceId, localData, remoteData);
+            const conflicts2 = await syncService.detectConflicts("user1", deviceId, remoteData, localData);
+
+            // Conflict detection should be symmetric (same conflicts detected)
+            expect(conflicts1.length).toBe(conflicts2.length);
+
+            // Each conflict should have the same photo ID
+            const conflictIds1 = conflicts1.map(c => c.photoId).sort();
+            const conflictIds2 = conflicts2.map(c => c.photoId).sort();
+            expect(conflictIds1).toEqual(conflictIds2);
+          }
+        ),
+        { numRuns: 50 }
+      );
+    });
+
+    it("Property 2: No false positives for identical data", () => {
+      fc.assert(
+        fc.property(
+          fc.string(),
+          fc.array(fc.record({
+            id: fc.string(),
+            modifiedAt: fc.date(),
+            data: fc.record({ value: fc.integer() }),
+          })),
+          async (deviceId: string, data: any[]) => {
+            // Use identical data for both local and remote
+            const conflicts = await syncService.detectConflicts("user1", deviceId, data, data);
+
+            // No conflicts should be detected for identical data
+            expect(conflicts.length).toBe(0);
+          }
+        ),
+        { numRuns: 50 }
+      );
+    });
+
+    it("Property 3: Conflict detection for concurrent updates", () => {
+      fc.assert(
+        fc.property(
+          fc.string(),
+          fc.record({
+            id: fc.string(),
+            value: fc.integer(),
+          }),
+          fc.integer({ min: 1, max: 5000 }), // Time difference in milliseconds
+          async (deviceId: string, baseData: any, timeDiff: number) => {
+            const baseTime = new Date();
+            
+            const localData = [{
+              ...baseData,
+              modifiedAt: new Date(baseTime.getTime() + timeDiff),
+            }];
+
+            const remoteData = [{
+              ...baseData,
+              modifiedAt: new Date(baseTime.getTime() - timeDiff),
+            }];
+
+            const conflicts = await syncService.detectConflicts("user1", deviceId, localData, remoteData);
+
+            // For small time differences, conflicts should be detected
+            if (timeDiff < 5000) {
+              expect(conflicts.length).toBeGreaterThan(0);
+              expect(conflicts[0].type).toBe(ConflictType.CONCURRENT_UPDATE);
+            }
+          }
+        ),
+        { numRuns: 50 }
+      );
+    });
+  });
+
+  describe("Delta Sync", () => {
+    it("Property 1: Delta sync completeness", () => {
+      fc.assert(
+        fc.property(
+          fc.string(),
+          fc.date(),
+          fc.array(fc.record({
+            id: fc.string(),
+            userId: fc.string(),
+            createdAt: fc.date(),
+            modifiedAt: fc.date(),
+            deletedAt: fc.option(fc.date()),
+          })),
+          async (deviceId: string, lastSyncAt: Date, allPhotos: any[]) => {
+            // Filter photos by user ID
+            const userId = "test-user";
+            const userPhotos = allPhotos.map(photo => ({ ...photo, userId }));
+
+            // Mock database responses
+            const mockSelect = vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([{
+                  deviceId,
+                  lastSyncAt,
+                }]),
+              }),
+            });
+
+            const mockPhotoSelect = vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                orderBy: vi.fn().mockResolvedValue(
+                  lastSyncAt 
+                    ? userPhotos.filter(p => p.modifiedAt > lastSyncAt)
+                    : userPhotos
+                ),
+              }),
+            });
+
+            vi.mocked(db.select).mockImplementation((table: any) => {
+              if (table === userDevices) {
+                return mockSelect as any;
+              }
+              return mockPhotoSelect as any;
+            });
+
+            vi.mocked(db.update).mockReturnValue({
+              set: vi.fn().mockReturnValue({
+                where: vi.fn().mockResolvedValue([]),
+              }),
+            } as any);
+
+            const result = await syncService.performDeltaSync(userId, deviceId);
+
+            // All photos should be categorized
+            const totalCategorized = result.added.length + result.updated.length + result.deleted.length;
+            const expectedCount = lastSyncAt 
+              ? userPhotos.filter(p => p.modifiedAt > lastSyncAt).length
+              : userPhotos.length;
+
+            expect(totalCategorized).toBe(expectedCount);
+
+            // Deleted photos should be in deleted array
+            const deletedInResult = result.deleted;
+            const deletedInSource = userPhotos.filter(p => p.deletedAt);
+            expect(deletedInResult.sort()).toEqual(deletedInSource.map(p => p.id).sort());
+
+            // Newly created photos should be in added array (if lastSyncAt exists)
+            if (lastSyncAt) {
+              const newlyCreated = userPhotos.filter(p => 
+                p.createdAt > lastSyncAt && !p.deletedAt
+              );
+              expect(result.added.length).toBeGreaterThanOrEqual(newlyCreated.length);
+            }
+          }
+        ),
+        { numRuns: 50 }
+      );
+    });
+
+    it("Property 2: Delta sync idempotence", () => {
+      fc.assert(
+        fc.property(
+          fc.string(),
+          fc.date(),
+          fc.array(fc.record({
+            id: fc.string(),
+            userId: fc.string(),
+            createdAt: fc.date(),
+            modifiedAt: fc.date(),
+            deletedAt: fc.option(fc.date()),
+          })),
+          async (deviceId: string, lastSyncAt: Date, allPhotos: any[]) => {
+            const userId = "test-user";
+            const userPhotos = allPhotos.map(photo => ({ ...photo, userId }));
+
+            // Mock database responses
+            const mockSelect = vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([{
+                  deviceId,
+                  lastSyncAt,
+                }]),
+              }),
+            });
+
+            const mockPhotoSelect = vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                orderBy: vi.fn().mockResolvedValue(
+                  lastSyncAt 
+                    ? userPhotos.filter(p => p.modifiedAt > lastSyncAt)
+                    : userPhotos
+                ),
+              }),
+            });
+
+            vi.mocked(db.select).mockImplementation((table: any) => {
+              if (table === userDevices) {
+                return mockSelect as any;
+              }
+              return mockPhotoSelect as any;
+            });
+
+            vi.mocked(db.update).mockReturnValue({
+              set: vi.fn().mockReturnValue({
+                where: vi.fn().mockResolvedValue([]),
+              }),
+            } as any);
+
+            // Run delta sync twice with same inputs
+            const result1 = await syncService.performDeltaSync(userId, deviceId);
+            const result2 = await syncService.performDeltaSync(userId, deviceId);
+
+            // Results should be identical
+            expect(result1.added).toEqual(result2.added);
+            expect(result1.updated).toEqual(result2.updated);
+            expect(result1.deleted).toEqual(result2.deleted);
+            expect(result1.conflicts).toEqual(result2.conflicts);
+          }
+        ),
+        { numRuns: 50 }
+      );
+    });
+  });
+
+  describe("Device Management", () => {
+    it("Property 1: Device registration idempotence", () => {
+      fc.assert(
+        fc.property(
+          fc.string(),
+          fc.string(),
+          fc.string(),
+          fc.string(),
+          fc.option(fc.string()),
+          async (userId: string, deviceId: string, deviceType: string, deviceName: string, appVersion: string | undefined) => {
+            // Mock database for existing device
+            const mockSelect = vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([{
+                  id: "existing-id",
+                  userId,
+                  deviceId,
+                  deviceType: "old-type",
+                  deviceName: "old-name",
+                  isActive: true,
+                }]),
+              }),
+            });
+
+            const mockUpdate = vi.fn().mockReturnValue({
+              set: vi.fn().mockReturnValue({
+                where: vi.fn().mockReturnValue({
+                  returning: vi.fn().mockResolvedValue([{
+                    id: "existing-id",
+                    userId,
+                    deviceId,
+                    deviceType,
+                    deviceName,
+                    isActive: true,
+                    appVersion,
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                  }]),
+                }),
+              }),
+            });
+
+            vi.mocked(db.select).mockReturnValue(mockSelect as any);
+            vi.mocked(db.update).mockReturnValue(mockUpdate as any);
+
+            // Register device twice
+            const result1 = await syncService.registerDevice(userId, deviceId, deviceType, deviceName, appVersion);
+            const result2 = await syncService.registerDevice(userId, deviceId, deviceType, deviceName, appVersion);
+
+            // Both should return the same device ID
+            expect(result1.id).toBe(result2.id);
+            expect(result1.deviceId).toBe(result2.deviceId);
+            expect(result1.userId).toBe(result2.userId);
+          }
+        ),
+        { numRuns: 50 }
+      );
+    });
+  });
+});

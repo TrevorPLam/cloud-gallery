@@ -8,7 +8,8 @@
 // TESTS: server/services/smart-albums.test.ts (property tests)
 // AI-META-END
 
-import { db, eq, and, desc, count, sql, gt, isNull, or } from "drizzle-orm";
+import { db } from "../db";
+import { eq, and, desc, count, sql, gt, isNull, or } from "drizzle-orm";
 import {
   photos,
   people,
