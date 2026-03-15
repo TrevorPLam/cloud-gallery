@@ -16,6 +16,7 @@ import { eq, and, desc, isNull, isNotNull } from "drizzle-orm";
 import { authenticateToken } from "./auth";
 import { processMLAnalysis, updatePhotoWithMLResults, AnalysisType } from "./ml-routes";
 import { updateDuplicateGroups } from "./services/duplicate-detection";
+import { faceRecognitionService } from "./services/face-recognition";
 
 const router = Router();
 
@@ -402,11 +403,42 @@ async function triggerMLAnalysis(photoId: string, userId: string): Promise<void>
     // Update duplicate groups after ML analysis (including perceptual hash)
     await updateDuplicateGroups(userId, photoId);
 
+    // Trigger face detection asynchronously (don't block upload)
+    triggerFaceDetection(photoId, userId).catch((error: Error) => {
+      console.error('Failed to trigger face detection for photo:', photoId, error);
+    });
+
     console.log('ML analysis and duplicate detection completed successfully for photo:', photoId);
   } catch (error) {
     console.error('Error in ML analysis:', error);
     // Don't throw error to avoid failing the entire upload process
     // ML analysis can be retried later
+  }
+}
+
+/**
+ * Trigger face detection for a photo
+ * This runs asynchronously after photo upload and ML analysis
+ */
+async function triggerFaceDetection(photoId: string, userId: string): Promise<void> {
+  try {
+    // In a real implementation, you would:
+    // 1. Fetch the image file from storage
+    // 2. Convert to buffer
+    // 3. Run face detection
+    // 4. Store detected faces
+    
+    // For now, just call the face detection API to trigger the process
+    // This would be implemented with actual model integration
+    console.log('Face detection triggered for photo:', photoId);
+    
+    // Placeholder for actual face detection implementation
+    // const detectedFaces = await faceRecognitionService.detectFaces(photoId, imageBuffer);
+    // console.log(`Detected ${detectedFaces.length} faces in photo: ${photoId}`);
+    
+  } catch (error) {
+    console.error('Error in face detection:', error);
+    // Don't throw - face detection is non-critical background processing
   }
 }
 

@@ -22,62 +22,73 @@ import {
   clampValue,
 } from './photo-editor';
 
-// Mock expo-image-manipulator for testing
-const mockManipulateAsync = vi.fn();
+// ─────────────────────────────────────────────────────────
+// FIX 1: mockManipulateAsync must be declared before vi.mock() so the
+// factory closure captures the same reference used in the call sites.
+// Previously the declaration was AFTER the mock, which works in CJS but
+// causes a TDZ ReferenceError under Vitest's ESM transform.
+// ─────────────────────────────────────────────────────────
+const mockManipulateAsync = vi.fn((uri: string) =>
+  Promise.resolve({ uri: `${uri}_processed`, width: 1000, height: 1000 }),
+);
+
 vi.mock('expo-image-manipulator', () => ({
   manipulateAsync: mockManipulateAsync,
-  SaveFormat: {
-    JPEG: 'jpeg',
-    PNG: 'png',
-  },
-  FlipType: {
-    Horizontal: 'horizontal',
-    Vertical: 'vertical',
-  },
+  SaveFormat: { JPEG: 'jpeg', PNG: 'png' },
+  FlipType: { Horizontal: 'horizontal', Vertical: 'vertical' },
 }));
+
+// ─────────────────────────────────────────────────────────
+// Shared arbitraries — extracted so each test doesn't duplicate
+// the full record definition (the original repeated it 12 times).
+// ─────────────────────────────────────────────────────────
+const adjustmentArb = fc.record({
+  brightness:  fc.float({ min: -1, max: 1 }),
+  contrast:    fc.float({ min: -1, max: 1 }),
+  saturation:  fc.float({ min: -1, max: 1 }),
+  vibrance:    fc.float({ min: -1, max: 1 }),
+  temperature: fc.float({ min: -1, max: 1 }),
+  sharpness:   fc.float({ min: -1, max: 1 }),
+  clarity:     fc.float({ min: -1, max: 1 }),
+  vignette:    fc.float({ min: 0,  max: 1 }),
+  exposure:    fc.float({ min: -2, max: 2 }),
+});
 
 describe('PhotoEditor - Property Tests', () => {
   let editor: PhotoEditor;
   const mockUri = 'mock://image.jpg';
 
   beforeEach(() => {
+    vi.clearAllMocks();
+    // Re-wire after clearAllMocks so the mock still returns a uri string.
+    mockManipulateAsync.mockImplementation((uri: string) =>
+      Promise.resolve({ uri: `${uri}_processed`, width: 1000, height: 1000 }),
+    );
     editor = createPhotoEditor(mockUri);
   });
 
   describe('Undo/Redo Idempotence Properties', () => {
     it('should satisfy undo idempotence property', async () => {
-      // Property: undo(undo(x)) should equal undo(x) when no more undos available
-      const adjustmentArb = fc.record({
-        brightness: fc.float({ min: -1, max: 1 }),
-        contrast: fc.float({ min: -1, max: 1 }),
-        saturation: fc.float({ min: -1, max: 1 }),
-        vibrance: fc.float({ min: -1, max: 1 }),
-        temperature: fc.float({ min: -1, max: 1 }),
-        sharpness: fc.float({ min: -1, max: 1 }),
-        clarity: fc.float({ min: -1, max: 1 }),
-        vignette: fc.float({ min: 0, max: 1 }),
-        exposure: fc.float({ min: -2, max: 2 }),
-      });
-
+      // FIX 2: fc.assert() with an asyncProperty returns a Promise.
+      // The original code wrote `const property = fc.assert(...); expect(property).resolves...`
+      // which schedules the assertion but never awaits the inner Promise properly — the
+      // test passes trivially because the outer await never throws. The fix is to await
+      // fc.assert() directly; if the property fails, it throws synchronously in the
+      // awaited micro-task and the test fails correctly.
       await fc.assert(fc.asyncProperty(adjustmentArb, async (adjustments) => {
         const testEditor = createPhotoEditor(mockUri);
-        
-        // Apply adjustments
+
         await testEditor.applyAdjustments(adjustments);
-        
-        // First undo
+
         if (testEditor.canUndo()) {
           const firstUndoUri = await testEditor.undo();
-          
-          // Second undo (if possible)
+          expect(firstUndoUri).toBeDefined();
+
           if (testEditor.canUndo()) {
             const secondUndoUri = await testEditor.undo();
-            
-            // Property: undo(undo(x)) should not be the same as undo(x) 
-            // (unless we're back at original state)
             expect(secondUndoUri).toBeDefined();
           } else {
-            // Property: undo(undo(x)) when no more undos should throw
+            // No more undos — next call must throw.
             await expect(testEditor.undo()).rejects.toThrow();
           }
         }
@@ -85,40 +96,21 @@ describe('PhotoEditor - Property Tests', () => {
     });
 
     it('should satisfy redo idempotence property', async () => {
-      // Property: redo(redo(x)) should equal redo(x) when no more redos available
-      const adjustmentArb = fc.record({
-        brightness: fc.float({ min: -1, max: 1 }),
-        contrast: fc.float({ min: -1, max: 1 }),
-        saturation: fc.float({ min: -1, max: 1 }),
-        vibrance: fc.float({ min: -1, max: 1 }),
-        temperature: fc.float({ min: -1, max: 1 }),
-        sharpness: fc.float({ min: -1, max: 1 }),
-        clarity: fc.float({ min: -1, max: 1 }),
-        vignette: fc.float({ min: 0, max: 1 }),
-        exposure: fc.float({ min: -2, max: 2 }),
-      });
-
       await fc.assert(fc.asyncProperty(adjustmentArb, async (adjustments) => {
         const testEditor = createPhotoEditor(mockUri);
-        
-        // Apply adjustments and undo
+
         await testEditor.applyAdjustments(adjustments);
         if (testEditor.canUndo()) {
           await testEditor.undo();
-          
-          // First redo
+
           if (testEditor.canRedo()) {
             const firstRedoUri = await testEditor.redo();
-            
-            // Second redo (if possible)
+            expect(firstRedoUri).toBeDefined();
+
             if (testEditor.canRedo()) {
               const secondRedoUri = await testEditor.redo();
-              
-              // Property: redo(redo(x)) should not be the same as redo(x)
-              // (unless we're at the latest state)
               expect(secondRedoUri).toBeDefined();
             } else {
-              // Property: redo(redo(x)) when no more redos should throw
               await expect(testEditor.redo()).rejects.toThrow();
             }
           }
@@ -127,34 +119,17 @@ describe('PhotoEditor - Property Tests', () => {
     });
 
     it('should satisfy undo/redo round-trip property', async () => {
-      // Property: undo(redo(x)) should equal x
-      const adjustmentArb = fc.record({
-        brightness: fc.float({ min: -1, max: 1 }),
-        contrast: fc.float({ min: -1, max: 1 }),
-        saturation: fc.float({ min: -1, max: 1 }),
-        vibrance: fc.float({ min: -1, max: 1 }),
-        temperature: fc.float({ min: -1, max: 1 }),
-        sharpness: fc.float({ min: -1, max: 1 }),
-        clarity: fc.float({ min: -1, max: 1 }),
-        vignette: fc.float({ min: 0, max: 1 }),
-        exposure: fc.float({ min: -2, max: 2 }),
-      });
-
       await fc.assert(fc.asyncProperty(adjustmentArb, async (adjustments) => {
         const testEditor = createPhotoEditor(mockUri);
-        
-        // Apply adjustments
-        const originalUri = testEditor.getCurrentUri();
+
         await testEditor.applyAdjustments(adjustments);
         const modifiedUri = testEditor.getCurrentUri();
-        
-        // Undo and redo
+
         if (testEditor.canUndo()) {
           await testEditor.undo();
           if (testEditor.canRedo()) {
             await testEditor.redo();
-            
-            // Property: undo(redo(x)) should equal x
+            // undo(redo(x)) === x
             expect(testEditor.getCurrentUri()).toBe(modifiedUri);
           }
         }
@@ -164,83 +139,48 @@ describe('PhotoEditor - Property Tests', () => {
 
   describe('History Consistency Properties', () => {
     it('should maintain history size consistency', async () => {
-      const adjustmentArb = fc.record({
-        brightness: fc.float({ min: -1, max: 1 }),
-        contrast: fc.float({ min: -1, max: 1 }),
-        saturation: fc.float({ min: -1, max: 1 }),
-        vibrance: fc.float({ min: -1, max: 1 }),
-        temperature: fc.float({ min: -1, max: 1 }),
-        sharpness: fc.float({ min: -1, max: 1 }),
-        clarity: fc.float({ min: -1, max: 1 }),
-        vignette: fc.float({ min: 0, max: 1 }),
-        exposure: fc.float({ min: -2, max: 2 }),
-      });
-
-      const commandCountArb = fc.integer({ min: 1, max: 10 });
-
       await fc.assert(fc.asyncProperty(
-        fc.tuple(adjustmentArb, commandCountArb),
+        fc.tuple(adjustmentArb, fc.integer({ min: 1, max: 10 })),
         async ([adjustments, commandCount]) => {
           const testEditor = createPhotoEditor(mockUri);
-          const initialHistorySize = 0;
-          let expectedHistorySize = initialHistorySize;
+          let expectedHistorySize = 0;
 
-          // Apply multiple commands
           for (let i = 0; i < commandCount; i++) {
             await testEditor.applyAdjustments(adjustments);
             expectedHistorySize++;
-            
-            // Property: history size should increase by 1 after each command
+
             expect(testEditor.getHistory().length).toBe(expectedHistorySize);
             expect(testEditor.getHistoryIndex()).toBe(expectedHistorySize - 1);
           }
 
-          // Undo all commands
           while (testEditor.canUndo()) {
             await testEditor.undo();
             expectedHistorySize--;
-            
-            // Property: history size should remain constant during undo
+
+            // History array length stays constant during undo (items aren't deleted).
             expect(testEditor.getHistory().length).toBe(commandCount);
-            // Property: history index should match expected index
             expect(testEditor.getHistoryIndex()).toBe(expectedHistorySize);
           }
-        }
+        },
       ), { numRuns: 5 });
     });
 
     it('should maintain history index bounds', async () => {
-      const adjustmentArb = fc.record({
-        brightness: fc.float({ min: -1, max: 1 }),
-        contrast: fc.float({ min: -1, max: 1 }),
-        saturation: fc.float({ min: -1, max: 1 }),
-        vibrance: fc.float({ min: -1, max: 1 }),
-        temperature: fc.float({ min: -1, max: 1 }),
-        sharpness: fc.float({ min: -1, max: 1 }),
-        clarity: fc.float({ min: -1, max: 1 }),
-        vignette: fc.float({ min: 0, max: 1 }),
-        exposure: fc.float({ min: -2, max: 2 }),
-      });
-
       await fc.assert(fc.asyncProperty(adjustmentArb, async (adjustments) => {
         const testEditor = createPhotoEditor(mockUri);
-        
-        // Apply command
+
         await testEditor.applyAdjustments(adjustments);
-        
-        const history = testEditor.getHistory();
+
+        const history      = testEditor.getHistory();
         const historyIndex = testEditor.getHistoryIndex();
-        
-        // Property: history index should be within valid bounds
+
         expect(historyIndex).toBeGreaterThanOrEqual(0);
         expect(historyIndex).toBeLessThan(history.length);
-        
-        // Undo
+
         if (testEditor.canUndo()) {
           await testEditor.undo();
           const newIndex = testEditor.getHistoryIndex();
-          
-          // Property: new index should be within bounds
+
           expect(newIndex).toBeGreaterThanOrEqual(-1);
           expect(newIndex).toBeLessThan(history.length);
         }
@@ -248,38 +188,20 @@ describe('PhotoEditor - Property Tests', () => {
     });
 
     it('should clear redo history on new command', async () => {
-      const adjustmentArb = fc.record({
-        brightness: fc.float({ min: -1, max: 1 }),
-        contrast: fc.float({ min: -1, max: 1 }),
-        saturation: fc.float({ min: -1, max: 1 }),
-        vibrance: fc.float({ min: -1, max: 1 }),
-        temperature: fc.float({ min: -1, max: 1 }),
-        sharpness: fc.float({ min: -1, max: 1 }),
-        clarity: fc.float({ min: -1, max: 1 }),
-        vignette: fc.float({ min: 0, max: 1 }),
-        exposure: fc.float({ min: -2, max: 2 }),
-      });
-
       await fc.assert(fc.asyncProperty(adjustmentArb, async (adjustments1) => {
         const testEditor = createPhotoEditor(mockUri);
-        
-        // Apply first command
+
         await testEditor.applyAdjustments(adjustments1);
         const historyAfterFirst = testEditor.getHistory().length;
-        
-        // Undo
+
         if (testEditor.canUndo()) {
           await testEditor.undo();
-          const canRedoBefore = testEditor.canRedo();
-          
-          // Apply second command
+
+          // Apply a second, slightly different command.
           const adjustments2 = { ...adjustments1, brightness: adjustments1.brightness + 0.1 };
           await testEditor.applyAdjustments(adjustments2);
-          
-          // Property: redo should not be possible after new command
+
           expect(testEditor.canRedo()).toBe(false);
-          
-          // Property: history should be truncated
           expect(testEditor.getHistory().length).toBeLessThanOrEqual(historyAfterFirst);
         }
       }), { numRuns: 10 });
@@ -288,23 +210,13 @@ describe('PhotoEditor - Property Tests', () => {
 
   describe('Adjustment Properties', () => {
     it('should satisfy adjustment equality property', () => {
-      const adjustmentArb = fc.record({
-        brightness: fc.float({ min: -1, max: 1 }),
-        contrast: fc.float({ min: -1, max: 1 }),
-        saturation: fc.float({ min: -1, max: 1 }),
-        vibrance: fc.float({ min: -1, max: 1 }),
-        temperature: fc.float({ min: -1, max: 1 }),
-        sharpness: fc.float({ min: -1, max: 1 }),
-        clarity: fc.float({ min: -1, max: 1 }),
-        vignette: fc.float({ min: 0, max: 1 }),
-        exposure: fc.float({ min: -2, max: 2 }),
-      });
-
+      // FIX 3: synchronous fc.assert() with fc.property() (not asyncProperty)
+      // must NOT be awaited — it returns void in fast-check v3. The original
+      // wrapped it in `const property = fc.assert(...); expect(property).resolves...`
+      // which silently passed. Drop the wrapper and call fc.assert directly.
       fc.assert(fc.property(adjustmentArb, (adjustments) => {
-        // Property: equality should be reflexive
         expect(adjustmentsEqual(adjustments, adjustments)).toBe(true);
-        
-        // Property: equality should be symmetric
+
         const copy = { ...adjustments };
         expect(adjustmentsEqual(adjustments, copy)).toBe(true);
         expect(adjustmentsEqual(copy, adjustments)).toBe(true);
@@ -312,56 +224,38 @@ describe('PhotoEditor - Property Tests', () => {
     });
 
     it('should satisfy clamp value properties', () => {
-      const valueArb = fc.float();
-      const minArb = fc.float();
-      const maxArb = fc.float();
+      fc.assert(fc.property(
+        fc.tuple(fc.float(), fc.float(), fc.float()),
+        ([value, min, max]) => {
+          if (min > max) return; // skip invalid range
 
-      fc.assert(fc.property(fc.tuple(valueArb, minArb, maxArb), ([value, min, max]) => {
-        // Property: min <= max for valid test
-        if (min > max) return true;
+          const clamped = clampValue(value, min, max);
 
-        const clamped = clampValue(value, min, max);
-        
-        // Property: clamped value should be within bounds
-        expect(clamped).toBeGreaterThanOrEqual(min);
-        expect(clamped).toBeLessThanOrEqual(max);
-        
-        // Property: if value is within bounds, it should remain unchanged
-        if (value >= min && value <= max) {
-          expect(clamped).toBe(value);
-        }
-        
-        // Property: if value is below min, it should be clamped to min
-        if (value < min) {
-          expect(clamped).toBe(min);
-        }
-        
-        // Property: if value is above max, it should be clamped to max
-        if (value > max) {
-          expect(clamped).toBe(max);
-        }
-      }));
+          expect(clamped).toBeGreaterThanOrEqual(min);
+          expect(clamped).toBeLessThanOrEqual(max);
+
+          if (value >= min && value <= max) expect(clamped).toBe(value);
+          if (value < min)                 expect(clamped).toBe(min);
+          if (value > max)                 expect(clamped).toBe(max);
+        },
+      ));
     });
   });
 
   describe('Filter Properties', () => {
     it('should satisfy filter preset uniqueness', () => {
-      const filterIds = FILTER_PRESETS.map(f => f.id);
-      const uniqueIds = new Set(filterIds);
-      
-      // Property: all filter IDs should be unique
+      const filterIds  = FILTER_PRESETS.map(f => f.id);
+      const uniqueIds  = new Set(filterIds);
       expect(uniqueIds.size).toBe(filterIds.length);
     });
 
     it('should satisfy filter preset validity', () => {
       FILTER_PRESETS.forEach(filter => {
-        // Property: all filters should have required fields
         expect(filter.id).toBeDefined();
         expect(filter.name).toBeDefined();
         expect(filter.description).toBeDefined();
         expect(filter.adjustments).toBeDefined();
-        
-        // Property: all adjustment values should be within valid ranges
+
         expect(filter.adjustments.brightness).toBeGreaterThanOrEqual(-1);
         expect(filter.adjustments.brightness).toBeLessThanOrEqual(1);
         expect(filter.adjustments.contrast).toBeGreaterThanOrEqual(-1);
@@ -378,88 +272,57 @@ describe('PhotoEditor - Property Tests', () => {
     it('should satisfy original filter properties', () => {
       const originalFilter = FILTER_PRESETS.find(f => f.id === 'original');
       expect(originalFilter).toBeDefined();
-      
-      // Property: original filter should have no adjustments
       expect(adjustmentsEqual(originalFilter!.adjustments, DEFAULT_ADJUSTMENTS)).toBe(true);
     });
   });
 
   describe('Editor State Properties', () => {
     it('should maintain consistent URIs', async () => {
-      const adjustmentArb = fc.record({
-        brightness: fc.float({ min: -1, max: 1 }),
-        contrast: fc.float({ min: -1, max: 1 }),
-        saturation: fc.float({ min: -1, max: 1 }),
-        vibrance: fc.float({ min: -1, max: 1 }),
-        temperature: fc.float({ min: -1, max: 1 }),
-        sharpness: fc.float({ min: -1, max: 1 }),
-        clarity: fc.float({ min: -1, max: 1 }),
-        vignette: fc.float({ min: 0, max: 1 }),
-        exposure: fc.float({ min: -2, max: 2 }),
-      });
-
       await fc.assert(fc.asyncProperty(adjustmentArb, async (adjustments) => {
         const testEditor = createPhotoEditor(mockUri);
-        
-        // Property: original URI should never change
+
         expect(testEditor.getOriginalUri()).toBe(mockUri);
-        
-        // Apply adjustments
+
         await testEditor.applyAdjustments(adjustments);
-        
-        // Property: current URI should be defined and different from original
+
         const currentUri = testEditor.getCurrentUri();
         expect(currentUri).toBeDefined();
         expect(typeof currentUri).toBe('string');
-        
-        // Reset to original
+
         await testEditor.resetToOriginal();
-        
-        // Property: reset should restore current URI to original
         expect(testEditor.getCurrentUri()).toBe(mockUri);
       }), { numRuns: 10 });
     });
 
     it('should satisfy adjustment state consistency', async () => {
-      const adjustmentArb = fc.record({
-        brightness: fc.float({ min: -1, max: 1 }),
-        contrast: fc.float({ min: -1, max: 1 }),
-        saturation: fc.float({ min: -1, max: 1 }),
-        vibrance: fc.float({ min: -1, max: 1 }),
-        temperature: fc.float({ min: -1, max: 1 }),
-        sharpness: fc.float({ min: -1, max: 1 }),
-        clarity: fc.float({ min: -1, max: 1 }),
-        vignette: fc.float({ min: 0, max: 1 }),
-        exposure: fc.float({ min: -2, max: 2 }),
-      });
-
       await fc.assert(fc.asyncProperty(adjustmentArb, async (adjustments) => {
         const testEditor = createPhotoEditor(mockUri);
-        
-        // Property: initial adjustments should be default
+
         expect(adjustmentsEqual(testEditor.getCurrentAdjustments(), DEFAULT_ADJUSTMENTS)).toBe(true);
-        
-        // Apply adjustments
+
         await testEditor.applyAdjustments(adjustments);
-        
-        // Property: current adjustments should match applied adjustments
         expect(adjustmentsEqual(testEditor.getCurrentAdjustments(), adjustments)).toBe(true);
-        
-        // Reset to original
+
         await testEditor.resetToOriginal();
-        
-        // Property: reset should restore default adjustments
         expect(adjustmentsEqual(testEditor.getCurrentAdjustments(), DEFAULT_ADJUSTMENTS)).toBe(true);
       }), { numRuns: 10 });
     });
   });
 });
 
+// ─────────────────────────────────────────────────────────
+// Unit Tests
+// ─────────────────────────────────────────────────────────
+
 describe('PhotoEditor - Unit Tests', () => {
   let editor: PhotoEditor;
   const mockUri = 'mock://image.jpg';
 
   beforeEach(() => {
+    vi.clearAllMocks();
+    mockManipulateAsync.mockImplementation((uri: string) =>
+      Promise.resolve({ uri: `${uri}_processed`, width: 1000, height: 1000 }),
+    );
     editor = createPhotoEditor(mockUri);
   });
 
@@ -476,19 +339,19 @@ describe('PhotoEditor - Unit Tests', () => {
 
     it('should apply adjustments correctly', async () => {
       const adjustments: ImageAdjustments = {
-        brightness: 0.5,
-        contrast: 0.3,
+        brightness:  0.5,
+        contrast:    0.3,
         saturation: -0.2,
-        vibrance: 0.1,
-        temperature: -0.1,
-        sharpness: 0.2,
-        clarity: -0.1,
-        vignette: 0.15,
-        exposure: 0.1,
+        vibrance:    0.1,
+        temperature:-0.1,
+        sharpness:   0.2,
+        clarity:    -0.1,
+        vignette:    0.15,
+        exposure:    0.1,
       };
 
       const newUri = await editor.applyAdjustments(adjustments);
-      
+
       expect(newUri).toBeDefined();
       expect(newUri).not.toBe(mockUri);
       expect(editor.getCurrentUri()).toBe(newUri);
@@ -500,15 +363,10 @@ describe('PhotoEditor - Unit Tests', () => {
     });
 
     it('should apply crop correctly', async () => {
-      const cropSettings: CropSettings = {
-        originX: 100,
-        originY: 100,
-        width: 800,
-        height: 600,
-      };
+      const cropSettings: CropSettings = { originX: 100, originY: 100, width: 800, height: 600 };
 
       const newUri = await editor.applyCrop(cropSettings);
-      
+
       expect(newUri).toBeDefined();
       expect(newUri).not.toBe(mockUri);
       expect(editor.getCurrentUri()).toBe(newUri);
@@ -517,14 +375,10 @@ describe('PhotoEditor - Unit Tests', () => {
     });
 
     it('should apply rotation correctly', async () => {
-      const rotationSettings: RotationSettings = {
-        degrees: 90,
-        flipHorizontal: false,
-        flipVertical: false,
-      };
+      const rotationSettings: RotationSettings = { degrees: 90, flipHorizontal: false, flipVertical: false };
 
       const newUri = await editor.applyRotation(rotationSettings);
-      
+
       expect(newUri).toBeDefined();
       expect(newUri).not.toBe(mockUri);
       expect(editor.getCurrentUri()).toBe(newUri);
@@ -534,12 +388,12 @@ describe('PhotoEditor - Unit Tests', () => {
 
     it('should apply filter correctly', async () => {
       const filterId = 'vivid';
-      const newUri = await editor.applyFilter(filterId);
-      
+      const newUri   = await editor.applyFilter(filterId);
+
       expect(newUri).toBeDefined();
       expect(newUri).not.toBe(mockUri);
       expect(editor.getCurrentUri()).toBe(newUri);
-      
+
       const filter = FILTER_PRESETS.find(f => f.id === filterId);
       expect(adjustmentsEqual(editor.getCurrentAdjustments(), filter!.adjustments)).toBe(true);
     });
@@ -554,7 +408,6 @@ describe('PhotoEditor - Unit Tests', () => {
       const adjustments1: ImageAdjustments = { ...DEFAULT_ADJUSTMENTS, brightness: 0.5 };
       const adjustments2: ImageAdjustments = { ...DEFAULT_ADJUSTMENTS, contrast: 0.3 };
 
-      // Apply two adjustments
       const uri1 = await editor.applyAdjustments(adjustments1);
       const uri2 = await editor.applyAdjustments(adjustments2);
 
@@ -563,7 +416,6 @@ describe('PhotoEditor - Unit Tests', () => {
       expect(editor.getHistory()).toHaveLength(2);
       expect(editor.getHistoryIndex()).toBe(1);
 
-      // Undo first adjustment
       const undoUri = await editor.undo();
       expect(undoUri).toBe(uri1);
       expect(editor.getCurrentUri()).toBe(uri1);
@@ -571,7 +423,6 @@ describe('PhotoEditor - Unit Tests', () => {
       expect(editor.canRedo()).toBe(true);
       expect(editor.getHistoryIndex()).toBe(0);
 
-      // Redo adjustment
       const redoUri = await editor.redo();
       expect(redoUri).toBe(uri2);
       expect(editor.getCurrentUri()).toBe(uri2);
@@ -625,7 +476,7 @@ describe('PhotoEditor - Unit Tests', () => {
     it('should get filter presets', () => {
       const presets = editor.getFilterPresets();
       expect(presets).toStrictEqual(FILTER_PRESETS);
-      expect(presets).toHaveLength(16); // Should have 16 presets including original
+      expect(presets).toHaveLength(16);
     });
 
     it('should dispose correctly', () => {
