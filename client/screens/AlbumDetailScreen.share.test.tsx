@@ -181,10 +181,10 @@ describe("AlbumDetailScreen Sharing", () => {
 
       // Render the header right to get the share button
       const HeaderRight = headerRightFunction!;
-      const { getByTestId } = render(<HeaderRight />);
+      const { getByRole } = render(<HeaderRight />);
 
       // Find and press the share button (second button)
-      const buttons = getByTestId?.("share-button");
+      const buttons = screen.getByRole?.("button", { name: /share/i });
       if (buttons) {
         fireEvent.press(buttons);
 

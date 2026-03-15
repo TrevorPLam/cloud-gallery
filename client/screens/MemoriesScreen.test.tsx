@@ -9,12 +9,8 @@
 // AI-META-END
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
-  render,
-  screen,
-  fireEvent,
-  waitFor,
-} from "@testing-library/react-native";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react-native";
+import { migrationHelpers } from "../test-utils/accessibility";
 import React from "react";
 import MemoriesScreen from "./MemoriesScreen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -24,6 +20,8 @@ import { ThemeProvider, defaultTheme } from "../constants/theme";
 vi.mock("@/lib/query-client", () => ({
   apiRequest: vi.fn(),
 }));
+
+const mockApiRequest = vi.mocked(vi.fn());
 
 vi.mock("@react-navigation/native", () => ({
   useFocusEffect: vi.fn(),
@@ -37,7 +35,8 @@ vi.mock("@expo/vector-icons/Feather", () => "Feather");
 vi.mock("@/components/MemoryCard", () => ({
   MemoryCard: vi.fn(({ memory, onPress, onFavoriteToggle, onHideToggle }) => (
     <div
-      testID={`memory-card-${memory.id}`}
+      role="button"
+      aria-label={`memory-card-${memory.id}`}
       onPress={onPress}
       onFavoriteToggle={onFavoriteToggle}
       onHideToggle={onHideToggle}
@@ -49,11 +48,19 @@ vi.mock("@/components/MemoryCard", () => ({
 
 vi.mock("@/components/EmptyState", () => ({
   EmptyState: vi.fn(({ title, description, action }) => (
-    <div testID="empty-state">
-      <div testID="empty-title">{title}</div>
-      <div testID="empty-description">{description}</div>
+    <div role="alert" aria-label="empty-state">
+      <div role="heading" aria-level={2} aria-label="empty-title">
+        {title}
+      </div>
+      <div role="definition" aria-label="empty-description">
+        {description}
+      </div>
       {action && (
-        <button testID="empty-action" onPress={action.onPress}>
+        <button
+          role="button"
+          aria-label="empty-action"
+          onPress={action.onPress}
+        >
           {action.label}
         </button>
       )}
@@ -62,18 +69,18 @@ vi.mock("@/components/EmptyState", () => ({
 }));
 
 vi.mock("@/components/SkeletonLoader", () => ({
-  SkeletonLoader: vi.fn(() => <div testID="skeleton-loader" />),
+  SkeletonLoader: vi.fn(() => (
+    <div role="progressbar" aria-label="skeleton-loader" />
+  )),
 }));
 
 vi.mock("@/components/FabButton", () => ({
   FabButton: vi.fn(({ onPress, icon }) => (
-    <button testID="fab-button" onPress={onPress}>
+    <button role="button" aria-label="fab-button" onPress={onPress}>
       {icon}
     </button>
   )),
 }));
-
-const mockApiRequest = vi.mocked(require("@/lib/api").apiRequest);
 
 describe("MemoriesScreen", () => {
   let queryClient: QueryClient;
@@ -120,7 +127,7 @@ describe("MemoriesScreen", () => {
 
       renderComponent();
 
-      expect(screen.getByTestId("skeleton-loader")).toBeTruthy();
+      expect(screen.getByRole("progressbar", { name: "skeleton-loader" })).toBeTruthy();
     });
 
     it("should show empty state when no memories exist", async () => {
@@ -131,13 +138,8 @@ describe("MemoriesScreen", () => {
       renderComponent();
 
       await waitFor(() => {
-        expect(screen.getByTestId("empty-state")).toBeTruthy();
-        expect(screen.getByTestId("empty-title")).toHaveTextContent(
-          "No Memories Yet",
-        );
-        expect(screen.getByTestId("empty-action")).toHaveTextContent(
-          "Generate Memories",
-        );
+        expect(screen.getByRole("heading", { name: "No Memories Yet" })).toBeTruthy();
+        expect(screen.getByRole("button", { name: /Generate Memories/i })).toBeTruthy();
       });
     });
 
@@ -147,10 +149,7 @@ describe("MemoriesScreen", () => {
       renderComponent();
 
       await waitFor(() => {
-        expect(screen.getByTestId("empty-state")).toBeTruthy();
-        expect(screen.getByTestId("empty-title")).toHaveTextContent(
-          "Error Loading Memories",
-        );
+        expect(screen.getByRole("heading", { name: "Error Loading Memories" })).toBeTruthy();
       });
     });
   });
@@ -189,8 +188,8 @@ describe("MemoriesScreen", () => {
       renderComponent();
 
       await waitFor(() => {
-        expect(screen.getByTestId("memory-card-memory1")).toBeTruthy();
-        expect(screen.getByTestId("memory-card-memory2")).toBeTruthy();
+        expect(screen.getByRole("button", { name: /memory1/i })).toBeTruthy();
+        expect(screen.getByRole("button", { name: /memory2/i })).toBeTruthy();
       });
     });
 
@@ -243,7 +242,7 @@ describe("MemoriesScreen", () => {
       renderComponent();
 
       await waitFor(() => {
-        expect(screen.getByTestId("fab-button")).toBeTruthy();
+        expect(screen.getByRole("button", { name: /create|add|fab/i })).toBeTruthy();
       });
     });
   });
@@ -257,22 +256,16 @@ describe("MemoriesScreen", () => {
       renderComponent();
 
       await waitFor(() => {
-        expect(screen.getByTestId("empty-action")).toBeTruthy();
+        expect(screen.getByRole("button", { name: /Generate Memories/i })).toBeTruthy();
       });
 
       // Mock the generate API call
-      mockApiRequest.mockImplementation((url, options) => {
-        if (url === "/api/memories/generate" && options?.method === "POST") {
-          return Promise.resolve({
-            json: vi.fn().mockResolvedValue({ count: 2, memories: [] }),
-          });
-        }
-        return Promise.resolve({
-          json: vi.fn().mockResolvedValue({ memories: [] }),
-        });
+      mockApiRequest.mockResolvedValue({
+        success: true,
+        data: { memories: [] },
       });
 
-      fireEvent.press(screen.getByTestId("empty-action"));
+      fireEvent.press(screen.getByRole("button", { name: /Generate Memories/i }));
 
       await waitFor(() => {
         expect(mockApiRequest).toHaveBeenCalledWith("/api/memories/generate", {
@@ -303,24 +296,16 @@ describe("MemoriesScreen", () => {
       renderComponent();
 
       await waitFor(() => {
-        expect(screen.getByTestId("fab-button")).toBeTruthy();
+        expect(screen.getByRole("button", { name: /create|add|fab/i })).toBeTruthy();
       });
 
       // Mock the generate API call
-      mockApiRequest.mockImplementation((url, options) => {
-        if (url === "/api/memories/generate" && options?.method === "POST") {
-          return Promise.resolve({
-            json: vi
-              .fn()
-              .mockResolvedValue({ count: 3, memories: mockMemories }),
-          });
-        }
-        return Promise.resolve({
-          json: vi.fn().mockResolvedValue({ memories: mockMemories }),
-        });
+      mockApiRequest.mockResolvedValue({
+        success: true,
+        data: { memories: mockMemories },
       });
 
-      fireEvent.press(screen.getByTestId("fab-button"));
+      fireEvent.press(screen.getByRole('button', { name: /create|add|fab/i }));
 
       await waitFor(() => {
         expect(mockApiRequest).toHaveBeenCalledWith("/api/memories/generate", {
@@ -360,10 +345,10 @@ describe("MemoriesScreen", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByTestId("memory-card-memory1")).toBeTruthy();
+        expect(screen.getByRole('button', { name: /memory1/i })).toBeTruthy();
       });
 
-      fireEvent.press(screen.getByTestId("memory-card-memory1"));
+      fireEvent.press(screen.getByRole('button', { name: /memory1/i }));
 
       expect(mockNavigation.navigate).toHaveBeenCalledWith(
         "MemoryDetailScreen",
@@ -395,7 +380,7 @@ describe("MemoriesScreen", () => {
       renderComponent();
 
       await waitFor(() => {
-        expect(screen.getByTestId("memory-card-memory1")).toBeTruthy();
+        expect(screen.getByRole('button', { name: /memory1/i })).toBeTruthy();
       });
 
       // Mock the update API call
@@ -432,7 +417,7 @@ describe("MemoriesScreen", () => {
       renderComponent();
 
       await waitFor(() => {
-        expect(screen.getByTestId("skeleton-loader")).toBeTruthy();
+        expect(screen.getByRole('progressbar', { name: /loading/i })).toBeTruthy();
       });
 
       // Mock refresh control
@@ -452,11 +437,8 @@ describe("MemoriesScreen", () => {
       renderComponent();
 
       await waitFor(() => {
-        expect(screen.getByTestId("empty-state")).toBeTruthy();
-        expect(screen.getByTestId("empty-title")).toHaveTextContent(
-          "Error Loading Memories",
-        );
-        expect(screen.getByTestId("empty-action")).toHaveTextContent("Retry");
+        expect(screen.getByRole('heading', { name: 'Error Loading Memories' })).toBeTruthy();
+        expect(screen.getByRole('button', { name: /Retry/i })).toBeTruthy();
       });
     });
 
@@ -468,7 +450,7 @@ describe("MemoriesScreen", () => {
       renderComponent();
 
       await waitFor(() => {
-        expect(screen.getByTestId("empty-action")).toBeTruthy();
+        expect(screen.getByRole('button', { name: /Retry|Try Again/i })).toBeTruthy();
       });
 
       // Mock generation failure
@@ -481,7 +463,7 @@ describe("MemoriesScreen", () => {
         });
       });
 
-      fireEvent.press(screen.getByTestId("empty-action"));
+      fireEvent.press(screen.getByRole('button', { name: /Retry|Try Again/i }));
 
       // The error would be handled by the mutation's onError callback
       // In a real test, we'd check for an alert or error message

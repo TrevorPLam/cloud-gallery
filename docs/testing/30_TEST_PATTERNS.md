@@ -612,6 +612,197 @@ it("test 2", () => {
 8. **Cover edge cases** and boundaries
 9. **Clean up mocks** between tests
 
+## Accessibility-First Testing
+
+### Query Priority Order (Testing Library Recommendation)
+
+When writing tests, follow this priority order for querying elements:
+
+1. **getByRole** - Top preference for everything
+   - Use with name option: `getByRole('button', { name: /submit/i })`
+   - Examples: buttons, inputs, switches, progress bars
+   
+2. **getByLabelText** - Form fields
+   - Best for form inputs with proper labels
+   - Example: `getByLabelText('Email address')`
+   
+3. **getByPlaceholderText** - Only if no labels available
+   - Use sparingly - placeholders are not substitutes for labels
+   - Example: `getByPlaceholderText('Enter email')`
+   
+4. **getByText** - Non-interactive elements
+   - Good for headings, paragraphs, static content
+   - Example: `getByText('Welcome')`
+   
+5. **getByDisplayValue** - Form element values
+   - Current value of form elements
+   - Example: `getByDisplayValue('john@example.com')`
+   
+6. **getByAltText** - Images with alt text
+   - For images, areas, inputs with alt attributes
+   - Example: `getByAltText('Profile picture')`
+   
+7. **getByTitle** - Last resort before test IDs
+   - Title attributes (not consistently read by screen readers)
+   - Example: `getByTitle('Tooltip text')`
+   
+8. **getByTestId** - Only when no other option works
+   - For dynamic content or when semantic queries aren't possible
+   - Always add justification in comments
+
+### React Native Accessibility Patterns
+
+#### Button Components
+```typescript
+// ✅ Good: Use semantic role
+const button = screen.getByRole('button', { name: /submit/i });
+
+// ❌ Avoid: Test ID when semantic query available
+const button = screen.getByTestId('submit-button');
+```
+
+#### Input Components
+```typescript
+// ✅ Good: Label-based query
+const input = screen.getByLabelText('Email address');
+
+// ✅ Acceptable: Placeholder if no label
+const input = screen.getByPlaceholderText('Enter email');
+
+// ❌ Avoid: Test ID for inputs
+const input = screen.getByTestId('email-input');
+```
+
+#### Loading States
+```typescript
+// ✅ Good: Progress bar role
+const loader = screen.getByRole('progressbar', { name: /loading/i });
+
+// ❌ Avoid: Generic test ID
+const loader = screen.getByTestId('activity-indicator');
+```
+
+#### Switch Components
+```typescript
+// ✅ Good: Switch role with name
+const toggle = screen.getByRole('switch', { name: /auto-sync/i });
+
+// ❌ Avoid: Test ID for switches
+const toggle = screen.getByTestId('auto-sync-switch');
+```
+
+#### Empty States
+```typescript
+// ✅ Good: Separate semantic queries
+const title = screen.getByRole('heading', { name: 'No Memories Yet' });
+const action = screen.getByRole('button', { name: /Generate Memories/i });
+
+// ❌ Avoid: Generic container test ID
+const emptyState = screen.getByTestId('empty-state');
+```
+
+### Migration Examples
+
+#### Before (testId approach)
+```typescript
+it('should select album', async () => {
+  const { getByTestId } = render(<AlbumScreen />);
+  
+  const albumCard = getByTestId('album-card-album-1');
+  fireEvent.press(albumCard);
+  
+  const pinButton = getByTestId('pin-button-album-1');
+  fireEvent.press(pinButton);
+});
+```
+
+#### After (semantic approach)
+```typescript
+it('should select album', async () => {
+  const { getByRole } = render(<AlbumScreen />);
+  
+  const albumCard = getByRole('button', { name: /John Doe/i });
+  fireEvent.press(albumCard);
+  
+  const pinButton = getByRole('button', { name: /pin/i });
+  fireEvent.press(pinButton);
+});
+```
+
+### Accessibility Testing Utilities
+
+The project provides accessibility testing utilities in `client/test-utils/accessibility.ts`:
+
+```typescript
+import { renderWithAccessibility, migrationHelpers } from '../test-utils/accessibility';
+
+// Enhanced render with accessibility helpers
+const { getByRole, checkAccessibility } = renderWithAccessibility(<Component />);
+
+// Migration helpers for common patterns
+const albumQuery = migrationHelpers.albumCard('Album Name');
+const buttonQuery = migrationHelpers.actionButton('Save');
+```
+
+### Common React Native Accessibility Props
+
+When writing components, ensure proper accessibility props:
+
+```typescript
+// Button component
+<TouchableOpacity
+  accessible={true}
+  accessibilityRole="button"
+  accessibilityLabel="Submit Form"
+  accessibilityHint="Submits the form and saves data"
+  onPress={handleSubmit}
+>
+  <Text>Submit</Text>
+</TouchableOpacity>
+
+// Input component
+<TextInput
+  accessible={true}
+  accessibilityRole="textbox"
+  accessibilityLabel="Email address"
+  accessibilityHint="Enter your email address"
+  value={email}
+  onChangeText={setEmail}
+/>
+
+// Switch component
+<Switch
+  accessible={true}
+  accessibilityRole="switch"
+  accessibilityLabel="Auto-sync"
+  accessibilityHint="Enable automatic photo synchronization"
+  value={autoSync}
+  onValueChange={setAutoSync}
+/>
+```
+
+### Testing Checklist
+
+When writing or reviewing tests:
+
+- [ ] Prefer semantic queries over test IDs
+- [ ] Use `getByRole` for interactive elements
+- [ ] Use `getByLabelText` for form fields
+- [ ] Reserve `getByTestId` for edge cases with justification
+- [ ] Test accessibility structure, not just functionality
+- [ ] Include accessibility assertions where appropriate
+- [ ] Use migration helpers for common patterns
+
+### Benefits of Accessibility-First Testing
+
+1. **Better User Experience**: Ensures app works for screen reader users
+2. **Semantic HTML**: Encourages proper accessibility attributes
+3. **Maintainable Tests**: More resilient to UI changes
+4. **Real User Behavior**: Tests match how users actually interact
+5. **Compliance**: Helps meet WCAG 2.1 AA requirements
+
+For detailed examples and migration patterns, see the [Accessibility Audit Report](../../accessibility-audit-report.md).
+
 ## Sociable Testing Principles
 
 Cloud Gallery follows sociable testing patterns to reduce mock maintenance and improve test reliability.
@@ -657,6 +848,139 @@ vi.mock("../security", () => ({ hashPassword: vi.fn() }));
 ```
 
 For detailed examples and guidelines, see [Sociable Testing Examples](./31_SOCIABLE_TESTING_EXAMPLES.md).
+
+## User Event Testing vs FireEvent
+
+Cloud Gallery prefers userEvent over fireEvent for more realistic user interaction simulation.
+
+### Key Differences
+
+**fireEvent**:
+- Dispatches single DOM events
+- Low-level wrapper around dispatchEvent API
+- Tests implementation details rather than behavior
+- Less realistic user simulation
+
+**userEvent**:
+- Simulates full user interactions
+- Fires multiple events (pressIn, pressOut, keyDown, keyUp, etc.)
+- Includes visibility and interactability checks
+- More realistic user behavior simulation
+- Better test reliability and maintainability
+
+### React Native Testing Library UserEvent API
+
+React Native Testing Library includes built-in userEvent support:
+
+```typescript
+import { render, screen, userEvent } from "@testing-library/react-native";
+
+// Setup userEvent instance
+const user = userEvent.setup();
+
+// Press interactions (130ms minimum duration)
+await user.press(element);
+await user.longPress(element, { duration: 500 });
+```
+
+### Migration Patterns
+
+#### Before (fireEvent approach)
+```typescript
+it('should submit form', async () => {
+  render(<MyComponent />);
+  
+  const button = screen.getByText('Submit');
+  fireEvent.press(button);
+  
+  expect(mockSubmit).toHaveBeenCalled();
+});
+```
+
+#### After (userEvent approach)
+```typescript
+it('should submit form', async () => {
+  const user = userEvent.setup();
+  render(<MyComponent />);
+  
+  const button = screen.getByText('Submit');
+  await user.press(button);
+  
+  expect(mockSubmit).toHaveBeenCalled();
+});
+```
+
+### Special Cases Requiring fireEvent
+
+Some React Native interactions still require fireEvent:
+
+```typescript
+// TextInput value changes
+fireEvent.changeText(textInput, 'new value');
+
+// Switch value changes  
+fireEvent(switch, 'valueChange', true);
+
+// Pull-to-refresh
+fireEvent(scrollView, 'refresh');
+
+// Custom events
+fireEvent(customElement, 'customEvent', eventData);
+```
+
+### Performance Considerations
+
+- userEvent.press() takes minimum 130ms due to React Native logic
+- userEvent.longPress() takes minimum 500ms (configurable)
+- Use fake timers for faster test execution with press/longPress
+- fireEvent is faster but less realistic
+
+### Best Practices
+
+1. **Prefer userEvent** for all standard interactions (press, longPress)
+2. **Use fireEvent** only for React Native-specific events without userEvent equivalent
+3. **Always await** userEvent actions (they return Promise)
+4. **Setup userEvent** in each test, not in before/after hooks
+5. **Add comments** justifying fireEvent usage for special cases
+6. **Use fake timers** for performance-critical tests with press/longPress
+
+### Example: Complete Test Migration
+
+```typescript
+// Before
+it('should edit user profile', async () => {
+  render(<UserProfile />);
+  
+  const editButton = screen.getByText('Edit');
+  fireEvent.press(editButton);
+  
+  const nameInput = screen.getByDisplayValue('John');
+  fireEvent.changeText(nameInput, 'Jane');
+  
+  const saveButton = screen.getByText('Save');
+  fireEvent.press(saveButton);
+  
+  expect(mockUpdate).toHaveBeenCalledWith({ name: 'Jane' });
+});
+
+// After
+it('should edit user profile', async () => {
+  const user = userEvent.setup();
+  render(<UserProfile />);
+  
+  const editButton = screen.getByText('Edit');
+  await user.press(editButton);
+  
+  const nameInput = screen.getByDisplayValue('John');
+  // fireEvent for TextInput - userEvent doesn't have type method
+  fireEvent.changeText(nameInput, 'Jane');
+  
+  const saveButton = screen.getByText('Save');
+  await user.press(saveButton);
+  
+  expect(mockUpdate).toHaveBeenCalledWith({ name: 'Jane' });
+});
+```
 
 ## Resources
 

@@ -9,7 +9,8 @@
 // AI-META-END
 
 import React from "react";
-import { render, fireEvent, waitFor } from "@testing-library/react-native";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react-native";
+import { migrationHelpers } from "../test-utils/accessibility";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Alert } from "react-native";
 import SmartAlbumsScreen from "./SmartAlbumsScreen";
@@ -159,7 +160,7 @@ describe("SmartAlbumsScreen", () => {
 
   describe("Album Display", () => {
     it("should display smart albums grouped by type", async () => {
-      const { getByText, getByTestId } = renderWithQueryClient(
+      const { getByText, getByRole } = renderWithQueryClient(
         <SmartAlbumsScreen />,
       );
 
@@ -193,11 +194,11 @@ describe("SmartAlbumsScreen", () => {
     });
 
     it("should display pinned badges for pinned albums", async () => {
-      const { getByTestId } = renderWithQueryClient(<SmartAlbumsScreen />);
+      const { getByRole } = renderWithQueryClient(<SmartAlbumsScreen />);
 
       await waitFor(() => {
         // John Doe album should have pinned badge
-        const pinnedAlbum = getByTestId("album-card-album-1");
+        const pinnedAlbum = getByRole('button', { name: /John Doe/i });
         expect(pinnedAlbum).toHaveStyle({
           borderWidth: 1,
           borderColor: "#FFD700",
@@ -222,7 +223,7 @@ describe("SmartAlbumsScreen", () => {
 
   describe("Album Interactions", () => {
     it("should show album actions when album is selected", async () => {
-      const { getByText, getByTestId } = renderWithQueryClient(
+      const { getByText, getByRole } = renderWithQueryClient(
         <SmartAlbumsScreen />,
       );
 
@@ -231,7 +232,7 @@ describe("SmartAlbumsScreen", () => {
       });
 
       // Tap on album to select it
-      const albumCard = getByTestId("album-card-album-1");
+      const albumCard = getByRole('button', { name: /John Doe/i });
       fireEvent.press(albumCard);
 
       // Actions should be visible (selected state)
@@ -239,14 +240,14 @@ describe("SmartAlbumsScreen", () => {
     });
 
     it("should deselect album when tapped again", async () => {
-      const { getByTestId } = renderWithQueryClient(<SmartAlbumsScreen />);
+      const { getByRole } = renderWithQueryClient(<SmartAlbumsScreen />);
 
       await waitFor(() => {
-        const albumCard = getByTestId("album-card-album-1");
+        const albumCard = getByRole('button', { name: /John Doe/i });
         expect(albumCard).toBeTruthy();
       });
 
-      const albumCard = getByTestId("album-card-album-1");
+      const albumCard = getByRole('button', { name: /John Doe/i });
 
       // Select album
       fireEvent.press(albumCard);
@@ -261,7 +262,7 @@ describe("SmartAlbumsScreen", () => {
     });
 
     it("should show confirmation dialog when hiding album", async () => {
-      const { getByTestId, getByText } = renderWithQueryClient(
+      const { getByRole, getByText } = renderWithQueryClient(
         <SmartAlbumsScreen />,
       );
 
@@ -270,11 +271,11 @@ describe("SmartAlbumsScreen", () => {
       });
 
       // Select album
-      const albumCard = getByTestId("album-card-album-1");
+      const albumCard = getByRole('button', { name: /John Doe/i });
       fireEvent.press(albumCard);
 
       // Tap hide button
-      const hideButton = getByTestId("hide-button-album-1");
+      const hideButton = getByRole('button', { name: /hide/i });
       fireEvent.press(hideButton);
 
       // Alert should be shown
@@ -309,20 +310,20 @@ describe("SmartAlbumsScreen", () => {
         });
       });
 
-      const { getByTestId } = renderWithQueryClient(<SmartAlbumsScreen />);
+      const { getByRole } = renderWithQueryClient(<SmartAlbumsScreen />);
 
       await waitFor(() => {
-        const albumCard = getByTestId("album-card-album-1");
+        const albumCard = getByRole('button', { name: /John Doe/i });
         expect(albumCard).toBeTruthy();
       });
 
-      const albumCard = getByTestId("album-card-album-1");
+      const albumCard = getByRole('button', { name: /John Doe/i });
 
       // Select album
       fireEvent.press(albumCard);
 
       // Tap pin button
-      const pinButton = getByTestId("pin-button-album-1");
+      const pinButton = getByRole('button', { name: /pin/i });
       fireEvent.press(pinButton);
 
       // API call should be made
@@ -336,14 +337,14 @@ describe("SmartAlbumsScreen", () => {
 
   describe("Generate Albums", () => {
     it("should show confirmation dialog when generate button is pressed", async () => {
-      const { getByTestId } = renderWithQueryClient(<SmartAlbumsScreen />);
+      const { getByRole } = renderWithQueryClient(<SmartAlbumsScreen />);
 
       await waitFor(() => {
-        const generateButton = getByTestId("generate-button");
+        const generateButton = getByRole('button', { name: /generate/i });
         expect(generateButton).toBeTruthy();
       });
 
-      const generateButton = getByTestId("generate-button");
+      const generateButton = getByRole('button', { name: /generate/i });
       fireEvent.press(generateButton);
 
       expect(Alert.alert).toHaveBeenCalledWith(
@@ -375,14 +376,14 @@ describe("SmartAlbumsScreen", () => {
         });
       });
 
-      const { getByTestId } = renderWithQueryClient(<SmartAlbumsScreen />);
+      const { getByRole } = renderWithQueryClient(<SmartAlbumsScreen />);
 
       await waitFor(() => {
-        const generateButton = getByTestId("generate-button");
+        const generateButton = getByRole('button', { name: /generate/i });
         expect(generateButton).toBeTruthy();
       });
 
-      const generateButton = getByTestId("generate-button");
+      const generateButton = getByRole('button', { name: /generate/i });
       fireEvent.press(generateButton);
 
       // Get the alert callback and call the "Generate" button
@@ -521,11 +522,11 @@ describe("SmartAlbumsScreen", () => {
 
   describe("Refresh Functionality", () => {
     it("should refresh when pulled down", async () => {
-      const { getByTestId } = renderWithQueryClient(<SmartAlbumsScreen />);
+      const { getByRole } = renderWithQueryClient(<SmartAlbumsScreen />);
 
       await waitFor(() => {
         // Trigger refresh
-        const refreshControl = getByTestId("refresh-control");
+        const refreshControl = getByRole('button', { name: /refresh/i });
         fireEvent(refreshControl, "refresh");
       });
 
