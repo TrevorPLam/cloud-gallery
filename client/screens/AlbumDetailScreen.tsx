@@ -17,6 +17,8 @@ import {
   Modal,
   FlatList,
   Dimensions,
+  TextInput,
+  Alert,
 } from "react-native";
 import { useRoute, useNavigation, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -25,14 +27,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
+import * as Clipboard from "expo-clipboard";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Photo, Album } from "@/types";
+import { Photo, Album, ShareSettings } from "@/types";
 import { apiRequest } from "@/lib/query-client";
 import { EmptyState } from "@/components/EmptyState";
 import { ThemedText } from "@/components/ThemedText";
-import { Button } from "@/components/Button";
 import { useTheme } from "@/hooks/useTheme";
-import { Spacing, BorderRadius, Shadows, Colors } from "@/constants/theme";
+import { Spacing, BorderRadius, Colors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 
 // AI-NOTE: Photo grid sizing calculated at module load; shared across screens
@@ -55,7 +57,13 @@ export default function AlbumDetailScreen() {
 
   const { albumId, albumTitle } = route.params;
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<string[]>([]);
+  const [shareSettings, setShareSettings] = useState<ShareSettings>({
+    permissions: "view",
+    password: "",
+    expiresAt: null,
+  });
 
   // ═══════════════════════════════════════════════════════════
   // FETCH ALBUM DATA (React Query)
@@ -138,6 +146,38 @@ export default function AlbumDetailScreen() {
   });
 
   // ═══════════════════════════════════════════════════════════
+  // CREATE SHARE MUTATION
+  // ═══════════════════════════════════════════════════════════
+
+  const createShareMutation = useMutation({
+    mutationFn: async (settings: ShareSettings) => {
+      const res = await apiRequest("POST", "/api/sharing/create", {
+        albumId,
+        settings,
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["shared-albums"] });
+      setShowShareModal(false);
+      Alert.alert("Album Shared!", `Share link: ${data.share.shareToken}`, [
+        { text: "OK" },
+        {
+          text: "Copy Link",
+          onPress: () => copyToClipboard(data.share.shareToken),
+        },
+      ]);
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    },
+    onError: (error) => {
+      console.error("Failed to create share:", error);
+      Alert.alert("Error", "Failed to create shared album");
+    },
+  });
+
+  // ═══════════════════════════════════════════════════════════
   // REMOVE PHOTO FROM ALBUM MUTATION (React Query)
   // ═══════════════════════════════════════════════════════════
   // Task 5.3: Remove photo from album with optimistic update
@@ -195,16 +235,28 @@ export default function AlbumDetailScreen() {
     navigation.setOptions({
       headerTitle: albumTitle,
       headerRight: () => (
-        <Pressable
-          onPress={() => {
-            setSelectedPhotoIds([]);
-            setShowAddModal(true);
-          }}
-          hitSlop={8}
-          style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-        >
-          <Feather name="plus" size={24} color={theme.text} />
-        </Pressable>
+        <View style={styles.headerButtons}>
+          <Pressable
+            onPress={() => {
+              setSelectedPhotoIds([]);
+              setShowAddModal(true);
+            }}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              opacity: pressed ? 0.7 : 1,
+              marginRight: Spacing.md,
+            })}
+          >
+            <Feather name="plus" size={24} color={theme.text} />
+          </Pressable>
+          <Pressable
+            onPress={() => setShowShareModal(true)}
+            hitSlop={8}
+            style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+          >
+            <Feather name="share-2" size={24} color={theme.text} />
+          </Pressable>
+        </View>
       ),
     });
   }, [navigation, albumTitle, theme]);
@@ -245,6 +297,17 @@ export default function AlbumDetailScreen() {
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    await Clipboard.setStringAsync(text);
+    if (Platform.OS !== "web") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  };
+
+  const handleCreateShare = () => {
+    createShareMutation.mutate(shareSettings);
   };
 
   const availablePhotos = allPhotos.filter(
@@ -366,6 +429,173 @@ export default function AlbumDetailScreen() {
           />
         </View>
       </Modal>
+
+      {/* Share Modal */}
+      <Modal
+        visible={showShareModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowShareModal(false)}
+      >
+        <View
+          style={[
+            styles.modalContainer,
+            { backgroundColor: theme.backgroundRoot },
+          ]}
+        >
+          <View
+            style={[styles.modalHeader, { borderBottomColor: theme.border }]}
+          >
+            <Pressable onPress={() => setShowShareModal(false)}>
+              <ThemedText type="body">Cancel</ThemedText>
+            </Pressable>
+            <ThemedText type="h4">Share Album</ThemedText>
+            <Pressable
+              onPress={handleCreateShare}
+              disabled={createShareMutation.isPending}
+            >
+              <ThemedText
+                type="body"
+                style={{
+                  color: createShareMutation.isPending
+                    ? theme.textSecondary
+                    : Colors.light.accent,
+                }}
+              >
+                {createShareMutation.isPending ? "Sharing..." : "Share"}
+              </ThemedText>
+            </Pressable>
+          </View>
+
+          <View style={styles.shareContent}>
+            <View style={styles.shareSection}>
+              <ThemedText type="h4" style={styles.shareSectionTitle}>
+                Permissions
+              </ThemedText>
+              <View style={styles.permissionOptions}>
+                {[
+                  {
+                    value: "view",
+                    label: "Can view",
+                    description: "People can view photos",
+                  },
+                  {
+                    value: "edit",
+                    label: "Can edit",
+                    description: "People can add/remove photos",
+                  },
+                  {
+                    value: "admin",
+                    label: "Can manage",
+                    description: "People can manage sharing",
+                  },
+                ].map((option) => (
+                  <Pressable
+                    key={option.value}
+                    style={[
+                      styles.permissionOption,
+                      {
+                        backgroundColor:
+                          shareSettings.permissions === option.value
+                            ? Colors.light.accent + "20"
+                            : theme.backgroundCard,
+                        borderColor:
+                          shareSettings.permissions === option.value
+                            ? Colors.light.accent
+                            : theme.border,
+                      },
+                    ]}
+                    onPress={() =>
+                      setShareSettings((prev) => ({
+                        ...prev,
+                        permissions: option.value as any,
+                      }))
+                    }
+                  >
+                    <View style={styles.permissionOptionContent}>
+                      <ThemedText
+                        type="body"
+                        style={styles.permissionOptionLabel}
+                      >
+                        {option.label}
+                      </ThemedText>
+                      <ThemedText
+                        type="caption"
+                        style={{ color: theme.textSecondary }}
+                      >
+                        {option.description}
+                      </ThemedText>
+                    </View>
+                    {shareSettings.permissions === option.value && (
+                      <Feather
+                        name="check"
+                        size={20}
+                        color={Colors.light.accent}
+                      />
+                    )}
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.shareSection}>
+              <ThemedText type="h4" style={styles.shareSectionTitle}>
+                Protection (Optional)
+              </ThemedText>
+              <View style={styles.protectionOptions}>
+                <View
+                  style={[styles.inputContainer, { borderColor: theme.border }]}
+                >
+                  <Feather name="lock" size={20} color={theme.textSecondary} />
+                  <TextInput
+                    style={[styles.textInput, { color: theme.text }]}
+                    placeholder="Password (optional)"
+                    placeholderTextColor={theme.textSecondary}
+                    value={shareSettings.password}
+                    onChangeText={(text) =>
+                      setShareSettings((prev) => ({ ...prev, password: text }))
+                    }
+                    secureTextEntry
+                  />
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.shareSection}>
+              <ThemedText type="h4" style={styles.shareSectionTitle}>
+                Expiration (Optional)
+              </ThemedText>
+              <Pressable
+                style={[
+                  styles.expirationOption,
+                  {
+                    backgroundColor: theme.backgroundCard,
+                    borderColor: theme.border,
+                  },
+                ]}
+                onPress={() => {
+                  // TODO: Show date picker
+                  Alert.alert(
+                    "Coming Soon",
+                    "Date picker for expiration will be added",
+                  );
+                }}
+              >
+                <ThemedText type="body" style={{ color: theme.text }}>
+                  {shareSettings.expiresAt
+                    ? new Date(shareSettings.expiresAt).toLocaleDateString()
+                    : "Never expires"}
+                </ThemedText>
+                <Feather
+                  name="calendar"
+                  size={20}
+                  color={theme.textSecondary}
+                />
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -373,6 +603,10 @@ export default function AlbumDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  headerButtons: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   emptyContainer: {
     flex: 1,
@@ -416,5 +650,56 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.lg,
     borderBottomWidth: 1,
+  },
+  shareContent: {
+    flex: 1,
+    padding: Spacing.lg,
+  },
+  shareSection: {
+    marginBottom: Spacing.xl,
+  },
+  shareSectionTitle: {
+    marginBottom: Spacing.md,
+  },
+  permissionOptions: {
+    gap: Spacing.sm,
+  },
+  permissionOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+  },
+  permissionOptionContent: {
+    flex: 1,
+  },
+  permissionOptionLabel: {
+    marginBottom: Spacing.xs,
+  },
+  protectionOptions: {
+    gap: Spacing.sm,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    gap: Spacing.sm,
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 16,
+  },
+  expirationOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
   },
 });

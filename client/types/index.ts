@@ -77,3 +77,43 @@ export type DateGroup = {
   title: string;
   data: Photo[];
 };
+
+// Shared Albums types
+export type SharedAlbum = {
+  id: string;
+  albumId: string;
+  albumTitle: string;
+  shareToken: string;
+  permissions: "view" | "edit" | "admin";
+  expiresAt: string | null;
+  viewCount: number;
+  isActive: boolean;
+  createdAt: string;
+};
+
+export type CollaboratedAlbum = {
+  id: string;
+  sharedAlbumId: string;
+  albumId: string;
+  albumTitle: string;
+  permissions: "view" | "edit" | "admin";
+  invitedBy: string;
+  acceptedAt: string | null;
+  createdAt: string;
+};
+
+export type Collaborator = {
+  id: string;
+  userId: string;
+  username: string;
+  permissions: "view" | "edit" | "admin";
+  invitedBy: string;
+  acceptedAt: string | null;
+  createdAt: string;
+};
+
+export type ShareSettings = {
+  permissions: "view" | "edit" | "admin";
+  password?: string;
+  expiresAt?: string | null;
+};
