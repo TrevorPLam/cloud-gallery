@@ -57,6 +57,18 @@ export default function PartnerSharingScreen() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteMessage, setInviteMessage] = useState("");
   const [selectedPartnership, setSelectedPartnership] = useState<string | null>(null);
+  const [autoShareRules, setAutoShareRules] = useState<any[]>([]);
+  const [showCreateRuleForm, setShowCreateRuleForm] = useState(false);
+  const [newRule, setNewRule] = useState({
+    name: "",
+    ruleType: "all_photos" as const,
+    criteria: {
+      favoritesOnly: false,
+      excludeTags: [],
+      minQuality: 50,
+    },
+    priority: 0,
+  });
 
   // ═══════════════════════════════════════════════════════════
   // FETCH PARTNER SHARING DATA (React Query)
@@ -86,6 +98,19 @@ export default function PartnerSharingScreen() {
       const response = await apiRequest("/api/partner-sharing/stats");
       return response.data as PartnerSharingStats;
     },
+  });
+
+  const {
+    data: rulesData,
+    refetch: refetchRules,
+  } = useQuery({
+    queryKey: ["partner-sharing", "rules", selectedPartnership],
+    queryFn: async () => {
+      if (!selectedPartnership) return { rules: [] };
+      const response = await apiRequest(`/api/partner-sharing/rules/${selectedPartnership}`);
+      return response.data as { rules: any[] };
+    },
+    enabled: !!selectedPartnership,
   });
 
   // ═══════════════════════════════════════════════════════════
@@ -145,6 +170,82 @@ export default function PartnerSharingScreen() {
     },
   });
 
+  const createRuleMutation = useMutation({
+    mutationFn: async (rule: any) => {
+      const response = await apiRequest("/api/partner-sharing/rules", {
+        method: "POST",
+        body: JSON.stringify(rule),
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowCreateRuleForm(false);
+      setNewRule({
+        name: "",
+        ruleType: "all_photos",
+        criteria: {
+          favoritesOnly: false,
+          excludeTags: [],
+          minQuality: 50,
+        },
+        priority: 0,
+      });
+      refetchRules();
+      Alert.alert("Success", "Auto-share rule created successfully.");
+    },
+    onError: (error: any) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert(
+        "Error",
+        error.response?.data?.error || "Failed to create rule",
+      );
+    },
+  });
+
+  const updateRuleMutation = useMutation({
+    mutationFn: async ({ ruleId, updates }: { ruleId: string; updates: any }) => {
+      const response = await apiRequest(`/api/partner-sharing/rules/${ruleId}`, {
+        method: "PUT",
+        body: JSON.stringify(updates),
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      refetchRules();
+      Alert.alert("Success", "Auto-share rule updated successfully.");
+    },
+    onError: (error: any) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert(
+        "Error",
+        error.response?.data?.error || "Failed to update rule",
+      );
+    },
+  });
+
+  const deleteRuleMutation = useMutation({
+    mutationFn: async (ruleId: string) => {
+      const response = await apiRequest(`/api/partner-sharing/rules/${ruleId}`, {
+        method: "DELETE",
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      refetchRules();
+      Alert.alert("Success", "Auto-share rule deleted successfully.");
+    },
+    onError: (error: any) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert(
+        "Error",
+        error.response?.data?.error || "Failed to delete rule",
+      );
+    },
+  });
+
   // ═══════════════════════════════════════════════════════════
   // EVENT HANDLERS
   // ═══════════════════════════════════════════════════════════
@@ -190,6 +291,44 @@ export default function PartnerSharingScreen() {
   const handleManageRules = (partnership: PartnerRelationship) => {
     setSelectedPartnership(partnership.id);
     setShowRuleModal(true);
+    refetchRules();
+  };
+
+  const handleCreateRule = () => {
+    if (!newRule.name.trim()) {
+      Alert.alert("Error", "Please enter a rule name");
+      return;
+    }
+
+    createRuleMutation.mutate({
+      partnershipId: selectedPartnership,
+      name: newRule.name,
+      ruleType: newRule.ruleType,
+      criteria: newRule.criteria,
+      priority: newRule.priority,
+    });
+  };
+
+  const handleToggleRule = (rule: any) => {
+    updateRuleMutation.mutate({
+      ruleId: rule.id,
+      updates: { isActive: !rule.isActive },
+    });
+  };
+
+  const handleDeleteRule = (rule: any) => {
+    Alert.alert(
+      "Delete Rule",
+      `Are you sure you want to delete "${rule.name}"?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          onPress: () => deleteRuleMutation.mutate(rule.id),
+          style: "destructive",
+        },
+      ]
+    );
   };
 
   // ═══════════════════════════════════════════════════════════
@@ -445,6 +584,153 @@ export default function PartnerSharingScreen() {
           </Card>
         </View>
       )}
+
+      {/* Rule Management Modal */}
+      {showRuleModal && (
+        <View style={styles.modalOverlay}>
+          <Card style={styles.modal}>
+            <ThemedText style={styles.modalTitle}>Auto-Share Rules</ThemedText>
+            <ThemedText style={styles.modalSubtitle}>
+              Manage automatic photo sharing rules
+            </ThemedText>
+
+            {/* Existing Rules */}
+            {rulesData?.rules && rulesData.rules.length > 0 && (
+              <View style={styles.rulesList}>
+                {rulesData.rules.map((rule) => (
+                  <View key={rule.id} style={styles.ruleItem}>
+                    <View style={styles.ruleHeader}>
+                      <ThemedText style={styles.ruleName}>{rule.name}</ThemedText>
+                      <View style={styles.ruleToggle}>
+                        <Button
+                          variant={rule.isActive ? "primary" : "outline"}
+                          size="small"
+                          onPress={() => handleToggleRule(rule)}
+                          style={styles.toggleButton}
+                        >
+                          <ThemedText style={styles.toggleText}>
+                            {rule.isActive ? "Active" : "Inactive"}
+                          </ThemedText>
+                        </Button>
+                      </View>
+                    </View>
+                    <ThemedText style={styles.ruleType}>
+                      Type: {rule.ruleType.replace("_", " ")}
+                    </ThemedText>
+                    <ThemedText style={styles.ruleCreator}>
+                      Created by {rule.createdBy}
+                    </ThemedText>
+                    <Button
+                      variant="outline"
+                      size="small"
+                      onPress={() => handleDeleteRule(rule)}
+                      style={styles.deleteButton}
+                    >
+                      <Feather name="trash-2" size={14} color={theme.error} />
+                      <ThemedText style={[styles.deleteText, { color: theme.error }]}>
+                        Delete
+                      </ThemedText>
+                    </Button>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Create New Rule */}
+            <View style={styles.createRuleSection}>
+              <ThemedText style={styles.sectionTitle}>Create New Rule</ThemedText>
+              
+              {!showCreateRuleForm ? (
+                <Button
+                  variant="outline"
+                  onPress={() => setShowCreateRuleForm(true)}
+                  style={styles.createRuleButton}
+                >
+                  <Feather name="plus" size={16} color={theme.primary} />
+                  <ThemedText style={styles.createRuleText}>
+                    Create New Rule
+                  </ThemedText>
+                </Button>
+              ) : (
+                <View style={styles.createRuleForm}>
+                  <TextInput
+                    style={[styles.input, { color: theme.text, borderColor: theme.border }]}
+                    placeholder="Rule name"
+                    placeholderTextColor={theme.textSecondary}
+                    value={newRule.name}
+                    onChangeText={(text) => setNewRule({ ...newRule, name: text })}
+                  />
+
+                  <View style={styles.ruleTypeSelector}>
+                    <ThemedText style={styles.label}>Rule Type:</ThemedText>
+                    <View style={styles.ruleTypeButtons}>
+                      {["all_photos", "favorites_only", "date_range", "people"].map((type) => (
+                        <Button
+                          key={type}
+                          variant={newRule.ruleType === type ? "primary" : "outline"}
+                          size="small"
+                          onPress={() => setNewRule({ ...newRule, ruleType: type as any })}
+                          style={styles.ruleTypeButton}
+                        >
+                          <ThemedText style={styles.ruleTypeButtonText}>
+                            {type.replace("_", " ")}
+                          </ThemedText>
+                        </Button>
+                      ))}
+                    </View>
+                  </View>
+
+                  <View style={styles.modalActions}>
+                    <Button
+                      variant="outline"
+                      onPress={() => {
+                        setShowCreateRuleForm(false);
+                        setNewRule({
+                          name: "",
+                          ruleType: "all_photos",
+                          criteria: {
+                            favoritesOnly: false,
+                            excludeTags: [],
+                            minQuality: 50,
+                          },
+                          priority: 0,
+                        });
+                      }}
+                      style={styles.modalButton}
+                    >
+                      <ThemedText>Cancel</ThemedText>
+                    </Button>
+                    <Button
+                      onPress={handleCreateRule}
+                      disabled={createRuleMutation.isPending}
+                      style={styles.modalButton}
+                    >
+                      <ThemedText>
+                        {createRuleMutation.isPending ? "Creating..." : "Create"}
+                      </ThemedText>
+                    </Button>
+                  </View>
+                </View>
+              )}
+            </View>
+
+            {/* Close Modal */}
+            <View style={styles.modalActions}>
+              <Button
+                variant="outline"
+                onPress={() => {
+                  setShowRuleModal(false);
+                  setShowCreateRuleForm(false);
+                  setSelectedPartnership(null);
+                }}
+                style={styles.modalButton}
+              >
+                <ThemedText>Close</ThemedText>
+              </Button>
+            </View>
+          </Card>
+        </View>
+      )}
     </View>
   );
 }
@@ -624,5 +910,95 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     flex: 1,
+  },
+  // Rule Management Styles
+  rulesList: {
+    maxHeight: 200,
+    marginBottom: Spacing.lg,
+  },
+  ruleItem: {
+    backgroundColor: "#f8f9fa",
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+    borderRadius: BorderRadius.md,
+  },
+  ruleHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: Spacing.xs,
+  },
+  ruleName: {
+    fontSize: 16,
+    fontWeight: "600",
+    flex: 1,
+  },
+  ruleToggle: {
+    marginLeft: Spacing.sm,
+  },
+  toggleButton: {
+    paddingHorizontal: Spacing.sm,
+  },
+  toggleText: {
+    fontSize: 12,
+  },
+  ruleType: {
+    fontSize: 14,
+    opacity: 0.7,
+    marginBottom: Spacing.xs,
+  },
+  ruleCreator: {
+    fontSize: 12,
+    opacity: 0.6,
+    marginBottom: Spacing.sm,
+  },
+  deleteButton: {
+    alignSelf: "flex-start",
+    paddingHorizontal: Spacing.sm,
+  },
+  deleteText: {
+    fontSize: 12,
+    marginLeft: Spacing.xs,
+  },
+  createRuleSection: {
+    borderTopWidth: 1,
+    borderTopColor: "#e5e5e5",
+    paddingTop: Spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: Spacing.md,
+  },
+  createRuleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: Spacing.md,
+  },
+  createRuleText: {
+    fontSize: 14,
+    marginLeft: Spacing.sm,
+  },
+  createRuleForm: {
+    gap: Spacing.md,
+  },
+  ruleTypeSelector: {
+    gap: Spacing.sm,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  ruleTypeButtons: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.xs,
+  },
+  ruleTypeButton: {
+    paddingHorizontal: Spacing.sm,
+  },
+  ruleTypeButtonText: {
+    fontSize: 12,
   },
 });

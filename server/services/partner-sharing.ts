@@ -18,10 +18,6 @@ import {
   photos,
   faces,
   people,
-  insertPartnerRelationshipSchema,
-  insertPartnerInvitationSchema,
-  insertPartnerAutoShareRuleSchema,
-  insertPartnerSharedPhotoSchema,
 } from "../../shared/schema";
 import { eq, and, isNull, isNotNull, desc, lt, gt, or, inArray, sql } from "drizzle-orm";
 import { hash, verify } from "argon2";
@@ -830,6 +826,329 @@ export class PartnerSharingService {
       })),
       hasMore: offset + sharedPhotos.length < totalCount,
       totalCount,
+    };
+  }
+
+  /**
+   * Update privacy settings for a partnership
+   */
+  async updatePrivacySettings(
+    partnershipId: string,
+    userId: string,
+    privacySettings: PrivacySettings,
+  ): Promise<{ success: boolean }> {
+    // Verify user is part of this partnership
+    const partnership = await db
+      .select()
+      .from(partnerRelationships)
+      .where(
+        and(
+          eq(partnerRelationships.id, partnershipId),
+          or(
+            eq(partnerRelationships.userId, userId),
+            eq(partnerRelationships.partnerId, userId),
+          ),
+        ),
+      )
+      .limit(1);
+
+    if (partnership.length === 0) {
+      throw new Error("Partnership not found or access denied");
+    }
+
+    // Update privacy settings
+    await db
+      .update(partnerRelationships)
+      .set({
+        privacySettings,
+        updatedAt: new Date(),
+      })
+      .where(eq(partnerRelationships.id, partnershipId));
+
+    return { success: true };
+  }
+
+  /**
+   * Get auto-share rules for a partnership
+   */
+  async getAutoShareRules(
+    partnershipId: string,
+    userId: string,
+  ): Promise<{
+    id: string;
+    name: string;
+    ruleType: AutoShareRuleType;
+    criteria: AutoShareCriteria;
+    priority: number;
+    isActive: boolean;
+    createdAt: Date;
+    createdBy: string;
+  }[]> {
+    // Verify user is part of this partnership
+    const partnership = await db
+      .select()
+      .from(partnerRelationships)
+      .where(
+        and(
+          eq(partnerRelationships.id, partnershipId),
+          or(
+            eq(partnerRelationships.userId, userId),
+            eq(partnerRelationships.partnerId, userId),
+          ),
+        ),
+      )
+      .limit(1);
+
+    if (partnership.length === 0) {
+      throw new Error("Partnership not found or access denied");
+    }
+
+    // Get rules for this partnership
+    const rules = await db
+      .select({
+        rule: partnerAutoShareRules,
+        creatorUsername: users.username,
+      })
+      .from(partnerAutoShareRules)
+      .innerJoin(users, eq(partnerAutoShareRules.userId, users.id))
+      .where(eq(partnerAutoShareRules.partnershipId, partnershipId))
+      .orderBy(desc(partnerAutoShareRules.priority), desc(partnerAutoShareRules.createdAt));
+
+    return rules.map(({ rule, creatorUsername }) => ({
+      id: rule.id,
+      name: rule.name,
+      ruleType: rule.ruleType as AutoShareRuleType,
+      criteria: rule.criteria as AutoShareCriteria,
+      priority: rule.priority,
+      isActive: rule.isActive,
+      createdAt: rule.createdAt,
+      createdBy: creatorUsername,
+    }));
+  }
+
+  /**
+   * Update an auto-share rule
+   */
+  async updateAutoShareRule(
+    ruleId: string,
+    userId: string,
+    updates: {
+      name?: string;
+      criteria?: AutoShareCriteria;
+      priority?: number;
+      isActive?: boolean;
+    },
+  ): Promise<{ success: boolean }> {
+    // Verify user owns this rule
+    const rule = await db
+      .select()
+      .from(partnerAutoShareRules)
+      .where(
+        and(
+          eq(partnerAutoShareRules.id, ruleId),
+          eq(partnerAutoShareRules.userId, userId),
+        ),
+      )
+      .limit(1);
+
+    if (rule.length === 0) {
+      throw new Error("Rule not found or access denied");
+    }
+
+    // Update the rule
+    await db
+      .update(partnerAutoShareRules)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(partnerAutoShareRules.id, ruleId));
+
+    return { success: true };
+  }
+
+  /**
+   * Delete an auto-share rule
+   */
+  async deleteAutoShareRule(ruleId: string, userId: string): Promise<{ success: boolean }> {
+    // Verify user owns this rule
+    const rule = await db
+      .select()
+      .from(partnerAutoShareRules)
+      .where(
+        and(
+          eq(partnerAutoShareRules.id, ruleId),
+          eq(partnerAutoShareRules.userId, userId),
+        ),
+      )
+      .limit(1);
+
+    if (rule.length === 0) {
+      throw new Error("Rule not found or access denied");
+    }
+
+    // Delete the rule
+    await db
+      .delete(partnerAutoShareRules)
+      .where(eq(partnerAutoShareRules.id, ruleId));
+
+    return { success: true };
+  }
+
+  /**
+   * End a partnership
+   */
+  async endPartnership(partnershipId: string, userId: string): Promise<{ success: boolean }> {
+    // Verify user is part of this partnership
+    const partnership = await db
+      .select()
+      .from(partnerRelationships)
+      .where(
+        and(
+          eq(partnerRelationships.id, partnershipId),
+          or(
+            eq(partnerRelationships.userId, userId),
+            eq(partnerRelationships.partnerId, userId),
+          ),
+        ),
+      )
+      .limit(1);
+
+    if (partnership.length === 0) {
+      throw new Error("Partnership not found or access denied");
+    }
+
+    // Update partnership status
+    await db
+      .update(partnerRelationships)
+      .set({
+        status: PartnershipStatus.REVOKED,
+        isActive: false,
+        updatedAt: new Date(),
+      })
+      .where(eq(partnerRelationships.id, partnershipId));
+
+    return { success: true };
+  }
+
+  /**
+   * Save a shared photo to partner's library
+   */
+  async saveSharedPhoto(
+    photoId: string,
+    partnershipId: string,
+    userId: string,
+  ): Promise<{ success: boolean }> {
+    // Verify user is part of this partnership
+    const partnership = await db
+      .select()
+      .from(partnerRelationships)
+      .where(
+        and(
+          eq(partnerRelationships.id, partnershipId),
+          or(
+            eq(partnerRelationships.userId, userId),
+            eq(partnerRelationships.partnerId, userId),
+          ),
+        ),
+      )
+      .limit(1);
+
+    if (partnership.length === 0) {
+      throw new Error("Partnership not found or access denied");
+    }
+
+    // Find the shared photo record
+    const sharedPhoto = await db
+      .select()
+      .from(partnerSharedPhotos)
+      .where(
+        and(
+          eq(partnerSharedPhotos.photoId, photoId),
+          eq(partnerSharedPhotos.partnershipId, partnershipId),
+        ),
+      )
+      .limit(1);
+
+    if (sharedPhoto.length === 0) {
+      throw new Error("Shared photo not found");
+    }
+
+    // Mark as saved by partner
+    await db
+      .update(partnerSharedPhotos)
+      .set({
+        isSavedByPartner: true,
+        savedAt: new Date(),
+      })
+      .where(eq(partnerSharedPhotos.id, sharedPhoto[0].id));
+
+    return { success: true };
+  }
+
+  /**
+   * Get partner sharing statistics
+   */
+  async getPartnerSharingStats(userId: string): Promise<{
+    activePartnerships: number;
+    pendingInvitations: number;
+    sharedPhotos: number;
+    autoShareRules: number;
+  }> {
+    // Get active partnerships count
+    const activePartnershipsResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(partnerRelationships)
+      .where(
+        and(
+          eq(partnerRelationships.userId, userId),
+          eq(partnerRelationships.isActive, true),
+          eq(partnerRelationships.status, PartnershipStatus.ACCEPTED),
+        ),
+      );
+
+    // Get pending invitations count
+    const pendingInvitationsResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(partnerInvitations)
+      .where(
+        and(
+          eq(partnerInvitations.inviterId, userId),
+          eq(partnerInvitations.status, InvitationStatus.PENDING),
+          gt(partnerInvitations.expiresAt, new Date()),
+        ),
+      );
+
+    // Get shared photos count
+    const sharedPhotosResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(partnerSharedPhotos)
+      .innerJoin(
+        partnerRelationships,
+        eq(partnerSharedPhotos.partnershipId, partnerRelationships.id),
+      )
+      .where(eq(partnerRelationships.userId, userId));
+
+    // Get auto-share rules count
+    const autoShareRulesResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(partnerAutoShareRules)
+      .innerJoin(
+        partnerRelationships,
+        eq(partnerAutoShareRules.partnershipId, partnerRelationships.id),
+      )
+      .where(
+        and(
+          eq(partnerRelationships.userId, userId),
+          eq(partnerAutoShareRules.isActive, true),
+        ),
+      );
+
+    return {
+      activePartnerships: Number(activePartnershipsResult[0]?.count || 0),
+      pendingInvitations: Number(pendingInvitationsResult[0]?.count || 0),
+      sharedPhotos: Number(sharedPhotosResult[0]?.count || 0),
+      autoShareRules: Number(autoShareRulesResult[0]?.count || 0),
     };
   }
 }

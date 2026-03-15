@@ -45,7 +45,7 @@ vi.mock("argon2", () => ({
   ),
 }));
 
-describe("SharingService Tests", () => {
+describe("SharingService", () => {
   let sharingService: SharingService;
 
   beforeEach(() => {
@@ -66,20 +66,41 @@ describe("SharingService Tests", () => {
   it("should generate tokens with consistent length", async () => {
     // Mock basic database responses
     const mockDbSelect = vi.fn().mockReturnThis();
+    const mockDbFrom = vi.fn().mockReturnThis();
+    const mockDbWhere = vi.fn().mockReturnThis();
     const mockDbLimit = vi.fn().mockReturnThis();
-    const mockDbInsert = vi.fn().mockResolvedValue([
-      {
-        id: "share-1",
-        shareToken: "mock-token",
-        permissions: Permission.VIEW,
-        expiresAt: null,
-      },
-    ]);
+    const mockDbInsert = vi.fn().mockReturnThis();
+    const mockDbValues = vi.fn().mockReturnThis();
+    const mockDbReturning = vi.fn().mockReturnThis();
+    
+    // Set up the mock chain for album lookup
+    mockDbSelect.from.mockReturnValue(mockDbFrom);
+    mockDbFrom.where.mockReturnValue(mockDbWhere);
+    mockDbWhere.limit.mockReturnValue(mockDbLimit);
+    
+    // Set up the mock chain for insert
+    mockDbInsert.values.mockReturnValue(mockDbValues);
+    mockDbValues.returning.mockReturnValue(mockDbReturning);
+    
+    // Mock the album lookup
+    mockDbLimit.mockResolvedValue([{ id: "album-1", userId: "user-1" }]);
+    
+    // Mock the insert operation
+    mockDbReturning.mockResolvedValue([{
+      id: "share-1",
+      shareToken: "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+      albumId: "album-1",
+      permissions: Permission.VIEW,
+      expiresAt: null,
+      passwordHash: null,
+      isActive: true,
+      viewCount: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }]);
 
     const { db } = await import("../db");
     (db.select as any).mockReturnValue(mockDbSelect);
-    mockDbSelect.limit.mockReturnValue(mockDbLimit);
-    mockDbLimit.mockResolvedValue([{ id: "album-1", userId: "user-1" }]);
     (db.insert as any).mockReturnValue(mockDbInsert);
 
     const result = await sharingService.createShare({
@@ -96,16 +117,21 @@ describe("SharingService Tests", () => {
 
   it("should validate share token format", async () => {
     const invalidToken = "invalid-token";
-
     const mockDbSelect = vi.fn().mockReturnThis();
+    const mockDbFrom = vi.fn().mockReturnThis();
     const mockDbWhere = vi.fn().mockReturnThis();
     const mockDbLimit = vi.fn().mockReturnThis();
 
+    // Set up the mock chain
+    mockDbSelect.from.mockReturnValue(mockDbFrom);
+    mockDbFrom.where.mockReturnValue(mockDbWhere);
+    mockDbWhere.limit.mockReturnValue(mockDbLimit);
+
+    // Mock token not found
+    mockDbLimit.mockResolvedValue([]);
+
     const { db } = await import("../db");
     (db.select as any).mockReturnValue(mockDbSelect);
-    mockDbSelect.where.mockReturnValue(mockDbWhere);
-    mockDbWhere.limit.mockReturnValue(mockDbLimit);
-    mockDbLimit.mockResolvedValue([]); // Token not found
 
     const validation = await sharingService.validateShareToken(invalidToken);
 
@@ -115,22 +141,42 @@ describe("SharingService Tests", () => {
   });
 
   it("should handle password hashing", async () => {
-    // Mock basic database responses
     const mockDbSelect = vi.fn().mockReturnThis();
+    const mockDbFrom = vi.fn().mockReturnThis();
+    const mockDbWhere = vi.fn().mockReturnThis();
     const mockDbLimit = vi.fn().mockReturnThis();
-    const mockDbInsert = vi.fn().mockResolvedValue([
-      {
-        id: "share-1",
-        shareToken: "mock-token",
-        permissions: Permission.VIEW,
-        expiresAt: null,
-      },
-    ]);
+    const mockDbInsert = vi.fn().mockReturnThis();
+    const mockDbValues = vi.fn().mockReturnThis();
+    const mockDbReturning = vi.fn().mockReturnThis();
+    
+    // Set up the mock chain for album lookup
+    mockDbSelect.from.mockReturnValue(mockDbFrom);
+    mockDbFrom.where.mockReturnValue(mockDbWhere);
+    mockDbWhere.limit.mockReturnValue(mockDbLimit);
+    
+    // Set up the mock chain for insert
+    mockDbInsert.values.mockReturnValue(mockDbValues);
+    mockDbValues.returning.mockReturnValue(mockDbReturning);
+    
+    // Mock the album lookup
+    mockDbLimit.mockResolvedValue([{ id: "album-1", userId: "user-1" }]);
+    
+    // Mock the insert operation with password
+    mockDbReturning.mockResolvedValue([{
+      id: "share-1",
+      shareToken: "protected-token-hash",
+      albumId: "album-1",
+      permissions: Permission.VIEW,
+      expiresAt: null,
+      passwordHash: "hashed_testpassword123",
+      isActive: true,
+      viewCount: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }]);
 
     const { db } = await import("../db");
     (db.select as any).mockReturnValue(mockDbSelect);
-    mockDbSelect.limit.mockReturnValue(mockDbLimit);
-    mockDbLimit.mockResolvedValue([{ id: "album-1", userId: "user-1" }]);
     (db.insert as any).mockReturnValue(mockDbInsert);
 
     const result = await sharingService.createShare({

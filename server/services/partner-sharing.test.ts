@@ -8,9 +8,39 @@
 // TESTS: Property tests for invitation tokens, privacy enforcement, auto-share rule evaluation
 // AI-META-END
 
+// Mock the database import - must be before other imports due to hoisting
+vi.mock("../db", () => ({
+  db: {
+    select: vi.fn(() => ({
+      from: vi.fn(() => ({
+        where: vi.fn(() => ({
+          limit: vi.fn(() => []),
+        })),
+        innerJoin: vi.fn(() => ({
+          where: vi.fn(() => ({
+            orderBy: vi.fn(() => []),
+          })),
+        })),
+        count: vi.fn(() => []),
+      })),
+      insert: vi.fn(() => ({
+        values: vi.fn(() => []),
+      })),
+      update: vi.fn(() => ({
+        set: vi.fn(() => ({
+          where: vi.fn(() => []),
+        })),
+      })),
+      delete: vi.fn(() => ({
+        where: vi.fn(() => []),
+      })),
+    }),
+  },
+}));
+
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { fc } from "fast-check";
-import { PartnerSharingService, AutoShareRuleType } from "../partner-sharing";
+import { PartnerSharingService, AutoShareRuleType } from "./partner-sharing";
 import { db } from "../db";
 import {
   partnerRelationships,
@@ -21,18 +51,8 @@ import {
   photos,
 } from "../../shared/schema";
 
-// Mock database for testing
-const mockDb = {
-  select: vi.fn(),
-  insert: vi.fn(),
-  update: vi.fn(),
-  delete: vi.fn(),
-} as any;
-
-// Mock the database import
-vi.mock("../db", () => ({
-  db: mockDb,
-}));
+// Get the mocked database
+const mockDb = vi.mocked(db) as any;
 
 describe("PartnerSharingService - Property Tests", () => {
   let service: PartnerSharingService;
@@ -434,5 +454,315 @@ describe("PartnerSharingService - Property Tests", () => {
     // Property: Invitation expiration should be reasonable
     expect(defaultConfig.defaultInvitationExpirationDays).toBeGreaterThan(0);
     expect(defaultConfig.defaultInvitationExpirationDays).toBeLessThanOrEqual(30);
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // PROPERTY 11: Privacy Settings Management
+  // ═══════════════════════════════════════════════════════════
+
+  it("should update privacy settings for valid partnership", async () => {
+    const partnershipId = "partnership-123";
+    const userId = "user-123";
+    const privacySettings = {
+      includeOtherApps: true,
+      minQuality: 75,
+      excludeTags: ["private"],
+      favoritesOnly: false,
+    };
+
+    // Mock partnership lookup
+    mockDb.select.mockReturnValue([
+      {
+        where: vi.fn().mockReturnValue([
+          {
+            limit: vi.fn().mockReturnValue([{ id: partnershipId }]),
+          },
+        ]),
+      },
+    ]);
+
+    // Mock update
+    mockDb.update.mockReturnValue([
+      {
+        set: vi.fn().mockReturnValue([
+          {
+            where: vi.fn().mockReturnValue([{ success: true }]),
+          },
+        ]),
+      },
+    ]);
+
+    const result = await partnerSharingService.updatePrivacySettings(
+      partnershipId,
+      userId,
+      privacySettings,
+    );
+
+    expect(result.success).toBe(true);
+    expect(mockDb.update).toHaveBeenCalled();
+  });
+
+  it("should reject privacy settings update for invalid partnership", async () => {
+    const partnershipId = "invalid-partnership";
+    const userId = "user-123";
+    const privacySettings = {
+      includeOtherApps: true,
+      minQuality: 75,
+      excludeTags: ["private"],
+      favoritesOnly: false,
+    };
+
+    // Mock no partnership found
+    mockDb.select.mockReturnValue([
+      {
+        where: vi.fn().mockReturnValue([
+          {
+            limit: vi.fn().mockReturnValue([]), // No results
+          },
+        ]),
+      },
+    ]);
+
+    await expect(
+      partnerSharingService.updatePrivacySettings(partnershipId, userId, privacySettings)
+    ).rejects.toThrow("Partnership not found or access denied");
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // PROPERTY 12: Auto-Share Rule Management
+  // ═══════════════════════════════════════════════════════════
+
+  it("should get auto-share rules for valid partnership", async () => {
+    const partnershipId = "partnership-123";
+    const userId = "user-123";
+
+    // Mock partnership lookup
+    mockDb.select.mockReturnValue([
+      {
+        where: vi.fn().mockReturnValue([
+          {
+            limit: vi.fn().mockReturnValue([{ id: partnershipId }]),
+          },
+        ]),
+      },
+    ]);
+
+    // Mock rules with user join
+    mockDb.select.mockReturnValue([
+      {
+        innerJoin: vi.fn().mockReturnValue([
+          {
+            where: vi.fn().mockReturnValue([
+              {
+                orderBy: vi.fn().mockReturnValue([
+                  {
+                    id: "rule-1",
+                    name: "Test Rule",
+                    ruleType: "all_photos",
+                    criteria: { favoritesOnly: false },
+                    priority: 0,
+                    isActive: true,
+                    createdAt: new Date(),
+                    creatorUsername: "testuser",
+                  },
+                ]),
+              },
+            ]),
+          },
+        ]),
+      },
+    ]);
+
+    const rules = await service.getAutoShareRules(partnershipId, userId);
+
+    expect(rules).toHaveLength(1);
+    expect(rules[0].name).toBe("Test Rule");
+    expect(rules[0].createdBy).toBe("testuser");
+  });
+
+  it("should update auto-share rule for valid owner", async () => {
+    const ruleId = "rule-123";
+    const userId = "user-123";
+    const updates = {
+      name: "Updated Rule",
+      isActive: false,
+    };
+
+    // Mock rule ownership verification
+    mockDb.select.mockReturnValue([
+      {
+        where: vi.fn().mockReturnValue([
+          {
+            limit: vi.fn().mockReturnValue([{ id: ruleId, userId }]),
+          },
+        ]),
+      },
+    ]);
+
+    // Mock update
+    mockDb.update.mockReturnValue([
+      {
+        set: vi.fn().mockReturnValue([
+          {
+            where: vi.fn().mockReturnValue([{ success: true }]),
+          },
+        ]),
+      },
+    ]);
+
+    const result = await service.updateAutoShareRule(ruleId, userId, updates);
+
+    expect(result.success).toBe(true);
+    expect(mockDb.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        set: expect.objectContaining(updates),
+      })
+    );
+  });
+
+  it("should delete auto-share rule for valid owner", async () => {
+    const ruleId = "rule-123";
+    const userId = "user-123";
+
+    // Mock rule ownership verification
+    mockDb.select.mockReturnValue([
+      {
+        where: vi.fn().mockReturnValue([
+          {
+            limit: vi.fn().mockReturnValue([{ id: ruleId, userId }]),
+          },
+        ]),
+      },
+    ]);
+
+    // Mock delete
+    mockDb.delete.mockReturnValue([
+      {
+        where: vi.fn().mockReturnValue([{ success: true }]),
+      },
+    ]);
+
+    const result = await service.deleteAutoShareRule(ruleId, userId);
+
+    expect(result.success).toBe(true);
+    expect(mockDb.delete).toHaveBeenCalled();
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // PROPERTY 13: Partnership Management
+  // ═══════════════════════════════════════════════════════════
+
+  it("should end partnership for valid participant", async () => {
+    const partnershipId = "partnership-123";
+    const userId = "user-123";
+
+    // Mock partnership lookup
+    mockDb.select.mockReturnValue([
+      {
+        where: vi.fn().mockReturnValue([
+          {
+            limit: vi.fn().mockReturnValue([{ id: partnershipId }]),
+          },
+        ]),
+      },
+    ]);
+
+    // Mock update
+    mockDb.update.mockReturnValue([
+      {
+        set: vi.fn().mockReturnValue([
+          {
+            where: vi.fn().mockReturnValue([{ success: true }]),
+          },
+        ]),
+      },
+    ]);
+
+    const result = await service.endPartnership(partnershipId, userId);
+
+    expect(result.success).toBe(true);
+    expect(mockDb.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        set: expect.objectContaining({
+          status: "revoked",
+          isActive: false,
+        }),
+      })
+    );
+  });
+
+  it("should save shared photo for valid partnership", async () => {
+    const photoId = "photo-123";
+    const partnershipId = "partnership-123";
+    const userId = "user-123";
+
+    // Mock partnership lookup
+    mockDb.select.mockReturnValue([
+      {
+        where: vi.fn().mockReturnValue([
+          {
+            limit: vi.fn().mockReturnValue([{ id: partnershipId }]),
+          },
+        ]),
+      },
+    ]);
+
+    // Mock shared photo lookup
+    mockDb.select.mockReturnValue([
+      {
+        where: vi.fn().mockReturnValue([
+          {
+            limit: vi.fn().mockReturnValue([{ id: "shared-123" }]),
+          },
+        ]),
+      },
+    ]);
+
+    // Mock update
+    mockDb.update.mockReturnValue([
+      {
+        set: vi.fn().mockReturnValue([
+          {
+            where: vi.fn().mockReturnValue([{ success: true }]),
+          },
+        ]),
+      },
+    ]);
+
+    const result = await service.saveSharedPhoto(photoId, partnershipId, userId);
+
+    expect(result.success).toBe(true);
+    expect(mockDb.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        set: expect.objectContaining({
+          isSavedByPartner: true,
+        }),
+      })
+    );
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // PROPERTY 14: Statistics Accuracy
+  // ═══════════════════════════════════════════════════════════
+
+  it("should return accurate partner sharing statistics", async () => {
+    const userId = "user-123";
+
+    // Mock count queries
+    mockDb.select.mockReturnValue([
+      { count: 2 }, // Active partnerships
+      { count: 1 }, // Pending invitations
+      { count: 50 }, // Shared photos
+      { count: 3 }, // Auto-share rules
+    ]);
+
+    const stats = await service.getPartnerSharingStats(userId);
+
+    expect(stats).toEqual({
+      activePartnerships: 2,
+      pendingInvitations: 1,
+      sharedPhotos: 50,
+      autoShareRules: 3,
+    });
   });
 });

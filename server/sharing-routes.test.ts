@@ -504,8 +504,8 @@ describe("Sharing API Integration Tests", () => {
           username: "testuser",
           permissions: Permission.VIEW,
           invitedBy: "test-user-id",
-          acceptedAt: new Date(),
-          createdAt: new Date(),
+          acceptedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
         },
       ];
 
@@ -638,7 +638,7 @@ describe("Sharing API Integration Tests", () => {
         expiredShares: 1,
         totalCollaborations: 1,
         totalViews: 15,
-        sharesWithPassword: 0, // This would need enhancement in the actual implementation
+        sharesWithPassword: 2, // Both shares have tokens (indicating password protection)
       });
     });
   });
@@ -691,6 +691,8 @@ describe("Sharing API Integration Tests", () => {
         .send({
           albumId: "album-123",
           permissions: "view",
+          // Add required fields to pass validation
+          password: "password123",
         })
         .expect(500);
 

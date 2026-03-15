@@ -13,8 +13,6 @@ import { z } from "zod";
 import { authenticateToken } from "./middleware";
 import { partnerSharingService, PartnershipStatus, InvitationStatus, AutoShareRuleType } from "../services/partner-sharing";
 import { 
-  insertPartnerInvitationSchema, 
-  insertPartnerAutoShareRuleSchema,
   selectPartnerRelationshipSchema,
   selectPartnerInvitationSchema,
   selectPartnerAutoShareRuleSchema,
@@ -208,8 +206,12 @@ router.put("/partnerships/:id/privacy", async (req, res) => {
     const partnershipId = req.params.id;
     const validatedData = updatePrivacySettingsSchema.parse(req.body);
 
-    // This would require extending the PartnerSharingService
-    // For now, we'll return a placeholder response
+    const result = await partnerSharingService.updatePrivacySettings(
+      partnershipId,
+      userId,
+      validatedData.privacySettings,
+    );
+
     res.json({
       success: true,
       message: "Privacy settings updated",
@@ -225,6 +227,15 @@ router.put("/partnerships/:id/privacy", async (req, res) => {
         error: "Validation failed",
         details: error.errors,
       });
+    }
+
+    if (error instanceof Error) {
+      if (error.message.includes("not found") || error.message.includes("access denied")) {
+        return res.status(404).json({
+          success: false,
+          error: error.message,
+        });
+      }
     }
 
     console.error("Error updating privacy settings:", error);
@@ -244,14 +255,23 @@ router.delete("/partnerships/:id", async (req, res) => {
     const userId = req.user!.id;
     const partnershipId = req.params.id;
 
-    // This would require extending the PartnerSharingService
-    // For now, we'll return a placeholder response
+    const result = await partnerSharingService.endPartnership(partnershipId, userId);
+
     res.json({
       success: true,
       message: "Partnership ended",
       data: { partnershipId },
     });
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes("not found") || error.message.includes("access denied")) {
+        return res.status(404).json({
+          success: false,
+          error: error.message,
+        });
+      }
+    }
+
     console.error("Error ending partnership:", error);
     res.status(500).json({
       success: false,
@@ -325,16 +345,25 @@ router.get("/rules/:partnershipId", async (req, res) => {
     const userId = req.user!.id;
     const partnershipId = req.params.id;
 
-    // This would require extending the PartnerSharingService
-    // For now, we'll return a placeholder response
+    const rules = await partnerSharingService.getAutoShareRules(partnershipId, userId);
+
     res.json({
       success: true,
       data: {
         partnershipId,
-        rules: [], // Placeholder
+        rules,
       },
     });
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes("not found") || error.message.includes("access denied")) {
+        return res.status(404).json({
+          success: false,
+          error: error.message,
+        });
+      }
+    }
+
     console.error("Error getting auto-share rules:", error);
     res.status(500).json({
       success: false,
@@ -351,15 +380,38 @@ router.put("/rules/:id", async (req, res) => {
   try {
     const userId = req.user!.id;
     const ruleId = req.params.id;
+    const validatedData = createAutoShareRuleSchema.partial().parse(req.body);
 
-    // This would require extending the PartnerSharingService
-    // For now, we'll return a placeholder response
+    const result = await partnerSharingService.updateAutoShareRule(ruleId, userId, {
+      name: validatedData.name,
+      criteria: validatedData.criteria,
+      priority: validatedData.priority,
+      isActive: validatedData.isActive,
+    });
+
     res.json({
       success: true,
       message: "Auto-share rule updated",
       data: { ruleId },
     });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        error: "Validation failed",
+        details: error.errors,
+      });
+    }
+
+    if (error instanceof Error) {
+      if (error.message.includes("not found") || error.message.includes("access denied")) {
+        return res.status(404).json({
+          success: false,
+          error: error.message,
+        });
+      }
+    }
+
     console.error("Error updating auto-share rule:", error);
     res.status(500).json({
       success: false,
@@ -377,14 +429,23 @@ router.delete("/rules/:id", async (req, res) => {
     const userId = req.user!.id;
     const ruleId = req.params.id;
 
-    // This would require extending the PartnerSharingService
-    // For now, we'll return a placeholder response
+    const result = await partnerSharingService.deleteAutoShareRule(ruleId, userId);
+
     res.json({
       success: true,
       message: "Auto-share rule deleted",
       data: { ruleId },
     });
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes("not found") || error.message.includes("access denied")) {
+        return res.status(404).json({
+          success: false,
+          error: error.message,
+        });
+      }
+    }
+
     console.error("Error deleting auto-share rule:", error);
     res.status(500).json({
       success: false,
@@ -475,16 +536,32 @@ router.put("/shared-photos/:photoId/save", async (req, res) => {
   try {
     const userId = req.user!.id;
     const photoId = req.params.id;
-    const partnershipId = req.body.partnershipId;
+    const { partnershipId } = req.body;
 
-    // This would require extending the PartnerSharingService
-    // For now, we'll return a placeholder response
+    if (!partnershipId) {
+      return res.status(400).json({
+        success: false,
+        error: "Partnership ID is required",
+      });
+    }
+
+    const result = await partnerSharingService.saveSharedPhoto(photoId, partnershipId, userId);
+
     res.json({
       success: true,
       message: "Photo saved to library",
       data: { photoId, partnershipId },
     });
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes("not found") || error.message.includes("access denied")) {
+        return res.status(404).json({
+          success: false,
+          error: error.message,
+        });
+      }
+    }
+
     console.error("Error saving shared photo:", error);
     res.status(500).json({
       success: false,
@@ -505,16 +582,11 @@ router.get("/stats", async (req, res) => {
   try {
     const userId = req.user!.id;
 
-    // This would require extending the PartnerSharingService
-    // For now, we'll return a placeholder response
+    const stats = await partnerSharingService.getPartnerSharingStats(userId);
+
     res.json({
       success: true,
-      data: {
-        activePartnerships: 0,
-        pendingInvitations: 0,
-        sharedPhotos: 0,
-        autoShareRules: 0,
-      },
+      data: stats,
     });
   } catch (error) {
     console.error("Error getting partner sharing stats:", error);

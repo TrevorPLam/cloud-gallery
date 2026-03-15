@@ -419,7 +419,7 @@ describe("Partner Sharing API - Integration Tests", () => {
           where: vi.fn().mockReturnValue([
             {
               limit: vi.fn().mockReturnValue([]), // No partnership
-            }),
+            },
           ]),
         },
       ]);
@@ -528,7 +528,7 @@ describe("Partner Sharing API - Integration Tests", () => {
           where: vi.fn().mockReturnValue([
             {
               limit: vi.fn().mockReturnValue([]), // No partnership
-            }),
+            },
           ]),
         },
       ]);
