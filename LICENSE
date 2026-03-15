@@ -1,0 +1,380 @@
+MIT License
+
+Copyright (c) 2026 Cloud Gallery
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## Third-Party Licenses
+
+Cloud Gallery uses the following open-source software:
+
+### React Native
+- **License**: MIT
+- **Copyright**: Facebook, Inc.
+- **Website**: https://reactnative.dev/
+
+### Expo
+- **License**: MIT
+- **Copyright**: Expo Technologies Inc.
+- **Website**: https://expo.dev/
+
+### Express.js
+- **License**: MIT
+- **Copyright**: StrongLoop, Inc.
+- **Website**: https://expressjs.com/
+
+### Drizzle ORM
+- **License**: Apache License 2.0
+- **Copyright**: Drizzle Team
+- **Website**: https://orm.drizzle.team/
+
+### PostgreSQL
+- **License**: PostgreSQL License
+- **Copyright**: PostgreSQL Global Development Group
+- **Website**: https://www.postgresql.org/
+
+### TypeScript
+- **License**: Apache License 2.0
+- **Copyright**: Microsoft Corporation
+- **Website**: https://www.typescriptlang.org/
+
+### Vitest
+- **License**: MIT
+- **Copyright**: Vitest Contributors
+- **Website**: https://vitest.dev/
+
+### Zod
+- **License**: MIT
+- **Copyright**: Colin McDonnell
+- **Website**: https://zod.dev/
+
+### Argon2
+- **License**: CC0 1.0 Universal
+- **Copyright**: The Argon2 authors
+- **Website**: https://github.com/P-H-C/phc-winner-argon2
+
+### JSON Web Token (JWT)
+- **License**: MIT
+- **Copyright**: JSON Web Token (JWT) authors
+- **Website**: https://github.com/auth0/node-jsonwebtoken
+
+### Multer
+- **License**: MIT
+- **Copyright**: Hage Yaapa
+- **Website**: https://github.com/expressjs/multer
+
+### Crypto-JS
+- **License**: MIT
+- **Copyright**: Jeff Mott
+- **Website**: https://github.com/brix/crypto-js
+
+### React Query (TanStack Query)
+- **License**: MIT
+- **Copyright**: Tanner Linsley
+- **Website**: https://tanstack.com/query/latest
+
+### React Navigation
+- **License**: MIT
+- **Copyright**: React Navigation Contributors
+- **Website**: https://reactnavigation.org/
+
+### React Native Reanimated
+- **License**: MIT
+- **Copyright**: Software Mansion
+- **Website**: https://docs.swmansion.com/react-native-reanimated/
+
+### React Native Maps
+- **License**: MIT
+- **Copyright**: React Native Maps Contributors
+- **Website**: https://github.com/react-native-maps/react-native-maps
+
+### React Native Image Picker
+- **License**: MIT
+- **Copyright**: Expo Team
+- **Website**: https://docs.expo.dev/versions/latest/sdk/imagepicker/
+
+### React Native Safe Area Context
+- **License**: MIT
+- **Copyright**: React Native Safe Area Context Contributors
+- **Website**: https://github.com/th3rdwave/react-native-safe-area-context
+
+### React Native Screens
+- **License**: MIT
+- **Copyright**: Software Mansion
+- **Website**: https://github.com/software-mansion/react-native-screens
+
+### React Native SVG
+- **License**: MIT
+- **Copyright**: React Native SVG Contributors
+- **Website**: https://github.com/react-native-svg/react-native-svg
+
+### AsyncStorage
+- **License**: MIT
+- **Copyright**: Expo Team
+- **Website**: https://docs.expo.dev/versions/latest/sdk/asyncstorage/
+
+### Expo Image Manipulator
+- **License**: MIT
+- **Copyright**: Expo Team
+- **Website**: https://docs.expo.dev/versions/latest/sdk/imagemanipulator/
+
+### Expo Media Library
+- **License**: MIT
+- **Copyright**: Expo Team
+- **Website**: https://docs.expo.dev/versions/latest/sdk/medialibrary/
+
+### Expo Sharing
+- **License**: MIT
+- **Copyright**: Expo Team
+- **Website**: https://docs.expo.dev/versions/latest/sdk/sharing/
+
+### Expo Location
+- **License**: MIT
+- **Copyright**: Expo Team
+- **Website**: https://docs.expo.dev/versions/latest/sdk/location/
+
+### Expo Web Browser
+- **License**: MIT
+- **Copyright**: Expo Team
+- **Website**: https://docs.expo.dev/versions/latest/sdk/webbrowser/
+
+### Expo Constants
+- **License**: MIT
+- **Copyright**: Expo Team
+- **Website**: https://docs.expo.dev/versions/latest/sdk/constants/
+
+### Expo Status Bar
+- **License**: MIT
+- **Copyright**: Expo Team
+- **Website**: https://docs.expo.dev/versions/latest/sdk/status-bar/
+
+### Expo Font
+- **License**: MIT
+- **Copyright**: Expo Team
+- **Website**: https://docs.expo.dev/versions/latest/sdk/font/
+
+### Expo Blur
+- **License**: MIT
+- **Copyright**: Expo Team
+- **Website**: https://docs.expo.dev/versions/latest/sdk/blur/
+
+### Expo Haptics
+- **License**: MIT
+- **Copyright**: Expo Team
+- **Website**: https://docs.expo.dev/versions/latest/sdk/haptics/
+
+### Expo Symbols
+- **License**: MIT
+- **Copyright**: Expo Team
+- **Website**: https://docs.expo.dev/versions/latest/sdk/symbols/
+
+### Expo System UI
+- **License**: MIT
+- **Copyright**: Expo Team
+- **Website**: https://docs.expo.dev/versions/latest/sdk/systemui/
+
+### @expo-google-fonts/nunito
+- **License**: MIT
+- **Copyright**: Expo Team
+- **Website**: https://github.com/expo/google-fonts
+
+### @shopify/flash-list
+- **License**: MIT
+- **Copyright**: Shopify
+- **Website**: https://github.com/Shopify/flash-list
+
+### React Native Gesture Handler
+- **License**: MIT
+- **Copyright**: Software Mansion
+- **Website**: https://docs.swmansion.com/react-native-gesture-handler/
+
+### React Native Keyboard Controller
+- **License**: MIT
+- **Copyright**: Kirill Zonov
+- **Website**: https://kirillzyus.github.io/react-native-keyboard-controller/
+
+### React Native Worklets
+- **License**: MIT
+- **Copyright**: Software Mansion
+- **Website**: https://github.com/software-mansion/react-native-worklets/
+
+### Winston (Logging)
+- **License**: MIT
+- **Copyright**: Charlie Robbins
+- **Website**: https://github.com/winstonjs/winston
+
+### Helmet (Security Headers)
+- **License**: MIT
+- **Copyright**: Evan Hahn
+- **Website**: https://github.com/helmetjs/helmet
+
+### CORS
+- **License**: MIT
+- **Copyright**: Troy Goode
+- **Website**: https://github.com/expressjs/cors
+
+### Express Rate Limit
+- **License**: MIT
+- **Copyright**: Nathan Friedly
+- **Website**: https://github.com/nfriedly/express-rate-limit
+
+### HTTP Proxy Middleware
+- **License**: MIT
+- **Copyright**: Steven Chim
+- **Website**: https://github.com/chimurai/http-proxy-middleware/
+
+### File Type
+- **License**: MIT
+- **Copyright**: Sindre Sorhus
+- **Website**: https://github.com/sindresorhus/file-type
+
+### WS (WebSocket)
+- **License**: MIT
+- **Copyright**: Einar Otto Stangvik
+- **Website**: https://github.com/websockets/ws
+
+### Dotenv
+- **License**: BSD-2-Clause
+- **Copyright**: Scott Motte
+- **Website**: https://github.com/motdotla/dotenv
+
+### Cross-env
+- **License**: MIT
+- **Copyright**: Kent C. Dodds
+- **Website**: https://github.com/kentcdodds/cross-env
+
+### TSX (TypeScript Execute)
+- **License**: MIT
+- **Copyright**: esbuild contributors
+- **Website**: https://github.com/esbuild-kit/tsx
+
+### Drizzle Kit
+- **License**: Apache License 2.0
+- **Copyright**: Drizzle Team
+- **Website**: https://orm.drizzle.team/kit-docs/overview
+
+### ESLint
+- **License**: MIT
+- **Copyright**: ESLint Contributors
+- **Website**: https://eslint.org/
+
+### Prettier
+- **License**: MIT
+- **Copyright**: James Long
+- **Website**: https://prettier.io/
+
+### Husky
+- **License**: MIT
+- **Copyright**: Typicode
+- **Website**: https://github.com/typicode/husky
+
+### Lint-staged
+- **License**: MIT
+- **Copyright**: Andrey Okonetchnikov
+- **Website**: https://github.com/okonet/lint-staged
+
+### @testing-library/react
+- **License**: MIT
+- **Copyright**: Testing Library Contributors
+- **Website**: https://testing-library.com/docs/react-testing-library/intro/
+
+### Happy DOM
+- **License**: MIT
+- **Copyright**: Capricorn
+- **Website**: https://github.com/capricorn86/happy-dom/
+
+### Supertest
+- **License**: MIT
+- **Copyright**: TJ Holowaychuk
+- **Website**: https://github.com/visionmedia/supertest
+
+### Fast Check (Property-based Testing)
+- **License**: MIT
+- **Copyright**: Nicolas Dular
+- **Website**: https://github.com/dubzzz/fast-check
+
+### @cyclonedx/cyclonedx-npm (SBOM Generation)
+- **License**: Apache License 2.0
+- **Copyright**: CycloneDX
+- **Website**: https://github.com/CycloneDX/cyclonedx-npm
+
+---
+
+## License Compliance
+
+Cloud Gallery is designed to be license-compliant:
+
+### ✅ Commercial Use
+- All dependencies allow commercial use
+- No GPL or restrictive licenses
+- MIT and Apache 2.0 friendly licenses
+
+### ✅ Modification
+- All dependencies allow modification
+- Source code availability maintained
+- Attribution requirements followed
+
+### ✅ Distribution
+- All dependencies allow distribution
+- License notices included
+- No additional restrictions
+
+### ✅ Patent Rights
+- MIT and Apache 2.0 provide patent grants
+- No patent retaliation clauses
+- Freedom from patent litigation
+
+---
+
+## License Verification
+
+This license information is current as of March 14, 2026.
+
+For the most up-to-date license information:
+- Check `npm ls --json` for current dependency versions
+- Review individual package license files
+- Use tools like `license-checker` for automated verification
+
+### Automated License Check
+```bash
+# Check all licenses
+npx license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;CC0-1.0'
+
+# Generate license report
+npx license-checker --csv > licenses.csv
+
+# Check for GPL dependencies
+npx license-checker --excludePrivatePackages
+```
+
+---
+
+## Questions About Licensing
+
+For questions about licensing:
+- 📧 Legal: legal@cloudgallery.com
+- 📖 Review individual dependency licenses
+- 🔍 Use automated tools for verification
+- ⚖️ Consult legal counsel for specific use cases
+
+---
+
+*This license file is part of Cloud Gallery and was last updated on March 14, 2026.*
