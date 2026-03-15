@@ -1,0 +1,1 @@
+ = Get-Content 'client/screens/SmartAlbumsScreen.tsx' -Raw;  =  -replace 'keyExtractor\(\[type\]\) => type}', 'keyExtractor={([type]) => type}'; Out-File -FilePath 'client/screens/SmartAlbumsScreen.tsx' -InputObject 

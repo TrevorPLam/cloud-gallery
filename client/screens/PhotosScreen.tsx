@@ -32,6 +32,7 @@ import { PhotoGrid } from "@/components/PhotoGrid";
 import { FloatingActionButton } from "@/components/FloatingActionButton";
 import { EmptyState } from "@/components/EmptyState";
 import { SkeletonLoader } from "@/components/SkeletonLoader";
+import { MemoriesBanner } from "@/components/MemoriesBanner";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
@@ -231,6 +232,10 @@ export default function PhotosScreen() {
     });
   };
 
+  const handleMemoryPress = (memory: any) => {
+    navigation.navigate("MemoryDetailScreen", { memoryId: memory.id });
+  };
+
   const groupedData = groupPhotosByDate(photos);
 
   return (
@@ -262,27 +267,30 @@ export default function PhotosScreen() {
           </Pressable>
         </View>
       ) : (
-        <PhotoGrid
-          photos={photos}
-          groupedData={groupedData}
-          onPhotoPress={handlePhotoPress}
-          showSectionHeaders={true}
-          contentContainerStyle={{
-            paddingTop: headerHeight + Spacing.xl,
-            paddingBottom: tabBarHeight + Spacing.fabSize + Spacing["3xl"],
-            paddingHorizontal: Spacing.lg,
-          }}
-          scrollIndicatorInsets={{ bottom: insets.bottom }}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <EmptyState
-                image={require("../../assets/images/empty-photos.png")}
-                title="No photos yet"
-                subtitle="Tap the + button to upload your first photo"
-              />
-            </View>
-          }
-        />
+        <>
+          <MemoriesBanner onPress={handleMemoryPress} />
+          <PhotoGrid
+            photos={photos}
+            groupedData={groupedData}
+            onPhotoPress={handlePhotoPress}
+            showSectionHeaders={true}
+            contentContainerStyle={{
+              paddingTop: Spacing.md, // Reduced since banner is at top
+              paddingBottom: tabBarHeight + Spacing.fabSize + Spacing["3xl"],
+              paddingHorizontal: Spacing.lg,
+            }}
+            scrollIndicatorInsets={{ bottom: insets.bottom }}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <EmptyState
+                  image={require("../../assets/images/empty-photos.png")}
+                  title="No photos yet"
+                  subtitle="Tap the + button to upload your first photo"
+                />
+              </View>
+            }
+          />
+        </>
       )}
       <FloatingActionButton onPress={handleUpload} icon="plus" />
     </View>
