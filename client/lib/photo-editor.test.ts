@@ -23,15 +23,9 @@ import {
 } from './photo-editor';
 
 // Mock expo-image-manipulator for testing
+const mockManipulateAsync = vi.fn();
 vi.mock('expo-image-manipulator', () => ({
-  manipulateAsync: vi.fn((uri, actions, options) => {
-    // Mock implementation that returns a new URI
-    return Promise.resolve({
-      uri: `${uri}_edited_${Date.now()}`,
-      width: 1000,
-      height: 1000,
-    });
-  }),
+  manipulateAsync: mockManipulateAsync,
   SaveFormat: {
     JPEG: 'jpeg',
     PNG: 'png',
@@ -208,6 +202,7 @@ describe('PhotoEditor - Property Tests', () => {
             
             // Property: history size should remain constant during undo
             expect(testEditor.getHistory().length).toBe(commandCount);
+            // Property: history index should match expected index
             expect(testEditor.getHistoryIndex()).toBe(expectedHistorySize);
           }
         }
@@ -629,7 +624,7 @@ describe('PhotoEditor - Unit Tests', () => {
   describe('Utility Functions', () => {
     it('should get filter presets', () => {
       const presets = editor.getFilterPresets();
-      expect(presets).toBe(FILTER_PRESETS);
+      expect(presets).toStrictEqual(FILTER_PRESETS);
       expect(presets).toHaveLength(16); // Should have 16 presets including original
     });
 

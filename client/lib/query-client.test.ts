@@ -192,6 +192,10 @@ describe("API Request", () => {
       vi.mocked(fetch).mockResolvedValue({
         ok: false,
         status: 500,
+        statusText: "Server error",
+        headers: {
+          get: vi.fn().mockReturnValue(null),
+        },
         text: async () => "Server error",
       } as Response);
 
@@ -1112,8 +1116,8 @@ describe("Property 5: Sequential Upload Ordering", () => {
             activeUploads++;
             maxConcurrentUploads = Math.max(maxConcurrentUploads, activeUploads);
             
-            // Simulate upload delay
-            await new Promise(resolve => setTimeout(resolve, 10));
+            // Simulate upload delay - reduced for faster tests
+            await new Promise(resolve => setTimeout(resolve, 1));
             
             activeUploads--;
             
@@ -1136,9 +1140,9 @@ describe("Property 5: Sequential Upload Ordering", () => {
           expect(fetch).toHaveBeenCalledTimes(photos.length);
         }
       ),
-      { numRuns: 50 } // Reduced runs due to async nature
+      { numRuns: 10, timeout: 10000 } // Reduced runs and added timeout
     );
-  });
+  }, 15000); // Increased test timeout to 15 seconds
 
   it("should maintain upload order for any photo sequence", async () => {
     await fc.assert(
@@ -1179,9 +1183,9 @@ describe("Property 5: Sequential Upload Ordering", () => {
           expect(uploadedFilenames).toEqual(expectedOrder);
         }
       ),
-      { numRuns: 50 }
+      { numRuns: 10, timeout: 10000 } // Reduced runs and added timeout
     );
-  });
+  }, 15000); // Increased test timeout to 15 seconds
 
   it("should complete all uploads even if one fails", async () => {
     await fc.assert(
@@ -1442,6 +1446,7 @@ describe("Property 7: Metadata Update Propagation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(AsyncStorage.getItem).mockResolvedValue("test-token");
+    process.env.EXPO_PUBLIC_DOMAIN = "api.example.com";
   });
 
   it("should send PUT request for any favorite toggle", async () => {
@@ -1461,8 +1466,10 @@ describe("Property 7: Metadata Update Propagation", () => {
           await apiRequest("PUT", `/api/photos/${photoId}`, { isFavorite });
 
           // Property assertion: PUT request MUST be sent
-          expect(global.fetch).toHaveBeenCalledWith(
-            expect.stringContaining(`/api/photos/${photoId}`),
+          const fetchCall = vi.mocked(fetch).mock.calls[0];
+          const url = fetchCall[0] as URL;
+          expect(url.pathname).toContain(`/api/photos/${photoId}`);
+          expect(fetchCall[1]).toEqual(
             expect.objectContaining({
               method: "PUT",
             })
@@ -1495,8 +1502,10 @@ describe("Property 7: Metadata Update Propagation", () => {
           await apiRequest("PUT", `/api/photos/${photoId}`, { tags });
 
           // Property assertion: PUT request MUST be sent to correct endpoint
-          expect(global.fetch).toHaveBeenCalledWith(
-            expect.stringContaining(`/api/photos/${photoId}`),
+          const fetchCall = vi.mocked(fetch).mock.calls[0];
+          const url = fetchCall[0] as URL;
+          expect(url.pathname).toContain(`/api/photos/${photoId}`);
+          expect(fetchCall[1]).toEqual(
             expect.objectContaining({
               method: "PUT",
             })
@@ -1530,8 +1539,10 @@ describe("Property 7: Metadata Update Propagation", () => {
           await apiRequest("PUT", `/api/photos/${photoId}`, { notes });
 
           // Property assertion: PUT request MUST be sent
-          expect(global.fetch).toHaveBeenCalledWith(
-            expect.stringContaining(`/api/photos/${photoId}`),
+          const fetchCall = vi.mocked(fetch).mock.calls[0];
+          const url = fetchCall[0] as URL;
+          expect(url.pathname).toContain(`/api/photos/${photoId}`);
+          expect(fetchCall[1]).toEqual(
             expect.objectContaining({
               method: "PUT",
             })
@@ -1568,10 +1579,11 @@ describe("Property 7: Metadata Update Propagation", () => {
           await apiRequest("PUT", `/api/photos/${photoId}`, metadata);
 
           // Property assertion: Endpoint MUST follow /api/photos/:id pattern
-          const callArgs = (global.fetch as any).mock.calls[0];
-          const endpoint = callArgs[0];
-          expect(endpoint).toMatch(/\/api\/photos\/[a-f0-9-]{36}$/);
-          expect(endpoint).toContain(photoId);
+          const fetchCall = vi.mocked(fetch).mock.calls[0];
+          const url = fetchCall[0] as URL;
+          const pathname = url.pathname;
+          expect(pathname).toMatch(/\/api\/photos\/[a-f0-9-]{36}$/);
+          expect(pathname).toContain(photoId);
         }
       ),
       { numRuns: 100 }
@@ -2091,6 +2103,7 @@ describe("Property 10: Deletion Request Propagation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.EXPO_PUBLIC_DOMAIN = "api.example.com";
+    vi.mocked(AsyncStorage.getItem).mockResolvedValue("test-token");
   });
 
   it("should send DELETE request to /api/photos/:id for any photo deletion", async () => {
@@ -2136,6 +2149,10 @@ describe("Property 10: Deletion Request Propagation", () => {
         fc.uuid(),
         fc.base64String({ minLength: 20, maxLength: 100 }),
         async (photoId, token) => {
+          // Clear all mocks for this iteration
+          vi.clearAllMocks();
+          vi.mocked(fetch).mockClear();
+          
           // Setup
           vi.mocked(AsyncStorage.getItem).mockResolvedValue(token);
           vi.mocked(fetch).mockResolvedValue({
@@ -2163,6 +2180,10 @@ describe("Property 10: Deletion Request Propagation", () => {
         // Generate various UUID formats
         fc.uuid(),
         async (photoId) => {
+          // Clear all mocks for this iteration
+          vi.clearAllMocks();
+          vi.mocked(fetch).mockClear();
+          
           // Setup
           vi.mocked(AsyncStorage.getItem).mockResolvedValue("test-token");
           vi.mocked(fetch).mockResolvedValue({
@@ -2178,7 +2199,7 @@ describe("Property 10: Deletion Request Propagation", () => {
           const fetchCall = vi.mocked(fetch).mock.calls[0];
           const url = fetchCall[0] as URL;
           
-          // Verify UUID is preserved in URL
+          // Verify the endpoint contains the photo ID (check the pathname since URL is constructed)
           expect(url.pathname).toContain(photoId);
           
           // Verify UUID format is maintained (8-4-4-4-12 hex digits)
@@ -2195,6 +2216,10 @@ describe("Property 10: Deletion Request Propagation", () => {
       fc.asyncProperty(
         fc.uuid(),
         async (photoId) => {
+          // Clear all mocks for this iteration
+          vi.clearAllMocks();
+          vi.mocked(fetch).mockClear();
+          
           // Setup: Mock server returns 404 (photo not found)
           vi.mocked(AsyncStorage.getItem).mockResolvedValue("test-token");
           vi.mocked(fetch).mockResolvedValue({

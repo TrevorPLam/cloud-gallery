@@ -8,7 +8,7 @@
 // TESTS: npm run test:watch for development, npm run test:coverage for validation
 // AI-META-END
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   calculateHammingDistance,
   calculateQualityMetrics,
@@ -18,6 +18,38 @@ import {
   updateDuplicateGroups,
   DuplicateDetectionConfig,
 } from './duplicate-detection';
+
+// Mock the database to prevent connection errors
+vi.mock('../db', () => ({
+  db: {
+    select: vi.fn().mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockReturnValue({
+            limit: vi.fn().mockReturnValue(Promise.resolve([])),
+          }),
+        }),
+      }),
+    }),
+    insert: vi.fn().mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockReturnValue(Promise.resolve([{ id: 'test-id' }])),
+      }),
+    }),
+    update: vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          execute: vi.fn().mockResolvedValue(undefined),
+        }),
+      }),
+    }),
+    delete: vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        execute: vi.fn().mockResolvedValue(undefined),
+      }),
+    }),
+  },
+}));
 
 describe('Duplicate Detection Service - Unit Tests', () => {
   describe('calculateHammingDistance', () => {
@@ -216,6 +248,17 @@ describe('Duplicate Detection Service - Unit Tests', () => {
   });
 
   describe('findDuplicatePhotos - Integration Tests', () => {
+    beforeEach(() => {
+      // Setup mock database to return empty results
+      mockDb.select.mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            orderBy: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      });
+    });
+
     it('should handle empty photo sets gracefully', async () => {
       const result = await findDuplicatePhotos('nonexistent-user');
       expect(Array.isArray(result)).toBe(true);
@@ -236,6 +279,24 @@ describe('Duplicate Detection Service - Unit Tests', () => {
   });
 
   describe('resolveDuplicateGroups - Integration Tests', () => {
+    beforeEach(() => {
+      // Setup mock database for resolve operations
+      mockDb.select.mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            orderBy: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      });
+      mockDb.update.mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      });
+    });
+
     it('should handle empty resolution arrays', async () => {
       const result = await resolveDuplicateGroups('test-user', []);
       expect(result.resolved).toBe(0);
@@ -278,6 +339,24 @@ describe('Duplicate Detection Service - Unit Tests', () => {
   });
 
   describe('updateDuplicateGroups - Integration Tests', () => {
+    beforeEach(() => {
+      // Setup mock database for update operations
+      mockDb.select.mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            orderBy: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      });
+      mockDb.update.mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      });
+    });
+
     it('should handle non-existent photos gracefully', async () => {
       // Should not throw error for non-existent photos
       await expect(updateDuplicateGroups('test-user', 'nonexistent-photo')).resolves.not.toThrow();

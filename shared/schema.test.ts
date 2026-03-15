@@ -27,9 +27,9 @@ describe("users table schema", () => {
 
   it("should have correct column types", () => {
     const columns = users;
-    expect(columns.id.dataType).toBe("string");
-    expect(columns.username.dataType).toBe("string");
-    expect(columns.password.dataType).toBe("string");
+    expect(columns.id.columnType).toBe("PgVarchar");
+    expect(columns.username.columnType).toBe("PgText");
+    expect(columns.password.columnType).toBe("PgText");
   });
 });
 
@@ -373,9 +373,9 @@ describe("New table schemas", () => {
     });
 
     it("should have correct column types", () => {
-      expect(faces.embedding.dataType).toBe("array");
-      expect(faces.boundingBox.dataType).toBe("json");
-      expect(faces.confidence.dataType).toBe("number");
+      expect(faces.embedding.columnType).toBe("PgVector");
+      expect(faces.boundingBox.columnType).toBe("PgJsonb");
+      expect(faces.confidence.columnType).toBe("PgReal");
     });
   });
 

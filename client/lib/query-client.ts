@@ -153,7 +153,7 @@ async function throwIfResNotOk(res: Response) {
     
     if (res.status >= 500) {
       console.error('Server error:', res.status, errorData);
-      throw new ServerError(errorData.message || 'Server error. Please try again later.');
+      throw new ServerError(`${res.status}: ${errorData.message || 'Server error'}`);
     }
     
     // Generic API error

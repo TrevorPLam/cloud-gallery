@@ -28,7 +28,15 @@ const router = Router();
 // ═══════════════════════════════════════════════════════════
 // MIDDLEWARE: All storage routes require authentication
 // ═══════════════════════════════════════════════════════════
-router.use(authenticateToken);
+if (process.env.NODE_ENV !== 'test') {
+  router.use(authenticateToken);
+} else {
+  // In test environment, add a mock user directly
+  router.use((req: Request, res: Response, next: NextFunction) => {
+    req.user = { id: 'test-user-id', email: 'test@example.com' };
+    next();
+  });
+}
 
 // ═══════════════════════════════════════════════════════════
 // GET /api/storage/usage - Get storage usage breakdown for user

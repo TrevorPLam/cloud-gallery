@@ -42,6 +42,26 @@ vi.mock("./auth", () => ({
   generalRateLimit: vi.fn((req, res, next) => next()),
 }));
 
+// Mock captcha functions
+vi.mock("./auth-captcha-routes", () => ({
+  checkCaptchaRequirement: vi.fn((req, res, next) => next()),
+  verifyCaptchaMiddleware: vi.fn((req, res, next) => next()),
+  recordAuthFailure: vi.fn(),
+  recordAuthSuccess: vi.fn(),
+}));
+
+// Mock audit functions
+vi.mock("./audit", () => ({
+  logAuthEvent: vi.fn(),
+  logSecurityEvent: vi.fn(),
+  AuditEventType: {
+    LOGIN_SUCCESS: "LOGIN_SUCCESS",
+    LOGIN_FAILURE: "LOGIN_FAILURE",
+    REGISTER_SUCCESS: "REGISTER_SUCCESS",
+    REGISTER_FAILURE: "REGISTER_FAILURE",
+  },
+}));
+
 // Mock the database
 const { mockDb, mockUser } = vi.hoisted(() => {
   const mockUser = {

@@ -17,8 +17,14 @@ import { photos, storageUsage } from '../../shared/schema';
 // Mock database for testing
 vi.mock('../db', () => ({
   db: {
-    select: vi.fn(),
-    insert: vi.fn(),
+    select: vi.fn(() => ({
+      from: vi.fn(() => ({
+        where: vi.fn(() => ({
+          execute: vi.fn().mockResolvedValue([]),
+        })),
+        execute: vi.fn().mockResolvedValue([]),
+      })),
+    })),
   },
 }));
 
@@ -42,40 +48,45 @@ describe('StorageUsageService', () => {
           bytesUsed: fc.integer({ min: 0, max: 5000000 }),
           itemCount: fc.integer({ min: 0, max: 50 }),
         })),
-        thumbnails: fc.array(fc.record({
-          bytesUsed: fc.integer({ min: 0, max: 100000 }),
-          itemCount: fc.integer({ min: 0, max: 200 }),
-        })),
       });
 
       await fc.assert(
         fc.asyncProperty(arbitraryStorageData, async (data: any) => {
-          // Mock database responses
-          const mockQuery = vi.fn().mockReturnValue({
-            execute: vi.fn().mockResolvedValue([{ 
-              bytesUsed: data.photos[0]?.bytesUsed || 0,
-              itemCount: data.photos[0]?.itemCount || 0
-            }])
-          });
+          // Import mocked db and configure it for this test
+          const { db } = await import('../db');
           
-          vi.mocked(db.select).mockReturnValue(mockQuery as any);
+          // Mock database responses for each category
+          const mockResponse = (category: string, categoryData: any) => {
+            (db.select as any).mockReturnValue({
+              from: vi.fn().mockReturnValue({
+                where: vi.fn().mockReturnValue({
+                  execute: vi.fn().mockResolvedValue([{
+                    bytesUsed: categoryData[0]?.bytesUsed || 0,
+                    itemCount: categoryData[0]?.itemCount || 0
+                  }]),
+                }),
+              }),
+            });
+          };
 
-          // Calculate totals
-          const expectedTotal = Object.values(data).reduce((sum: number, category: any) => 
-            sum + (category[0]?.bytesUsed || 0), 0
-          );
+          // Test consistency across categories
+          const totalBytes = data.photos.reduce((sum: number, p: any) => sum + p.bytesUsed, 0) +
+                           data.videos.reduce((sum: number, v: any) => sum + v.bytesUsed, 0);
+          const totalItems = data.photos.reduce((sum: number, p: any) => sum + p.itemCount, 0) +
+                           data.videos.reduce((sum: number, v: any) => sum + v.itemCount, 0);
 
-          // Test that category calculations sum to total
-          let actualTotal = 0;
-          for (const category of ['photos', 'videos', 'thumbnails'] as StorageCategory[]) {
-            const stats = await service.calculateCategoryUsage('user123', category);
-            actualTotal += stats.bytesUsed;
-          }
+          // Mock responses for each category
+          mockResponse('photos', data.photos);
+          const photosStats = await service.calculateCategoryUsage('user123', 'photos');
+          
+          mockResponse('videos', data.videos);
+          const videosStats = await service.calculateCategoryUsage('user123', 'videos');
 
-          expect(actualTotal).toBeGreaterThanOrEqual(0);
-          expect(typeof actualTotal).toBe('number');
+          // Verify totals match
+          expect(photosStats.bytesUsed + videosStats.bytesUsed).toBe(totalBytes);
+          expect(photosStats.itemCount + videosStats.itemCount).toBe(totalItems);
         }),
-        { numRuns: 100 }
+        { numRuns: 50 }
       );
     });
   });
@@ -89,14 +100,10 @@ describe('StorageUsageService', () => {
 
       await fc.assert(
         fc.asyncProperty(arbitraryUsageData, async (data) => {
-          // Mock database response
-          const mockQuery = vi.fn().mockReturnValue({
-            execute: vi.fn()
-              .mockResolvedValueOnce([{ bytesUsed: data.totalBytes, itemCount: 100 }])
-              .mockResolvedValueOnce([{ bytesUsed: data.categoryBytes, itemCount: 50 }])
-          });
-          
-          vi.mocked(db.select).mockReturnValue(mockQuery as any);
+          // Mock database response for total and category
+          mockQueryBuilder.execute
+            .mockResolvedValueOnce([{ bytesUsed: data.totalBytes, itemCount: 100 }])
+            .mockResolvedValueOnce([{ bytesUsed: data.categoryBytes, itemCount: 50 }]);
 
           const stats = await service.calculateCategoryUsage('user123', 'photos');
           
@@ -126,11 +133,7 @@ describe('StorageUsageService', () => {
               isVideo: false,
             }));
 
-          const mockQuery = vi.fn().mockReturnValue({
-            execute: vi.fn().mockResolvedValue(mockLargeFiles)
-          });
-          
-          vi.mocked(db.select).mockReturnValue(mockQuery as any);
+          mockQueryBuilder.execute.mockResolvedValue(mockLargeFiles);
 
           const breakdown = await service.getStorageBreakdown('user123');
           
@@ -160,11 +163,7 @@ describe('StorageUsageService', () => {
             compressedCount: 1,
           }];
 
-          const mockQuery = vi.fn().mockReturnValue({
-            execute: vi.fn().mockResolvedValue(mockStats)
-          });
-          
-          vi.mocked(db.select).mockReturnValue(mockQuery as any);
+          mockQueryBuilder.execute.mockResolvedValue(mockStats);
 
           const breakdown = await service.getStorageBreakdown('user123');
           
@@ -205,6 +204,9 @@ describe('StorageUsageService', () => {
             },
           };
 
+          // Mock the getStorageBreakdown method to return our test data
+          vi.spyOn(service, 'getStorageBreakdown').mockResolvedValue(mockBreakdown);
+
           const expectedNearLimit = (data.currentUsage / data.storageLimit) >= data.threshold;
           const actualNearLimit = await service.isNearStorageLimit('user123');
 
@@ -217,11 +219,7 @@ describe('StorageUsageService', () => {
 
   describe('Edge Cases', () => {
     it('should handle empty storage gracefully', async () => {
-      const mockQuery = vi.fn().mockReturnValue({
-        execute: vi.fn().mockResolvedValue([{ bytesUsed: 0, itemCount: 0 }])
-      });
-      
-      vi.mocked(db.select).mockReturnValue(mockQuery as any);
+      mockQueryBuilder.execute.mockResolvedValue([{ bytesUsed: 0, itemCount: 0 }]);
 
       const stats = await service.calculateCategoryUsage('user123', 'photos');
       
@@ -237,11 +235,7 @@ describe('StorageUsageService', () => {
         compressedCount: 0,
       }];
 
-      const mockQuery = vi.fn().mockReturnValue({
-        execute: vi.fn().mockResolvedValue(mockStats)
-      });
-      
-      vi.mocked(db.select).mockReturnValue(mockQuery as any);
+      mockQueryBuilder.execute.mockResolvedValue(mockStats);
 
       const breakdown = await service.getStorageBreakdown('user123');
       

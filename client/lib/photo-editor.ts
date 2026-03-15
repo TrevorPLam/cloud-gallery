@@ -299,6 +299,22 @@ export const FILTER_PRESETS: FilterPreset[] = [
       exposure: 0.05,
     },
   },
+  {
+    id: 'fade',
+    name: 'Fade',
+    description: 'Faded vintage look with reduced contrast',
+    adjustments: {
+      brightness: 0.2,
+      contrast: -0.4,
+      saturation: -0.3,
+      vibrance: -0.2,
+      temperature: 0.2,
+      sharpness: -0.1,
+      clarity: -0.1,
+      vignette: 0.05,
+      exposure: 0.1,
+    },
+  },
 ];
 
 // Command implementations
@@ -616,11 +632,30 @@ export class PhotoEditor {
 
 // Utility functions
 export function clampValue(value: number, min: number, max: number): number {
+  // Handle NaN values by returning the min value as a safe default
+  if (Number.isNaN(value)) {
+    return min;
+  }
+  // Also handle NaN in bounds
+  if (Number.isNaN(min)) return 0;
+  if (Number.isNaN(max)) return 0;
+  
   return Math.max(min, Math.min(max, value));
 }
 
 export function adjustmentsEqual(a: ImageAdjustments, b: ImageAdjustments): boolean {
-  return Object.keys(a).every(key => a[key as keyof ImageAdjustments] === b[key as keyof ImageAdjustments]);
+  return Object.keys(a).every(key => {
+    const aVal = a[key as keyof ImageAdjustments];
+    const bVal = b[key as keyof ImageAdjustments];
+    
+    // Handle NaN values - both must be NaN to be equal
+    if (Number.isNaN(aVal) && Number.isNaN(bVal)) {
+      return true;
+    }
+    
+    // Normal equality check
+    return aVal === bVal;
+  });
 }
 
 export function createPhotoEditor(originalUri: string): PhotoEditor {

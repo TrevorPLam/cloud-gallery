@@ -260,6 +260,7 @@ describe('Property 14: Album Operation Requests', () => {
 describe('Property 15: Dual Cache Invalidation for Albums', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.EXPO_PUBLIC_DOMAIN = "api.example.com";
   });
 
   it('should invalidate both albums and photos caches after any album operation', async () => {
@@ -318,7 +319,7 @@ describe('Property 15: Dual Cache Invalidation for Albums', () => {
           result.current.mutate();
 
           // Wait for mutation to complete with longer timeout
-          await waitFor(() => expect(result.current.isSettled).toBe(true), { timeout: 10000 });
+          await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true), { timeout: 10000 });
 
           // Verify both caches were invalidated
           expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['albums'] });

@@ -34,16 +34,74 @@ const mockAlbums: any[] = [];
 const mockAlbumPhotos: any[] = [];
 const mockPhotos: any[] = [];
 
-// Mock database module with spies that we'll implement per-test
-const mockDb = {
-  select: vi.fn(),
-  insert: vi.fn(),
-  update: vi.fn(),
-  delete: vi.fn(),
-};
+// Mock jsonwebtoken to prevent JWT verification errors
+vi.mock('jsonwebtoken', () => ({
+  default: {
+    sign: vi.fn((payload, secret) => `mock_token_${JSON.stringify(payload)}`),
+    verify: vi.fn((token, secret) => {
+      // Parse the mock token to extract payload
+      if (token.startsWith('mock_token_')) {
+        return JSON.parse(token.slice(11));
+      }
+      // For specific test tokens, return corresponding users
+      if (token === "valid-token") {
+        return { id: "user123", email: "test@example.com" };
+      } else if (token === "other-user-token") {
+        return { id: "user456", email: "other@example.com" };
+      }
+      // Default user
+      return { id: "user123", email: "test@example.com" };
+    }),
+  },
+}));
 
+// Mock security module to bypass JWT verification
+vi.mock('./security', () => ({
+  verifyAccessToken: vi.fn((token) => {
+    if (token === "valid-token") {
+      return { id: "user123", email: "test@example.com" };
+    } else if (token === "other-user-token") {
+      return { id: "user456", email: "other@example.com" };
+    }
+    return { id: "user123", email: "test@example.com" };
+  }),
+  generateAccessToken: vi.fn(() => 'mock_access_token'),
+  JWT_SECRET: 'test_secret',
+}));
+
+// Mock database module with factory function to avoid hoisting issues
 vi.mock("./db", () => ({
-  db: mockDb,
+  db: {
+    select: vi.fn().mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockReturnValue(Promise.resolve([])),
+          limit: vi.fn().mockReturnValue(Promise.resolve([])),
+          execute: vi.fn().mockReturnValue(Promise.resolve([])),
+        }),
+        execute: vi.fn().mockReturnValue(Promise.resolve([])),
+      }),
+    }),
+    insert: vi.fn().mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockReturnValue(Promise.resolve([{ id: 'test-id' }])),
+        execute: vi.fn().mockReturnValue(Promise.resolve([{ id: 'test-id' }])),
+      }),
+    }),
+    update: vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          execute: vi.fn().mockResolvedValue(undefined),
+          returning: vi.fn().mockReturnValue(Promise.resolve([])),
+        }),
+      }),
+    }),
+    delete: vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        execute: vi.fn().mockResolvedValue(undefined),
+      }),
+    }),
+  },
 }));
 
 // Mock schema
@@ -76,7 +134,7 @@ vi.mock("../shared/schema", () => ({
   },
 }));
 
-// Mock authentication middleware
+// Mock authentication middleware using the new pattern
 vi.mock("./auth", () => ({
   authenticateToken: vi.fn((req, res, next) => {
     const authHeader = req.headers["authorization"];
@@ -87,6 +145,17 @@ vi.mock("./auth", () => ({
     } else if (token === "other-user-token") {
       req.user = { id: "user456", email: "other@example.com" };
       next();
+    } else if (token && token.startsWith('mock_token_')) {
+      // Parse mock token
+      try {
+        const payload = JSON.parse(token.slice(11));
+        req.user = payload;
+        next();
+      } catch {
+        return res.status(401).json({
+          error: "User not authenticated",
+        });
+      }
     } else {
       return res.status(401).json({
         error: "User not authenticated",
@@ -98,61 +167,7 @@ vi.mock("./auth", () => ({
 describe("Album Routes", () => {
   let app: express.Application;
 
-  // Helper to setup mock database behavior
-  function setupMockDb() {
-    // Mock select queries
-    mockDb.select.mockReturnValue({
-      from: vi.fn((table: any) => ({
-        where: vi.fn((condition: any) => ({
-          orderBy: vi.fn(() => Promise.resolve(mockAlbums.filter(a => !condition || a.userId === "user123"))),
-          limit: vi.fn(() => {
-            // Filter based on table type
-            if (table === mockAlbums) {
-              return Promise.resolve(mockAlbums.filter(a => !condition || (a.userId === "user123" && (!condition.id || a.id === condition.id))));
-            } else if (table === mockPhotos) {
-              return Promise.resolve(mockPhotos.filter(p => !condition || (p.userId === "user123" && (!condition.id || p.id === condition.id))));
-            }
-            return Promise.resolve([]);
-          }),
-        })),
-        orderBy: vi.fn(() => ({
-          limit: vi.fn(() => Promise.resolve(mockAlbumPhotos)),
-        })),
-      })),
-    });
-
-    // Mock insert
-    mockDb.insert.mockReturnValue({
-      values: vi.fn((data: any) => ({
-        returning: vi.fn(() => {
-          const newItem = { ...data, id: data.id || `new-${Date.now()}` };
-          if (data.title) mockAlbums.push(newItem);
-          if (data.albumId && data.photoId) mockAlbumPhotos.push(newItem);
-          return Promise.resolve([newItem]);
-        }),
-      })),
-    });
-
-    // Mock update
-    mockDb.update.mockReturnValue({
-      set: vi.fn((data: any) => ({
-        where: vi.fn(() => ({
-          returning: vi.fn(() => {
-            const album = mockAlbums.find(a => a.userId === "user123");
-            if (album) Object.assign(album, data);
-            return Promise.resolve(album ? [album] : []);
-          }),
-        })),
-      })),
-    });
-
-    // Mock delete
-    mockDb.delete.mockReturnValue({
-      where: vi.fn(() => Promise.resolve()),
-    });
-  }
-
-  beforeEach(() => {
+  beforeEach(async () => {
     // Reset mock data
     mockAlbums.length = 0;
     mockAlbumPhotos.length = 0;
@@ -163,9 +178,39 @@ describe("Album Routes", () => {
     app.use(express.json());
     app.use("/api/albums", albumRoutes);
 
-    // Reset and setup mocks
+    // Reset mocks and setup database behavior
     vi.clearAllMocks();
-    setupMockDb();
+    
+    // Import mocked db and configure it for this test run
+    const { db } = await import('./db');
+    
+    // Configure select mock to return test data
+    db.select.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockReturnValue(Promise.resolve([...mockAlbums])),
+          limit: vi.fn().mockReturnValue(Promise.resolve([...mockAlbums])),
+          execute: vi.fn().mockReturnValue(Promise.resolve([...mockAlbums])),
+        }),
+        execute: vi.fn().mockReturnValue(Promise.resolve([...mockAlbums])),
+      }),
+    });
+    
+    // Configure insert mock
+    db.insert.mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockImplementation((data) => {
+          const newItem = { ...data, id: data.id || `new-${Date.now()}` };
+          if (data.title) mockAlbums.push(newItem);
+          return Promise.resolve([newItem]);
+        }),
+        execute: vi.fn().mockImplementation((data) => {
+          const newItem = { ...data, id: data.id || `new-${Date.now()}` };
+          if (data.title) mockAlbums.push(newItem);
+          return Promise.resolve([{ id: newItem.id }]);
+        }),
+      }),
+    });
   });
 
   afterEach(() => {

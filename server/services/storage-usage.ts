@@ -251,65 +251,6 @@ export class StorageUsageService {
   }
 
   /**
-   * Build query for category-specific usage
-   */
-  private buildCategoryQuery(userId: string, category: StorageCategory) {
-    switch (category) {
-      case 'photos':
-        return db
-          .select({
-            bytesUsed: sum(photos.originalSize).mapWith(Number),
-            itemCount: count(photos.id).mapWith(Number),
-          })
-          .from(photos)
-          .where(
-            and(
-              eq(photos.userId, userId),
-              eq(photos.isVideo, false),
-              isNull(photos.deletedAt)
-            )
-          );
-
-      case 'videos':
-        return db
-          .select({
-            bytesUsed: sum(photos.originalSize).mapWith(Number),
-            itemCount: count(photos.id).mapWith(Number),
-          })
-          .from(photos)
-          .where(
-            and(
-              eq(photos.userId, userId),
-              eq(photos.isVideo, true),
-              isNull(photos.deletedAt)
-            )
-          );
-
-      case 'thumbnails':
-        // For thumbnails, estimate based on photo count
-        return db
-          .select({
-            bytesUsed: sum(photos.originalSize).mapWith(Number),
-            itemCount: count(photos.id).mapWith(Number),
-          })
-          .from(photos)
-          .where(
-            and(
-              eq(photos.userId, userId),
-              isNull(photos.deletedAt)
-            )
-          );
-
-      case 'cache':
-        // Cache is estimated as 5% of total usage
-        return this.getTotalUsageQuery(userId);
-
-      default:
-        throw new Error(`Unknown storage category: ${category}`);
-    }
-  }
-
-  /**
    * Get total usage query
    */
   private getTotalUsageQuery(userId: string) {
@@ -378,10 +319,69 @@ export class StorageUsageService {
 
     return {
       originalTotal,
-      compressedTotal,
-      compressionRatio: originalTotal > 0 ? originalTotal / compressedTotal : 1,
+      compressedTotal: compressedTotal || 0,
+      compressionRatio: originalTotal > 0 && compressedTotal > 0 ? originalTotal / compressedTotal : 1,
       compressedCount,
     };
+  }
+
+  /**
+   * Build query for category-specific usage
+   */
+  private buildCategoryQuery(userId: string, category: StorageCategory) {
+    switch (category) {
+      case 'photos':
+        return db
+          .select({
+            bytesUsed: sum(photos.originalSize).mapWith(Number),
+            itemCount: count(photos.id).mapWith(Number),
+          })
+          .from(photos)
+          .where(
+            and(
+              eq(photos.userId, userId),
+              eq(photos.isVideo, false),
+              isNull(photos.deletedAt)
+            )
+          );
+
+      case 'videos':
+        return db
+          .select({
+            bytesUsed: sum(photos.originalSize).mapWith(Number),
+            itemCount: count(photos.id).mapWith(Number),
+          })
+          .from(photos)
+          .where(
+            and(
+              eq(photos.userId, userId),
+              eq(photos.isVideo, true),
+              isNull(photos.deletedAt)
+            )
+          );
+
+      case 'thumbnails':
+        // For thumbnails, estimate based on photo count
+        return db
+          .select({
+            bytesUsed: sum(photos.originalSize).mapWith(Number),
+            itemCount: count(photos.id).mapWith(Number),
+          })
+          .from(photos)
+          .where(
+            and(
+              eq(photos.userId, userId),
+              isNull(photos.deletedAt)
+            )
+          );
+
+      case 'cache':
+        // Cache is estimated as 5% of total usage
+        return this.getTotalUsageQuery(userId);
+
+      default:
+        throw new Error(`Unknown storage category: ${category}`);
+    }
   }
 }
 

@@ -1,6 +1,6 @@
 // Backup encryption tests for Cloud Gallery
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   createEncryptedBackup,
   restoreFromEncryptedBackup,
@@ -9,6 +9,24 @@ import {
 } from "./backup-encryption";
 import { existsSync, unlinkSync } from "fs";
 import { join } from "path";
+
+// Mock the encrypted-storage module to avoid database dependency
+vi.mock('./encrypted-storage', () => ({
+  db: {
+    select: vi.fn().mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue(Promise.resolve([])),
+      }),
+    }),
+  },
+  users: {
+    id: 'id',
+    username: 'username',
+    email: 'email',
+    password: 'password',
+    createdAt: 'createdAt',
+  },
+}));
 
 describe("Backup Encryption", () => {
   const testBackupDir = "./test-backups";

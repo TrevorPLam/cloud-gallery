@@ -12,32 +12,68 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 import storageRoutes from './storage-routes';
-import { authenticateToken } from './auth';
 
-// Mock dependencies
-vi.mock('./auth', () => ({
-  authenticateToken: (req: any, res: any, next: any) => {
-    req.user = { id: 'test-user-id' };
-    next();
+// Mock dependencies with proper mock methods using factory pattern
+vi.mock('./services/storage-usage', () => ({
+  storageUsageService: {
+    getStorageBreakdown: vi.fn().mockResolvedValue({
+      totalBytesUsed: 1000000,
+      totalItemCount: 50,
+      storageLimit: 5000000,
+      categories: [
+        { category: 'photos', bytesUsed: 800000, itemCount: 40, percentage: 80, calculatedAt: new Date() },
+        { category: 'videos', bytesUsed: 200000, itemCount: 10, percentage: 20, calculatedAt: new Date() },
+      ],
+      largeFiles: [],
+      compressionStats: {
+        originalTotal: 1000000,
+        compressedTotal: 800000,
+        compressionRatio: 1.25,
+        compressedCount: 30,
+      },
+    }),
+    isNearStorageLimit: vi.fn(),
+    getStorageRecommendations: vi.fn(),
+    getLargeFiles: vi.fn(),
+    compressPhotos: vi.fn(),
+    freeUpSpace: vi.fn(),
+    updateStorageUsage: vi.fn(),
+    getFilesForCleanup: vi.fn(),
+    getCompressionCandidates: vi.fn(),
   },
+  StorageUsageService: vi.fn(),
+  StorageCategory: {},
 }));
 
 vi.mock('./db', () => ({
   db: {
-    select: vi.fn(),
-    insert: vi.fn(),
-    update: vi.fn(),
+    select: vi.fn().mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          execute: vi.fn().mockResolvedValue([]),
+        }),
+      }),
+    }),
+    insert: vi.fn().mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([{ id: 'test-id' }]),
+      }),
+    }),
+    update: vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          execute: vi.fn().mockResolvedValue(undefined),
+        }),
+      }),
+    }),
   },
 }));
 
-vi.mock('./services/storage-usage', () => ({
-  storageUsageService: {
-    getStorageBreakdown: vi.fn(),
-    updateStorageUsage: vi.fn(),
-    isNearStorageLimit: vi.fn(),
-    getFilesForCleanup: vi.fn(),
-    getCompressionCandidates: vi.fn(),
-  },
+vi.mock('./auth', () => ({
+  authenticateToken: vi.fn((req: any, res: any, next: any) => {
+    req.user = { id: 'test-user-id', email: 'test@example.com' };
+    next();
+  }),
 }));
 
 describe('Storage Routes Integration Tests', () => {

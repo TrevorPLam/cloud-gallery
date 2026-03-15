@@ -19,7 +19,21 @@ import {
   groupPhotosByDate,
   type UserProfile,
 } from "./storage";
-import type { Photo, Album } from "@/types";
+import type { Photo, Album } from "../types";
+
+// Helper function to create Photo objects with all required fields
+const createPhoto = (overrides: Partial<Photo> = {}): Photo => ({
+  id: "1",
+  uri: "photo1.jpg",
+  width: 100,
+  height: 100,
+  createdAt: Date.now(),
+  modifiedAt: Date.now(),
+  filename: "photo1.jpg",
+  isFavorite: false,
+  albumIds: [],
+  ...overrides,
+});
 
 describe("Photo Storage", () => {
   beforeEach(() => {
@@ -36,15 +50,7 @@ describe("Photo Storage", () => {
 
     it("should return parsed photos from AsyncStorage", async () => {
       const mockPhotos: Photo[] = [
-        {
-          id: "1",
-          uri: "photo1.jpg",
-          width: 100,
-          height: 100,
-          createdAt: Date.now(),
-          isFavorite: false,
-          albumIds: [],
-        },
+        createPhoto(),
       ];
       vi.mocked(AsyncStorage.getItem).mockResolvedValue(
         JSON.stringify(mockPhotos),
@@ -73,17 +79,7 @@ describe("Photo Storage", () => {
 
   describe("savePhotos", () => {
     it("should save photos to AsyncStorage", async () => {
-      const mockPhotos: Photo[] = [
-        {
-          id: "1",
-          uri: "photo1.jpg",
-          width: 100,
-          height: 100,
-          createdAt: Date.now(),
-          isFavorite: false,
-          albumIds: [],
-        },
-      ];
+      const mockPhotos: Photo[] = [createPhoto()];
 
       await savePhotos(mockPhotos);
 
@@ -105,30 +101,19 @@ describe("Photo Storage", () => {
 
   describe("addPhoto", () => {
     it("should add photo to beginning of list", async () => {
-      const existingPhotos: Photo[] = [
-        {
-          id: "1",
-          uri: "photo1.jpg",
-          width: 100,
-          height: 100,
-          createdAt: 1000,
-          isFavorite: false,
-          albumIds: [],
-        },
-      ];
+      const existingPhotos: Photo[] = [createPhoto({ id: "1", createdAt: 1000, modifiedAt: 1000 })];
       vi.mocked(AsyncStorage.getItem).mockResolvedValue(
         JSON.stringify(existingPhotos),
       );
 
-      const newPhoto: Photo = {
+      const newPhoto: Photo = createPhoto({
         id: "2",
         uri: "photo2.jpg",
         width: 200,
         height: 200,
         createdAt: 2000,
-        isFavorite: false,
-        albumIds: [],
-      };
+        modifiedAt: 2000,
+      });
 
       await addPhoto(newPhoto);
 
@@ -141,15 +126,7 @@ describe("Photo Storage", () => {
     it("should add photo to empty list", async () => {
       vi.mocked(AsyncStorage.getItem).mockResolvedValue(null);
 
-      const newPhoto: Photo = {
-        id: "1",
-        uri: "photo1.jpg",
-        width: 100,
-        height: 100,
-        createdAt: Date.now(),
-        isFavorite: false,
-        albumIds: [],
-      };
+      const newPhoto: Photo = createPhoto();
 
       await addPhoto(newPhoto);
 
@@ -163,24 +140,8 @@ describe("Photo Storage", () => {
   describe("deletePhoto", () => {
     it("should remove photo from list", async () => {
       const photos: Photo[] = [
-        {
-          id: "1",
-          uri: "photo1.jpg",
-          width: 100,
-          height: 100,
-          createdAt: 1000,
-          isFavorite: false,
-          albumIds: [],
-        },
-        {
-          id: "2",
-          uri: "photo2.jpg",
-          width: 200,
-          height: 200,
-          createdAt: 2000,
-          isFavorite: false,
-          albumIds: [],
-        },
+        createPhoto({ id: "1", createdAt: 1000, modifiedAt: 1000, albumIds: [] }),
+        createPhoto({ id: "2", uri: "photo2.jpg", width: 200, height: 200, createdAt: 2000, modifiedAt: 2000, albumIds: [] }),
       ];
       vi.mocked(AsyncStorage.getItem).mockImplementation((key) => {
         if (key === "@photo_vault_photos") {
@@ -205,15 +166,7 @@ describe("Photo Storage", () => {
 
     it("should remove photo from albums", async () => {
       const photos: Photo[] = [
-        {
-          id: "1",
-          uri: "photo1.jpg",
-          width: 100,
-          height: 100,
-          createdAt: 1000,
-          isFavorite: false,
-          albumIds: ["album1"],
-        },
+        createPhoto({ id: "1", createdAt: 1000, modifiedAt: 1000, albumIds: ["album1"] }),
       ];
       const albums: Album[] = [
         {
@@ -390,15 +343,7 @@ describe("Photo Storage", () => {
   describe("toggleFavorite", () => {
     it("should toggle photo favorite status", async () => {
       const photos: Photo[] = [
-        {
-          id: "1",
-          uri: "photo1.jpg",
-          width: 100,
-          height: 100,
-          createdAt: 1000,
-          isFavorite: false,
-          albumIds: [],
-        },
+        createPhoto({ id: "1", createdAt: 1000, modifiedAt: 1000, albumIds: [] }),
       ];
       vi.mocked(AsyncStorage.getItem).mockResolvedValue(JSON.stringify(photos));
 
@@ -414,15 +359,7 @@ describe("Photo Storage", () => {
 
     it("should toggle from true to false", async () => {
       const photos: Photo[] = [
-        {
-          id: "1",
-          uri: "photo1.jpg",
-          width: 100,
-          height: 100,
-          createdAt: 1000,
-          isFavorite: true,
-          albumIds: [],
-        },
+        createPhoto({ id: "1", createdAt: 1000, modifiedAt: 1000, albumIds: [], isFavorite: true }),
       ];
       vi.mocked(AsyncStorage.getItem).mockResolvedValue(JSON.stringify(photos));
 
@@ -677,15 +614,7 @@ describe("Album Storage", () => {
         },
       ];
       const photos: Photo[] = [
-        {
-          id: "photo1",
-          uri: "photo1.jpg",
-          width: 100,
-          height: 100,
-          createdAt: 1000,
-          isFavorite: false,
-          albumIds: ["album1"],
-        },
+        createPhoto({ id: "photo1", createdAt: 1000, modifiedAt: 1000, albumIds: ["album1"] }),
       ];
       vi.mocked(AsyncStorage.getItem).mockImplementation((key) => {
         if (key === "@photo_vault_albums") {
@@ -771,24 +700,8 @@ describe("Album Storage", () => {
         },
       ];
       const photos: Photo[] = [
-        {
-          id: "photo1",
-          uri: "photo1.jpg",
-          width: 100,
-          height: 100,
-          createdAt: 1000,
-          isFavorite: false,
-          albumIds: ["album1"],
-        },
-        {
-          id: "photo2",
-          uri: "photo2.jpg",
-          width: 200,
-          height: 200,
-          createdAt: 2000,
-          isFavorite: false,
-          albumIds: ["album1"],
-        },
+        createPhoto({ id: "photo1", createdAt: 1000, modifiedAt: 1000, albumIds: ["album1"] }),
+        createPhoto({ id: "photo2", uri: "photo2.jpg", width: 200, height: 200, createdAt: 2000, modifiedAt: 2000, albumIds: ["album1"] }),
       ];
       vi.mocked(AsyncStorage.getItem).mockImplementation((key) => {
         if (key === "@photo_vault_albums") {
@@ -825,24 +738,8 @@ describe("Album Storage", () => {
         },
       ];
       const photos: Photo[] = [
-        {
-          id: "photo1",
-          uri: "photo1.jpg",
-          width: 100,
-          height: 100,
-          createdAt: 1000,
-          isFavorite: false,
-          albumIds: ["album1"],
-        },
-        {
-          id: "photo2",
-          uri: "photo2.jpg",
-          width: 200,
-          height: 200,
-          createdAt: 2000,
-          isFavorite: false,
-          albumIds: ["album1"],
-        },
+        createPhoto({ id: "photo1", createdAt: 1000, modifiedAt: 1000, albumIds: ["album1"] }),
+        createPhoto({ id: "photo2", uri: "photo2.jpg", width: 200, height: 200, createdAt: 2000, modifiedAt: 2000, albumIds: ["album1"] }),
       ];
       vi.mocked(AsyncStorage.getItem).mockImplementation((key) => {
         if (key === "@photo_vault_albums") {
@@ -875,15 +772,7 @@ describe("Album Storage", () => {
         },
       ];
       const photos: Photo[] = [
-        {
-          id: "photo1",
-          uri: "photo1.jpg",
-          width: 100,
-          height: 100,
-          createdAt: 1000,
-          isFavorite: false,
-          albumIds: ["album1"],
-        },
+        createPhoto({ id: "photo1", createdAt: 1000, modifiedAt: 1000, albumIds: ["album1"] }),
       ];
       vi.mocked(AsyncStorage.getItem).mockImplementation((key) => {
         if (key === "@photo_vault_albums") {
@@ -973,15 +862,7 @@ describe("Storage Info", () => {
   describe("getStorageInfo", () => {
     it("should calculate storage from photos", async () => {
       const photos: Photo[] = [
-        {
-          id: "1",
-          uri: "photo1.jpg",
-          width: 100,
-          height: 100,
-          createdAt: 1000,
-          isFavorite: false,
-          albumIds: [],
-        },
+        createPhoto({ id: "1", createdAt: 1000, modifiedAt: 1000, albumIds: [] }),
       ];
       vi.mocked(AsyncStorage.getItem).mockImplementation((key) => {
         if (key === "@photo_vault_photos") {
@@ -1003,24 +884,8 @@ describe("Storage Info", () => {
 
     it("should count multiple photos and albums", async () => {
       const photos: Photo[] = [
-        {
-          id: "1",
-          uri: "photo1.jpg",
-          width: 100,
-          height: 100,
-          createdAt: 1000,
-          isFavorite: false,
-          albumIds: [],
-        },
-        {
-          id: "2",
-          uri: "photo2.jpg",
-          width: 200,
-          height: 200,
-          createdAt: 2000,
-          isFavorite: false,
-          albumIds: [],
-        },
+        createPhoto({ id: "1", createdAt: 1000, modifiedAt: 1000, albumIds: [] }),
+        createPhoto({ id: "2", uri: "photo2.jpg", width: 200, height: 200, createdAt: 2000, modifiedAt: 2000, albumIds: [] }),
       ];
       const albums: Album[] = [
         {
@@ -1722,13 +1587,14 @@ describe("Storage Edge Cases", () => {
       ];
 
       vi.mocked(AsyncStorage.getItem)
-        .mockResolvedValueOnce(JSON.stringify(photos))
-        .mockResolvedValueOnce(JSON.stringify(albumsWithOrphanedRefs));
+        .mockResolvedValueOnce(JSON.stringify(albumsWithOrphanedRefs))
+        .mockResolvedValueOnce(JSON.stringify(photos));
 
       const retrievedAlbums = await getAlbums();
       const retrievedPhotos = await getPhotos();
 
-      expect(retrievedAlbums[0].photoIds).toContain("nonexistent1");
+      expect(retrievedAlbums[0].photoIds).toBeDefined();
+      expect(retrievedAlbums[0].photoIds).toEqual(expect.arrayContaining(["nonexistent1"]));
       expect(retrievedPhotos[0].albumIds).toEqual([]);
     });
 

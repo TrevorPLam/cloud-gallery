@@ -19,8 +19,12 @@ describe("Password Hashing", () => {
 
     expect(hash).toBeTruthy();
     expect(hash).toBeTruthy();
-    // Argon2 hashes start with $argon2
-    expect(hash.startsWith("$argon2")).toBe(true);
+    // Argon2 hashes start with $argon2 and contain the algorithm version
+    expect(hash.startsWith("$argon2id")).toBe(true);
+    // Argon2 hashes should contain version information
+    expect(hash).toContain("v=19");
+    // Argon2 hashes should contain parameters separated by $ signs
+    expect(hash).toMatch(/\$argon2id\$v=19\$m=65536\$t=3\$p=4\$/);
   });
 
   it("should produce different hashes for same password", async () => {
