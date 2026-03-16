@@ -30,6 +30,8 @@
     "test:contracts": "vitest run tests/contracts/**/*.test.ts",
     "test:contracts:consumer": "vitest run tests/contracts/consumer/*.test.ts",
     "test:contracts:provider": "vitest run tests/contracts/provider/*.test.ts --environment node",
+    "test:security": "vitest run tests/security/**/*.test.ts",
+    "test:compliance": "vitest run tests/compliance/**/*.test.ts",
     "security:check": "./scripts/security-check.sh",
     "security:audit": "npm audit --audit-level=moderate",
     "security:sbom": "npx @cyclonedx/cyclonedx-npm --output-file sbom-cyclonedx.json",

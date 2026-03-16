@@ -58,6 +58,12 @@ jobs:
     - name: Run contract tests
       run: npm run test:contracts:consumer
 
+    - name: Run security tests
+      run: npm run test:security
+
+    - name: Run compliance tests (HIPAA & GDPR)
+      run: npm run test:compliance
+
     - name: Check accessibility compliance
       run: |
         # Check if accessibility tests passed and generate report
