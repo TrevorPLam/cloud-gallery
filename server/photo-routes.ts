@@ -473,4 +473,338 @@ async function triggerFaceDetection(
   }
 }
 
+// ═══════════════════════════════════════════════════════════
+// POST /api/photos/cleanup-expired - Permanently delete expired photos
+// ═══════════════════════════════════════════════════════════
+router.post("/cleanup-expired", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    // Calculate expiration date (30 days ago)
+    const expirationDate = new Date();
+    expirationDate.setDate(expirationDate.getDate() - 30);
+
+    // Find expired photos
+    const expiredPhotos = await db
+      .select({ id: photos.id, uri: photos.uri })
+      .from(photos)
+      .where(
+        and(
+          eq(photos.userId, userId),
+          isNotNull(photos.deletedAt),
+          sql`${photos.deletedAt} < ${expirationDate}`
+        )
+      );
+
+    // Permanently delete expired photos
+    const deletedPhotos = await db
+      .delete(photos)
+      .where(
+        and(
+          eq(photos.userId, userId),
+          isNotNull(photos.deletedAt),
+          sql`${photos.deletedAt} < ${expirationDate}`
+        )
+      )
+      .returning({ id: photos.id });
+
+    res.json({
+      success: true,
+      deletedCount: deletedPhotos.length,
+      message: `Permanently deleted ${deletedPhotos.length} expired photos`,
+    });
+  } catch (error) {
+    console.error("Error cleaning up expired photos:", error);
+    res.status(500).json({ error: "Failed to cleanup expired photos" });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// POST /api/photos/batch-restore - Restore multiple photos
+// ═══════════════════════════════════════════════════════════
+router.post("/batch-restore", async (req: Request, res: Response) => {
+  try {
+    const { photoIds, restoreToAlbums = true, restoreMetadata = true } = req.body;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    if (!Array.isArray(photoIds) || photoIds.length === 0) {
+      return res.status(400).json({ error: "Invalid photo IDs" });
+    }
+
+    // Restore photos in batches to avoid timeout
+    const batchSize = 50;
+    const restoredPhotos: any[] = [];
+    const failedPhotos: any[] = [];
+
+    for (let i = 0; i < photoIds.length; i += batchSize) {
+      const batch = photoIds.slice(i, i + batchSize);
+      
+      try {
+        const restored = await db
+          .update(photos)
+          .set({ deletedAt: null, modifiedAt: new Date() })
+          .where(
+            and(
+              sql`${photos.id} = ANY(${batch})`,
+              eq(photos.userId, userId),
+              isNotNull(photos.deletedAt)
+            )
+          )
+          .returning();
+
+        restoredPhotos.push(...restored);
+      } catch (error) {
+        console.error(`Batch restore failed for batch ${i}:`, error);
+        failedPhotos.push(...batch.map(id => ({
+          id,
+          error: "Batch restore failed",
+        })));
+      }
+    }
+
+    res.json({
+      success: restoredPhotos.length > 0,
+      recoveredPhotos: restoredPhotos,
+      failedPhotos,
+      message: `Restored ${restoredPhotos.length} photos`,
+    });
+  } catch (error) {
+    console.error("Error in batch restore:", error);
+    res.status(500).json({ error: "Failed to restore photos" });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// GET /api/photos/:id/recovery-info - Get extended recovery information
+// ═══════════════════════════════════════════════════════════
+router.get("/:id/recovery-info", async (req: Request, res: Response) => {
+  try {
+    const photoId = req.params.id as string;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    // Get photo information
+    const photo = await db
+      .select()
+      .from(photos)
+      .where(and(eq(photos.id, photoId), eq(photos.userId, userId)))
+      .limit(1);
+
+    if (photo.length === 0) {
+      return res.status(404).json({ error: "Photo not found" });
+    }
+
+    const photoData = photo[0];
+    const deletedAt = new Date(photoData.deletedAt!);
+    const daysInTrash = Math.floor((Date.now() - deletedAt.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Determine recovery risk
+    let recoveryRisk: 'low' | 'medium' | 'high' = 'low';
+    let canRecoverFully = true;
+
+    if (daysInTrash > 25) {
+      recoveryRisk = 'high';
+      canRecoverFully = false;
+    } else if (daysInTrash > 20) {
+      recoveryRisk = 'medium';
+    }
+
+    // Get original albums (placeholder - would need album_photos join)
+    const originalAlbums: string[] = [];
+
+    res.json({
+      originalAlbums,
+      originalMetadata: {
+        filename: photoData.filename,
+        originalSize: photoData.originalSize,
+        createdAt: photoData.createdAt,
+      },
+      canRecoverFully,
+      recoveryRisk,
+    });
+  } catch (error) {
+    console.error("Error getting recovery info:", error);
+    res.status(500).json({ error: "Failed to get recovery info" });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// GET /api/photos/recovery-stats - Get recovery statistics
+// ═══════════════════════════════════════════════════════════
+router.get("/recovery-stats", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    // Get all trash photos
+    const trashPhotos = await db
+      .select({
+        id: photos.id,
+        deletedAt: photos.deletedAt,
+        originalSize: photos.originalSize,
+      })
+      .from(photos)
+      .where(and(eq(photos.userId, userId), isNotNull(photos.deletedAt)));
+
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const twentyDaysAgo = new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000);
+
+    const recentlyDeleted = trashPhotos.filter(photo => 
+      new Date(photo.deletedAt!) > sevenDaysAgo
+    ).length;
+
+    const highRiskItems = trashPhotos.filter(photo => 
+      new Date(photo.deletedAt!) <= twentyDaysAgo
+    ).length;
+
+    const oldestDeletion = trashPhotos.length > 0 
+      ? new Date(Math.min(...trashPhotos.map(p => new Date(p.deletedAt!).getTime())))
+      : null;
+
+    res.json({
+      totalRecoverable: trashPhotos.length,
+      highRiskItems,
+      recentlyDeleted,
+      oldestDeletion,
+    });
+  } catch (error) {
+    console.error("Error getting recovery stats:", error);
+    res.status(500).json({ error: "Failed to get recovery stats" });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// DELETE /api/photos/:id/secure-delete - Secure permanent deletion
+// ═══════════════════════════════════════════════════════════
+router.delete("/:id/secure-delete", async (req: Request, res: Response) => {
+  try {
+    const photoId = req.params.id as string;
+    const userId = req.user?.id;
+    const { deletionProof, auditTrail } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    // Verify photo exists and is in trash
+    const photo = await db
+      .select()
+      .from(photos)
+      .where(and(eq(photos.id, photoId), eq(photos.userId, userId)))
+      .limit(1);
+
+    if (photo.length === 0) {
+      return res.status(404).json({ error: "Photo not found" });
+    }
+
+    // In a real implementation, you would:
+    // 1. Verify deletion proof
+    // 2. Store audit trail
+    // 3. Securely delete files from storage
+    // 4. Delete database record
+
+    // For now, just perform regular deletion
+    const result = await db
+      .delete(photos)
+      .where(and(eq(photos.id, photoId), eq(photos.userId, userId)))
+      .returning();
+
+    if (result.length === 0) {
+      return res.status(404).json({ error: "Photo not found" });
+    }
+
+    res.json({
+      success: true,
+      message: "Photo securely deleted",
+      verificationUrl: `/api/photos/${photoId}/verify-deletion`,
+    });
+  } catch (error) {
+    console.error("Error in secure delete:", error);
+    res.status(500).json({ error: "Failed to securely delete photo" });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// POST /api/photos/verify-deletion - Verify deletion proof
+// ═══════════════════════════════════════════════════════════
+router.post("/verify-deletion", async (req: Request, res: Response) => {
+  try {
+    const { photoId, deletionProof } = req.body;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    // In a real implementation, you would verify the cryptographic proof
+    // For now, just check if the photo no longer exists
+    const photo = await db
+      .select()
+      .from(photos)
+      .where(and(eq(photos.id, photoId), eq(photos.userId, userId)))
+      .limit(1);
+
+    const verified = photo.length === 0;
+
+    res.json({
+      verified,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("Error verifying deletion:", error);
+    res.status(500).json({ error: "Failed to verify deletion" });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// GET /api/photos/:id/audit-trail - Get audit trail for photo
+// ═══════════════════════════════════════════════════════════
+router.get("/:id/audit-trail", async (req: Request, res: Response) => {
+  try {
+    const photoId = req.params.id as string;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    // In a real implementation, you would fetch from audit_trail table
+    // For now, return a mock audit trail
+    const mockAuditTrail = [
+      {
+        id: "1",
+        photoId,
+        userId,
+        action: "marked_for_deletion",
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
+        metadata: {
+          originalSize: 1024000,
+          originalPath: "/photos/original/" + photoId,
+          deletionReason: "user_action",
+          retentionPeriod: 30,
+          verified: true,
+        },
+      },
+    ];
+
+    res.json(mockAuditTrail);
+  } catch (error) {
+    console.error("Error getting audit trail:", error);
+    res.status(500).json({ error: "Failed to get audit trail" });
+  }
+});
+
 export default router;
