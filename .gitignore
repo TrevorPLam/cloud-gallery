@@ -51,3 +51,6 @@ npm-audit.json
 sbom-*.json
 licenses.json
 
+
+# Auto-generated E2E test backup artifacts
+backups/backup-*.enc
