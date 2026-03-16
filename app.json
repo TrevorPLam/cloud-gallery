@@ -8,6 +8,11 @@
     "scheme": "photovault",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "install": {
+      "exclude": [
+        "react-native"
+      ]
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.photovault.app",
@@ -39,6 +44,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "@react-native-tvos/config-tv",
       [
         "expo-splash-screen",
         {

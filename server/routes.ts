@@ -21,6 +21,7 @@ import smartAlbumRoutes from "./smart-album-routes";
 import memoryRoutes from "./memory-routes";
 import faceRoutes from "./face-routes";
 import sharingRoutes from "./sharing-routes";
+import familySharingRoutes from "./family-sharing-routes";
 import publicRoutes from "./public-routes";
 import partnerSharingRoutes from "./partner-sharing-routes";
 import backupRoutes from "./backup-routes";
@@ -65,6 +66,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Sharing routes (with authentication)
   app.use("/api/sharing", sharingRoutes);
+
+  // Family sharing routes (with authentication)
+  app.use("/api/family-sharing", familySharingRoutes);
 
   // Partner sharing routes (with authentication)
   app.use("/api/partner-sharing", partnerSharingRoutes);
