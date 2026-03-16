@@ -87,7 +87,14 @@
       ],
       "expo-build-properties",
       "expo-secure-store",
-      "expo-background-task"
+      "expo-background-task",
+      [
+        "react-native-fast-tflite",
+        {
+          "enableCoreMLDelegate": true,
+          "enableAndroidGpuLibraries": ["libOpenCL.so", "libOpenCL-pixel.so", "libGLES_mali.so"]
+        }
+      ]
     ],
     "experiments": {
       "reactCompiler": true
