@@ -807,36 +807,63 @@ This document outlines the testing infrastructure improvements needed to achieve
 - Security middleware files
 - Authentication and authorization code
 
-### [ ] TASK-012: Implement Test Metrics & Monitoring
+### [x] TASK-012: Implement Test Metrics & Monitoring
 **Target**: Set up comprehensive test monitoring and reporting dashboard
 
 #### Subtasks:
-- [ ] TASK-012-1: Configure test execution monitoring
-  - **Files**: `.github/workflows/test-metrics.yml`, monitoring scripts
+- [x] TASK-012-1: Configure test execution monitoring
+  - **Files**: `.github/workflows/test-metrics.yml`, `scripts/collect-test-metrics.js`
   - **Issue**: No test execution monitoring
   - **Action**: Set up test execution time tracking, flaky test detection
+  - **Status**: COMPLETED - Created `collect-test-metrics.js` that reads vitest JSON output and coverage summary, emitting a structured `coverage/test-metrics.json` payload with pass rate, duration, and flaky-suite detection
 
-- [ ] TASK-012-2: Create quality metrics dashboard
-  - **Files**: Monitoring dashboard configuration
+- [x] TASK-012-2: Create quality metrics dashboard
+  - **Files**: `.github/workflows/test-metrics.yml` (job summary + PR comment steps)
   - **Issue**: No centralized quality metrics
   - **Action**: Create dashboard for coverage, performance, security metrics
+  - **Status**: COMPLETED - Workflow writes a rich Markdown Job Summary (visible in GitHub Actions UI) and posts a consolidated PR comment with test execution, coverage, and trend-delta tables via `metrics-dashboard` job
 
-- [ ] TASK-012-3: Implement test failure notifications
-  - **Files**: Notification configurations, alerting rules
+- [x] TASK-012-3: Implement test failure notifications
+  - **Files**: `.github/workflows/test-metrics.yml` (`notify-on-failure` job)
   - **Issue**: Test failures not properly notified
   - **Action**: Configure Slack/email notifications for test failures
+  - **Status**: COMPLETED - Added `notify-on-failure` job that sends a Slack webhook message (when `SLACK_WEBHOOK_URL` secret is set) and automatically opens a GitHub issue on `main` branch failures
 
-- [ ] TASK-012-4: Set up trend analysis
-  - **Files**: Trend analysis scripts, reporting automation
+- [x] TASK-012-4: Set up trend analysis
+  - **Files**: `scripts/analyze-test-trends.js`, `.github/workflows/test-metrics.yml`
   - **Issue**: No historical trend analysis
   - **Action**: Track coverage, performance, security trends over time
+  - **Status**: COMPLETED - Created `analyze-test-trends.js` that stores up to 30 historical metric snapshots in `.metrics-history/` (cached between CI runs), computes deltas, detects anomalies, and writes `coverage/test-trends.json`; `notify-trend-anomalies` job creates GitHub issues when regressions are found on `main`
+
+**Implementation Notes:**
+- `scripts/collect-test-metrics.js` — Reads `coverage/coverage-summary.json` and `test-results.json` (vitest `--reporter=json`), captures CI context (run ID, SHA, branch, actor), and writes `coverage/test-metrics.json`
+- `scripts/analyze-test-trends.js` — Loads history from `.metrics-history/`, computes coverage/test-result deltas, detects anomalies (coverage drops, pass rate drops, increased flaky suites, duration spikes), saves report to `coverage/test-trends.json`, and appends current run to history
+- `.github/workflows/test-metrics.yml` — Four-job workflow: `collect-metrics` (matrix Node 18+20), `metrics-dashboard` (PR comment), `notify-on-failure` (Slack + GitHub issue), `notify-trend-anomalies` (GitHub issue for regressions on `main`)
+- Metrics history cache keyed by `node-version` and `run_id`, with `restore-keys` fallback so each leg gets the most recent prior snapshot
+- `package.json` gains `test:metrics` and `test:trends` convenience scripts for local use
+- `.gitignore` updated to exclude `.metrics-history/` and `performance-baseline.json`
+
+**Key Achievements:**
+- **Automated collection**: Every push/PR/scheduled run gathers structured metrics JSON
+- **GitHub Actions Job Summary**: Rich Markdown dashboard visible directly in the Actions UI
+- **PR comments**: Consolidated metrics table posted on each pull request
+- **Slack notifications**: Configurable via `SLACK_WEBHOOK_URL` secret; gracefully skipped when not set
+- **GitHub issue tracking**: Auto-opens issues for failures on `main` and for trend anomalies
+- **Historical trend analysis**: Up to 30 snapshots, delta computation, anomaly detection
+
+**Files Created/Modified:**
+- `.github/workflows/test-metrics.yml` — New workflow
+- `scripts/collect-test-metrics.js` — Metrics collection script
+- `scripts/analyze-test-trends.js` — Trend analysis script
+- `package.json` — Added `test:metrics` and `test:trends` scripts
+- `.gitignore` — Added `.metrics-history/` and `performance-baseline.json`
 
 **Definition of Done**:
-- Test execution metrics collected automatically
-- Quality metrics dashboard accessible to team
-- Test failures trigger appropriate notifications
-- Historical trends tracked and reported
-- Performance regressions detected automatically
+- [x] Test execution metrics collected automatically
+- [x] Quality metrics dashboard accessible to team
+- [x] Test failures trigger appropriate notifications
+- [x] Historical trends tracked and reported
+- [x] Performance regressions detected automatically
 
 **Out of Scope**:
 - Real-time monitoring (focus on batch reporting)
@@ -845,10 +872,10 @@ This document outlines the testing infrastructure improvements needed to achieve
 - Advanced analytics and machine learning
 
 **Related Task Files**:
-- Monitoring configuration files
-- CI/CD workflow files
-- Test reporting scripts
-- Notification service configurations
+- `.github/workflows/test-metrics.yml`
+- `scripts/collect-test-metrics.js`
+- `scripts/analyze-test-trends.js`
+- `package.json`
 
 ### [ ] TASK-013: Enhance Documentation & Training
 **Target**: Create comprehensive testing documentation and training program
