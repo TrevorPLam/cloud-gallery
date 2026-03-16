@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Gallery - Test Metrics Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 20px;
+        }
+        
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .card-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 8px 0;
+        }
+        
+        .card-subtitle {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .status-good { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+        .status-warning { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+        .status-danger { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+        .status-info { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; }
+        
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 16px;
+            border-bottom: 2px solid #f3f4f6;
+            padding-bottom: 8px;
+        }
+        
+        .flaky-test-list {
+            list-style: none;
+        }
+        
+        .flaky-test-item {
+            padding: 12px;
+            border-left: 4px solid #ef4444;
+            background: #fef2f2;
+            margin-bottom: 8px;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .flaky-test-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+        
+        .flaky-test-reason {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .trend-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        
+        .trend-item:last-child {
+            border-bottom: none;
+        }
+        
+        .trend-label {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .trend-value {
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .trend-up { background: #dcfce7; color: #166534; }
+        .trend-down { background: #fef2f2; color: #dc2626; }
+        .trend-stable { background: #f3f4f6; color: #6b7280; }
+        
+        .insight-list {
+            list-style: none;
+        }
+        
+        .insight-item {
+            padding: 12px;
+            background: #f0f9ff;
+            border-left: 4px solid #3b82f6;
+            margin-bottom: 8px;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .last-updated {
+            text-align: center;
+            color: white;
+            opacity: 0.8;
+            font-size: 0.9rem;
+            margin-top: 20px;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Cloud Gallery Test Metrics</h1>
+            <p>Real-time monitoring and insights for test performance and quality</p>
+        </div>
+        
+        <div class="section">
+            <div class="no-data">
+                📊 Test metrics dashboard is being initialized...
+                <br><br>
+                This dashboard will display:
+                <ul style="text-align: left; max-width: 600px; margin: 20px auto;">
+                    <li>✅ Test success rates and failure patterns</li>
+                    <li>⏱️ Execution time metrics and performance trends</li>
+                    <li>🔍 Flaky test detection and analysis</li>
+                    <li>📈 Historical trends and quality scores</li>
+                    <li>🎯 Stability indicators and recommendations</li>
+                </ul>
+                <br>
+                The dashboard will be automatically updated after the next test run.
+            </div>
+        </div>
+        
+        <div class="last-updated">
+            Dashboard initialized: ${new Date().toLocaleString()}
+        </div>
+    </div>
+    
+    <script>
+        // Auto-refresh every 5 minutes
+        setTimeout(() => {
+            window.location.reload();
+        }, 5 * 60 * 1000);
+        
+        // Add interactive features
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add click handlers for cards
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                card.addEventListener('click', function() {
+                    this.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        this.style.transform = '';
+                    }, 150);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

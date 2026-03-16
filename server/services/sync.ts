@@ -113,28 +113,32 @@ export interface SyncOperationRecord {
  * Sync service implementation
  */
 export class SyncService {
-  private syncQueue: Queue;
-  private conflictQueue: Queue;
+  private syncQueue: Queue | null = null;
+  private conflictQueue: Queue | null = null;
 
   constructor() {
-    // Initialize sync queues
-    this.syncQueue = new Queue("sync-operations", {
-      connection: {
-        host: process.env.REDIS_HOST || "localhost",
-        port: parseInt(process.env.REDIS_PORT || "6379"),
-      },
-    });
+    // Initialize sync queues only if Redis is enabled
+    if (!process.env.DISABLE_REDIS) {
+      this.syncQueue = new Queue("sync-operations", {
+        connection: {
+          host: process.env.REDIS_HOST || "localhost",
+          port: parseInt(process.env.REDIS_PORT || "6379"),
+        },
+      });
 
-    this.conflictQueue = new Queue("conflict-resolution", {
-      connection: {
-        host: process.env.REDIS_HOST || "localhost",
-        port: parseInt(process.env.REDIS_PORT || "6379"),
-      },
-    });
+      this.conflictQueue = new Queue("conflict-resolution", {
+        connection: {
+          host: process.env.REDIS_HOST || "localhost",
+          port: parseInt(process.env.REDIS_PORT || "6379"),
+        },
+      });
 
-    // Start background workers
-    this.startSyncWorker();
-    this.startConflictWorker();
+      // Start background workers
+      this.startSyncWorker();
+      this.startConflictWorker();
+    } else {
+      console.log("Redis is disabled. Sync queues and workers will not be initialized.");
+    }
   }
 
   /**
@@ -272,22 +276,26 @@ export class SyncService {
 
       // Add sync job to queue
       const jobId = `sync-${userId}-${deviceId}-${Date.now()}`;
-      await this.syncQueue.add(
-        "process-sync",
-        {
-          userId,
-          deviceId,
-          timestamp: new Date(),
-        },
-        {
-          jobId,
-          attempts: 3,
-          backoff: {
-            type: "exponential",
-            delay: 2000,
+      if (this.syncQueue) {
+        await this.syncQueue.add(
+          "process-sync",
+          {
+            userId,
+            deviceId,
+            timestamp: new Date(),
           },
-        },
-      );
+          {
+            jobId,
+            attempts: 3,
+            backoff: {
+              type: "exponential",
+              delay: 2000,
+            },
+          },
+        );
+      } else {
+        console.log("Redis is disabled. Sync job queued but not processed.");
+      }
 
       return jobId;
     } catch (error) {
@@ -557,37 +565,40 @@ export class SyncService {
    * Start background sync worker
    */
   private startSyncWorker(): void {
-    new Worker(
-      "sync-operations",
-      async (job) => {
-        const { userId, deviceId } = job.data;
+    if (!process.env.DISABLE_REDIS) {
+      new Worker(
+        "sync-operations",
+        async (job) => {
+          const { userId, deviceId } = job.data;
 
-        try {
-          // Perform sync operation
-          await this.performDeltaSync(userId, deviceId);
-          console.log(`Sync completed for device ${deviceId}`);
-        } catch (error) {
-          console.error(`Sync failed for device ${deviceId}:`, error);
-          throw error;
-        }
-      },
-      {
-        connection: {
-          host: process.env.REDIS_HOST || "localhost",
-          port: parseInt(process.env.REDIS_PORT || "6379"),
+          try {
+            // Perform sync operation
+            await this.performDeltaSync(userId, deviceId);
+            console.log(`Sync completed for device ${deviceId}`);
+          } catch (error) {
+            console.error(`Sync failed for device ${deviceId}:`, error);
+            throw error;
+          }
         },
-      },
-    );
+        {
+          connection: {
+            host: process.env.REDIS_HOST || "localhost",
+            port: parseInt(process.env.REDIS_PORT || "6379"),
+          },
+        },
+      );
+    }
   }
 
   /**
    * Start conflict resolution worker
    */
   private startConflictWorker(): void {
-    new Worker(
-      "conflict-resolution",
-      async (job) => {
-        const { conflict, strategy } = job.data;
+    if (!process.env.DISABLE_REDIS) {
+      new Worker(
+        "conflict-resolution",
+        async (job) => {
+          const { conflict, strategy } = job.data;
 
         try {
           await this.resolveConflict(conflict, strategy);
@@ -597,13 +608,14 @@ export class SyncService {
           throw error;
         }
       },
-      {
-        connection: {
-          host: process.env.REDIS_HOST || "localhost",
-          port: parseInt(process.env.REDIS_PORT || "6379"),
+        {
+          connection: {
+            host: process.env.REDIS_HOST || "localhost",
+            port: parseInt(process.env.REDIS_PORT || "6379"),
+          },
         },
-      },
-    );
+      );
+    }
   }
 
   /**

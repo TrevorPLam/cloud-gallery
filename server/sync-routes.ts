@@ -13,7 +13,7 @@ import { z } from "zod";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
 import { authenticateToken } from "./auth";
-import { createSyncService } from "./services/sync";
+import { createSyncService, ConflictStrategy } from "./services/sync";
 
 const router = Router();
 const syncService = createSyncService();

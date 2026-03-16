@@ -49,6 +49,12 @@ jobs:
     - name: Run tests with coverage
       run: npm run test:coverage
 
+    - name: Extract test metrics
+      run: |
+        # Extract detailed test metrics
+        npm run test:metrics
+        npm run test:flaky-detect
+
     - name: Run accessibility tests
       run: npm run test:accessibility
 
@@ -113,6 +119,16 @@ jobs:
       with:
         name: performance-results-${{ matrix.node-version }}
         path: coverage/
+        retention-days: 30
+
+    - name: Upload test metrics
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-metrics-${{ matrix.node-version }}
+        path: |
+          coverage/test-metrics.json
+          coverage/flaky-tests.json
         retention-days: 30
 
     - name: Build Storybook for visual testing
@@ -189,7 +205,21 @@ jobs:
             performanceStatus = "❓ No data";
           }
 
-          // Check contract test results
+          // Check flaky test results
+          let flakyStatus = "✅ No flaky tests detected";
+          let flakyCount = 0;
+          
+          try {
+            if (fs.existsSync('coverage/flaky-tests.json')) {
+              const flakyResults = JSON.parse(fs.readFileSync('coverage/flaky-tests.json', 'utf8'));
+              flakyCount = flakyResults.analysis?.summary?.flakyCount || 0;
+              if (flakyCount > 0) {
+                flakyStatus = `⚠️ ${flakyCount} flaky tests detected`;
+              }
+            }
+          } catch (error) {
+            flakyStatus = "❓ No flaky test data";
+          }
           let contractStatus = "✅ Passed";
           try {
             if (fs.existsSync('tests/contracts/pacts')) {
@@ -228,12 +258,18 @@ jobs:
           | Score | \${performanceScore} |
           | Regressions | \${regressions} |
 
+          ### Flaky Test Detection
+          | Metric | Result |
+          |--------|--------|
+          | Status | \${flakyStatus} |
+          | Flaky Tests | \${flakyCount} |
+
           ### Contract Testing
           | Metric | Result |
           |--------|--------|
           | Status | \${contractStatus} |
 
-          **Overall Status**: \${linePct === '100.00' && branchPct === '100.00' && funcPct === '100.00' && accessibilityStatus.includes("✅") && performanceStatus.includes("✅") && contractStatus.includes("✅") ? '✅ All tests passed!' : '⚠️ Some issues detected'}
+          **Overall Status**: \${linePct === '100.00' && branchPct === '100.00' && funcPct === '100.00' && accessibilityStatus.includes("✅") && performanceStatus.includes("✅") && contractStatus.includes("✅") && flakyCount === 0 ? '✅ All tests passed!' : '⚠️ Some issues detected'}
 
           [View detailed report](https://github.com/\${{ github.repository }}/actions/runs/\${{ github.run_id }})\`;
 

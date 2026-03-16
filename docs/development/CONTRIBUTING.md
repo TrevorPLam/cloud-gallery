@@ -99,6 +99,141 @@ We welcome contributions in the following areas:
 
 ## 📋 Development Workflow
 
+### Code Review Process
+
+#### Testing Requirements for All PRs
+All pull requests must include:
+
+1. **100% Test Coverage** for new code
+   - Use `npm run test:coverage` to verify
+   - No coverage exceptions without team approval
+   - Tests must be meaningful, not just for coverage
+
+2. **Testing Best Practices**
+   - Use sociable testing patterns (see [docs/testing/30_TEST_PATTERNS.md](../testing/30_TEST_PATTERNS.md))
+   - Apply accessibility-first testing (semantic queries)
+   - Use userEvent for user interactions
+   - Include edge cases and error scenarios
+
+3. **Test Quality Standards**
+   - Tests must be readable and maintainable
+   - Use descriptive test names and clear assertions
+   - Avoid over-mocking internal dependencies
+   - Focus on behavior, not implementation
+
+#### Code Review Checklist
+
+##### Before Submitting PR
+- [ ] Run `npm run test:check-focused` to ensure no focused/skipped tests
+- [ ] Run `npm run test:coverage` to verify 100% coverage
+- [ ] Run `npm run lint` to check code style
+- [ ] Run `npm run check:types` to verify TypeScript compliance
+- [ ] Run `npm run test:accessibility` for accessibility tests
+- [ ] Run `npm run test:security` for security tests
+- [ ] Test all changes manually in development environment
+
+##### During Code Review
+**Reviewers must check:**
+
+**Testing Quality**
+- [ ] All new code has comprehensive tests
+- [ ] Tests follow project testing patterns
+- [ ] Test coverage is 100% for new code
+- [ ] Tests are meaningful and assert behavior
+- [ ] Edge cases and error scenarios are covered
+
+**Code Quality**
+- [ ] Code follows project style guidelines
+- [ ] TypeScript types are properly defined
+- [ ] Error handling is appropriate
+- [ ] Performance implications are considered
+- [ ] Security best practices are followed
+
+**Documentation**
+- [ ] Code is well-commented where necessary
+- [ ] API changes are documented
+- [ ] Testing patterns are explained if novel
+- [ ] Breaking changes are clearly identified
+
+#### Testing-Specific Review Guidelines
+
+##### Unit Tests
+- [ ] Tests focus on behavior, not implementation
+- [ ] External dependencies are properly mocked
+- [ ] Test data is generated using factories
+- [ ] Multiple scenarios are tested (happy path, edge cases, errors)
+
+##### Integration Tests
+- [ ] Component interactions are tested
+- [ ] Database operations are validated
+- [ ] API endpoints are tested with contracts
+- [ ] Error flows are end-to-end tested
+
+##### Accessibility Tests
+- [ ] Components use semantic queries
+- [ ] Accessibility violations are fixed
+- [ ] Screen reader compatibility is considered
+- [ ] Keyboard navigation is tested
+
+##### Performance Tests
+- [ ] Critical paths have performance tests
+- [ ] Regression thresholds are defined
+- [ ] Memory usage is considered
+- [ ] Database query efficiency is validated
+
+### Testing Resources for Contributors
+
+#### Documentation
+- **[Testing Documentation Index](../testing/00_INDEX.md)** - Complete testing guide
+- **[Testing Patterns](../testing/30_TEST_PATTERNS.md)** - Best practices and patterns
+- **[Onboarding Guide](../testing/80_ONBOARDING_GUIDE.md)** - Structured learning path
+- **[Workshop Materials](../testing/90_WORKSHOP_MATERIALS.md)** - Training resources
+
+#### Quick Reference
+```bash
+# Essential testing commands
+npm run test                    # Run all tests
+npm run test:watch             # Watch mode
+npm run test:coverage          # Coverage report
+npm run test:accessibility     # Accessibility tests
+npm run test:security          # Security tests
+npm run test:check-focused     # Block focused tests
+npm run test:metrics           # Extract test metrics
+npm run test:flaky-detect      # Detect flaky tests
+```
+
+#### Common Testing Patterns
+```typescript
+// Example: Sociable testing pattern
+describe('Photo Storage', () => {
+  it('should save photo with metadata', async () => {
+    const storage = createPhotoStorage();
+    const photo = createTestPhoto();
+    
+    await storage.save(photo);
+    
+    const retrieved = await storage.get(photo.id);
+    expect(retrieved).toEqual(photo);
+  });
+});
+
+// Example: Accessibility-first testing
+describe('PhotoGrid Component', () => {
+  it('should display photos with proper accessibility', async () => {
+    const photos = createTestPhotos(5);
+    
+    render(<PhotoGrid photos={photos} />);
+    
+    // Use semantic queries instead of test IDs
+    const grid = screen.getByRole('grid');
+    const items = screen.getAllByRole('img');
+    
+    expect(grid).toBeInTheDocument();
+    expect(items).toHaveLength(5);
+  });
+});
+```
+
 ### 1. Create an Issue
 - Search existing issues first
 - Use appropriate issue templates

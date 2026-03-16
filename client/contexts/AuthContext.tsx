@@ -1,4 +1,5 @@
 // Auth state and actions for login/register/logout and session restore.
+// Enhanced with zero-knowledge key management and biometric authentication.
 
 import React, {
   createContext,
@@ -15,11 +16,27 @@ import {
   getMe,
   refreshAuth,
 } from "@/lib/auth-client";
+import {
+  createAndStoreMasterKey,
+  verifyMasterKey,
+  retrieveMasterKey,
+  clearAllKeys,
+  setupKeyHierarchy,
+} from "@/lib/key-derivation";
+import { keyHierarchy } from "@/lib/key-hierarchy";
+import { 
+  setupBiometricAuth, 
+  checkBiometricSupport,
+  BiometricAuthResult,
+} from "@/lib/biometric-auth";
 
 interface AuthState {
   user: AuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  hasKeySetup: boolean;
+  biometricAvailable: boolean;
+  biometricEnabled: boolean;
 }
 
 interface AuthContextValue extends AuthState {
@@ -29,6 +46,13 @@ interface AuthContextValue extends AuthState {
   refreshSession: () => Promise<void>;
   /** Use app without account (local-only; no API auth). */
   continueAsGuest: () => void;
+  /** Zero-knowledge key management */
+  setupEncryption: (password: string, enableBiometrics?: boolean) => Promise<boolean>;
+  unlockEncryption: (password?: string) => Promise<boolean>;
+  changeEncryptionPassword: (oldPassword: string, newPassword: string) => Promise<boolean>;
+  enableBiometrics: () => Promise<boolean>;
+  disableBiometrics: () => Promise<boolean>;
+  authenticateWithBiometrics: (reason?: string) => Promise<BiometricAuthResult>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -36,6 +60,35 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasKeySetup, setHasKeySetup] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+
+  // Check biometric availability and key setup status
+  useEffect(() => {
+    const checkInitialStatus = async () => {
+      try {
+        // Check biometric support
+        const biometricSupport = await checkBiometricSupport();
+        setBiometricAvailable(biometricSupport.available);
+
+        // Check if master key exists
+        const masterKey = await retrieveMasterKey(false);
+        setHasKeySetup(!!masterKey);
+
+        // Setup biometric auth if available
+        if (biometricSupport.available) {
+          await setupBiometricAuth();
+        }
+      } catch (error) {
+        console.error("Failed to check initial status:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkInitialStatus();
+  }, []);
 
   const refreshSession = useCallback(async () => {
     const me = await getMe();
@@ -90,15 +143,157 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser({ id: "guest", email: "guest@local" });
   }, []);
 
+  // Zero-knowledge key management methods
+  const setupEncryption = useCallback(async (
+    password: string, 
+    enableBiometrics: boolean = false
+  ): Promise<boolean> => {
+    try {
+      // Create and store master key
+      const masterKey = await createAndStoreMasterKey(password, enableBiometrics);
+      if (!masterKey) {
+        return false;
+      }
+
+      // Setup key hierarchy
+      const hierarchySetup = await setupKeyHierarchy(enableBiometrics);
+      if (!hierarchySetup) {
+        return false;
+      }
+
+      setHasKeySetup(true);
+      setBiometricEnabled(enableBiometrics && biometricAvailable);
+      return true;
+    } catch (error) {
+      console.error("Failed to setup encryption:", error);
+      return false;
+    }
+  }, [biometricAvailable]);
+
+  const unlockEncryption = useCallback(async (password?: string): Promise<boolean> => {
+    try {
+      if (password) {
+        // Verify password and unlock
+        const isValid = await verifyMasterKey(password);
+        if (isValid) {
+          const masterKey = await retrieveMasterKey(false);
+          return !!masterKey;
+        }
+        return false;
+      } else {
+        // Try biometric unlock
+        if (biometricAvailable && biometricEnabled) {
+          const { authenticateWithBiometrics } = await import("@/lib/biometric-auth");
+          const result = await authenticateWithBiometrics("Unlock your encrypted photos");
+          if (result.success) {
+            const masterKey = await retrieveMasterKey(true);
+            return !!masterKey;
+          }
+        }
+        return false;
+      }
+    } catch (error) {
+      console.error("Failed to unlock encryption:", error);
+      return false;
+    }
+  }, [biometricAvailable, biometricEnabled]);
+
+  const changeEncryptionPassword = useCallback(async (
+    oldPassword: string, 
+    newPassword: string
+  ): Promise<boolean> => {
+    try {
+      // Verify old password
+      const isValid = await verifyMasterKey(oldPassword);
+      if (!isValid) {
+        return false;
+      }
+
+      // Create new master key with new password
+      const success = await keyHierarchy.rotateMasterKey(newPassword);
+      if (success) {
+        setHasKeySetup(true);
+      }
+      return success;
+    } catch (error) {
+      console.error("Failed to change encryption password:", error);
+      return false;
+    }
+  }, []);
+
+  const enableBiometrics = useCallback(async (): Promise<boolean> => {
+    try {
+      if (!biometricAvailable) {
+        return false;
+      }
+
+      // Get current master key
+      const masterKey = await retrieveMasterKey(false);
+      if (!masterKey) {
+        return false;
+      }
+
+      // Re-store with biometric protection
+      const { storeMasterKey } = await import("@/lib/key-derivation");
+      const success = await storeMasterKey(masterKey, true);
+      
+      if (success) {
+        setBiometricEnabled(true);
+      }
+      return success;
+    } catch (error) {
+      console.error("Failed to enable biometrics:", error);
+      return false;
+    }
+  }, [biometricAvailable]);
+
+  const disableBiometrics = useCallback(async (): Promise<boolean> => {
+    try {
+      // Get current master key
+      const masterKey = await retrieveMasterKey(false);
+      if (!masterKey) {
+        return false;
+      }
+
+      // Re-store without biometric protection
+      const { storeMasterKey } = await import("@/lib/key-derivation");
+      const success = await storeMasterKey(masterKey, false);
+      
+      if (success) {
+        setBiometricEnabled(false);
+      }
+      return success;
+    } catch (error) {
+      console.error("Failed to disable biometrics:", error);
+      return false;
+    }
+  }, []);
+
+  const authenticateWithBiometrics = useCallback(async (
+    reason?: string
+  ): Promise<BiometricAuthResult> => {
+    const { quickBiometricAuth } = await import("@/lib/biometric-auth");
+    return await quickBiometricAuth(reason);
+  }, []);
+
   const value: AuthContextValue = {
     user,
     isLoading,
     isAuthenticated: !!user,
+    hasKeySetup,
+    biometricAvailable,
+    biometricEnabled,
     login,
     register,
     logout,
     refreshSession,
     continueAsGuest,
+    setupEncryption,
+    unlockEncryption,
+    changeEncryptionPassword,
+    enableBiometrics,
+    disableBiometrics,
+    authenticateWithBiometrics,
   };
 
   return (

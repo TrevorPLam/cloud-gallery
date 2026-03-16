@@ -1,0 +1,185 @@
+name: Test Metrics & Monitoring
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run daily at 2 AM UTC for trend analysis
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+# Security: Use minimal permissions by default
+permissions:
+  contents: read
+  pull-requests: write
+  actions: read
+
+jobs:
+  collect-metrics:
+    runs-on: ubuntu-latest
+    name: Collect Test Metrics
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      with:
+        persist-credentials: false
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run tests with metrics collection
+      run: |
+        # Run tests with custom reporter for metrics collection
+        npm run test:coverage -- --reporter=verbose --reporter=json > coverage/test-results-${{ matrix.node-version }}.json
+        
+        # Extract execution times and flaky test data
+        node scripts/extract-test-metrics.js coverage/test-results-${{ matrix.node-version }}.json coverage/test-metrics-${{ matrix.node-version }}.json
+
+    - name: Detect flaky tests
+      run: |
+        # Analyze test results for flaky patterns
+        node scripts/detect-flaky-tests.js coverage/test-metrics-${{ matrix.node-version }}.json coverage/flaky-tests-${{ matrix.node-version }}.json
+
+    - name: Generate trend analysis
+      if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+      run: |
+        # Generate historical trend analysis
+        node scripts/generate-trend-analysis.js coverage/ coverage/trend-analysis-${{ matrix.node-version }}.json
+
+    - name: Upload test metrics
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-metrics-${{ matrix.node-version }}
+        path: |
+          coverage/test-metrics-${{ matrix.node-version }}.json
+          coverage/flaky-tests-${{ matrix.node-version }}.json
+          coverage/trend-analysis-${{ matrix.node-version }}.json
+        retention-days: 90
+
+    - name: Check for performance regressions
+      run: |
+        # Run existing performance regression check
+        node scripts/check-performance-regressions.js
+
+    - name: Update metrics dashboard
+      if: github.ref == 'refs/heads/main'
+      run: |
+        # Update the metrics dashboard with latest data
+        node scripts/update-metrics-dashboard.js coverage/ docs/testing/metrics-dashboard.html
+
+    - name: Comment metrics on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          
+          // Load test metrics
+          let metrics = {};
+          try {
+            if (fs.existsSync('coverage/test-metrics-20.x.json')) {
+              metrics = JSON.parse(fs.readFileSync('coverage/test-metrics-20.x.json', 'utf8'));
+            }
+          } catch (error) {
+            console.log('Could not load test metrics:', error.message);
+          }
+          
+          // Load flaky test data
+          let flakyTests = [];
+          try {
+            if (fs.existsSync('coverage/flaky-tests-20.x.json')) {
+              flakyTests = JSON.parse(fs.readFileSync('coverage/flaky-tests-20.x.json', 'utf8'));
+            }
+          } catch (error) {
+            console.log('Could not load flaky test data:', error.message);
+          }
+          
+          const comment = \`## 📊 Test Metrics Report
+          
+          ### Test Execution Metrics
+          | Metric | Value |
+          |--------|-------|
+          | Total Tests | \${metrics.totalTests || 'N/A'} |
+          | Passed | \${metrics.passedTests || 'N/A'} |
+          | Failed | \${metrics.failedTests || 'N/A'} |
+          | Execution Time | \${metrics.totalExecutionTime ? \`\${metrics.totalExecutionTime.toFixed(2)}s\` : 'N/A'} |
+          | Average Test Time | \${metrics.averageTestTime ? \`\${metrics.averageTestTime.toFixed(2)}ms\` : 'N/A'} |
+          
+          ### Flaky Test Detection
+          | Metric | Value |
+          |--------|-------|
+          | Flaky Tests | \${flakyTests.length} |
+          | Retry Rate | \${metrics.retryRate ? \`\${(metrics.retryRate * 100).toFixed(1)}%\` : 'N/A'} |
+          | Test Stability | \${metrics.stabilityScore ? \`\${(metrics.stabilityScore * 100).toFixed(1)}%\` : 'N/A'} |
+          
+          \${flakyTests.length > 0 ? \`
+          ### ⚠️ Flaky Tests Detected
+          \${flakyTests.slice(0, 5).map(test => \`- \\\`\\\`${test.name}\\\`\\\` (failed \${test.failures} times)\`).join('\\n')}
+          \${flakyTests.length > 5 ? \`... and \${flakyTests.length - 5} more\` : ''}
+          \` : ''}
+          
+          ### Recommendations
+          \${flakyTests.length > 2 ? '⚠️ High flaky test count detected - consider investigating test stability' : '✅ Test stability looks good'}
+          \${metrics.totalExecutionTime > 300 ? '⚠️ Slow test execution - consider optimizing test performance' : '✅ Test execution time is acceptable'}
+          
+          [View detailed metrics dashboard](https://github.com/\${{ github.repository }}/blob/main/docs/testing/metrics-dashboard.html)\`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+
+  notify-failures:
+    runs-on: ubuntu-latest
+    name: Notify Test Failures
+    needs: collect-metrics
+    if: failure() && github.event_name == 'push'
+    
+    steps:
+    - name: Notify Slack on failure
+      if: env.SLACK_WEBHOOK_URL != ''
+      run: |
+        # Send Slack notification for test failures
+        curl -X POST -H 'Content-type: application/json' \
+          --data '{"text":"🚨 Test failures detected in ${{ github.repository }} on ${{ github.ref_name }}\\n\\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}' \
+          ${{ secrets.SLACK_WEBHOOK_URL }}
+
+    - name: Create issue for critical failures
+      if: env.CREATE_ISSUES == 'true'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const issue = await github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: \`🚨 Test Failures Detected - \${new Date().toISOString().split('T')[0]}\`,
+            body: \`## Test Failure Report
+            
+            **Repository**: \${{ github.repository }}
+            **Branch**: \${{ github.ref_name }}
+            **Commit**: \${{ github.sha }}
+            **Run ID**: \${{ github.run_id }}
+            
+            **Action**: Please investigate the test failures and fix any issues.
+            **Priority**: High - Test failures block deployment
+            
+            [View failed run](\${{ github.server_url }}/\${{ github.repository }}/actions/runs/\${{ github.run_id }})\`,
+            labels: ['bug', 'test-failure', 'high-priority']
+          });
+          
+          console.log(\`Created issue #\${issue.data.number}\ for test failures\`);

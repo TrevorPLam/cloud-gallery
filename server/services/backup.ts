@@ -267,26 +267,32 @@ export interface BackupMetadata {
  */
 export class BackupService {
   private config: BackupConfig;
-  private backupQueue: Queue;
-  private worker: Worker;
+  private backupQueue: Queue | null = null;
+  private worker: Worker | null = null;
   private backupStore: Map<string, BackupMetadata> = new Map(); // In-memory storage for demo
 
   constructor(config: BackupConfig) {
     this.config = config;
 
-    // Initialize BullMQ queue
-    this.backupQueue = new Queue("backup", {
-      connection: {
-        host: process.env.REDIS_HOST || "localhost",
-        port: parseInt(process.env.REDIS_PORT || "6379"),
-      },
-    });
+    // Initialize BullMQ queue only if Redis is enabled
+    if (!process.env.DISABLE_REDIS) {
+      this.backupQueue = new Queue("backup", {
+        connection: {
+          host: process.env.REDIS_HOST || "localhost",
+          port: parseInt(process.env.REDIS_PORT || "6379"),
+        },
+      });
 
-    // Initialize worker
-    this.initializeWorker();
+      // Initialize worker
+      this.initializeWorker();
+    } else {
+      console.log("Redis is disabled. Backup queue and worker will not be initialized.");
+    }
   }
 
   private initializeWorker(): void {
+    if (!this.backupQueue) return;
+
     this.worker = new Worker(
       "backup",
       async (job) => {
@@ -342,23 +348,27 @@ export class BackupService {
     this.backupStore.set(backupId, backupMetadata);
 
     // Add job to queue
-    await this.backupQueue.add(
-      "full",
-      {
-        userId,
-        backupId,
-        type: BackupType.FULL,
-        options: options || {},
-      },
-      {
-        attempts: 3,
-        backoff: {
-          type: "exponential",
-          delay: 5000,
+    if (this.backupQueue) {
+      await this.backupQueue.add(
+        "full",
+        {
+          userId,
+          backupId,
+          type: BackupType.FULL,
+          options: options || {},
         },
-        priority: 1,
-      },
-    );
+        {
+          attempts: 3,
+          backoff: {
+            type: "exponential",
+            delay: 5000,
+          },
+          priority: 1,
+        },
+      );
+    } else {
+      console.log("Redis is disabled. Backup job queued but not processed.");
+    }
 
     return backupId;
   }
@@ -384,23 +394,27 @@ export class BackupService {
     this.backupStore.set(backupId, backupMetadata);
 
     // Add job to queue
-    await this.backupQueue.add(
-      "incremental",
-      {
-        userId,
-        backupId,
-        type: BackupType.INCREMENTAL,
-        options: options || {},
-      },
-      {
-        attempts: 3,
-        backoff: {
-          type: "exponential",
-          delay: 5000,
+    if (this.backupQueue) {
+      await this.backupQueue.add(
+        "incremental",
+        {
+          userId,
+          backupId,
+          type: BackupType.INCREMENTAL,
+          options: options || {},
         },
-        priority: 2,
-      },
-    );
+        {
+          attempts: 3,
+          backoff: {
+            type: "exponential",
+            delay: 5000,
+          },
+          priority: 2,
+        },
+      );
+    } else {
+      console.log("Redis is disabled. Incremental backup job queued but not processed.");
+    }
 
     return backupId;
   }
@@ -416,31 +430,35 @@ export class BackupService {
     }
 
     // Check BullMQ jobs
-    const jobs = await this.backupQueue.getJobs([
-      "waiting",
-      "active",
-      "completed",
-      "failed",
-    ]);
-    const job = jobs.find((j) => j.data.backupId === backupId);
+    if (this.backupQueue) {
+      const jobs = await this.backupQueue.getJobs([
+        "waiting",
+        "active",
+        "completed",
+        "failed",
+      ]);
+      const job = jobs.find((j) => j.data.backupId === backupId);
 
-    if (!job) {
-      return null;
+      if (!job) {
+        return null;
+      }
+
+      const jobData = job.data;
+      return {
+        id: backupId,
+        type: jobData.type,
+        status: this.mapJobStatusToBackupStatus(job),
+        size: 0,
+        fileCount: 0,
+        cloudKey: "",
+        createdAt: new Date(job.timestamp || Date.now()),
+        completedAt: job.finishedOn ? new Date(job.finishedOn) : undefined,
+        errorMessage: job.failedReason,
+        userId: jobData.userId,
+      };
     }
-
-    const jobData = job.data;
-    return {
-      id: backupId,
-      type: jobData.type,
-      status: this.mapJobStatusToBackupStatus(job),
-      size: 0,
-      fileCount: 0,
-      cloudKey: "",
-      createdAt: new Date(job.timestamp || Date.now()),
-      completedAt: job.finishedOn ? new Date(job.finishedOn) : undefined,
-      errorMessage: job.failedReason,
-      userId: jobData.userId,
-    };
+    
+    return null;
   }
 
   /**
@@ -453,45 +471,44 @@ export class BackupService {
     );
 
     // Get from BullMQ jobs
-    const jobs = await this.backupQueue.getJobs([
-      "waiting",
-      "active",
-      "completed",
-      "failed",
-    ]);
-    const userJobs = jobs.filter((j) => j.data.userId === userId);
+    if (this.backupQueue) {
+      const jobs = await this.backupQueue.getJobs([
+        "waiting",
+        "active",
+        "completed",
+        "failed",
+      ]);
+      const queueBackups = jobs
+        .filter((j) => j.data.userId === userId)
+        .map((job) => {
+          const jobData = job.data;
+          return {
+            id: jobData.backupId,
+            type: jobData.type,
+            status: this.mapJobStatusToBackupStatus(job),
+            size: 0,
+            fileCount: 0,
+            cloudKey: "",
+            createdAt: new Date(job.timestamp || Date.now()),
+            completedAt: job.finishedOn ? new Date(job.finishedOn) : undefined,
+            errorMessage: job.failedReason,
+            userId: jobData.userId,
+          };
+        });
 
-    const jobBackups = userJobs.map((job) => ({
-      id: job.data.backupId,
-      type: job.data.type,
-      status: this.mapJobStatusToBackupStatus(job),
-      size: 0,
-      fileCount: 0,
-      cloudKey: "",
-      createdAt: new Date(job.timestamp || Date.now()),
-      completedAt: job.finishedOn ? new Date(job.finishedOn) : undefined,
-      errorMessage: job.failedReason,
-      userId: job.data.userId,
-    }));
-
-    // Combine and deduplicate
-    const allBackups = [...storedBackups, ...jobBackups];
-    const uniqueBackups = new Map();
-
-    allBackups.forEach((backup) => {
-      if (
-        !uniqueBackups.has(backup.id) ||
-        new Date(backup.createdAt) >
-          new Date(uniqueBackups.get(backup.id)!.createdAt)
-      ) {
-        uniqueBackups.set(backup.id, backup);
+      // Merge and remove duplicates
+      const allBackups = [...storedBackups];
+      for (const queueBackup of queueBackups) {
+        if (!allBackups.find((b) => b.id === queueBackup.id)) {
+          allBackups.push(queueBackup);
+        }
       }
-    });
 
-    return Array.from(uniqueBackups.values()).sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
+      return allBackups.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    }
+    
+    // Return only stored backups if Redis is disabled
+    return storedBackups.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
   /**
@@ -734,34 +751,42 @@ export class BackupService {
     schedule: string,
   ): Promise<void> {
     // Add recurring job to queue
-    await this.backupQueue.add(
-      "incremental",
-      {
-        userId,
-        type: BackupType.INCREMENTAL,
-        options: { scheduled: true },
-      },
-      {
-        repeat: { cron: schedule },
-        attempts: 3,
-        backoff: {
-          type: "exponential",
-          delay: 5000,
+    if (this.backupQueue) {
+      await this.backupQueue.add(
+        "incremental",
+        {
+          userId,
+          type: BackupType.INCREMENTAL,
+          options: { scheduled: true },
         },
-      },
-    );
+        {
+          repeat: { cron: schedule },
+          attempts: 3,
+          backoff: {
+            type: "exponential",
+            delay: 5000,
+          },
+        },
+      );
+    } else {
+      console.log("Redis is disabled. Scheduled backup not created.");
+    }
   }
 
   /**
    * Cancel scheduled backup
    */
   async cancelScheduledBackup(userId: string): Promise<void> {
-    const repeatableJobs = await this.backupQueue.getRepeatableJobs();
+    if (this.backupQueue) {
+      const repeatableJobs = await this.backupQueue.getRepeatableJobs();
 
-    for (const job of repeatableJobs) {
-      if (job.name === "incremental" && job.opts?.data?.userId === userId) {
-        await this.backupQueue.removeRepeatableByKey(job.key);
+      for (const job of repeatableJobs) {
+        if (job.name === "incremental" && job.opts?.data?.userId === userId) {
+          await this.backupQueue.removeRepeatableByKey(job.key);
+        }
       }
+    } else {
+      console.log("Redis is disabled. No scheduled backups to cancel.");
     }
   }
 
@@ -827,8 +852,12 @@ export class BackupService {
    * Close the backup service (cleanup)
    */
   async close(): Promise<void> {
-    await this.worker.close();
-    await this.backupQueue.close();
+    if (this.worker) {
+      await this.worker.close();
+    }
+    if (this.backupQueue) {
+      await this.backupQueue.close();
+    }
   }
 }
 

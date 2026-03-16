@@ -14,7 +14,10 @@
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Photo Vault needs access to your photos to help you organize and store your memories.",
         "NSCameraUsageDescription": "Photo Vault needs camera access to take photos directly in the app.",
-        "NSPhotoLibraryAddUsageDescription": "Photo Vault needs permission to save shared photos to your photo library."
+        "NSPhotoLibraryAddUsageDescription": "Photo Vault needs permission to save shared photos to your photo library.",
+        "UIBackgroundModes": [
+          "background-fetch"
+        ]
       }
     },
     "android": {
@@ -83,7 +86,8 @@
         }
       ],
       "expo-build-properties",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-background-task"
     ],
     "experiments": {
       "reactCompiler": true

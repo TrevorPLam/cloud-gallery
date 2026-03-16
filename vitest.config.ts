@@ -34,7 +34,7 @@ export default defineConfig({
       "**/research/**",
     ],
     // Transform React Native files to handle Flow types
-    transformMode: 'ssr',
+    testTransformMode: 'ssr',
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html", "lcov"],

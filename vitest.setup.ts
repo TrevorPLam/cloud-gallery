@@ -52,6 +52,21 @@ vi.mock("expo-secure-store", () => ({
   WHEN_UNLOCKED_THIS_DEVICE_ONLY: 1,
 }));
 
+// Mock expo-local-authentication (used by biometric auth)
+vi.mock("expo-local-authentication", () => ({
+  hasHardwareAsync: vi.fn(),
+  isEnrolledAsync: vi.fn(),
+  supportedAuthenticationTypesAsync: vi.fn(),
+  authenticateAsync: vi.fn(),
+  cancelAuthenticate: vi.fn(),
+  getEnrolledLevelAsync: vi.fn(),
+  AuthenticationType: {
+    FINGERPRINT: 1,
+    FACIAL_RECOGNITION: 2,
+    IRIS: 3,
+  },
+}));
+
 // Mock Expo modules
 vi.mock("expo-constants", () => ({
   default: {

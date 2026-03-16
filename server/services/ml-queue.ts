@@ -16,29 +16,36 @@ import type { MLAnalysisRequest, MLAnalysisResult } from "../ml-routes";
 // QUEUE CONFIGURATION
 // ─────────────────────────────────────────────────────────
 
-const connection = new Redis({
-  host: process.env.REDIS_HOST || "localhost",
-  port: parseInt(process.env.REDIS_PORT || "6379"),
-  maxRetriesPerRequest: 3,
-  lazyConnect: true,
-});
+// Disable Redis in development if DISABLE_REDIS is set
+let connection: Redis | null = null;
+let mlQueue: Queue | null = null;
+let mlQueueEvents: QueueEvents | null = null;
 
-// Create ML processing queue
-export const mlQueue = new Queue("ml-processing", {
-  connection,
-  defaultJobOptions: {
-    removeOnComplete: 100, // Keep last 100 completed jobs
-    removeOnFail: 50, // Keep last 50 failed jobs
-    attempts: 3, // Retry failed jobs 3 times
-    backoff: {
-      type: "exponential",
-      delay: 2000, // Start with 2 seconds delay
+if (!process.env.DISABLE_REDIS) {
+  connection = new Redis({
+    host: process.env.REDIS_HOST || "localhost",
+    port: parseInt(process.env.REDIS_PORT || "6379"),
+    maxRetriesPerRequest: 3,
+    lazyConnect: true,
+  });
+
+  // Create ML processing queue
+  mlQueue = new Queue("ml-processing", {
+    connection,
+    defaultJobOptions: {
+      removeOnComplete: 100, // Keep last 100 completed jobs
+      removeOnFail: 50, // Keep last 50 failed jobs
+      attempts: 3, // Retry failed jobs 3 times
+      backoff: {
+        type: "exponential",
+        delay: 2000, // Start with 2 seconds delay
+      },
     },
-  },
-});
+  });
 
-// Create queue events for monitoring
-export const mlQueueEvents = new QueueEvents("ml-processing", { connection });
+  // Create queue events for monitoring
+  mlQueueEvents = new QueueEvents("ml-processing", { connection });
+}
 
 // ─────────────────────────────────────────────────────────
 // JOB INTERFACES
@@ -74,6 +81,9 @@ export enum MLJobStatus {
 export async function addMLJob(
   jobData: MLJobData,
 ): Promise<Job<MLJobData, MLJobResult>> {
+  if (!mlQueue) {
+    throw new Error("Redis is disabled. ML queue is not available.");
+  }
   const job = await mlQueue.add("ml-analysis", jobData, {
     priority: jobData.priority || 0,
     delay: jobData.delay || 0,
@@ -141,6 +151,17 @@ export async function getMLQueueStats(): Promise<{
   delayed: number;
   paused: boolean;
 }> {
+  if (!mlQueue) {
+    return {
+      waiting: 0,
+      active: 0,
+      completed: 0,
+      failed: 0,
+      delayed: 0,
+      paused: true,
+    };
+  }
+  
   const [waiting, active, completed, failed, delayed, paused] =
     await Promise.all([
       mlQueue.getWaiting(),
@@ -165,26 +186,38 @@ export async function getMLQueueStats(): Promise<{
  * Pause ML queue (stop processing new jobs)
  */
 export async function pauseMLQueue(): Promise<void> {
-  await mlQueue.pause();
-  console.log("ML queue paused");
+  if (mlQueue) {
+    await mlQueue.pause();
+    console.log("ML queue paused");
+  } else {
+    console.log("ML queue is not available (Redis disabled)");
+  }
 }
 
 /**
  * Resume ML queue (start processing jobs again)
  */
 export async function resumeMLQueue(): Promise<void> {
-  await mlQueue.resume();
-  console.log("ML queue resumed");
+  if (mlQueue) {
+    await mlQueue.resume();
+    console.log("ML queue resumed");
+  } else {
+    console.log("ML queue is not available (Redis disabled)");
+  }
 }
 
 /**
  * Clear all jobs from queue
  */
 export async function clearMLQueue(): Promise<void> {
-  await mlQueue.clean(0, 0, "completed");
-  await mlQueue.clean(0, 0, "failed");
-  await mlQueue.drain();
-  console.log("ML queue cleared");
+  if (mlQueue) {
+    await mlQueue.clean(0, 0, "completed");
+    await mlQueue.clean(0, 0, "failed");
+    await mlQueue.drain();
+    console.log("ML queue cleared");
+  } else {
+    console.log("ML queue is not available (Redis disabled)");
+  }
 }
 
 /**
@@ -192,6 +225,11 @@ export async function clearMLQueue(): Promise<void> {
  */
 export async function removeMLJob(jobId: string): Promise<boolean> {
   try {
+    if (!mlQueue) {
+      console.log("ML queue is not available (Redis disabled)");
+      return false;
+    }
+    
     const job = await mlQueue.getJob(jobId);
     if (job) {
       await job.remove();

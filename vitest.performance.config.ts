@@ -29,7 +29,7 @@ export default defineConfig({
       "**/research/**",
     ],
     // Transform React Native files to handle Flow types
-    transformMode: 'ssr',
+    testTransformMode: 'ssr',
     // Performance-specific configuration
     benchmark: {
       include: ["tests/performance/**/*.test.ts"],

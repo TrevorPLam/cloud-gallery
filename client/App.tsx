@@ -8,7 +8,7 @@
 // TESTS: check:types, expo:dev for runtime validation
 // AI-META-END
 
-import React from "react";
+import React, { useEffect } from "react";
 import { StyleSheet } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -22,9 +22,17 @@ import { queryClient } from "@/lib/query-client";
 import { AuthProvider } from "@/contexts/AuthContext";
 import NavigatorSwitch from "@/navigation/NavigatorSwitch";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { initializeAppBackgroundSync } from "@/lib/background-sync-service";
 
 // AI-NOTE: Provider nesting order ensures gesture handlers and keyboard are available throughout navigation tree
 export default function App() {
+  useEffect(() => {
+    // Initialize background sync when app starts
+    initializeAppBackgroundSync().catch(error => {
+      console.error('Failed to initialize background sync:', error);
+    });
+  }, []);
+
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
