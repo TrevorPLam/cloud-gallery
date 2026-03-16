@@ -47,7 +47,11 @@
     "build:e2e:ios": "detox build --configuration ios.sim.debug",
     "build:e2e:ios:release": "detox build --configuration ios.sim.release",
     "build:e2e:android": "detox build --configuration android.emu.debug",
-    "build:e2e:android:release": "detox build --configuration android.emu.release"
+    "build:e2e:android:release": "detox build --configuration android.emu.release",
+    "desktop:dev": "cd desktop && npm run dev",
+    "desktop:build": "cd desktop && npm run build",
+    "desktop:tauri:dev": "cd desktop && npm run tauri:dev",
+    "desktop:tauri:build": "cd desktop && npm run tauri:build"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.600.0",

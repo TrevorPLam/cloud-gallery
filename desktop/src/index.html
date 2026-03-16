@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Gallery</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+                sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        #root {
+            height: 100vh;
+            width: 100vw;
+        }
+        
+        /* Desktop-specific styles */
+        .desktop-container {
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        /* Drag region for window movement */
+        .drag-region {
+            -webkit-app-region: drag;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: transparent;
+            z-index: 1000;
+            pointer-events: none;
+        }
+        
+        .drag-region button,
+        .drag-region input,
+        .drag-region [data-tauri-drag-region="false"] {
+            -webkit-app-region: no-drag;
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <div class="drag-region" data-tauri-drag-region="true"></div>
+        <div class="desktop-container"></div>
+    </div>
+</body>
+</html>
