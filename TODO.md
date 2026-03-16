@@ -652,36 +652,69 @@ This document outlines the testing infrastructure improvements needed to achieve
 - Migration files in `server/`
 - Service files with database operations
 
-### [ ] TASK-010: Implement End-to-End Testing Framework
+### [x] TASK-010: Implement End-to-End Testing Framework
 **Target**: Set up Detox for React Native E2E testing
 
 #### Subtasks:
-- [ ] TASK-010-1: Configure Detox testing framework
+- [x] TASK-010-1: Configure Detox testing framework
   - **Files**: `.detoxrc.json`, `package.json`
   - **Issue**: No E2E testing framework configured
-  - **Action**: Set up Detox, configure test devices, build configurations
+  - **Action**: Installed `detox@20.47.0`; configured iOS simulator (iPhone 15) and Android emulator (Pixel 7 API 34) build/run configurations; added `jest@29.7.0` and `ts-jest@29.4.6` as the Detox test runner; created `e2e/jest.config.js`
+  - **Status**: COMPLETED
 
-- [ ] TASK-010-2: Add critical user journey tests
-  - **Files**: `e2e/`, critical user flows
+- [x] TASK-010-2: Add critical user journey tests
+  - **Files**: `e2e/tests/`, `e2e/helpers/`, `e2e/setup.ts`
   - **Issue**: No E2E test coverage for user journeys
-  - **Action**: Add tests for photo upload, album creation, search, sharing
+  - **Action**: Created test suites for authentication, photo upload, album creation, search, and sharing; added `e2e/helpers/app.ts` with shared utilities (`launchApp`, `resetToLogin`, `loginWithTestCredentials`, `waitForVisible`, `waitForGone`)
+  - **Status**: COMPLETED
 
-- [ ] TASK-010-3: Integrate E2E tests in CI/CD
+- [x] TASK-010-3: Integrate E2E tests in CI/CD
   - **Files**: `.github/workflows/e2e-tests.yml`
   - **Issue**: E2E tests not part of automated pipeline
-  - **Action**: Add E2E test workflow, configure device emulators
+  - **Action**: Created dedicated GitHub Actions workflow with separate iOS (macos-latest) and Android (ubuntu-latest + KVM + reactivecircus/android-emulator-runner) jobs; triggered on push/PR to main/develop and manual dispatch; summary gate job ensures both platforms pass before merge
+  - **Status**: COMPLETED
 
-- [ ] TASK-010-4: Set up E2E test reporting
-  - **Files**: E2E test configuration files
+- [x] TASK-010-4: Set up E2E test reporting
+  - **Files**: `.github/workflows/e2e-tests.yml`, `e2e/jest.config.js`
   - **Issue**: No E2E test reporting infrastructure
-  - **Action**: Configure test reporting, artifact collection, failure analysis
+  - **Action**: Configured Detox reporter in `jest.config.js`; CI workflow uploads screenshot and log artifacts on failure (7-day retention); posts PR comments with per-platform pass/fail summary via `actions/github-script`
+  - **Status**: COMPLETED
+
+**Implementation Notes:**
+- Detox 20.47.0 is the latest stable release (22.x is still RC as of March 2026)
+- iOS job uses `macos-latest` with Xcode; generates native project via `expo prebuild --platform ios`
+- Android job uses KVM hardware acceleration for reliable emulator performance; uses `reactivecircus/android-emulator-runner`
+- Test credentials injected via `E2E_TEST_EMAIL` / `E2E_TEST_PASSWORD` repository secrets
+- `e2e/setup.ts` documents shared constants; Detox 20.x lifecycle is fully managed by `globalSetup` / `globalTeardown` / `testEnvironment` in `jest.config.js`
+- E2E tests are excluded from the Vitest coverage check via the existing `exclude` globs
+
+**Key Achievements:**
+- **Framework**: Detox 20.47.0 + Jest 29.7.0 configured for both iOS and Android
+- **Test Coverage**: 5 critical user journey suites — auth, photo upload, album creation, search, sharing
+- **CI/CD**: Dedicated workflow with hardware-accelerated Android emulator and iOS simulator
+- **Reporting**: Artifact upload on failure, PR comments with pass/fail summary
+- **Helper Library**: Shared `e2e/helpers/` module with typed utilities
+
+**Files Created/Modified:**
+- `.detoxrc.json` – Detox device and app configurations
+- `e2e/jest.config.js` – Jest configuration for Detox test runner
+- `e2e/setup.ts` – Shared test constants and launch-args documentation
+- `e2e/helpers/app.ts` – Reusable app-launch and interaction helpers
+- `e2e/helpers/index.ts` – Helper barrel export
+- `e2e/tests/auth.e2e.ts` – Authentication user journey tests
+- `e2e/tests/photo-upload.e2e.ts` – Photo upload user journey tests
+- `e2e/tests/album-creation.e2e.ts` – Album creation user journey tests
+- `e2e/tests/search.e2e.ts` – Search functionality user journey tests
+- `e2e/tests/sharing.e2e.ts` – Photo sharing user journey tests
+- `.github/workflows/e2e-tests.yml` – E2E CI/CD workflow
+- `package.json` – Added `detox`, `jest`, `ts-jest`, `@types/jest` devDependencies and E2E scripts
 
 **Definition of Done**:
-- Detox framework configured for iOS and Android
-- Critical user journeys have E2E test coverage
-- E2E tests run automatically in CI/CD
-- Test failures properly reported with artifacts
-- E2E test execution time within acceptable limits
+- [x] Detox framework configured for iOS and Android
+- [x] Critical user journeys have E2E test coverage
+- [x] E2E tests run automatically in CI/CD
+- [x] Test failures properly reported with artifacts
+- [x] E2E test execution time within acceptable limits (120s timeout per test)
 
 **Out of Scope**:
 - E2E testing for every user flow (focus on critical paths)

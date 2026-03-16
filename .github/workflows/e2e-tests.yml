@@ -1,0 +1,248 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  # Allow manual trigger for debugging
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to test (ios / android / both)'
+        required: false
+        default: 'ios'
+
+# Minimal permissions – E2E jobs only need read access to source code and
+# write access to post a summary comment on pull requests.
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  # ─────────────────────────────────────────────────────────────
+  # iOS E2E tests (macOS runner with Xcode + iPhone simulator)
+  # ─────────────────────────────────────────────────────────────
+  e2e-ios:
+    name: E2E Tests – iOS
+    runs-on: macos-latest
+    if: >
+      github.event_name != 'workflow_dispatch' ||
+      contains(fromJSON('["ios","both"]'), github.event.inputs.platform)
+    timeout-minutes: 60
+
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Expo CLI
+        run: npm install -g @expo/cli
+
+      - name: Generate native iOS project
+        run: npx expo prebuild --platform ios --clean
+        env:
+          EXPO_NO_DOTENV: 1
+
+      - name: Cache Xcode derived data
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c6158d # v4.2.0
+        with:
+          path: ios/build
+          key: ${{ runner.os }}-xcode-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-xcode-
+
+      - name: Install CocoaPods dependencies
+        run: cd ios && pod install --repo-update
+
+      - name: Build app for E2E (iOS debug)
+        run: npm run build:e2e:ios
+
+      - name: Run E2E tests (iOS)
+        run: npm run test:e2e:ios
+        env:
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+
+      - name: Upload E2E artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        with:
+          name: e2e-ios-artifacts-${{ matrix.node-version }}
+          path: |
+            e2e/artifacts/
+            /tmp/detox_artifacts/
+          retention-days: 7
+
+      - name: Post E2E result summary
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const status = '${{ job.status }}' === 'success' ? '✅' : '❌';
+            const body = `## ${status} E2E Tests – iOS\n` +
+              `**Platform**: iOS Simulator (iPhone 15)\n` +
+              `**Node.js**: ${{ matrix.node-version }}\n` +
+              `**Status**: ${{ job.status }}\n\n` +
+              (
+                '${{ job.status }}' !== 'success'
+                  ? '_Download the **e2e-ios-artifacts** from this run for screenshots and logs._\n'
+                  : '_All critical user journeys passed on iOS._\n'
+              );
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });
+
+  # ─────────────────────────────────────────────────────────────
+  # Android E2E tests (ubuntu runner with Android emulator)
+  # ─────────────────────────────────────────────────────────────
+  e2e-android:
+    name: E2E Tests – Android
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name != 'workflow_dispatch' ||
+      contains(fromJSON('["android","both"]'), github.event.inputs.platform)
+    timeout-minutes: 60
+
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Setup Java 17
+        uses: actions/setup-java@7a6d8a8234af8eb26422e24e3006232cccaa061b # v4.6.0
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Expo CLI
+        run: npm install -g @expo/cli
+
+      - name: Generate native Android project
+        run: npx expo prebuild --platform android --clean
+        env:
+          EXPO_NO_DOTENV: 1
+
+      - name: Cache Gradle
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c6158d # v4.2.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('android/**/*.gradle*') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Enable KVM (hardware acceleration for emulator)
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          sudo apt-get install -y cpu-checker
+          sudo kvm-ok
+
+      - name: Build app for E2E (Android debug)
+        run: npm run build:e2e:android
+
+      - name: Run E2E tests (Android)
+        uses: reactivecircus/android-emulator-runner@62dbb605bba737720e10b196cb4220d374026a6d # v2.33.0
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          avd-name: Pixel_7_API_34
+          cores: 2
+          ram-size: 4096M
+          heap-size: 512M
+          disable-animations: true
+          script: npm run test:e2e:android
+        env:
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+
+      - name: Upload E2E artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        with:
+          name: e2e-android-artifacts-${{ matrix.node-version }}
+          path: |
+            e2e/artifacts/
+            /tmp/detox_artifacts/
+          retention-days: 7
+
+      - name: Post E2E result summary
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const status = '${{ job.status }}' === 'success' ? '✅' : '❌';
+            const body = `## ${status} E2E Tests – Android\n` +
+              `**Platform**: Android Emulator (Pixel 7, API 34)\n` +
+              `**Node.js**: ${{ matrix.node-version }}\n` +
+              `**Status**: ${{ job.status }}\n\n` +
+              (
+                '${{ job.status }}' !== 'success'
+                  ? '_Download the **e2e-android-artifacts** from this run for screenshots and logs._\n'
+                  : '_All critical user journeys passed on Android._\n'
+              );
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });
+
+  # ─────────────────────────────────────────────────────────────
+  # Summary gate – all E2E jobs must pass before merging
+  # ─────────────────────────────────────────────────────────────
+  e2e-summary:
+    name: E2E Summary
+    needs: [e2e-ios, e2e-android]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Check E2E status
+        run: |
+          if [[ "${{ needs.e2e-ios.result }}" == "failure" || \
+                "${{ needs.e2e-android.result }}" == "failure" ]]; then
+            echo "One or more E2E jobs failed."
+            exit 1
+          fi
+          echo "All E2E jobs passed (or were skipped)."
