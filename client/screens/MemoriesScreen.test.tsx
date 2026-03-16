@@ -11,6 +11,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react-native";
 import { migrationHelpers } from "../test-utils/accessibility";
+import { AccessibilityTester, AccessibilityPatterns } from "../test-utils/accessibility-testing-simple";
 import React from "react";
 import MemoriesScreen from "./MemoriesScreen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -470,6 +471,105 @@ describe("MemoriesScreen", () => {
       expect(mockApiRequest).toHaveBeenCalledWith("/api/memories/generate", {
         method: "POST",
       });
+    });
+  });
+
+  describe("Accessibility", () => {
+    it("should be accessible when displaying memories", async () => {
+      mockApiRequest.mockImplementation((url) => {
+        if (url === "/api/memories") {
+          return Promise.resolve({
+            json: vi.fn().mockResolvedValue({
+              memories: [
+                {
+                  id: "memory-1",
+                  title: "Summer Vacation",
+                  description: "Beach trip with family",
+                  date: "2024-07-15",
+                  photoCount: 25,
+                  coverPhotoUri: "https://example.com/memory1.jpg",
+                },
+              ],
+            }),
+          });
+        }
+        return Promise.resolve({ json: vi.fn().mockResolvedValue({}) });
+      });
+
+      renderComponent();
+      
+      await waitFor(() => {
+        expect(screen.getByText("Memories")).toBeTruthy();
+      });
+      
+      await AccessibilityTester.expectNoViolations(
+        <ThemeProvider theme={defaultTheme}>
+          <QueryClientProvider client={new QueryClient()}>
+            <MemoriesScreen />
+          </QueryClientProvider>
+        </ThemeProvider>
+      );
+    });
+
+    it("should pass interactive element tests for memory cards", async () => {
+      mockApiRequest.mockImplementation((url) => {
+        if (url === "/api/memories") {
+          return Promise.resolve({
+            json: vi.fn().mockResolvedValue({
+              memories: [
+                {
+                  id: "memory-1",
+                  title: "Summer Vacation",
+                  description: "Beach trip with family",
+                  date: "2024-07-15",
+                  photoCount: 25,
+                  coverPhotoUri: "https://example.com/memory1.jpg",
+                },
+              ],
+            }),
+          });
+        }
+        return Promise.resolve({ json: vi.fn().mockResolvedValue({}) });
+      });
+
+      renderComponent();
+      
+      await waitFor(() => {
+        expect(screen.getByText("Summer Vacation")).toBeTruthy();
+      });
+      
+      await AccessibilityPatterns.testInteractiveElement(
+        <ThemeProvider theme={defaultTheme}>
+          <QueryClientProvider client={new QueryClient()}>
+            <MemoriesScreen />
+          </QueryClientProvider>
+        </ThemeProvider>
+      );
+    });
+
+    it("should be accessible with custom matcher", async () => {
+      const component = (
+        <ThemeProvider theme={defaultTheme}>
+          <QueryClientProvider client={new QueryClient()}>
+            <MemoriesScreen />
+          </QueryClientProvider>
+        </ThemeProvider>
+      );
+      
+      await expect(component).toBeAccessible();
+    });
+
+    it("should have proper accessibility labels for memory actions", async () => {
+      renderComponent();
+      
+      await waitFor(() => {
+        expect(screen.getByText("Memories")).toBeTruthy();
+      });
+      
+      // Check that generate memories button is accessible
+      const generateButton = screen.getByRole('button', { name: /generate/i });
+      expect(generateButton).toBeTruthy();
+      expect(generateButton.props.accessibilityLabel).toBeDefined();
     });
   });
 });

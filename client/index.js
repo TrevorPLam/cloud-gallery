@@ -11,6 +11,6 @@
 // AI-NOTE: Expo registerRootComponent wraps App with error boundaries and enables Fast Refresh
 import { registerRootComponent } from "expo";
 
-import App from "@/App";
+import App from "./App";
 
 registerRootComponent(App);

@@ -1,13 +1,4 @@
 {
-  // AI-META-BEGIN
-  // AI-META: Expo app configuration with platform-specific settings and permissions
-  // OWNERSHIP: config/expo
-  // ENTRYPOINTS: used by Expo CLI, Metro bundler, and native app builds
-  // DEPENDENCIES: Expo SDK, plugins (splash-screen, image-picker, media-library)
-  // DANGER: permissions must match requested features; bundle identifiers must be unique; React compiler is experimental
-  // CHANGE-SAFETY: safe to update name/version; icon/splash paths must exist; permissions require app store review; newArchEnabled affects performance
-  // TESTS: expo:dev for validation, check platform-specific builds
-  // AI-META-END
   "expo": {
     "name": "Photo Vault",
     "slug": "photo-vault",
@@ -16,12 +7,10 @@
     "icon": "./assets/images/icon.png",
     "scheme": "photovault",
     "userInterfaceStyle": "automatic",
-    // AI-NOTE: newArchEnabled uses React Native's new architecture for better performance; may have compatibility issues with older libraries
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.photovault.app",
-      // AI-NOTE: infoPlist strings shown to users when requesting permissions; be clear and non-intrusive
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Photo Vault needs access to your photos to help you organize and store your memories.",
         "NSCameraUsageDescription": "Photo Vault needs camera access to take photos directly in the app.",
@@ -36,7 +25,6 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.photovault.app",
-      // AI-NOTE: READ/WRITE_EXTERNAL_STORAGE needed for photo access on older Android; newer versions use scoped storage
       "permissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
@@ -79,7 +67,12 @@
       [
         "react-native-share",
         {
-          "ios": ["fb", "instagram", "twitter", "tiktoksharesdk"],
+          "ios": [
+            "fb",
+            "instagram",
+            "twitter",
+            "tiktoksharesdk"
+          ],
           "android": [
             "com.facebook.katana",
             "com.instagram.android",
@@ -88,9 +81,10 @@
           ],
           "enableBase64ShareAndroid": true
         }
-      ]
+      ],
+      "expo-build-properties",
+      "expo-secure-store"
     ],
-    // AI-NOTE: React compiler experimental feature enables automatic memoization; may cause unexpected re-rendering behavior
     "experiments": {
       "reactCompiler": true
     }

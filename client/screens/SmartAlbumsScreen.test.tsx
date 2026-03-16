@@ -11,6 +11,7 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react-native";
 import { migrationHelpers } from "../test-utils/accessibility";
+import { AccessibilityTester, AccessibilityPatterns } from "../test-utils/accessibility-testing-simple";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Alert } from "react-native";
 import SmartAlbumsScreen from "./SmartAlbumsScreen";
@@ -557,6 +558,44 @@ describe("SmartAlbumsScreen", () => {
 
       // Hidden album should not be in any section
       expect(queryByText("Hidden Person")).toBeNull();
+    });
+  });
+
+  describe("Accessibility", () => {
+    it("should be accessible when displaying smart albums", async () => {
+      await waitFor(() => {
+        expect(getByText("Smart Albums")).toBeTruthy();
+      });
+      
+      await AccessibilityTester.expectNoViolations(<SmartAlbumsScreen />);
+    });
+
+    it("should pass interactive element tests for album cards", async () => {
+      await waitFor(() => {
+        expect(getByText("John Doe")).toBeTruthy();
+      });
+      
+      await AccessibilityPatterns.testInteractiveElement(<SmartAlbumsScreen />);
+    });
+
+    it("should be accessible with custom matcher", async () => {
+      const component = (
+        <QueryClientProvider client={new QueryClient()}>
+          <SmartAlbumsScreen />
+        </QueryClientProvider>
+      );
+      
+      await expect(component).toBeAccessible();
+    });
+
+    it("should have proper accessibility labels for album sections", async () => {
+      await waitFor(() => {
+        expect(getByText("People")).toBeTruthy();
+      });
+      
+      // Check that section headers are accessible
+      const peopleHeader = getByRole('header', { name: /people/i });
+      expect(peopleHeader).toBeTruthy();
     });
   });
 });

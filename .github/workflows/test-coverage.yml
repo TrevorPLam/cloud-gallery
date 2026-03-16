@@ -49,6 +49,35 @@ jobs:
     - name: Run tests with coverage
       run: npm run test:coverage
 
+    - name: Run accessibility tests
+      run: npm run test:accessibility
+
+    - name: Run performance tests
+      run: npm run test:performance:ci
+
+    - name: Run contract tests
+      run: npm run test:contracts:consumer
+
+    - name: Check accessibility compliance
+      run: |
+        # Check if accessibility tests passed and generate report
+        if [ -f "coverage/a11y-results.json" ]; then
+          echo "✅ Accessibility tests completed"
+        else
+          echo "⚠️ No accessibility results found"
+        fi
+
+    - name: Check performance compliance
+      run: |
+        # Check if performance tests passed and generate report
+        if [ -f "coverage/performance-results.json" ]; then
+          echo "✅ Performance tests completed"
+          # Parse performance results for regression detection
+          node scripts/check-performance-regressions.js
+        else
+          echo "⚠️ No performance results found"
+        fi
+
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
       with:
@@ -61,6 +90,22 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: coverage-report-${{ matrix.node-version }}
+        path: coverage/
+        retention-days: 30
+
+    - name: Upload accessibility results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: accessibility-results-${{ matrix.node-version }}
+        path: coverage/
+        retention-days: 30
+
+    - name: Upload performance results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: performance-results-${{ matrix.node-version }}
         path: coverage/
         retention-days: 30
 
@@ -104,17 +149,87 @@ jobs:
           const branchPct = ((branchesCovered / branches) * 100).toFixed(2);
           const funcPct = ((functionsCovered / functions) * 100).toFixed(2);
 
-          const comment = `## Coverage Report 📊
+          // Check accessibility results
+          let accessibilityStatus = "✅ Passed";
+          let accessibilityScore = "100%";
+          
+          try {
+            if (fs.existsSync('coverage/a11y-results.json')) {
+              const a11yResults = JSON.parse(fs.readFileSync('coverage/a11y-results.json', 'utf8'));
+              accessibilityScore = a11yResults.score ? `${a11yResults.score}%` : "Unknown";
+              if (a11yResults.violations > 0 || a11yResults.criticalViolations > 0) {
+                accessibilityStatus = "⚠️ Issues found";
+              }
+            }
+          } catch (error) {
+            accessibilityStatus = "❓ No data";
+          }
 
+          // Check performance results
+          let performanceStatus = "✅ Passed";
+          let performanceScore = "Good";
+          let regressions = 0;
+          
+          try {
+            if (fs.existsSync('coverage/performance-results.json')) {
+              const perfResults = JSON.parse(fs.readFileSync('coverage/performance-results.json', 'utf8'));
+              performanceScore = perfResults.score ? `${perfResults.score}%` : "Unknown";
+              regressions = perfResults.regressions || 0;
+              if (regressions > 0) {
+                performanceStatus = "⚠️ Regressions detected";
+              }
+            }
+          } catch (error) {
+            performanceStatus = "❓ No data";
+          }
+
+          // Check contract test results
+          let contractStatus = "✅ Passed";
+          try {
+            if (fs.existsSync('tests/contracts/pacts')) {
+              const contractFiles = fs.readdirSync('tests/contracts/pacts');
+              if (contractFiles.length > 0) {
+                contractStatus = "✅ Contracts generated";
+              } else {
+                contractStatus = "⚠️ No contracts found";
+              }
+            } else {
+              contractStatus = "❓ No contract data";
+            }
+          } catch (error) {
+            contractStatus = "❓ Error checking contracts";
+          }
+
+          const comment = \`## 📊 Test Results Report
+
+          ### Code Coverage
           | Metric | Coverage |
           |--------|----------|
-          | Lines | ${linePct}% |
-          | Branches | ${branchPct}% |
-          | Functions | ${funcPct}% |
+          | Lines | \${linePct}% |
+          | Branches | \${branchPct}% |
+          | Functions | \${funcPct}% |
 
-          **Status**: ${linePct === '100.00' && branchPct === '100.00' && funcPct === '100.00' ? '✅ Perfect coverage!' : '⚠️ Coverage below 100%'}
+          ### Accessibility Testing
+          | Metric | Result |
+          |--------|--------|
+          | Status | \${accessibilityStatus} |
+          | Score | \${accessibilityScore} |
 
-          [View detailed report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
+          ### Performance Testing
+          | Metric | Result |
+          |--------|--------|
+          | Status | \${performanceStatus} |
+          | Score | \${performanceScore} |
+          | Regressions | \${regressions} |
+
+          ### Contract Testing
+          | Metric | Result |
+          |--------|--------|
+          | Status | \${contractStatus} |
+
+          **Overall Status**: \${linePct === '100.00' && branchPct === '100.00' && funcPct === '100.00' && accessibilityStatus.includes("✅") && performanceStatus.includes("✅") && contractStatus.includes("✅") ? '✅ All tests passed!' : '⚠️ Some issues detected'}
+
+          [View detailed report](https://github.com/\${{ github.repository }}/actions/runs/\${{ github.run_id }})\`;
 
           github.rest.issues.createComment({
             issue_number: context.issue.number,

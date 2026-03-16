@@ -1,0 +1,12 @@
+{
+  "brokerUrl": "http://localhost:9292",
+  "consumer": "cloud-gallery-client",
+  "provider": "cloud-gallery-api",
+  "publish": false,
+  "tags": ["dev", "contract-testing"],
+  "branch": "main",
+  "repository": {
+    "url": "https://github.com/TrevorPLam/cloud-gallery",
+    "project": "cloud-gallery"
+  }
+}

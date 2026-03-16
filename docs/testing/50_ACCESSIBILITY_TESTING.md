@@ -9,9 +9,9 @@ Accessibility testing ensures that the Cloud Gallery app is usable by people wit
 ## 🛠️ Tools & Libraries
 
 ### Core Libraries
-- **@axe-core/react**: Automated accessibility testing
+- **vitest-axe**: axe-core integration for Vitest (replaces deprecated @axe-core/react)
 - **React Native Testing Library**: Component testing with accessibility support
-- **Custom accessibility utilities**: React Native specific testing helpers
+- **Custom accessibility utilities**: React Native specific testing helpers (`client/test-utils/accessibility-testing.ts`)
 
 ### Platform-Specific Tools
 - **iOS**: Accessibility Inspector
@@ -63,15 +63,31 @@ Manual testing with assistive technologies:
 
 ```typescript
 import { render } from '@testing-library/react-native';
-import { createAccessibilityTest } from '../test-utils/accessibility';
+import { AccessibilityTester, AccessibilityPatterns } from '../test-utils/accessibility-testing';
 import { Button } from './Button';
 
 describe('Button Accessibility', () => {
-  // Standard accessibility test
-  createAccessibilityTest(
-    'renders accessible button',
-    () => render(<Button title="Submit" onPress={() => {}} />)
-  );
+  // Standard accessibility test with WCAG 2.1 AA compliance
+  it('should be accessible', async () => {
+    const { container } = render(
+      <Button title="Submit" onPress={() => {}} />
+    );
+    
+    await AccessibilityTester.expectNoViolations(container);
+  });
+
+  // Test interactive element patterns
+  it('should pass interactive element tests', async () => {
+    await AccessibilityPatterns.testInteractiveElement(
+      <Button title="Submit Form" onPress={() => {}} />
+    );
+  });
+
+  // Custom accessibility assertion
+  it('should be accessible with custom matcher', async () => {
+    const component = <Button title="Submit" onPress={() => {}} />;
+    await expect(component).toBeAccessible();
+  });
 
   // Specific accessibility properties
   it('should have proper accessibility label', () => {
@@ -180,20 +196,36 @@ interface AccessibleComponent {
 
 ### Automated Checks
 ```yaml
-# .github/workflows/accessibility.yml
-name: Accessibility Tests
+# .github/workflows/test-coverage.yml (updated with accessibility)
+name: Test Coverage and Accessibility
 on: [push, pull_request]
 
 jobs:
-  accessibility:
+  test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
       - run: npm ci
       - run: npm run test:accessibility
       - run: npm run test:visual
+      - name: Upload accessibility results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: accessibility-results
+          path: coverage/
 ```
+
+### Failure Thresholds
+- **Critical violations**: 0 allowed (blocks merge)
+- **Serious violations**: 0 allowed (blocks merge)  
+- **Moderate violations**: 5 allowed (warning)
+- **Minor violations**: 10 allowed (warning)
+- **Accessibility score**: Minimum 90% required
 
 ### Coverage Requirements
 - **New components**: 100% accessibility test coverage
@@ -243,7 +275,7 @@ if (__DEV__) {
 - [WAVE Web Accessibility Tool](https://wave.webaim.org/)
 
 ### Testing Libraries
-- [@axe-core/react](https://www.npmjs.com/package/@axe-core/react)
+- [vitest-axe](https://github.com/chaance/vitest-axe) - axe-core integration for Vitest
 - [React Native Testing Library](https://callstack.github.io/react-native-testing-library/)
 - [Jest DOM Matchers](https://github.com/testing-library/jest-dom)
 

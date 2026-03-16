@@ -10,11 +10,12 @@ import { defineConfig } from "vitest/config";
 import path from "path";
 
 export default defineConfig({
+  plugins: [],
   test: {
     allowOnly: false,
     globals: true,
     environment: "happy-dom",
-    setupFiles: ["./vitest.setup.ts"],
+    setupFiles: ["./vitest.setup.ts", "./tests/performance/setup.ts"],
     server: {
       deps: {
         inline: ["react-native-reanimated"],

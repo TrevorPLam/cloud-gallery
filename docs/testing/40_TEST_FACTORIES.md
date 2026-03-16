@@ -1,303 +1,434 @@
-# Test Factories and Performance Testing
+# Performance Testing and Test Factories
 
-Guide to using test factories and performance testing in Cloud Gallery.
+Guide to performance testing, test factories, and benchmarking in Cloud Gallery.
+
+## Performance Testing Overview
+
+Performance testing ensures the application handles large datasets and high-frequency operations efficiently while detecting regressions over time.
+
+### Performance Testing Infrastructure
+
+Cloud Gallery uses Vitest's built-in benchmark functionality enhanced with the CodSpeed plugin for consistent CI/CD benchmarking.
+
+#### Key Components
+
+- **Vitest Bench**: Native benchmarking support in Vitest
+- **CodSpeed Plugin**: CI/CD integration for consistent performance measurement
+- **Performance Thresholds**: Defined limits for acceptable performance
+- **Regression Detection**: Automated detection of performance regressions
+- **Performance Reports**: Detailed analysis and trend tracking
+
+## Performance Test Structure
+
+### Directory Structure
+
+```
+tests/performance/
+├── README.md                    # Performance testing overview
+├── utils/                       # Performance testing utilities
+│   ├── benchmark-helpers.ts     # Common benchmark utilities
+│   ├── data-generators.ts       # Performance test data generators
+│   └── thresholds.ts            # Performance threshold definitions
+├── server/                      # Server-side performance tests
+│   ├── search-performance.test.ts
+│   ├── photo-processing.test.ts
+│   └── data-operations.test.ts
+├── client/                      # Client-side performance tests
+│   ├── storage-performance.test.ts
+│   ├── ui-rendering.test.ts
+│   └── image-handling.test.ts
+└── shared/                      # Shared performance tests
+    ├── crypto-performance.test.ts
+    └── validation-performance.test.ts
+```
+
+### Basic Performance Test
+
+```typescript
+import { bench, describe } from 'vitest';
+import { PerformanceAssertions } from '../utils/benchmark-helpers';
+import { serverThresholds } from '../utils/thresholds';
+
+describe('Search Performance', () => {
+  bench('search query performance', async () => {
+    await PerformanceAssertions.assertTimeThreshold(
+      () => searchService.search(query),
+      serverThresholds.search.searchQuery.maxTime,
+      'Search query should complete within threshold'
+    );
+  });
+});
+```
+
+### Performance Assertions
+
+The `PerformanceAssertions` class provides built-in assertion helpers:
+
+```typescript
+// Time threshold assertion
+await PerformanceAssertions.assertTimeThreshold(
+  operation,
+  thresholdMs,
+  'Operation should complete within threshold'
+);
+
+// Memory threshold assertion
+await PerformanceAssertions.assertMemoryThreshold(
+  operation,
+  thresholdBytes,
+  'Operation should not exceed memory threshold'
+);
+
+// Throughput assertion
+await PerformanceAssertions.assertMinThroughput(
+  items,
+  operation,
+  minOpsPerSecond,
+  { batchSize: 100 }
+);
+```
+
+## Performance Thresholds
+
+### Server-Side Thresholds
+
+```typescript
+export const serverThresholds = {
+  photoProcessing: {
+    extractMetadata: { maxTime: 50 },      // 50ms per photo
+    generateThumbnail: { maxTime: 200 },   // 200ms per photo
+    processBatch: { maxTime: 1000, minThroughput: 10 },
+  },
+  search: {
+    indexPhoto: { maxTime: 10 },           // 10ms per photo
+    searchQuery: { maxTime: 100 },         // 100ms per query
+    complexSearch: { maxTime: 500 },       // 500ms for complex queries
+  },
+  dataOperations: {
+    databaseQuery: { maxTime: 50 },        // 50ms per query
+    batchInsert: { maxTime: 500, minThroughput: 100 },
+  },
+} as const;
+```
+
+### Client-Side Thresholds
+
+```typescript
+export const clientThresholds = {
+  storage: {
+    savePhoto: { maxTime: 100 },          // 100ms per photo
+    loadPhotos: { maxTime: 500, minThroughput: 100 },
+    searchLocal: { maxTime: 200 },         // 200ms for local search
+  },
+  ui: {
+    componentRender: { maxTime: 16 },      // 16ms for 60fps
+    listRender: { maxTime: 50, minThroughput: 100 },
+    imageLoad: { maxTime: 300 },          // 300ms for image loading
+  },
+} as const;
+```
+
+### Regression Detection
+
+```typescript
+export const regressionDetection = {
+  timeRegressionThreshold: 0.15,        // 15% increase triggers alert
+  memoryRegressionThreshold: 0.20,       // 20% increase triggers alert
+  throughputRegressionThreshold: 0.10,   // 10% decrease triggers alert
+  minSamples: 5,                         // Minimum samples for detection
+  confidenceLevel: 0.95,                 // Statistical confidence
+  maxVariance: 0.05,                     // 5% max variance
+} as const;
+```
+
+## Running Performance Tests
+
+### Local Development
+
+```bash
+# Run all performance tests
+npm run test:performance
+
+# Run specific performance test
+npm run test:performance -- tests/performance/server/search-performance.test.ts
+
+# Run benchmarks with verbose output
+vitest bench --reporter=verbose
+
+# Run with CodSpeed integration
+vitest bench --reporter=verbose
+```
+
+### CI/CD Integration
+
+Performance tests run automatically in CI/CD with regression detection:
+
+```bash
+# CI/CD performance test execution
+npm run test:performance:ci
+
+# Regression analysis
+node scripts/check-performance-regressions.js
+```
 
 ## Test Factories
 
-Test factories provide reusable, consistent test data generation for better test maintainability.
+Test factories provide reusable, consistent test data generation for better performance test maintainability.
 
-### Location
-
-All test factories are located in `tests/factories.ts`.
-
-### Available Factories
-
-#### Basic Factories
+### Basic Factories
 
 ```typescript
 import { 
-  createTestPhoto, 
-  createTestAlbum, 
-  createTestUserProfile 
-} from "../tests/factories";
+  generateTestPhotos, 
+  generateTestAlbums,
+  generateSearchQueries
+} from "../tests/performance/utils/data-generators";
 
-// Create single test items
-const photo = createTestPhoto();
-const album = createTestAlbum();
-const user = createTestUserProfile();
-```
-
-#### Bulk Data Generation
-
-```typescript
-import { 
-  createTestPhotos, 
-  createTestAlbums, 
-  createTestData 
-} from "../tests/factories";
-
-// Create arrays of test data
-const photos = createTestPhotos(10); // 10 photos
-const albums = createTestAlbums(5);  // 5 albums
-
-// Create related data with relationships
-const { photos, albums } = createTestData(100, 10);
-// 100 photos distributed across 10 albums
-```
-
-#### Custom Overrides
-
-All factories accept override parameters:
-
-```typescript
-const customPhoto = createTestPhoto({
-  width: 4000,
-  height: 3000,
-  isFavorite: true,
-  albumIds: ["album1", "album2"],
+// Generate performance test data
+const photos = generateTestPhotos(1000, {
+  minSize: 1024 * 1024,      // 1MB minimum
+  maxSize: 10 * 1024 * 1024, // 10MB maximum
+  includeMetadata: true,
 });
 
-const customAlbum = createTestAlbum({
-  title: "Vacation Photos",
-  photoIds: ["photo1", "photo2"],
-});
-```
-
-### Edge Case Testing
-
-#### Boundary Test Data
-
-```typescript
-import { boundaryTestData } from "../tests/factories";
-
-// Test extreme photo dimensions
-const extremePhotos = boundaryTestData.extremePhotos();
-// Includes: 1x1, 10000x10000, zero dimensions
-
-// Test edge case album titles
-const edgeAlbums = boundaryTestData.extremeAlbums();
-// Includes: empty, very long, Unicode, control characters
-
-// Test edge case user profiles
-const edgeUsers = boundaryTestData.extremeUsers();
-// Includes: empty names, long usernames, special characters
-```
-
-#### Example Edge Case Tests
-
-```typescript
-describe("Photo Edge Cases", () => {
-  it("should handle extreme dimensions", () => {
-    const extremePhotos = boundaryTestData.extremePhotos();
-    
-    extremePhotos.forEach(photo => {
-      expect(photo.width).toBeGreaterThanOrEqual(0);
-      expect(photo.height).toBeGreaterThanOrEqual(0);
-    });
-  });
-
-  it("should handle special characters in titles", () => {
-    const edgeAlbums = boundaryTestData.extremeAlbums();
-    
-    edgeAlbums.forEach(album => {
-      expect(album.title).toBeDefined();
-      // Handles Unicode, empty strings, etc.
-    });
-  });
-});
-```
-
-## Performance Testing
-
-Performance tests ensure the application handles large datasets and high-frequency operations efficiently.
-
-### Performance Test Files
-
-- `client/lib/storage.performance.test.ts` - Storage performance benchmarks
-- Performance tests use `.performance.test.ts` naming convention
-
-### Performance Test Structure
-
-#### Basic Performance Test
-
-```typescript
-describe("Storage Performance Tests", () => {
-  it("should handle large photo sets efficiently", async () => {
-    const largeDataset = performanceTestData.largeDataset(1000, 50);
-    const startTime = performance.now();
-
-    // Act: Perform operation
-    await savePhotos(largeDataset.photos);
-    
-    const endTime = performance.now();
-    const duration = endTime - startTime;
-
-    // Assert: Performance threshold
-    expect(duration).toBeLessThan(1000); // Under 1 second
-  });
-});
-```
-
-#### Memory Usage Testing
-
-```typescript
-it("should not cause memory leaks with repeated operations", async () => {
-  const initialMemory = (performance as any).memory?.usedJSHeapSize || 0;
-  
-  // Perform repeated operations
-  for (let i = 0; i < 100; i++) {
-    const testData = performanceTestData.largeDataset(100, 5);
-    await getPhotos();
-  }
-
-  // Force garbage collection if available
-  if (global.gc) global.gc();
-  
-  const finalMemory = (performance as any).memory?.usedJSHeapSize || 0;
-  const memoryIncrease = finalMemory - initialMemory;
-
-  // Memory increase should be reasonable
-  expect(memoryIncrease).toBeLessThan(10 * 1024 * 1024); // Less than 10MB
-});
-```
-
-#### Concurrent Operations Testing
-
-```typescript
-it("should handle concurrent operations gracefully", async () => {
-  const concurrentOperations = Array.from({ length: 50 }, (_, i) =>
-    addPhoto(createTestPhoto({ id: `concurrent_${i}` }))
-  );
-
-  await Promise.all(concurrentOperations);
-
-  expect(vi.mocked(AsyncStorage.setItem)).toHaveBeenCalledTimes(50);
-});
+const queries = generateSearchQueries(50);
+const albums = generateTestAlbums(100, 10); // 10 photos per album
 ```
 
 ### Performance Data Generators
 
-#### Large Dataset Generation
-
 ```typescript
-import { performanceTestData } from "../tests/factories";
+// Large dataset for stress testing
+const largeDataset = generateTestPhotos(10000, {
+  minSize: 5 * 1024 * 1024,   // 5MB photos
+  maxSize: 20 * 1024 * 1024,  // 20MB photos
+  includeMetadata: true,
+});
 
-// Generate large datasets for testing
-const largeDataset = performanceTestData.largeDataset(1000, 50);
-// 1000 photos across 50 albums
-
-// Generate stress test data
-const stressData = performanceTestData.stressTestData(100);
-// 100 iterations of test data
+// Stress test queries
+const stressQueries = generateSearchQueries(100);
 ```
 
-#### Stress Testing
+### Custom Data Generation
 
 ```typescript
-it("should maintain performance under memory pressure", async () => {
-  // Create memory pressure with large objects
-  const memoryPressureData = Array.from({ length: 1000 }, (_, i) => ({
-    id: `memory_test_${i}`,
-    uri: `photo_${i}.jpg`,
-    width: 4000,
-    height: 3000,
-    metadata: {
-      description: "A".repeat(1000), // Large description
-      tags: Array.from({ length: 50 }, (_, j) => `tag_${j}`),
-    },
-  }));
-
-  vi.mocked(AsyncStorage.getItem).mockResolvedValue(
-    JSON.stringify(memoryPressureData)
-  );
-
-  const startTime = performance.now();
-  const retrieved = await getPhotos();
-  const retrieveTime = performance.now() - startTime;
-
-  expect(retrieveTime).toBeLessThan(1000); // Should still be fast
-  expect(retrieved).toHaveLength(1000);
+// Generate data with specific characteristics
+const customPhotos = generateTestPhotos(500, {
+  minSize: 2 * 1024 * 1024,
+  maxSize: 8 * 1024 * 1024,
+  minDimensions: [2000, 1500],
+  maxDimensions: [4000, 3000],
+  includeMetadata: true,
 });
 ```
 
-### Performance Benchmarks
+## Performance Testing Patterns
 
-#### Common Performance Thresholds
+### Batch Operation Testing
 
-- **Photo Operations**: < 1 second for 1000 photos
-- **Album Operations**: < 200ms for large datasets
-- **Photo Grouping**: < 100ms for 500 photos
-- **Storage Info Calculation**: < 50ms
-- **Memory Growth**: < 10MB for 100 repeated operations
-- **Concurrent Operations**: < 10ms average per operation
-
-#### Critical Path Performance
-
-Focus on performance testing for:
-
-1. **Data Loading**: Initial app startup and data retrieval
-2. **Photo Operations**: Adding, deleting, modifying photos
-3. **Album Management**: Creating and organizing albums
-4. **Search and Filter**: Finding photos quickly
-5. **Batch Operations**: Processing multiple items
-
-### Running Performance Tests
-
-```bash
-# Run all tests including performance
-npm test
-
-# Run only performance tests
-npm test -- client/lib/storage.performance.test.ts
-
-# Run with coverage (includes performance tests)
-npm run test:coverage
+```typescript
+describe('Batch Operations Performance', () => {
+  bench('batch photo processing', async () => {
+    const photos = generateTestPhotos(100);
+    
+    const { totalTime, avgTime, throughput } = await measureBatchPerformance(
+      photos,
+      (photo) => processingService.processPhoto(photo),
+      { batchSize: 100, iterations: 1 }
+    );
+    
+    console.log(`Batch processing: ${totalTime.toFixed(2)}ms total, ${avgTime.toFixed(2)}ms avg, ${throughput.toFixed(2)} ops/sec`);
+    
+    // Assert performance requirements
+    expect(avgTime).toBeLessThan(serverThresholds.photoProcessing.extractMetadata.maxTime);
+    expect(throughput).toBeGreaterThan(serverThresholds.photoProcessing.processBatch.minThroughput);
+  });
+});
 ```
 
-### Performance Test Best Practices
+### Memory Usage Testing
 
-1. **Use Realistic Data**: Use factories to generate realistic test data
-2. **Measure Consistently**: Use `performance.now()` for accurate timing
-3. **Test Multiple Scales**: Test small, medium, and large datasets
-4. **Monitor Memory**: Check for memory leaks in repeated operations
-5. **Set Reasonable Thresholds**: Base thresholds on real device performance
-6. **Isolate Tests**: Performance tests shouldn't affect other test results
+```typescript
+describe('Memory Usage Performance', () => {
+  bench('memory usage during large operations', async () => {
+    const photos = generateTestPhotos(1000, { 
+      minSize: 5 * 1024 * 1024, 
+      maxSize: 15 * 1024 * 1024 
+    });
+    
+    const { memoryDelta } = await PerformanceAssertions.assertMemoryThreshold(
+      () => processingService.processBatch(photos),
+      200 * 1024 * 1024, // 200MB max
+      'Batch processing should not exceed memory threshold'
+    );
+    
+    console.log(`Memory usage: ${(memoryDelta / 1024 / 1024).toFixed(2)}MB`);
+  });
+});
+```
 
-### CI/CD Integration
+### Scalability Testing
 
-Performance tests run in CI/CD pipelines to catch regressions:
+```typescript
+describe('Scalability Performance', () => {
+  bench('performance scaling with data size', async () => {
+    const sizes = [100, 500, 1000, 2000];
+    const results = [];
+    
+    for (const size of sizes) {
+      const photos = generateTestPhotos(size);
+      const { duration } = await measureTime(() => searchService.indexPhotos(photos));
+      results.push({ size, duration: duration / size });
+    }
+    
+    // Verify linear scaling (not exponential)
+    const firstTime = results[0].duration;
+    const lastTime = results[results.length - 1].duration;
+    const scaleFactor = results[results.length - 1].size / results[0].size;
+    const performanceFactor = lastTime / firstTime;
+    
+    if (performanceFactor > scaleFactor * 2) {
+      throw new Error(`Performance scaling poorly: ${performanceFactor.toFixed(2)}x slower for ${scaleFactor}x more data`);
+    }
+  });
+});
+```
+
+## CI/CD Integration
+
+### GitHub Actions Workflow
+
+Performance tests are integrated into the CI/CD pipeline:
 
 ```yaml
-# GitHub Actions example
 - name: Run performance tests
-  run: npm test -- client/lib/storage.performance.test.ts
-  
-- name: Check performance thresholds
+  run: npm run test:performance:ci
+
+- name: Check performance compliance
   run: |
-    # Parse test results for performance metrics
-    # Fail if thresholds are exceeded
+    if [ -f "coverage/performance-results.json" ]; then
+      echo "✅ Performance tests completed"
+      node scripts/check-performance-regressions.js
+    else
+      echo "⚠️ No performance results found"
+    fi
 ```
 
-## Best Practices
+### Regression Detection
 
-### Test Data Management
+The regression detection script:
 
-1. **Use Factories**: Always use test factories instead of hardcoded data
-2. **Customize Overrides**: Use override parameters for specific test cases
-3. **Edge Cases**: Use boundary test data for comprehensive testing
-4. **Consistency**: Factories ensure consistent test data across tests
+1. **Loads baseline performance** from previous main branch runs
+2. **Compares current results** against baseline
+3. **Detects regressions** based on configured thresholds
+4. **Updates baseline** on main branch if no regressions
+5. **Fails build** if regressions are detected
+
+### Performance Reports
+
+Performance results are reported in PR comments:
+
+```
+## 📊 Test Results Report
 
 ### Performance Testing
+| Metric | Result |
+|--------|--------|
+| Status | ✅ Passed |
+| Score | 98% |
+| Regressions | 0 |
+```
 
-1. **Isolate Performance Tests**: Keep them in separate files
-2. **Use Realistic Scenarios**: Test actual usage patterns
-3. **Monitor Resources**: Track both time and memory usage
+## Performance Best Practices
+
+### Test Design
+
+1. **Use Realistic Data**: Generate realistic test data with factories
+2. **Test Multiple Scales**: Small, medium, and large datasets
+3. **Measure Consistently**: Use proper timing and measurement utilities
 4. **Set Appropriate Thresholds**: Base on real device capabilities
+5. **Isolate Tests**: Performance tests shouldn't affect other tests
+
+### Benchmarking Guidelines
+
+1. **Warm Up**: Allow for JIT compilation and caching
+2. **Multiple Samples**: Run multiple iterations for statistical significance
+3. **Control Environment**: Consistent testing environment
+4. **Monitor Resources**: Track both time and memory usage
 5. **Document Expectations**: Include performance requirements in tests
 
-### Maintenance
+### Regression Prevention
 
-1. **Update Factories**: Keep factories in sync with data models
-2. **Review Thresholds**: Adjust performance thresholds as needed
-3. **Add New Factories**: Create factories for new data types
-4. **Monitor Coverage**: Ensure performance tests cover critical paths
+1. **Establish Baselines**: Create performance baselines for critical paths
+2. **Monitor Trends**: Track performance over time
+3. **Set Alerts**: Configure appropriate regression thresholds
+4. **Review Changes**: Analyze performance impact of code changes
+5. **Optimize Proactively**: Address performance issues before they become problems
+
+## Troubleshooting Performance Tests
+
+### Common Issues
+
+1. **Inconsistent Results**: Ensure proper warmup and multiple samples
+2. **Memory Leaks**: Check for proper cleanup in tests
+3. **CI/CD Variability**: Use CodSpeed for consistent measurements
+4. **Threshold Too Strict**: Adjust thresholds based on realistic expectations
+5. **Test Interference**: Ensure tests are properly isolated
+
+### Debugging Performance Issues
+
+```typescript
+// Enable detailed performance logging
+if (process.env.DEBUG_PERFORMANCE) {
+  console.log('Performance debug:', {
+    operation: 'search',
+    dataSize: photos.length,
+    duration: result.duration,
+    memory: result.memoryDelta,
+  });
+}
+
+// Profile specific operations
+const { profile } = await measureTime(() => {
+  return performance.profile(() => searchService.complexSearch(query));
+});
+```
+
+## Performance Monitoring
+
+### Metrics to Track
+
+- **Response Time**: Time to complete operations
+- **Throughput**: Operations per second
+- **Memory Usage**: Memory consumption during operations
+- **Scalability**: Performance with increasing data size
+- **Regression Rate**: Frequency of performance regressions
+
+### Performance Dashboards
+
+Consider integrating with monitoring tools:
+
+- **CodSpeed**: CI/CD performance tracking
+- **GitHub Actions**: Performance reports in PRs
+- **Custom Dashboards**: Performance trends over time
+- **Alerting**: Automated notifications for regressions
+
+## Maintenance
+
+### Updating Performance Tests
+
+1. **Review Thresholds**: Adjust as application evolves
+2. **Add New Tests**: Cover new features and critical paths
+3. **Update Factories**: Keep data generators current
+4. **Monitor Coverage**: Ensure critical operations are tested
+5. **Document Changes**: Update documentation with new patterns
+
+### Performance Test Evolution
+
+As the application grows:
+
+1. **Expand Test Coverage**: Add tests for new functionality
+2. **Refine Thresholds**: Adjust based on user expectations
+3. **Improve Tooling**: Enhance testing infrastructure
+4. **Analyze Trends**: Use historical data for planning
+5. **Optimize Continuously**: Make performance a team priority

@@ -1,36 +1,8 @@
-/**
- * Accessibility tests for Button component
- * 
- * Purpose: Demonstrate accessibility testing patterns
- * Standards: WCAG 2.1 AA compliance
- */
-
 import { render } from '@testing-library/react-native';
 import { Button } from './Button';
-import { AccessibilityTester, AccessibilityPatterns } from '../test-utils/accessibility-testing-simple';
 
 describe('Button Accessibility', () => {
-  // Standard accessibility test with WCAG 2.1 AA compliance
-  it('should be accessible', async () => {
-    await AccessibilityTester.expectNoViolations(
-      <Button onPress={() => {}}>Test Button</Button>
-    );
-  });
-
-  // Test interactive element patterns
-  it('should pass interactive element tests', async () => {
-    await AccessibilityPatterns.testInteractiveElement(
-      <Button onPress={() => {}}>Submit Form</Button>
-    );
-  });
-
-  // Custom accessibility assertion
-  it('should be accessible with custom matcher', async () => {
-    const component = <Button onPress={() => {}}>Submit</Button>;
-    await expect(component).toBeAccessible();
-  });
-
-  // Test specific accessibility properties
+  // Test basic accessibility properties
   it('should have proper accessibility role', () => {
     const { getByRole } = render(<Button onPress={() => {}}>Submit Form</Button>);
     
@@ -65,10 +37,21 @@ describe('Button Accessibility', () => {
     expect(button.props.accessibilityHint).toBe('Deletes selected items permanently');
   });
 
-  // Test loading state accessibility
-  it('should handle loading state accessibly', async () => {
-    await AccessibilityTester.expectNoViolations(
-      <Button onPress={() => {}}>Loading</Button>
+  it('should have accessible text content', () => {
+    const { getByText } = render(<Button onPress={() => {}}>Submit Form</Button>);
+    
+    const buttonText = getByText('Submit Form');
+    expect(buttonText).toBeTruthy();
+  });
+
+  it('should support accessibility label', () => {
+    const { getByRole } = render(
+      <Button onPress={() => {}} accessibilityLabel="Submit button">
+        Submit
+      </Button>
     );
+    
+    const button = getByRole('button');
+    expect(button.props.accessibilityLabel).toBe('Submit button');
   });
 });

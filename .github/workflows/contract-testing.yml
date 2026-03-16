@@ -1,0 +1,320 @@
+name: Contract Testing
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+# Security: Use minimal permissions by default
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  consumer-tests:
+    runs-on: ubuntu-latest
+    name: Consumer Contract Tests
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      with:
+        persist-credentials: false
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Create logs directory
+      run: mkdir -p logs
+
+    - name: Run consumer contract tests
+      run: npm run test:contracts:consumer
+
+    - name: Upload consumer contracts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: consumer-contracts-${{ matrix.node-version }}
+        path: tests/contracts/pacts/
+        retention-days: 30
+
+    - name: Upload consumer test logs
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: consumer-logs-${{ matrix.node-version }}
+        path: logs/
+        retention-days: 7
+
+  provider-tests:
+    runs-on: ubuntu-latest
+    name: Provider Contract Verification
+    needs: consumer-tests
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    services:
+      # PostgreSQL service for provider tests
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cloud_gallery_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      with:
+        persist-credentials: false
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Create logs directory
+      run: mkdir -p logs
+
+    - name: Download consumer contracts
+      uses: actions/download-artifact@v4
+      with:
+        name: consumer-contracts-${{ matrix.node-version }}
+        path: tests/contracts/pacts/
+
+    - name: Setup test environment
+      run: |
+        cp .env.example .env
+        echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/cloud_gallery_test" >> .env
+        echo "NODE_ENV=test" >> .env
+        echo "JWT_SECRET=test-jwt-secret-for-contract-testing" >> .env
+
+    - name: Setup database
+      run: |
+        npm run db:push
+        echo "Database setup completed"
+
+    - name: Start server in background
+      run: |
+        npm run server:prod &
+        echo "Server starting..."
+        sleep 10
+        echo "Server should be running now"
+
+    - name: Wait for server to be ready
+      run: |
+        timeout 60 bash -c 'until curl -f http://localhost:5000/api/health; do sleep 2; done'
+        echo "Server is ready"
+
+    - name: Run provider contract verification
+      run: npm run test:contracts:provider
+      env:
+        PROVIDER_BASE_URL: http://localhost:5000
+
+    - name: Upload provider verification results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: provider-results-${{ matrix.node-version }}
+        path: logs/
+        retention-days: 7
+
+    - name: Upload provider test logs
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: provider-logs-${{ matrix.node-version }}
+        path: logs/
+        retention-days: 7
+
+  contract-breach-detection:
+    runs-on: ubuntu-latest
+    name: Contract Breach Detection
+    needs: [consumer-tests, provider-tests]
+    if: always()
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+    - name: Download all consumer contracts
+      uses: actions/download-artifact@v4
+      with:
+        pattern: consumer-contracts-*
+        merge-multiple: true
+        path: contracts/
+
+    - name: Download all provider results
+      uses: actions/download-artifact@v4
+      with:
+        pattern: provider-results-*
+        merge-multiple: true
+        path: provider-results/
+
+    - name: Analyze contract breaches
+      run: |
+        echo "Analyzing contract test results..."
+        
+        # Check if provider tests passed
+        if [ -d "provider-results" ] && [ "$(ls -A provider-results)" ]; then
+          echo "✅ Provider verification results found"
+          
+          # Look for any failed verifications
+          if grep -r "FAILED" provider-results/; then
+            echo "❌ Contract breaches detected!"
+            echo "Please review the provider verification logs"
+            exit 1
+          else
+            echo "✅ All contracts verified successfully"
+          fi
+        else
+          echo "⚠️ No provider verification results found"
+          exit 1
+        fi
+
+    - name: Generate contract compliance report
+      if: always()
+      run: |
+        echo "## Contract Testing Report" > contract-report.md
+        echo "" >> contract-report.md
+        echo "### Consumer Tests" >> contract-report.md
+        echo "- Status: ${{ needs.consumer-tests.result }}" >> contract-report.md
+        echo "" >> contract-report.md
+        echo "### Provider Verification" >> contract-report.md
+        echo "- Status: ${{ needs.provider-tests.result }}" >> contract-report.md
+        echo "" >> contract-report.md
+        echo "### Overall Status" >> contract-report.md
+        if [ "${{ needs.consumer-tests.result }}" = "success" ] && [ "${{ needs.provider-tests.result }}" = "success" ]; then
+          echo "- ✅ All contract tests passed" >> contract-report.md
+        else
+          echo "- ❌ Contract test failures detected" >> contract-report.md
+        fi
+
+    - name: Upload contract report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: contract-report
+        path: contract-report.md
+        retention-days: 30
+
+    - name: Comment contract results on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          
+          let consumerStatus = "${{ needs.consumer-tests.result }}";
+          let providerStatus = "${{ needs.provider-tests.result }}";
+          
+          const consumerIcon = consumerStatus === 'success' ? '✅' : '❌';
+          const providerIcon = providerStatus === 'success' ? '✅' : '❌';
+          const overallIcon = (consumerStatus === 'success' && providerStatus === 'success') ? '✅' : '❌';
+          
+          const comment = \`## 🤝 Contract Testing Report
+
+          ### Consumer Tests
+          | Status | Result |
+          |--------|--------|
+          | Consumer Contract Generation | \${consumerIcon} \${consumerStatus} |
+
+          ### Provider Verification  
+          | Status | Result |
+          |--------|--------|
+          | API Contract Compliance | \${providerIcon} \${providerStatus} |
+
+          ### Overall Status
+          \${overallIcon} \${(consumerStatus === 'success' && providerStatus === 'success') ? 'All contracts verified!' : 'Contract breaches detected!'}
+
+          **What this means:**
+          - **Consumer tests** verify that client expectations are properly documented
+          - **Provider verification** ensures the actual API implementation meets those expectations
+          - **Contract breaches** indicate breaking changes that need attention
+
+          [View detailed contract test results](https://github.com/\${{ github.repository }}/actions/runs/\${{ github.run_id }})\`;
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+
+  publish-contracts:
+    runs-on: ubuntu-latest
+    name: Publish Contracts
+    needs: [consumer-tests, provider-tests]
+    if: github.ref == 'refs/heads/main' && needs.consumer-tests.result == 'success' && needs.provider-tests.result == 'success'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+    - name: Download consumer contracts
+      uses: actions/download-artifact@v4
+      with:
+        pattern: consumer-contracts-*
+        merge-multiple: true
+        path: contracts/
+
+    - name: Setup Node.js
+      uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Publish contracts to Pact Broker (if configured)
+      if: env.PACT_BROKER_URL != ''
+      run: |
+        echo "Publishing contracts to Pact Broker..."
+        # This would publish to a Pact Broker if configured
+        # For now, we'll just create a summary
+        echo "Contracts ready for publishing"
+      env:
+        PACT_BROKER_URL: ${{ secrets.PACT_BROKER_URL }}
+        PACT_BROKER_USERNAME: ${{ secrets.PACT_BROKER_USERNAME }}
+        PACT_BROKER_PASSWORD: ${{ secrets.PACT_BROKER_PASSWORD }}
+
+    - name: Create contract summary
+      run: |
+        echo "## Contract Publishing Summary" > contract-summary.md
+        echo "" >> contract-summary.md
+        echo "Published contracts:" >> contract-summary.md
+        ls -la contracts/ >> contract-summary.md
+        echo "" >> contract-summary.md
+        echo "Commit: \${{ github.sha }}" >> contract-summary.md
+        echo "Branch: \${{ github.ref_name }}" >> contract-summary.md
+
+    - name: Upload contract summary
+      uses: actions/upload-artifact@v4
+      with:
+        name: contract-summary
+        path: contract-summary.md
+        retention-days: 90

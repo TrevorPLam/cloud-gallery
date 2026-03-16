@@ -1,5 +1,6 @@
 import { vi } from "vitest";
 import "@testing-library/jest-dom";
+import "vitest-axe/extend-expect";
 
 // Use plain (non-encrypted) storage in tests so client/lib/storage.test.ts does not need SecureStore
 if (typeof process !== "undefined") {
