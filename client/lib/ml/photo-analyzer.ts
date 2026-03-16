@@ -11,6 +11,7 @@
 import { Platform, InteractionManager } from "react-native";
 import { loadTensorflowModel, TensorflowModel } from "react-native-fast-tflite";
 import RNMlkitOcr from "react-native-mlkit-ocr";
+import { getPerceptualHasher, generateCompositeHash } from "../photo/perceptual-hash";
 
 // ─────────────────────────────────────────────────────────
 // TYPES AND INTERFACES
@@ -262,17 +263,12 @@ export class PhotoAnalyzer {
 
   /**
    * Generate perceptual hash for duplicate detection
-   * Uses difference hash (dHash) algorithm
+   * Uses the advanced perceptual hashing service
    */
   private async generatePerceptualHash(imageUri: string): Promise<string> {
     try {
-      // This is a simplified implementation
-      // In production, would use a proper image processing library
-      // or implement the dHash algorithm from scratch
-
-      // For now, return a placeholder hash
-      // TODO: Implement actual perceptual hashing
-      const hash = await this.computeDifferenceHash(imageUri);
+      // Use the comprehensive perceptual hashing service
+      const hash = await generateCompositeHash(imageUri);
       return hash;
     } catch (error) {
       console.error("PhotoAnalyzer: Perceptual hashing failed:", error);

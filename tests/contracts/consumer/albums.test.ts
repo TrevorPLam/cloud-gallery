@@ -1,5 +1,4 @@
-import { PactV4 } from '@pact-foundation/pact';
-import { like, eachLike } from '@pact-foundation/pact-core';
+import { PactV4, Matchers } from '@pact-foundation/pact';
 import { createPact, commonHeaders, authHeaders, matchers } from '../utils/setup';
 import { 
   createAlbumMatcher, 
@@ -32,7 +31,7 @@ describe('Albums API Consumer Tests', () => {
           status: 200,
           headers: commonHeaders,
           body: {
-            albums: eachLike(createAlbumMatcher())
+            albums: Matchers.eachLike(createAlbumMatcher())
           },
         });
 
@@ -125,8 +124,8 @@ describe('Albums API Consumer Tests', () => {
           status: 200,
           headers: commonHeaders,
           body: {
-            album: createAlbumMatcher({ id: like(albumId) }),
-            photoIds: eachLike(matchers.uuid)
+            album: createAlbumMatcher({ id: Matchers.like(albumId) }),
+            photoIds: Matchers.eachLike(matchers.uuid)
           },
         });
 
@@ -230,8 +229,8 @@ describe('Albums API Consumer Tests', () => {
           headers: commonHeaders,
           body: {
             album: createAlbumMatcher({
-              name: like(albumRequest.name),
-              description: like(albumRequest.description)
+              name: Matchers.like(albumRequest.name),
+              description: Matchers.like(albumRequest.description)
             })
           },
         });
@@ -343,9 +342,9 @@ describe('Albums API Consumer Tests', () => {
           status: 201,
           headers: commonHeaders,
           body: {
-            message: like('Photo added to album'),
-            albumId: like(albumId),
-            photoId: like(photoId)
+            message: Matchers.like('Photo added to album'),
+            albumId: Matchers.like(albumId),
+            photoId: Matchers.like(photoId)
           },
         });
 
@@ -458,9 +457,9 @@ describe('Albums API Consumer Tests', () => {
           status: 200,
           headers: commonHeaders,
           body: {
-            message: like('Photo removed from album'),
-            albumId: like(albumId),
-            photoId: like(photoId)
+            message: Matchers.like('Photo removed from album'),
+            albumId: Matchers.like(albumId),
+            photoId: Matchers.like(photoId)
           },
         });
 
@@ -530,8 +529,8 @@ describe('Albums API Consumer Tests', () => {
           status: 200,
           headers: commonHeaders,
           body: {
-            message: like('Album deleted successfully'),
-            albumId: like(albumId)
+            message: Matchers.like('Album deleted successfully'),
+            albumId: Matchers.like(albumId)
           },
         });
 

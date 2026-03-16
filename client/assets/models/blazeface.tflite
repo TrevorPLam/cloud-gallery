@@ -1,0 +1,4 @@
+# Placeholder BlazeFace Model
+# This is a placeholder file for testing purposes.
+# Replace with actual BlazeFace .tflite model from MediaPipe.
+# Download from: https://github.com/google/mediapipe/tree/master/mediapipe/models/face_detection_front.tflite

@@ -1,4 +1,4 @@
-import { like, eachLike, term } from '@pact-foundation/pact-core';
+import { Matchers } from '@pact-foundation/pact';
 import { matchers } from './setup';
 
 // Helper functions for creating contract expectations
@@ -7,7 +7,7 @@ import { matchers } from './setup';
  * Create a user object matcher for contract testing
  */
 export function createUserMatcher(overrides: Partial<any> = {}) {
-  return like({
+  return Matchers.like({
     id: matchers.uuid,
     email: matchers.email,
     createdAt: matchers.timestamp,
@@ -19,27 +19,27 @@ export function createUserMatcher(overrides: Partial<any> = {}) {
  * Create a photo object matcher for contract testing
  */
 export function createPhotoMatcher(overrides: Partial<any> = {}) {
-  return like({
+  return Matchers.like({
     id: matchers.uuid,
-    uri: term({
+    uri: Matchers.term({
       matcher: 'regex',
       regex: '^https?://.*/photo/.*\\.(jpg|jpeg|png|gif)$',
       generate: 'https://example.com/photo/test.jpg'
     }),
-    filename: like('test-photo.jpg'),
-    width: like(1920),
-    height: like(1080),
-    size: like(1024000),
-    mimeType: like('image/jpeg'),
-    isFavorite: like(false),
-    isVideo: like(false),
-    tags: eachLike('vacation'),
-    mlLabels: eachLike('beach'),
-    location: like({
-      latitude: like(40.7128),
-      longitude: like(-74.0060),
-      city: like('New York'),
-      country: like('USA')
+    filename: Matchers.like('test-photo.jpg'),
+    width: Matchers.like(1920),
+    height: Matchers.like(1080),
+    size: Matchers.like(1024000),
+    mimeType: Matchers.like('image/jpeg'),
+    isFavorite: Matchers.like(false),
+    isVideo: Matchers.like(false),
+    tags: Matchers.eachLike('vacation'),
+    mlLabels: Matchers.eachLike('beach'),
+    location: Matchers.like({
+      latitude: Matchers.like(40.7128),
+      longitude: Matchers.like(-74.0060),
+      city: Matchers.like('New York'),
+      country: Matchers.like('USA')
     }),
     createdAt: matchers.timestamp,
     modifiedAt: matchers.timestamp,
@@ -53,12 +53,12 @@ export function createPhotoMatcher(overrides: Partial<any> = {}) {
  * Create an album object matcher for contract testing
  */
 export function createAlbumMatcher(overrides: Partial<any> = {}) {
-  return like({
+  return Matchers.like({
     id: matchers.uuid,
-    name: like('Summer Vacation'),
-    description: like('Photos from our summer trip'),
+    name: Matchers.like('Summer Vacation'),
+    description: Matchers.like('Photos from our summer trip'),
     coverPhotoId: matchers.uuid,
-    photoCount: like(25),
+    photoCount: Matchers.like(25),
     createdAt: matchers.timestamp,
     modifiedAt: matchers.timestamp,
     userId: matchers.uuid,
@@ -70,10 +70,10 @@ export function createAlbumMatcher(overrides: Partial<any> = {}) {
  * Create authentication response matcher
  */
 export function createAuthResponseMatcher(overrides: Partial<any> = {}) {
-  return like({
-    message: like('Login successful'),
+  return Matchers.like({
+    message: Matchers.like('Login successful'),
     user: createUserMatcher(),
-    tokens: like({
+    tokens: Matchers.like({
       accessToken: matchers.jwtToken,
       refreshToken: matchers.jwtToken
     }),
@@ -85,11 +85,11 @@ export function createAuthResponseMatcher(overrides: Partial<any> = {}) {
  * Create pagination response matcher
  */
 export function createPaginationMatcher(total: number, limit: number, offset: number) {
-  return like({
-    limit: like(limit),
-    offset: like(offset),
-    total: like(total),
-    hasMore: like(offset + limit < total)
+  return Matchers.like({
+    limit: Matchers.like(limit),
+    offset: Matchers.like(offset),
+    total: Matchers.like(total),
+    hasMore: Matchers.like(offset + limit < total)
   });
 }
 
@@ -97,11 +97,11 @@ export function createPaginationMatcher(total: number, limit: number, offset: nu
  * Create search results matcher
  */
 export function createSearchResultsMatcher(photosCount: number, query: string) {
-  return like({
-    photos: eachLike(createPhotoMatcher()),
-    total: like(photosCount),
-    query: like(query),
-    suggestions: eachLike('vacation'),
+  return Matchers.like({
+    photos: Matchers.eachLike(createPhotoMatcher()),
+    total: Matchers.like(photosCount),
+    query: Matchers.like(query),
+    suggestions: Matchers.eachLike('vacation'),
     pagination: createPaginationMatcher(photosCount, 20, 0)
   });
 }
@@ -110,9 +110,9 @@ export function createSearchResultsMatcher(photosCount: number, query: string) {
  * Create API error response matcher
  */
 export function createErrorResponseMatcher(status: number, error: string, message: string) {
-  return like({
-    error: like(error),
-    message: like(message)
+  return Matchers.like({
+    error: Matchers.like(error),
+    message: Matchers.like(message)
   });
 }
 

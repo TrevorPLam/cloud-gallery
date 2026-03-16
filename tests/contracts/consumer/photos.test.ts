@@ -1,5 +1,4 @@
-import { PactV4 } from '@pact-foundation/pact';
-import { like, eachLike } from '@pact-foundation/pact-core';
+import { PactV4, Matchers } from '@pact-foundation/pact';
 import { createPact, commonHeaders, authHeaders, matchers } from '../utils/setup';
 import { 
   createPhotoMatcher, 
@@ -34,7 +33,7 @@ describe('Photos API Consumer Tests', () => {
           status: 200,
           headers: commonHeaders,
           body: {
-            photos: eachLike(createPhotoMatcher()),
+            photos: Matchers.eachLike(createPhotoMatcher()),
             pagination: createPaginationMatcher(50, 20, 0)
           },
         });
@@ -68,7 +67,7 @@ describe('Photos API Consumer Tests', () => {
           status: 200,
           headers: commonHeaders,
           body: {
-            photos: eachLike(createPhotoMatcher({ isFavorite: true })),
+            photos: Matchers.eachLike(createPhotoMatcher({ isFavorite: true })),
             pagination: createPaginationMatcher(5, 10, 0)
           },
         });
@@ -135,7 +134,7 @@ describe('Photos API Consumer Tests', () => {
           status: 200,
           headers: commonHeaders,
           body: {
-            photo: createPhotoMatcher({ id: like(photoId) })
+            photo: createPhotoMatcher({ id: Matchers.like(photoId) })
           },
         });
 
@@ -237,12 +236,12 @@ describe('Photos API Consumer Tests', () => {
           headers: commonHeaders,
           body: {
             photo: createPhotoMatcher({
-              uri: like(photoRequest.uri),
-              filename: like(photoRequest.filename),
-              width: like(photoRequest.width),
-              height: like(photoRequest.height),
-              size: like(photoRequest.size),
-              mimeType: like(photoRequest.mimeType)
+              uri: Matchers.like(photoRequest.uri),
+              filename: Matchers.like(photoRequest.filename),
+              width: Matchers.like(photoRequest.width),
+              height: Matchers.like(photoRequest.height),
+              size: Matchers.like(photoRequest.size),
+              mimeType: Matchers.like(photoRequest.mimeType)
             })
           },
         });
@@ -355,10 +354,10 @@ describe('Photos API Consumer Tests', () => {
           headers: commonHeaders,
           body: {
             photo: createPhotoMatcher({ 
-              id: like(photoId),
-              isFavorite: like(true)
+              id: Matchers.like(photoId),
+              isFavorite: Matchers.like(true)
             }),
-            message: like('Photo added to favorites')
+            message: Matchers.like('Photo added to favorites')
           },
         });
 
@@ -426,8 +425,8 @@ describe('Photos API Consumer Tests', () => {
           status: 200,
           headers: commonHeaders,
           body: {
-            message: like('Photo moved to trash'),
-            photoId: like(photoId)
+            message: Matchers.like('Photo moved to trash'),
+            photoId: Matchers.like(photoId)
           },
         });
 

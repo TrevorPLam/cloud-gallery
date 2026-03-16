@@ -1,5 +1,4 @@
-import { PactV4 } from '@pact-foundation/pact';
-import { like, eachLike } from '@pact-foundation/pact-core';
+import { PactV4, Matchers } from '@pact-foundation/pact';
 import { createPact, commonHeaders, authHeaders, matchers } from '../utils/setup';
 import { 
   createPhotoMatcher, 
@@ -180,8 +179,8 @@ describe('Search API Consumer Tests', () => {
           status: 200,
           headers: commonHeaders,
           body: {
-            suggestions: eachLike('vacation'),
-            dbSuggestions: eachLike('vacation')
+            suggestions: Matchers.eachLike('vacation'),
+            dbSuggestions: Matchers.eachLike('vacation')
           },
         });
 
@@ -280,8 +279,8 @@ describe('Search API Consumer Tests', () => {
           status: 200,
           headers: commonHeaders,
           body: {
-            popularSearches: eachLike('vacation'),
-            popularTerms: eachLike('beach')
+            popularSearches: Matchers.eachLike('vacation'),
+            popularTerms: Matchers.eachLike('beach')
           },
         });
 
@@ -315,7 +314,7 @@ describe('Search API Consumer Tests', () => {
           headers: commonHeaders,
           body: {
             popularSearches: [],
-            popularTerms: eachLike('beach') // System-wide terms still returned
+            popularTerms: Matchers.eachLike('beach') // System-wide terms still returned
           },
         });
 
@@ -354,14 +353,14 @@ describe('Search API Consumer Tests', () => {
           status: 200,
           headers: commonHeaders,
           body: {
-            photos: eachLike(createPhotoMatcher()),
-            total: like(8),
-            query: like(fullTextSearchRequest.query),
+            photos: Matchers.eachLike(createPhotoMatcher()),
+            total: Matchers.like(8),
+            query: Matchers.like(fullTextSearchRequest.query),
             pagination: {
-              limit: like(fullTextSearchRequest.limit),
-              offset: like(fullTextSearchRequest.offset),
-              hasMore: like(false),
-              total: like(8)
+              limit: Matchers.like(fullTextSearchRequest.limit),
+              offset: Matchers.like(fullTextSearchRequest.offset),
+              hasMore: Matchers.like(false),
+              total: Matchers.like(8)
             }
           },
         });
@@ -404,11 +403,11 @@ describe('Search API Consumer Tests', () => {
           body: {
             photos: [],
             total: 0,
-            query: like(fullTextSearchRequest.query),
+            query: Matchers.like(fullTextSearchRequest.query),
             pagination: {
-              limit: like(fullTextSearchRequest.limit),
-              offset: like(fullTextSearchRequest.offset),
-              hasMore: like(false),
+              limit: Matchers.like(fullTextSearchRequest.limit),
+              offset: Matchers.like(fullTextSearchRequest.offset),
+              hasMore: Matchers.like(false),
               total: 0
             }
           },
@@ -444,15 +443,15 @@ describe('Search API Consumer Tests', () => {
           status: 200,
           headers: commonHeaders,
           body: {
-            objects: eachLike('beach'),
-            tags: eachLike('vacation'),
+            objects: Matchers.eachLike('beach'),
+            tags: Matchers.eachLike('vacation'),
             locations: {
-              cities: eachLike('New York'),
-              countries: eachLike('USA')
+              cities: Matchers.eachLike('New York'),
+              countries: Matchers.eachLike('USA')
             },
             mediaTypes: ['photo', 'video'],
-            hasFavorites: like(true),
-            hasVideos: like(false)
+            hasFavorites: Matchers.like(true),
+            hasVideos: Matchers.like(false)
           },
         });
 
@@ -496,8 +495,8 @@ describe('Search API Consumer Tests', () => {
               countries: []
             },
             mediaTypes: ['photo', 'video'],
-            hasFavorites: like(false),
-            hasVideos: like(false)
+            hasFavorites: Matchers.like(false),
+            hasVideos: Matchers.like(false)
           },
         });
 

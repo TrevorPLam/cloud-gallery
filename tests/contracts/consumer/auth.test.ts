@@ -1,5 +1,4 @@
-import { PactV4 } from '@pact-foundation/pact';
-import { like, eachLike, term } from '@pact-foundation/pact-core';
+import { PactV4, Matchers } from '@pact-foundation/pact';
 import path from 'path';
 import { commonHeaders, matchers } from '../utils/setup';
 import { 
@@ -32,38 +31,33 @@ describe('Authentication API Consumer Tests', () => {
       const registrationRequest = createRegistrationRequest();
       
       await provider
-        .addInteraction({
-          states: [{ description: 'user does not exist' }],
-          uponReceiving: 'a valid user registration request',
-          withRequest: {
+        .addInteraction()
+        .given('user does not exist')
+        .uponReceiving('a valid user registration request')
+        .withRequest('POST', '/api/auth/register', (builder) => {
+          builder.headers(commonHeaders);
+          builder.body(registrationRequest);
+        })
+        .willRespondWith(201, (builder) => {
+          builder.headers(commonHeaders);
+          builder.body(createAuthResponseMatcher({
+            message: Matchers.like('User registered successfully')
+          }));
+        })
+        .executeTest(async (mockServer) => {
+          const response = await fetch(`${mockServer.url}/api/auth/register`, {
             method: 'POST',
-            path: '/api/auth/register',
             headers: commonHeaders,
-            body: registrationRequest,
-          },
-          willRespondWith: {
-            status: 201,
-            headers: commonHeaders,
-            body: createAuthResponseMatcher({
-              message: like('User registered successfully')
-            }),
-          },
-        });
+            body: JSON.stringify(registrationRequest),
+          });
 
-      await provider.executeTest(async (mockServer) => {
-        const response = await fetch(`${mockServer.url}/api/auth/register`, {
-          method: 'POST',
-          headers: commonHeaders,
-          body: JSON.stringify(registrationRequest),
+          expect(response.status).toBe(201);
+          const data = await response.json();
+          expect(data.message).toBe('User registered successfully');
+          expect(data.user.email).toBe(registrationRequest.email);
+          expect(data.tokens.accessToken).toBeDefined();
+          expect(data.tokens.refreshToken).toBeDefined();
         });
-
-        expect(response.status).toBe(201);
-        const data = await response.json();
-        expect(data.message).toBe('User registered successfully');
-        expect(data.user.email).toBe(registrationRequest.email);
-        expect(data.tokens.accessToken).toBeDefined();
-        expect(data.tokens.refreshToken).toBeDefined();
-      });
     });
 
     it('should reject registration with existing email', async () => {
@@ -161,7 +155,7 @@ describe('Authentication API Consumer Tests', () => {
             status: 200,
             headers: commonHeaders,
             body: createAuthResponseMatcher({
-              message: like('Login successful')
+              message: Matchers.like('Login successful')
             }),
           },
         });
@@ -283,7 +277,7 @@ describe('Authentication API Consumer Tests', () => {
             status: 200,
             headers: commonHeaders,
             body: {
-              message: like('Token refreshed successfully'),
+              message: Matchers.like('Token refreshed successfully'),
               accessToken: matchers.jwtToken
             },
           },
@@ -363,7 +357,7 @@ describe('Authentication API Consumer Tests', () => {
             body: {
               user: {
                 id: matchers.uuid,
-                email: like('test@example.com')
+                email: Matchers.like('test@example.com')
               }
             },
           },

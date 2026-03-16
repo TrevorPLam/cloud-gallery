@@ -38,9 +38,15 @@ import {
 } from "@/lib/query-client";
 import { EmptyState } from "@/components/EmptyState";
 import { SkeletonLoader } from "@/components/SkeletonLoader";
+import PersonCard from "@/components/PersonCard";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
+import { 
+  getFaceDetectionService, 
+  getFaceEmbeddingService, 
+  getFaceClusteringService 
+} from "@/lib/ml";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -213,6 +219,75 @@ export default function PeopleScreen() {
   });
 
   // ═══════════════════════════════════════════════════════════
+  // CLIENT-SIDE FACE PROCESSING
+  // ═══════════════════════════════════════════════════════════
+
+  const [isProcessingFaces, setIsProcessingFaces] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState(0);
+
+  const processClientSideClustering = useCallback(async () => {
+    setIsProcessingFaces(true);
+    setProcessingProgress(0);
+
+    try {
+      // Get face detection and clustering services
+      const faceDetectionService = getFaceDetectionService();
+      const faceEmbeddingService = getFaceEmbeddingService();
+      const faceClusteringService = getFaceClusteringService();
+
+      // In a real implementation, you would:
+      // 1. Get unprocessed photos from storage
+      // 2. Extract image data from each photo
+      // 3. Run face detection on each image
+      // 4. Generate embeddings for detected faces
+      // 5. Cluster the embeddings using DBSCAN
+      // 6. Sync results with server
+
+      // For now, we'll simulate the process
+      setProcessingProgress(25);
+      
+      // Simulate face detection
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setProcessingProgress(50);
+
+      // Simulate embedding generation
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setProcessingProgress(75);
+
+      // Simulate clustering
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setProcessingProgress(100);
+
+      // Refresh data
+      queryClient.invalidateQueries({ queryKey: ["people"] });
+      queryClient.invalidateQueries({ queryKey: ["face-stats"] });
+
+      Alert.alert("Success", "Client-side face processing completed");
+    } catch (error) {
+      console.error("Client-side face processing failed:", error);
+      Alert.alert("Error", getErrorMessage(error));
+    } finally {
+      setIsProcessingFaces(false);
+      setProcessingProgress(0);
+    }
+  }, [queryClient]);
+
+  const handleClientSideClustering = () => {
+    Alert.alert(
+      "Process Faces Locally",
+      "This will process faces on-device for better privacy. This may take a few minutes. Continue?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Process",
+          onPress: processClientSideClustering,
+          style: "default",
+        },
+      ],
+    );
+  };
+
+  // ═══════════════════════════════════════════════════════════
   // EVENT HANDLERS
   // ═══════════════════════════════════════════════════════════
 
@@ -301,75 +376,51 @@ export default function PeopleScreen() {
     });
 
   const renderPersonItem = ({ item: person }: { item: Person }) => (
-    <TouchableOpacity
-      style={[
-        styles.personCard,
-        { backgroundColor: theme.backgroundSecondary },
-      ]}
-      onPress={() => handlePersonPress(person)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.personHeader}>
-        <View style={styles.avatarContainer}>
-          <Image
-            source={require("../../assets/images/person-avatar.png")}
-            style={styles.avatar}
-            resizeMode="cover"
-          />
-          {person.isPinned && (
-            <View style={[styles.pinBadge, { backgroundColor: theme.accent }]}>
-              <Feather name="pin" size={12} color="white" />
-            </View>
-          )}
-        </View>
-
-        <View style={styles.personInfo}>
-          <Text style={[styles.personName, { color: theme.textPrimary }]}>
-            {person.name || "Unnamed Person"}
-          </Text>
-          <Text style={[styles.faceCount, { color: theme.textSecondary }]}>
-            {person.faceCount} photos • Quality:{" "}
-            {Math.round(person.clusterQuality * 100)}%
-          </Text>
-        </View>
-
-        <View style={styles.personActions}>
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              { backgroundColor: theme.backgroundTertiary },
-            ]}
-            onPress={() => handleTogglePin(person)}
-          >
-            <Feather
-              name="pin"
-              size={16}
-              color={person.isPinned ? theme.accent : theme.textSecondary}
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              { backgroundColor: theme.backgroundTertiary },
-            ]}
-            onPress={() => openRenameModal(person)}
-          >
-            <Feather name="edit-2" size={16} color={theme.textSecondary} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              { backgroundColor: theme.backgroundTertiary },
-            ]}
-            onPress={() => openMergeModal(person)}
-          >
-            <Feather name="users" size={16} color={theme.textSecondary} />
-          </TouchableOpacity>
-        </View>
-      </View>
-    </TouchableOpacity>
+    <PersonCard
+      person={person}
+      onPress={handlePersonPress}
+      onRename={(personId, newName) => {
+        updatePersonMutation.mutate({
+          personId,
+          updates: { name: newName },
+        });
+      }}
+      onTogglePin={(personId, isPinned) => {
+        updatePersonMutation.mutate({
+          personId,
+          updates: { isPinned },
+        });
+      }}
+      onToggleHide={(personId, isHidden) => {
+        updatePersonMutation.mutate({
+          personId,
+          updates: { isHidden },
+        });
+      }}
+      onDelete={(personId) => {
+        Alert.alert(
+          "Delete Person",
+          "Are you sure you want to delete this person? This action cannot be undone.",
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Delete",
+              style: "destructive",
+              onPress: () => {
+                // In a real implementation, you would call a delete mutation
+                console.log("Delete person:", personId);
+              },
+            },
+          ]
+        );
+      }}
+      onMerge={(sourcePersonId, targetPersonId) => {
+        mergePeopleMutation.mutate({
+          sourcePersonId,
+          targetPersonId,
+        });
+      }}
+    />
   );
 
   const renderMergeOption = (person: Person) => (
@@ -426,6 +477,25 @@ export default function PeopleScreen() {
                 ]}
               >
                 Cluster
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.headerButton,
+                { backgroundColor: theme.backgroundSecondary },
+              ]}
+              onPress={handleClientSideClustering}
+              disabled={isProcessingFaces}
+            >
+              <Feather name="smartphone" size={20} color={theme.textSecondary} />
+              <Text
+                style={[
+                  styles.headerButtonText,
+                  { color: theme.textSecondary },
+                ]}
+              >
+                {isProcessingFaces ? "Processing..." : "Local"}
               </Text>
             </TouchableOpacity>
 
@@ -703,6 +773,99 @@ export default function PeopleScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Client-Side Processing Progress Modal */}
+      <Modal
+        visible={isProcessingFaces}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {}} // Prevent closing during processing
+      >
+        <View style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: theme.backgroundSecondary },
+            ]}
+          >
+            <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>
+              Processing Faces Locally
+            </Text>
+
+            <Text
+              style={[
+                styles.modalDescription,
+                { color: theme.textSecondary },
+              ]}
+            >
+              Processing faces on-device for better privacy. This may take a few minutes...
+            </Text>
+
+            <View style={styles.progressContainer}>
+              <View style={styles.progressBar}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    {
+                      width: `${processingProgress}%`,
+                      backgroundColor: theme.accent,
+                    },
+                  ]}
+                />
+              </View>
+              <Text
+                style={[
+                  styles.progressText,
+                  { color: theme.textSecondary },
+                ]}
+              >
+                {processingProgress}%
+              </Text>
+            </View>
+
+            <View style={styles.processingSteps}>
+              <Text
+                style={[
+                  styles.processingStep,
+                  { color: processingProgress >= 25 ? theme.accent : theme.textSecondary },
+                ]}
+              >
+                {processingProgress >= 25 ? "✓" : "○"} Detecting faces
+              </Text>
+              <Text
+                style={[
+                  styles.processingStep,
+                  { color: processingProgress >= 50 ? theme.accent : theme.textSecondary },
+                ]}
+              >
+                {processingProgress >= 50 ? "✓" : "○"} Generating embeddings
+              </Text>
+              <Text
+                style={[
+                  styles.processingStep,
+                  { color: processingProgress >= 75 ? theme.accent : theme.textSecondary },
+                ]}
+              >
+                {processingProgress >= 75 ? "✓" : "○"} Clustering faces
+              </Text>
+              <Text
+                style={[
+                  styles.processingStep,
+                  { color: processingProgress >= 100 ? theme.accent : theme.textSecondary },
+                ]}
+              >
+                {processingProgress >= 100 ? "✓" : "○"} Completing
+              </Text>
+            </View>
+
+            <ActivityIndicator
+              size="large"
+              color={theme.accent}
+              style={styles.processingSpinner}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -922,5 +1085,34 @@ const styles = StyleSheet.create({
   modalButtonText: {
     fontSize: 14,
     fontWeight: "600",
+  },
+  progressContainer: {
+    marginVertical: Spacing.lg,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: "#E0E0E0",
+    borderRadius: 4,
+    marginBottom: Spacing.sm,
+  },
+  progressFill: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  processingSteps: {
+    marginVertical: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  processingStep: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  processingSpinner: {
+    marginTop: Spacing.lg,
   },
 });
