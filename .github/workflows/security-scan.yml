@@ -249,10 +249,132 @@ jobs:
     - name: Run pen-test scaffold
       run: bash scripts/pen-test.sh
 
+  security-unit-tests:
+    name: Security Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run security tests
+      run: npm run test:security
+
+    - name: Upload security test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-test-results
+        path: coverage/
+        retention-days: 30
+
+  compliance-tests:
+    name: Compliance Tests (HIPAA & GDPR)
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run compliance tests
+      run: npm run test:compliance
+
+    - name: Upload compliance test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: compliance-test-results
+        path: coverage/
+        retention-days: 30
+
+  owasp-zap-scan:
+    name: OWASP ZAP DAST Scan
+    runs-on: ubuntu-latest
+    # Run ZAP on PRs and scheduled scans only (not every push to avoid noise)
+    if: github.event_name == 'pull_request' || github.event_name == 'schedule'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Start server in no-DB mode
+      run: |
+        npm run server:dev:nodb &
+        SERVER_PID=$!
+        echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+        # Wait for server to be ready (up to 30 seconds)
+        for i in $(seq 1 30); do
+          if curl -s http://localhost:5000/health > /dev/null 2>&1; then
+            echo "✅ Server is ready"
+            break
+          fi
+          echo "Waiting for server... ($i/30)"
+          sleep 1
+        done
+
+    - name: Run OWASP ZAP Baseline Scan
+      uses: zaproxy/action-baseline@v0.14.0
+      with:
+        target: 'http://localhost:5000'
+        rules_file_name: '.zap/rules.tsv'
+        cmd_options: '-a -j'
+        fail_action: true  # Fail on FAIL-level findings (SQLi, XSS, path traversal, etc.)
+        allow_issue_writing: true
+
+    - name: Upload ZAP Report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: zap-scan-report
+        path: |
+          report_html.html
+          report_json.json
+        retention-days: 30
+
+    - name: Stop server
+      if: always()
+      run: |
+        if [ -n "$SERVER_PID" ]; then
+          kill $SERVER_PID || true
+        fi
+
   security-summary:
     name: Security Summary
     runs-on: ubuntu-latest
-    needs: [dependency-scan, secret-scan, codeql-analysis, license-check, sbom-generation]
+    needs: [dependency-scan, secret-scan, codeql-analysis, license-check, sbom-generation, security-unit-tests, compliance-tests]
     if: always() && github.event_name == 'pull_request'
     
     steps:
@@ -265,12 +387,17 @@ jobs:
           const codeqlStatus = '${{ needs.codeql-analysis.result }}';
           const licenseStatus = '${{ needs.license-check.result }}';
           const sbomStatus = '${{ needs.sbom-generation.result }}';
+          const secTestStatus = '${{ needs.security-unit-tests.result }}';
+          const complianceStatus = '${{ needs.compliance-tests.result }}';
           
           const statusEmoji = (status) => {
             if (status === 'success') return '✅';
             if (status === 'failure') return '❌';
             return '⚠️';
           };
+          
+          const hasFailures = [depStatus, secretStatus, codeqlStatus, licenseStatus, sbomStatus, secTestStatus, complianceStatus]
+            .some(s => s === 'failure');
           
           const comment = `## 🔒 Security Scan Results
           
@@ -281,8 +408,10 @@ jobs:
           | CodeQL Analysis | ${statusEmoji(codeqlStatus)} ${codeqlStatus} |
           | License Check | ${statusEmoji(licenseStatus)} ${licenseStatus} |
           | SBOM Generation | ${statusEmoji(sbomStatus)} ${sbomStatus} |
+          | Security Unit Tests | ${statusEmoji(secTestStatus)} ${secTestStatus} |
+          | HIPAA & GDPR Compliance Tests | ${statusEmoji(complianceStatus)} ${complianceStatus} |
           
-          ${depStatus === 'failure' || secretStatus === 'failure' || codeqlStatus === 'failure' ? '⚠️ **Security issues detected!** Please review and fix before merging.' : '✅ All security checks passed!'}
+          ${hasFailures ? '⚠️ **Security issues detected!** Please review and fix before merging.' : '✅ All security checks passed!'}
           
           [View detailed results](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
           

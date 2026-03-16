@@ -240,9 +240,9 @@ class AuditLogger {
     const auditEvent: AuditEvent = {
       id: this.generateEventId(),
       timestamp: new Date(),
+      ...event,
       severity: this.getSeverity(event.eventType),
       details: event.details ? this.sanitizeDetails(event.details) : undefined,
-      ...event,
     };
 
     // Store event (in production, this would go to a database)
