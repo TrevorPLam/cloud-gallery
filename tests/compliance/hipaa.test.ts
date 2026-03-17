@@ -12,21 +12,13 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import {
-  auditLogger,
-  AuditEventType,
-  AuditSeverity,
-} from "../../server/audit";
+import { auditLogger, AuditEventType, AuditSeverity } from "../../server/audit";
 import {
   hashPassword,
   verifyPassword,
   validatePasswordStrength,
 } from "../../server/security";
-import {
-  encrypt,
-  decrypt,
-  ENCRYPTION_CONFIG,
-} from "../../server/encryption";
+import { encrypt, decrypt, ENCRYPTION_CONFIG } from "../../server/encryption";
 
 vi.mock("../../server/siem", () => ({
   forwardAuditEvent: vi.fn().mockResolvedValue(undefined),
@@ -47,16 +39,16 @@ describe("HIPAA §164.312(b) – Audit Controls", () => {
       });
 
       const events = auditLogger.getEvents();
-      const newEvent = events.find(e => e.userId === "user-hipaa-001");
+      const newEvent = events.find((e) => e.userId === "user-hipaa-001");
 
       // HIPAA requires: who, what, when, where
       expect(newEvent).toBeDefined();
-      expect(newEvent!.id).toBeDefined();         // Unique event ID
+      expect(newEvent!.id).toBeDefined(); // Unique event ID
       expect(newEvent!.timestamp).toBeInstanceOf(Date); // When
       expect(newEvent!.userId).toBe("user-hipaa-001"); // Who
-      expect(newEvent!.resource).toBeDefined();    // What resource
-      expect(newEvent!.eventType).toBeDefined();   // What action
-      expect(newEvent!.outcome).toBeDefined();     // Success/failure
+      expect(newEvent!.resource).toBeDefined(); // What resource
+      expect(newEvent!.eventType).toBeDefined(); // What action
+      expect(newEvent!.outcome).toBeDefined(); // Success/failure
     });
 
     it("should record data access events for photo retrieval", () => {
@@ -74,7 +66,9 @@ describe("HIPAA §164.312(b) – Audit Controls", () => {
       expect(events.length).toBeGreaterThan(before);
 
       const accessEvent = events.find(
-        e => e.eventType === AuditEventType.DATA_PHOTO_ACCESS && e.userId === "user-123",
+        (e) =>
+          e.eventType === AuditEventType.DATA_PHOTO_ACCESS &&
+          e.userId === "user-123",
       );
       expect(accessEvent).toBeDefined();
       expect(accessEvent?.eventType).toBe(AuditEventType.DATA_PHOTO_ACCESS);
@@ -102,7 +96,7 @@ describe("HIPAA §164.312(b) – Audit Controls", () => {
       expect(events.length).toBeGreaterThanOrEqual(before + 2);
 
       const loginEvents = events.filter(
-        e =>
+        (e) =>
           e.eventType === AuditEventType.AUTH_LOGIN_SUCCESS ||
           e.eventType === AuditEventType.AUTH_LOGIN_FAILURE,
       );
@@ -124,7 +118,9 @@ describe("HIPAA §164.312(b) – Audit Controls", () => {
       expect(events.length).toBeGreaterThan(before);
 
       const deleteEvent = events.find(
-        e => e.eventType === AuditEventType.DATA_PHOTO_DELETE && e.userId === "user-789",
+        (e) =>
+          e.eventType === AuditEventType.DATA_PHOTO_DELETE &&
+          e.userId === "user-789",
       );
       expect(deleteEvent).toBeDefined();
     });
@@ -143,7 +139,8 @@ describe("HIPAA §164.312(b) – Audit Controls", () => {
       expect(events.length).toBeGreaterThan(before);
 
       const secEvent = events.find(
-        e => e.eventType === AuditEventType.SECURITY_UNAUTHORIZED_ACCESS &&
+        (e) =>
+          e.eventType === AuditEventType.SECURITY_UNAUTHORIZED_ACCESS &&
           e.resource === "/api/photos/restricted",
       );
 
@@ -165,7 +162,7 @@ describe("HIPAA §164.312(b) – Audit Controls", () => {
       }
 
       const events = auditLogger.getEvents().slice(0, 5);
-      const ids = events.map(e => e.id);
+      const ids = events.map((e) => e.id);
       const uniqueIds = new Set(ids);
       expect(uniqueIds.size).toBe(ids.length);
     });
@@ -179,7 +176,7 @@ describe("HIPAA §164.312(b) – Audit Controls", () => {
 
       const events = auditLogger.getEvents();
       const rateLimitEvent = events.find(
-        e => e.eventType === AuditEventType.SECURITY_RATE_LIMIT_EXCEEDED,
+        (e) => e.eventType === AuditEventType.SECURITY_RATE_LIMIT_EXCEEDED,
       );
 
       expect(rateLimitEvent?.severity).toBe(AuditSeverity.HIGH);
@@ -195,7 +192,7 @@ describe("HIPAA §164.312(b) – Audit Controls", () => {
 
       const events = auditLogger.getEvents();
       const failEvent = events.find(
-        e =>
+        (e) =>
           e.eventType === AuditEventType.AUTH_LOGIN_FAILURE &&
           e.userId === "user-test",
       );
@@ -219,7 +216,7 @@ describe("HIPAA §164.312(b) – Audit Controls", () => {
       expect(Array.isArray(securityEvents)).toBe(true);
 
       const suspiciousEvent = securityEvents.find(
-        e => e.eventType === AuditEventType.SECURITY_SUSPICIOUS_ACTIVITY,
+        (e) => e.eventType === AuditEventType.SECURITY_SUSPICIOUS_ACTIVITY,
       );
       expect(suspiciousEvent).toBeDefined();
     });
@@ -242,8 +239,12 @@ describe("HIPAA §164.312(b) – Audit Controls", () => {
 
       expect(filteredEvents.length).toBeGreaterThan(0);
       for (const event of filteredEvents) {
-        expect(event.timestamp.getTime()).toBeGreaterThanOrEqual(startDate.getTime());
-        expect(event.timestamp.getTime()).toBeLessThanOrEqual(endDate.getTime() + 10);
+        expect(event.timestamp.getTime()).toBeGreaterThanOrEqual(
+          startDate.getTime(),
+        );
+        expect(event.timestamp.getTime()).toBeLessThanOrEqual(
+          endDate.getTime() + 10,
+        );
       }
     });
   });
@@ -254,7 +255,7 @@ describe("HIPAA §164.312(a)(1) – Access Controls", () => {
     it("should enforce minimum password length of 8 characters", () => {
       const result = validatePasswordStrength("Sh0rt!");
       expect(result.isValid).toBe(false);
-      expect(result.errors.some(e => e.includes("8 characters"))).toBe(true);
+      expect(result.errors.some((e) => e.includes("8 characters"))).toBe(true);
     });
 
     it("should require password complexity (mixed case, numbers, special chars)", () => {
@@ -267,7 +268,10 @@ describe("HIPAA §164.312(a)(1) – Access Controls", () => {
 
       for (const { pw, issue } of weakPasswords) {
         const result = validatePasswordStrength(pw);
-        expect(result.isValid, `Expected '${pw}' to fail (missing ${issue})`).toBe(false);
+        expect(
+          result.isValid,
+          `Expected '${pw}' to fail (missing ${issue})`,
+        ).toBe(false);
       }
     });
 
@@ -363,7 +367,10 @@ describe("HIPAA §164.312(e)(2)(ii) – Encryption", () => {
     const result = encrypt("sensitive data", key);
 
     // Tamper with the ciphertext
-    const tampered = { ...result, encrypted: result.encrypted.slice(0, -2) + "00" };
+    const tampered = {
+      ...result,
+      encrypted: result.encrypted.slice(0, -2) + "00",
+    };
 
     expect(() => decrypt(tampered, key)).toThrow();
   });

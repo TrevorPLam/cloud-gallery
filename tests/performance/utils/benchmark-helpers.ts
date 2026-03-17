@@ -3,7 +3,7 @@
  * Provides consistent measurement patterns and helper functions
  */
 
-import { bench, describe } from 'vitest';
+import { bench, describe } from "vitest";
 
 /**
  * Performance measurement wrapper for consistent benchmarking
@@ -25,7 +25,7 @@ export interface BenchmarkOptions {
 export function createBenchmark(
   name: string,
   fn: () => void | Promise<void>,
-  options: BenchmarkOptions = {}
+  options: BenchmarkOptions = {},
 ) {
   return bench(name, async () => {
     if (options.setup) await options.setup();
@@ -48,7 +48,7 @@ export interface MemoryMetrics {
  * Get current memory usage (if available)
  */
 export function getMemoryUsage(): MemoryMetrics | null {
-  if (typeof performance === 'undefined' || !(performance as any).memory) {
+  if (typeof performance === "undefined" || !(performance as any).memory) {
     return null;
   }
 
@@ -65,15 +65,21 @@ export function getMemoryUsage(): MemoryMetrics | null {
  * Measure memory usage change during operation
  */
 export async function measureMemoryUsage<T>(
-  operation: () => T | Promise<T>
-): Promise<{ result: T; memoryBefore: MemoryMetrics | null; memoryAfter: MemoryMetrics | null; memoryDelta: number }> {
+  operation: () => T | Promise<T>,
+): Promise<{
+  result: T;
+  memoryBefore: MemoryMetrics | null;
+  memoryAfter: MemoryMetrics | null;
+  memoryDelta: number;
+}> {
   const memoryBefore = getMemoryUsage();
   const result = await operation();
   const memoryAfter = getMemoryUsage();
-  
-  const memoryDelta = memoryBefore && memoryAfter 
-    ? memoryAfter.usedJSHeapSize - memoryBefore.usedJSHeapSize 
-    : 0;
+
+  const memoryDelta =
+    memoryBefore && memoryAfter
+      ? memoryAfter.usedJSHeapSize - memoryBefore.usedJSHeapSize
+      : 0;
 
   return {
     result,
@@ -96,12 +102,12 @@ export interface TimeMetrics {
  * Measure execution time of an operation
  */
 export async function measureTime<T>(
-  operation: () => T | Promise<T>
+  operation: () => T | Promise<T>,
 ): Promise<{ result: T; metrics: TimeMetrics }> {
   const startTime = performance.now();
   const result = await operation();
   const endTime = performance.now();
-  
+
   return {
     result,
     metrics: {
@@ -127,19 +133,24 @@ export interface BatchPerformanceOptions {
 export async function measureBatchPerformance<T, R>(
   items: T[],
   operation: (item: T) => R | Promise<R>,
-  options: BatchPerformanceOptions
-): Promise<{ results: R[]; totalTime: number; avgTime: number; throughput: number }> {
+  options: BatchPerformanceOptions,
+): Promise<{
+  results: R[];
+  totalTime: number;
+  avgTime: number;
+  throughput: number;
+}> {
   const { batchSize, iterations, concurrent = false } = options;
-  
+
   const startTime = performance.now();
   let results: R[] = [];
-  
+
   if (concurrent) {
     // Run batches concurrently
     const batches = [];
     for (let i = 0; i < iterations; i++) {
       const batch = items.slice(0, batchSize);
-      const batchPromises = batch.map(item => operation(item));
+      const batchPromises = batch.map((item) => operation(item));
       batches.push(Promise.all(batchPromises));
     }
     const batchResults = await Promise.all(batches);
@@ -154,11 +165,11 @@ export async function measureBatchPerformance<T, R>(
       }
     }
   }
-  
+
   const endTime = performance.now();
   const totalTime = endTime - startTime;
   const totalOperations = batchSize * iterations;
-  
+
   return {
     results,
     totalTime,
@@ -177,17 +188,17 @@ export class PerformanceAssertions {
   static async assertTimeThreshold<T>(
     operation: () => T | Promise<T>,
     thresholdMs: number,
-    message?: string
+    message?: string,
   ): Promise<T> {
     const { result, metrics } = await measureTime(operation);
-    
+
     if (metrics.duration > thresholdMs) {
       throw new Error(
-        message || 
-        `Performance threshold exceeded: ${metrics.duration.toFixed(2)}ms > ${thresholdMs}ms`
+        message ||
+          `Performance threshold exceeded: ${metrics.duration.toFixed(2)}ms > ${thresholdMs}ms`,
       );
     }
-    
+
     return result;
   }
 
@@ -197,25 +208,25 @@ export class PerformanceAssertions {
   static async assertMemoryThreshold(
     fn: () => any,
     maxMemoryBytes: number,
-    message?: string
+    message?: string,
   ): Promise<{ result: any; memoryDelta: number }> {
     const initialMemory = (performance as any).memory?.usedJSHeapSize || 0;
     const result = await fn();
-    
+
     // Force garbage collection if available
-    if (typeof global !== 'undefined' && (global as any).gc) {
+    if (typeof global !== "undefined" && (global as any).gc) {
       (global as any).gc();
     }
-    
+
     const finalMemory = (performance as any).memory?.usedJSHeapSize || 0;
     const memoryDelta = Math.max(0, finalMemory - initialMemory);
-    
+
     if (memoryDelta > maxMemoryBytes) {
       throw new Error(
-        `${message || 'Memory usage exceeded threshold'}: ${(memoryDelta / 1024 / 1024).toFixed(2)}MB > ${(maxMemoryBytes / 1024 / 1024).toFixed(2)}MB`
+        `${message || "Memory usage exceeded threshold"}: ${(memoryDelta / 1024 / 1024).toFixed(2)}MB > ${(maxMemoryBytes / 1024 / 1024).toFixed(2)}MB`,
       );
     }
-    
+
     return { result, memoryDelta };
   }
 
@@ -226,16 +237,16 @@ export class PerformanceAssertions {
     items: T[],
     operation: (item: T) => R | Promise<R>,
     minThroughput: number, // operations per second
-    options: Omit<BatchPerformanceOptions, 'iterations'>
+    options: Omit<BatchPerformanceOptions, "iterations">,
   ): Promise<void> {
     const { throughput } = await measureBatchPerformance(items, operation, {
       ...options,
       iterations: 1,
     });
-    
+
     if (throughput < minThroughput) {
       throw new Error(
-        `Throughput threshold exceeded: ${throughput.toFixed(2)} ops/sec < ${minThroughput} ops/sec`
+        `Throughput threshold exceeded: ${throughput.toFixed(2)} ops/sec < ${minThroughput} ops/sec`,
       );
     }
   }
@@ -255,13 +266,13 @@ export class PerformanceTestData {
       width: 1920 + (i % 1000),
       height: 1080 + (i % 1000),
       size: 1024 * 1024 * (2 + (i % 5)), // 2-6MB
-      createdAt: Date.now() - (i * 1000),
+      createdAt: Date.now() - i * 1000,
       metadata: {
         description: `Test photo ${i}`,
         tags: [`tag_${i % 10}`, `category_${i % 5}`],
         location: {
           latitude: 40.7128 + (Math.random() - 0.5) * 0.1,
-          longitude: -74.0060 + (Math.random() - 0.5) * 0.1,
+          longitude: -74.006 + (Math.random() - 0.5) * 0.1,
         },
       },
     }));
@@ -271,12 +282,23 @@ export class PerformanceTestData {
    * Generate search queries for testing
    */
   static generateSearchQueries(count: number) {
-    const terms = ['vacation', 'family', 'nature', 'city', 'portrait', 'landscape', 'sunset', 'beach', 'mountain', 'food'];
+    const terms = [
+      "vacation",
+      "family",
+      "nature",
+      "city",
+      "portrait",
+      "landscape",
+      "sunset",
+      "beach",
+      "mountain",
+      "food",
+    ];
     return Array.from({ length: count }, (_, i) => ({
-      query: terms[i % terms.length] + (i > terms.length ? ` ${i}` : ''),
+      query: terms[i % terms.length] + (i > terms.length ? ` ${i}` : ""),
       filters: {
         dateRange: {
-          start: Date.now() - (30 * 24 * 60 * 60 * 1000),
+          start: Date.now() - 30 * 24 * 60 * 60 * 1000,
           end: Date.now(),
         },
         tags: [terms[i % terms.length]],

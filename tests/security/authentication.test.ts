@@ -22,7 +22,8 @@ import { rateLimit } from "../../server/middleware";
 
 // Mock JWT to have full control over token scenarios
 vi.mock("jsonwebtoken", async () => {
-  const actual = await vi.importActual<typeof import("jsonwebtoken")>("jsonwebtoken");
+  const actual =
+    await vi.importActual<typeof import("jsonwebtoken")>("jsonwebtoken");
   return actual;
 });
 
@@ -37,7 +38,10 @@ describe("JWT Token Security", () => {
     it("should generate tokens with correct issuer and audience claims", () => {
       const payload = { id: "user-123", email: "user@example.com" };
       const token = generateAccessToken(payload, TEST_SECRET);
-      const decoded = verifyAccessToken(token, TEST_SECRET) as Record<string, unknown>;
+      const decoded = verifyAccessToken(token, TEST_SECRET) as Record<
+        string,
+        unknown
+      >;
 
       expect(decoded).not.toBeNull();
       expect(decoded?.iss).toBe("cloud-gallery");
@@ -47,21 +51,29 @@ describe("JWT Token Security", () => {
     it("should generate tokens that expire", () => {
       const payload = { id: "user-123", email: "user@example.com" };
       const token = generateAccessToken(payload, TEST_SECRET);
-      const decoded = verifyAccessToken(token, TEST_SECRET) as Record<string, unknown>;
+      const decoded = verifyAccessToken(token, TEST_SECRET) as Record<
+        string,
+        unknown
+      >;
 
       expect(decoded).not.toBeNull();
       expect(decoded?.exp).toBeDefined();
       // Token must expire within the configured TTL (+1 second buffer)
       const now = Math.floor(Date.now() / 1000);
-      expect(decoded?.exp as number).toBeLessThanOrEqual(now + SECURITY_CONFIG.ACCESS_TOKEN_TTL + 1);
+      expect(decoded?.exp as number).toBeLessThanOrEqual(
+        now + SECURITY_CONFIG.ACCESS_TOKEN_TTL + 1,
+      );
     });
 
     it("should generate unique tokens for different users", () => {
       // JWTs are deterministic for the same payload+second, but differ per user
       const tokens = new Set(
         Array.from({ length: 50 }, (_, i) =>
-          generateAccessToken({ id: `user-${i}`, email: `user${i}@example.com` }, TEST_SECRET)
-        )
+          generateAccessToken(
+            { id: `user-${i}`, email: `user${i}@example.com` },
+            TEST_SECRET,
+          ),
+        ),
       );
 
       // All 50 different-user tokens should be unique
@@ -82,13 +94,18 @@ describe("JWT Token Security", () => {
       // Import jwt directly to create a token with very short expiry
       const jwt = await import("jsonwebtoken");
       const expiredToken = jwt.sign(
-        { id: "user-123", email: "user@example.com", iss: "cloud-gallery", aud: "cloud-gallery-users" },
+        {
+          id: "user-123",
+          email: "user@example.com",
+          iss: "cloud-gallery",
+          aud: "cloud-gallery-users",
+        },
         TEST_SECRET,
-        { expiresIn: 0 } // Immediately expired
+        { expiresIn: 0 }, // Immediately expired
       );
 
       // Allow 1ms for token to expire
-      await new Promise(resolve => setTimeout(resolve, 1));
+      await new Promise((resolve) => setTimeout(resolve, 1));
       const decoded = verifyAccessToken(expiredToken, TEST_SECRET);
       expect(decoded).toBeNull();
     });
@@ -98,7 +115,11 @@ describe("JWT Token Security", () => {
       const maliciousToken = jwt.sign(
         { id: "user-123", email: "user@example.com" },
         TEST_SECRET,
-        { issuer: "evil-issuer", audience: "cloud-gallery-users", expiresIn: 3600 }
+        {
+          issuer: "evil-issuer",
+          audience: "cloud-gallery-users",
+          expiresIn: 3600,
+        },
       );
 
       const decoded = verifyAccessToken(maliciousToken, TEST_SECRET);
@@ -110,7 +131,11 @@ describe("JWT Token Security", () => {
       const maliciousToken = jwt.sign(
         { id: "user-123", email: "user@example.com" },
         TEST_SECRET,
-        { issuer: "cloud-gallery", audience: "wrong-audience", expiresIn: 3600 }
+        {
+          issuer: "cloud-gallery",
+          audience: "wrong-audience",
+          expiresIn: 3600,
+        },
       );
 
       const decoded = verifyAccessToken(maliciousToken, TEST_SECRET);
@@ -119,14 +144,18 @@ describe("JWT Token Security", () => {
 
     it("should reject tokens with 'none' algorithm", () => {
       // Attempt algorithm confusion - unsigned token
-      const header = Buffer.from(JSON.stringify({ alg: "none", typ: "JWT" })).toString("base64url");
-      const payload = Buffer.from(JSON.stringify({
-        id: "admin",
-        email: "admin@example.com",
-        iss: "cloud-gallery",
-        aud: "cloud-gallery-users",
-        exp: Math.floor(Date.now() / 1000) + 3600,
-      })).toString("base64url");
+      const header = Buffer.from(
+        JSON.stringify({ alg: "none", typ: "JWT" }),
+      ).toString("base64url");
+      const payload = Buffer.from(
+        JSON.stringify({
+          id: "admin",
+          email: "admin@example.com",
+          iss: "cloud-gallery",
+          aud: "cloud-gallery-users",
+          exp: Math.floor(Date.now() / 1000) + 3600,
+        }),
+      ).toString("base64url");
       const unsignedToken = `${header}.${payload}.`;
 
       const decoded = verifyAccessToken(unsignedToken, TEST_SECRET);
@@ -144,7 +173,10 @@ describe("JWT Token Security", () => {
 
       for (const token of malformedTokens) {
         const decoded = verifyAccessToken(token, TEST_SECRET);
-        expect(decoded, `Expected null for malformed token: ${token}`).toBeNull();
+        expect(
+          decoded,
+          `Expected null for malformed token: ${token}`,
+        ).toBeNull();
       }
     });
   });
@@ -185,7 +217,7 @@ describe("authenticateToken Middleware", () => {
 
   it("should return 403 when Bearer token is forged", async () => {
     const forgedToken = Buffer.from(
-      JSON.stringify({ id: "admin", email: "admin@example.com" })
+      JSON.stringify({ id: "admin", email: "admin@example.com" }),
     ).toString("base64");
 
     const response = await request(app)
@@ -195,12 +227,17 @@ describe("authenticateToken Middleware", () => {
   });
 
   it("should allow request with valid JWT token", async () => {
-    const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+    const JWT_SECRET =
+      process.env.JWT_SECRET || "your-secret-key-change-in-production";
     const jwt = await import("jsonwebtoken");
     const validToken = jwt.sign(
       { id: "user-123", email: "user@example.com" },
       JWT_SECRET,
-      { issuer: "cloud-gallery", audience: "cloud-gallery-users", expiresIn: 3600 }
+      {
+        issuer: "cloud-gallery",
+        audience: "cloud-gallery-users",
+        expiresIn: 3600,
+      },
     );
 
     const response = await request(app)
@@ -236,31 +273,39 @@ describe("Password Security", () => {
     it("should reject passwords shorter than 8 characters", () => {
       const result = validatePasswordStrength("Sh0rt!");
       expect(result.isValid).toBe(false);
-      expect(result.errors.some(e => e.includes("8 characters"))).toBe(true);
+      expect(result.errors.some((e) => e.includes("8 characters"))).toBe(true);
     });
 
     it("should reject passwords without uppercase letters", () => {
       const result = validatePasswordStrength("lowercase123!");
       expect(result.isValid).toBe(false);
-      expect(result.errors.some(e => e.toLowerCase().includes("uppercase"))).toBe(true);
+      expect(
+        result.errors.some((e) => e.toLowerCase().includes("uppercase")),
+      ).toBe(true);
     });
 
     it("should reject passwords without lowercase letters", () => {
       const result = validatePasswordStrength("UPPERCASE123!");
       expect(result.isValid).toBe(false);
-      expect(result.errors.some(e => e.toLowerCase().includes("lowercase"))).toBe(true);
+      expect(
+        result.errors.some((e) => e.toLowerCase().includes("lowercase")),
+      ).toBe(true);
     });
 
     it("should reject passwords without numbers", () => {
       const result = validatePasswordStrength("NoNumbers!");
       expect(result.isValid).toBe(false);
-      expect(result.errors.some(e => e.toLowerCase().includes("number"))).toBe(true);
+      expect(
+        result.errors.some((e) => e.toLowerCase().includes("number")),
+      ).toBe(true);
     });
 
     it("should reject passwords without special characters", () => {
       const result = validatePasswordStrength("NoSpecial123");
       expect(result.isValid).toBe(false);
-      expect(result.errors.some(e => e.toLowerCase().includes("special"))).toBe(true);
+      expect(
+        result.errors.some((e) => e.toLowerCase().includes("special")),
+      ).toBe(true);
     });
 
     it("should reject common passwords", () => {
@@ -275,7 +320,7 @@ describe("Password Security", () => {
       const tooLong = "Aa1!" + "x".repeat(125);
       const result = validatePasswordStrength(tooLong);
       expect(result.isValid).toBe(false);
-      expect(result.errors.some(e => e.includes("128"))).toBe(true);
+      expect(result.errors.some((e) => e.includes("128"))).toBe(true);
     });
 
     it("should accept strong passwords", () => {
@@ -301,7 +346,9 @@ describe("Password Security", () => {
     });
 
     it("should generate unique tokens (no collisions in 100 trials)", () => {
-      const tokens = new Set(Array.from({ length: 100 }, () => generateSecureToken()));
+      const tokens = new Set(
+        Array.from({ length: 100 }, () => generateSecureToken()),
+      );
       expect(tokens.size).toBe(100);
     });
 

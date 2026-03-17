@@ -81,7 +81,7 @@ class MockAsyncStorage {
     } as any;
   }
 
-  async multiGet(keys: string[]): Promise<[string, string | null][] {
+  async multiGet(keys: string[]): Promise<[string, string | null][]> {
     const startTime = performance.now();
     this.operationCount++;
     

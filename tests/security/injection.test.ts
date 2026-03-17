@@ -43,25 +43,61 @@ vi.mock("../../server/security", async () => {
   );
   return {
     ...actual,
-    hashPassword: vi.fn().mockResolvedValue("$argon2id$v=19$m=65536,t=3,p=4$hash"),
+    hashPassword: vi
+      .fn()
+      .mockResolvedValue("$argon2id$v=19$m=65536,t=3,p=4$hash"),
     verifyPassword: vi.fn().mockResolvedValue(true),
     generateAccessToken: vi.fn().mockReturnValue("mock-access-token"),
     generateRefreshToken: vi.fn().mockReturnValue("mock-refresh-token"),
-    validatePasswordStrength: vi.fn().mockReturnValue({ isValid: true, errors: [] }),
-    verifyAccessToken: vi.fn().mockReturnValue({ id: "user123", email: "test@example.com" }),
+    validatePasswordStrength: vi
+      .fn()
+      .mockReturnValue({ isValid: true, errors: [] }),
+    verifyAccessToken: vi
+      .fn()
+      .mockReturnValue({ id: "user123", email: "test@example.com" }),
     checkPasswordBreach: vi.fn().mockResolvedValue(false),
   };
 });
 
 vi.mock("../../server/auth", () => ({
-  authRateLimit: vi.fn((_req: express.Request, _res: express.Response, next: express.NextFunction) => next()),
-  authenticateToken: vi.fn((_req: express.Request, _res: express.Response, next: express.NextFunction) => next()),
-  generalRateLimit: vi.fn((_req: express.Request, _res: express.Response, next: express.NextFunction) => next()),
+  authRateLimit: vi.fn(
+    (
+      _req: express.Request,
+      _res: express.Response,
+      next: express.NextFunction,
+    ) => next(),
+  ),
+  authenticateToken: vi.fn(
+    (
+      _req: express.Request,
+      _res: express.Response,
+      next: express.NextFunction,
+    ) => next(),
+  ),
+  generalRateLimit: vi.fn(
+    (
+      _req: express.Request,
+      _res: express.Response,
+      next: express.NextFunction,
+    ) => next(),
+  ),
 }));
 
 vi.mock("../../server/auth-captcha-routes", () => ({
-  checkCaptchaRequirement: vi.fn((_req: express.Request, _res: express.Response, next: express.NextFunction) => next()),
-  verifyCaptchaMiddleware: vi.fn((_req: express.Request, _res: express.Response, next: express.NextFunction) => next()),
+  checkCaptchaRequirement: vi.fn(
+    (
+      _req: express.Request,
+      _res: express.Response,
+      next: express.NextFunction,
+    ) => next(),
+  ),
+  verifyCaptchaMiddleware: vi.fn(
+    (
+      _req: express.Request,
+      _res: express.Response,
+      next: express.NextFunction,
+    ) => next(),
+  ),
   recordAuthFailure: vi.fn(),
   recordAuthSuccess: vi.fn(),
 }));
@@ -70,7 +106,18 @@ vi.mock("../../server/audit", () => ({
   logAuthEvent: vi.fn(),
   logSecurityEvent: vi.fn(),
   logDataEvent: vi.fn(),
-  auditLogger: { logEvent: vi.fn(), middleware: vi.fn(() => (_req: express.Request, _res: express.Response, next: express.NextFunction) => next()) },
+  auditLogger: {
+    logEvent: vi.fn(),
+    middleware: vi.fn(
+      () =>
+        (
+          _req: express.Request,
+          _res: express.Response,
+          next: express.NextFunction,
+        ) =>
+          next(),
+    ),
+  },
   AuditEventType: {
     AUTH_LOGIN_SUCCESS: "AUTH_LOGIN_SUCCESS",
     AUTH_LOGIN_FAILURE: "AUTH_LOGIN_FAILURE",
@@ -111,7 +158,10 @@ describe("Injection Attack Prevention", () => {
           .send({ email: payload, password: "SecurePass123!" });
 
         // Zod email validation must reject these payloads
-        expect(response.status, `Expected 400 for SQL injection: ${payload}`).toBe(400);
+        expect(
+          response.status,
+          `Expected 400 for SQL injection: ${payload}`,
+        ).toBe(400);
         // Response must not expose SQL errors or stack traces
         const body = JSON.stringify(response.body);
         expect(body).not.toContain("SQL");
@@ -213,7 +263,7 @@ describe("Injection Attack Prevention", () => {
     it("should handle non-string input types safely", async () => {
       const response = await request(app)
         .post("/api/auth/register")
-        .send({ email: { "$ne": "" }, password: "SecurePass123!" });
+        .send({ email: { $ne: "" }, password: "SecurePass123!" });
 
       // Must reject non-string email (NoSQL injection style)
       expect(response.status).toBe(400);
@@ -222,7 +272,10 @@ describe("Injection Attack Prevention", () => {
     it("should handle array inputs safely", async () => {
       const response = await request(app)
         .post("/api/auth/register")
-        .send({ email: ["admin@example.com", "hacker@evil.com"], password: "SecurePass123!" });
+        .send({
+          email: ["admin@example.com", "hacker@evil.com"],
+          password: "SecurePass123!",
+        });
 
       expect(response.status).toBe(400);
     });

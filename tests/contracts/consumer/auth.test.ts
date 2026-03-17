@@ -1,21 +1,21 @@
-import { PactV4, Matchers } from '@pact-foundation/pact';
-import path from 'path';
-import { commonHeaders, matchers } from '../utils/setup';
-import { 
-  createAuthResponseMatcher, 
+import { PactV4, Matchers } from "@pact-foundation/pact";
+import path from "path";
+import { commonHeaders, matchers } from "../utils/setup";
+import {
+  createAuthResponseMatcher,
   createErrorResponseMatcher,
   createRegistrationRequest,
-  createLoginRequest 
-} from '../utils/helpers';
+  createLoginRequest,
+} from "../utils/helpers";
 
-describe('Authentication API Consumer Tests', () => {
+describe("Authentication API Consumer Tests", () => {
   const provider = new PactV4({
-    consumer: 'cloud-gallery-client',
-    provider: 'cloud-gallery-api',
+    consumer: "cloud-gallery-client",
+    provider: "cloud-gallery-api",
     port: 4000,
-    log: path.resolve(process.cwd(), 'logs', 'pact.log'),
-    dir: path.resolve(process.cwd(), 'tests', 'contracts', 'pacts'),
-    logLevel: 'INFO',
+    log: path.resolve(process.cwd(), "logs", "pact.log"),
+    dir: path.resolve(process.cwd(), "tests", "contracts", "pacts"),
+    logLevel: "INFO",
   });
 
   beforeAll(async () => {
@@ -26,389 +26,344 @@ describe('Authentication API Consumer Tests', () => {
     await provider.finalize();
   });
 
-  describe('POST /api/auth/register', () => {
-    it('should register a new user successfully', async () => {
+  describe("POST /api/auth/register", () => {
+    it("should register a new user successfully", async () => {
       const registrationRequest = createRegistrationRequest();
-      
+
       await provider
-        .addInteraction()
-        .given('user does not exist')
-        .uponReceiving('a valid user registration request')
-        .withRequest('POST', '/api/auth/register', (builder) => {
+        .given("user does not exist")
+        .uponReceiving("a valid user registration request")
+        .withRequest("POST", "/api/auth/register", (builder) => {
           builder.headers(commonHeaders);
           builder.body(registrationRequest);
         })
         .willRespondWith(201, (builder) => {
           builder.headers(commonHeaders);
-          builder.body(createAuthResponseMatcher({
-            message: Matchers.like('User registered successfully')
-          }));
+          builder.body(
+            createAuthResponseMatcher({
+              message: Matchers.like("User registered successfully"),
+            }),
+          );
         })
         .executeTest(async (mockServer) => {
           const response = await fetch(`${mockServer.url}/api/auth/register`, {
-            method: 'POST',
+            method: "POST",
             headers: commonHeaders,
             body: JSON.stringify(registrationRequest),
           });
 
           expect(response.status).toBe(201);
           const data = await response.json();
-          expect(data.message).toBe('User registered successfully');
+          expect(data.message).toBe("User registered successfully");
           expect(data.user.email).toBe(registrationRequest.email);
           expect(data.tokens.accessToken).toBeDefined();
           expect(data.tokens.refreshToken).toBeDefined();
         });
     });
 
-    it('should reject registration with existing email', async () => {
+    it("should reject registration with existing email", async () => {
       const registrationRequest = createRegistrationRequest();
-      
+
       await provider
-        .addInteraction({
-          states: [{ description: 'user already exists' }],
-          uponReceiving: 'a registration request with existing email',
-          withRequest: {
-            method: 'POST',
-            path: '/api/auth/register',
-            headers: commonHeaders,
-            body: registrationRequest,
-          },
-          willRespondWith: {
-            status: 409,
-            headers: commonHeaders,
-            body: createErrorResponseMatcher(
+        .given("user already exists")
+        .uponReceiving("a registration request with existing email")
+        .withRequest("POST", "/api/auth/register", (builder) => {
+          builder.headers(commonHeaders);
+          builder.body(registrationRequest);
+        })
+        .willRespondWith(409, (builder) => {
+          builder.headers(commonHeaders);
+          builder.body(
+            createErrorResponseMatcher(
               409,
-              'User already exists',
-              'An account with this email already exists'
+              "User already exists",
+              "An account with this email already exists",
             ),
-          },
-        });
+          );
+        })
+        .executeTest(async (mockServer) => {
+          const response = await fetch(`${mockServer.url}/api/auth/register`, {
+            method: "POST",
+            headers: commonHeaders,
+            body: JSON.stringify(registrationRequest),
+          });
 
-      await provider.executeTest(async (mockServer) => {
-        const response = await fetch(`${mockServer.url}/api/auth/register`, {
-          method: 'POST',
-          headers: commonHeaders,
-          body: JSON.stringify(registrationRequest),
+          expect(response.status).toBe(409);
+          const data = await response.json();
+          expect(data.error).toBe("User already exists");
         });
-
-        expect(response.status).toBe(409);
-        const data = await response.json();
-        expect(data.error).toBe('User already exists');
-      });
     });
 
-    it('should reject registration with invalid email', async () => {
+    it("should reject registration with invalid email", async () => {
       const invalidRequest = {
-        email: 'invalid-email',
-        password: 'ValidPassword123!'
+        email: "invalid-email",
+        password: "ValidPassword123!",
       };
-      
+
       await provider
-        .addInteraction({
-          uponReceiving: 'a registration request with invalid email',
-          withRequest: {
-            method: 'POST',
-            path: '/api/auth/register',
-            headers: commonHeaders,
-            body: invalidRequest,
-          },
-          willRespondWith: {
-            status: 400,
-            headers: commonHeaders,
-            body: createErrorResponseMatcher(
+        .uponReceiving("a registration request with invalid email")
+        .withRequest("POST", "/api/auth/register", (builder) => {
+          builder.headers(commonHeaders);
+          builder.body(invalidRequest);
+        })
+        .willRespondWith(400, (builder) => {
+          builder.headers(commonHeaders);
+          builder.body(
+            createErrorResponseMatcher(
               400,
-              'Validation error',
-              'Invalid input data'
+              "Validation error",
+              "Invalid input data",
             ),
-          },
-        });
+          );
+        })
+        .executeTest(async (mockServer) => {
+          const response = await fetch(`${mockServer.url}/api/auth/register`, {
+            method: "POST",
+            headers: commonHeaders,
+            body: JSON.stringify(invalidRequest),
+          });
 
-      await provider.executeTest(async (mockServer) => {
-        const response = await fetch(`${mockServer.url}/api/auth/register`, {
-          method: 'POST',
-          headers: commonHeaders,
-          body: JSON.stringify(invalidRequest),
+          expect(response.status).toBe(400);
+          const data = await response.json();
+          expect(data.error).toBe("Validation error");
         });
-
-        expect(response.status).toBe(400);
-        const data = await response.json();
-        expect(data.error).toBe('Validation error');
-      });
     });
   });
 
-  describe('POST /api/auth/login', () => {
-    it('should authenticate user with valid credentials', async () => {
+  describe("POST /api/auth/login", () => {
+    it("should authenticate user with valid credentials", async () => {
       const loginRequest = createLoginRequest();
-      
+
       await provider
-        .addInteraction({
-          states: [{ description: 'user exists with valid credentials' }],
-          uponReceiving: 'a valid login request',
-          withRequest: {
-            method: 'POST',
-            path: '/api/auth/login',
-            headers: commonHeaders,
-            body: loginRequest,
-          },
-          willRespondWith: {
-            status: 200,
-            headers: commonHeaders,
-            body: createAuthResponseMatcher({
-              message: Matchers.like('Login successful')
+        .uponReceiving("a valid login request")
+        .withRequest("POST", "/api/auth/login", (builder) => {
+          builder.headers(commonHeaders);
+          builder.body(loginRequest);
+        })
+        .willRespondWith(200, (builder) => {
+          builder.headers(commonHeaders);
+          builder.body(
+            createAuthResponseMatcher({
+              message: Matchers.like("Login successful"),
             }),
-          },
-        });
+          );
+        })
+        .executeTest(async (mockServer) => {
+          const response = await fetch(`${mockServer.url}/api/auth/login`, {
+            method: "POST",
+            headers: commonHeaders,
+            body: JSON.stringify(loginRequest),
+          });
 
-      await provider.executeTest(async (mockServer) => {
-        const response = await fetch(`${mockServer.url}/api/auth/login`, {
-          method: 'POST',
-          headers: commonHeaders,
-          body: JSON.stringify(loginRequest),
+          expect(response.status).toBe(200);
+          const data = await response.json();
+          expect(data.message).toBe("Login successful");
+          expect(data.user.email).toBe(loginRequest.email);
+          expect(data.tokens.accessToken).toBeDefined();
+          expect(data.tokens.refreshToken).toBeDefined();
         });
-
-        expect(response.status).toBe(200);
-        const data = await response.json();
-        expect(data.message).toBe('Login successful');
-        expect(data.user.email).toBe(loginRequest.email);
-        expect(data.tokens.accessToken).toBeDefined();
-        expect(data.tokens.refreshToken).toBeDefined();
-      });
     });
 
-    it('should reject login with invalid credentials', async () => {
+    it("should reject login with invalid credentials", async () => {
       const invalidLoginRequest = {
-        email: 'test@example.com',
-        password: 'wrongpassword'
+        email: "test@example.com",
+        password: "wrongpassword",
       };
-      
+
       await provider
-        .addInteraction({
-          states: [{ description: 'user exists but credentials are invalid' }],
-          uponReceiving: 'a login request with invalid credentials',
-          withRequest: {
-            method: 'POST',
-            path: '/api/auth/login',
-            headers: commonHeaders,
-            body: invalidLoginRequest,
-          },
-          willRespondWith: {
-            status: 401,
-            headers: commonHeaders,
-            body: createErrorResponseMatcher(
+        .uponReceiving("a login request with invalid credentials")
+        .withRequest("POST", "/api/auth/login", (builder) => {
+          builder.headers(commonHeaders);
+          builder.body(invalidLoginRequest);
+        })
+        .willRespondWith(401, (builder) => {
+          builder.headers(commonHeaders);
+          builder.body(
+            createErrorResponseMatcher(
               401,
-              'Invalid credentials',
-              'Email or password is incorrect'
+              "Invalid credentials",
+              "Email or password is incorrect",
             ),
-          },
-        });
+          );
+        })
+        .executeTest(async (mockServer) => {
+          const response = await fetch(`${mockServer.url}/api/auth/login`, {
+            method: "POST",
+            headers: commonHeaders,
+            body: JSON.stringify(invalidLoginRequest),
+          });
 
-      await provider.executeTest(async (mockServer) => {
-        const response = await fetch(`${mockServer.url}/api/auth/login`, {
-          method: 'POST',
-          headers: commonHeaders,
-          body: JSON.stringify(invalidLoginRequest),
+          expect(response.status).toBe(401);
+          const data = await response.json();
+          expect(data.error).toBe("Invalid credentials");
         });
-
-        expect(response.status).toBe(401);
-        const data = await response.json();
-        expect(data.error).toBe('Invalid credentials');
-      });
     });
 
-    it('should reject login for non-existent user', async () => {
+    it("should reject login for non-existent user", async () => {
       const nonExistentUserRequest = {
-        email: 'nonexistent@example.com',
-        password: 'SomePassword123!'
+        email: "nonexistent@example.com",
+        password: "SomePassword123!",
       };
-      
+
       await provider
-        .addInteraction({
-          states: [{ description: 'user does not exist' }],
-          uponReceiving: 'a login request for non-existent user',
-          withRequest: {
-            method: 'POST',
-            path: '/api/auth/login',
-            headers: commonHeaders,
-            body: nonExistentUserRequest,
-          },
-          willRespondWith: {
-            status: 401,
-            headers: commonHeaders,
-            body: createErrorResponseMatcher(
+        .uponReceiving("a login request for non-existent user")
+        .withRequest("POST", "/api/auth/login", (builder) => {
+          builder.headers(commonHeaders);
+          builder.body(nonExistentUserRequest);
+        })
+        .willRespondWith(401, (builder) => {
+          builder.headers(commonHeaders);
+          builder.body(
+            createErrorResponseMatcher(
               401,
-              'Invalid credentials',
-              'Email or password is incorrect'
+              "Invalid credentials",
+              "Email or password is incorrect",
             ),
-          },
-        });
+          );
+        })
+        .executeTest(async (mockServer) => {
+          const response = await fetch(`${mockServer.url}/api/auth/login`, {
+            method: "POST",
+            headers: commonHeaders,
+            body: JSON.stringify(nonExistentUserRequest),
+          });
 
-      await provider.executeTest(async (mockServer) => {
-        const response = await fetch(`${mockServer.url}/api/auth/login`, {
-          method: 'POST',
-          headers: commonHeaders,
-          body: JSON.stringify(nonExistentUserRequest),
+          expect(response.status).toBe(401);
+          const data = await response.json();
+          expect(data.error).toBe("Invalid credentials");
         });
-
-        expect(response.status).toBe(401);
-        const data = await response.json();
-        expect(data.error).toBe('Invalid credentials');
-      });
     });
   });
 
-  describe('POST /api/auth/refresh', () => {
-    it('should refresh access token with valid refresh token', async () => {
+  describe("POST /api/auth/refresh", () => {
+    it("should refresh access token with valid refresh token", async () => {
       const refreshRequest = {
-        refreshToken: matchers.jwtToken.generate
+        refreshToken: matchers.jwtToken.generate,
       };
-      
+
       await provider
-        .addInteraction({
-          states: [{ description: 'valid refresh token exists' }],
-          uponReceiving: 'a token refresh request',
-          withRequest: {
-            method: 'POST',
-            path: '/api/auth/refresh',
+        .uponReceiving("a token refresh request")
+        .withRequest("POST", "/api/auth/refresh", (builder) => {
+          builder.headers(commonHeaders);
+          builder.body(refreshRequest);
+        })
+        .willRespondWith(200, (builder) => {
+          builder.headers(commonHeaders);
+          builder.body({
+            message: Matchers.like("Token refreshed successfully"),
+            accessToken: matchers.jwtToken,
+          });
+        })
+        .executeTest(async (mockServer) => {
+          const response = await fetch(`${mockServer.url}/api/auth/refresh`, {
+            method: "POST",
             headers: commonHeaders,
-            body: refreshRequest,
-          },
-          willRespondWith: {
-            status: 200,
-            headers: commonHeaders,
-            body: {
-              message: Matchers.like('Token refreshed successfully'),
-              accessToken: matchers.jwtToken
-            },
-          },
-        });
+            body: JSON.stringify(refreshRequest),
+          });
 
-      await provider.executeTest(async (mockServer) => {
-        const response = await fetch(`${mockServer.url}/api/auth/refresh`, {
-          method: 'POST',
-          headers: commonHeaders,
-          body: JSON.stringify(refreshRequest),
+          expect(response.status).toBe(200);
+          const data = await response.json();
+          expect(data.message).toBe("Token refreshed successfully");
+          expect(data.accessToken).toBeDefined();
         });
-
-        expect(response.status).toBe(200);
-        const data = await response.json();
-        expect(data.message).toBe('Token refreshed successfully');
-        expect(data.accessToken).toBeDefined();
-      });
     });
 
-    it('should reject refresh with invalid token', async () => {
+    it("should reject refresh with invalid token", async () => {
       const invalidRefreshRequest = {
-        refreshToken: 'invalid-jwt-token'
+        refreshToken: "invalid-jwt-token",
       };
-      
+
       await provider
-        .addInteraction({
-          states: [{ description: 'refresh token is invalid or expired' }],
-          uponReceiving: 'a token refresh request with invalid token',
-          withRequest: {
-            method: 'POST',
-            path: '/api/auth/refresh',
-            headers: commonHeaders,
-            body: invalidRefreshRequest,
-          },
-          willRespondWith: {
-            status: 403,
-            headers: commonHeaders,
-            body: createErrorResponseMatcher(
+        .uponReceiving("a token refresh request with invalid token")
+        .withRequest("POST", "/api/auth/refresh", (builder) => {
+          builder.headers(commonHeaders);
+          builder.body(invalidRefreshRequest);
+        })
+        .willRespondWith(403, (builder) => {
+          builder.headers(commonHeaders);
+          builder.body(
+            createErrorResponseMatcher(
               403,
-              'Invalid or expired refresh token',
-              'Please authenticate again'
+              "Invalid or expired refresh token",
+              "Please authenticate again",
             ),
-          },
-        });
+          );
+        })
+        .executeTest(async (mockServer) => {
+          const response = await fetch(`${mockServer.url}/api/auth/refresh`, {
+            method: "POST",
+            headers: commonHeaders,
+            body: JSON.stringify(invalidRefreshRequest),
+          });
 
-      await provider.executeTest(async (mockServer) => {
-        const response = await fetch(`${mockServer.url}/api/auth/refresh`, {
-          method: 'POST',
-          headers: commonHeaders,
-          body: JSON.stringify(invalidRefreshRequest),
+          expect(response.status).toBe(403);
+          const data = await response.json();
+          expect(data.error).toBe("Invalid or expired refresh token");
         });
-
-        expect(response.status).toBe(403);
-        const data = await response.json();
-        expect(data.error).toBe('Invalid or expired refresh token');
-      });
     });
   });
 
-  describe('GET /api/auth/me', () => {
-    it('should return current user info with valid token', async () => {
+  describe("GET /api/auth/me", () => {
+    it("should return current user info with valid token", async () => {
       await provider
-        .addInteraction({
-          states: [{ description: 'user is authenticated' }],
-          uponReceiving: 'a request for current user info',
-          withRequest: {
-            method: 'GET',
-            path: '/api/auth/me',
+        .uponReceiving("a request for current user info")
+        .withRequest("GET", "/api/auth/me", (builder) => {
+          builder.headers({
+            ...commonHeaders,
+            Authorization: `Bearer ${matchers.jwtToken.generate}`,
+          });
+        })
+        .willRespondWith(200, (builder) => {
+          builder.headers(commonHeaders);
+          builder.body({
+            user: {
+              id: matchers.uuid,
+              email: Matchers.like("test@example.com"),
+            },
+          });
+        })
+        .executeTest(async (mockServer) => {
+          const response = await fetch(`${mockServer.url}/api/auth/me`, {
+            method: "GET",
             headers: {
               ...commonHeaders,
-              'Authorization': `Bearer ${matchers.jwtToken.generate}`
+              Authorization: `Bearer ${matchers.jwtToken.generate}`,
             },
-          },
-          willRespondWith: {
-            status: 200,
-            headers: commonHeaders,
-            body: {
-              user: {
-                id: matchers.uuid,
-                email: Matchers.like('test@example.com')
-              }
-            },
-          },
-        });
+          });
 
-      await provider.executeTest(async (mockServer) => {
-        const response = await fetch(`${mockServer.url}/api/auth/me`, {
-          method: 'GET',
-          headers: {
-            ...commonHeaders,
-            'Authorization': `Bearer ${matchers.jwtToken.generate}`
-          },
+          expect(response.status).toBe(200);
+          const data = await response.json();
+          expect(data.user.id).toBeDefined();
+          expect(data.user.email).toBeDefined();
         });
-
-        expect(response.status).toBe(200);
-        const data = await response.json();
-        expect(data.user.id).toBeDefined();
-        expect(data.user.email).toBeDefined();
-      });
     });
 
-    it('should reject request without authentication token', async () => {
+    it("should reject request without authentication token", async () => {
       await provider
-        .addInteraction({
-          uponReceiving: 'a request without authentication token',
-          withRequest: {
-            method: 'GET',
-            path: '/api/auth/me',
-            headers: commonHeaders,
-          },
-          willRespondWith: {
-            status: 401,
-            headers: commonHeaders,
-            body: createErrorResponseMatcher(
+        .uponReceiving("a request without authentication token")
+        .withRequest("GET", "/api/auth/me", (builder) => {
+          builder.headers(commonHeaders);
+        })
+        .willRespondWith(401, (builder) => {
+          builder.headers(commonHeaders);
+          builder.body(
+            createErrorResponseMatcher(
               401,
-              'Unauthorized',
-              'Authentication required'
+              "Unauthorized",
+              "Authentication required",
             ),
-          },
-        });
+          );
+        })
+        .executeTest(async (mockServer) => {
+          const response = await fetch(`${mockServer.url}/api/auth/me`, {
+            method: "GET",
+            headers: commonHeaders,
+          });
 
-      await provider.executeTest(async (mockServer) => {
-        const response = await fetch(`${mockServer.url}/api/auth/me`, {
-          method: 'GET',
-          headers: commonHeaders,
+          expect(response.status).toBe(401);
+          const data = await response.json();
+          expect(data.error).toBe("Unauthorized");
         });
-
-        expect(response.status).toBe(401);
-        const data = await response.json();
-        expect(data.error).toBe('Unauthorized');
-      });
     });
   });
 });

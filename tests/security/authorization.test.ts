@@ -29,15 +29,11 @@ function createProtectedApp(): Express {
   const limiter = expressRateLimit({ windowMs: 60000, max: 100 });
 
   // Simulate an authenticated resource endpoint
-  app.get(
-    "/api/photos/:id",
-    limiter,
-    authenticateToken,
-    (req, res) => {
-      const userId = (req as express.Request & { user?: { id: string } }).user?.id;
-      res.json({ photoId: req.params.id, owner: userId });
-    },
-  );
+  app.get("/api/photos/:id", limiter, authenticateToken, (req, res) => {
+    const userId = (req as express.Request & { user?: { id: string } }).user
+      ?.id;
+    res.json({ photoId: req.params.id, owner: userId });
+  });
 
   return app;
 }
@@ -71,11 +67,16 @@ describe("Authorization Enforcement", () => {
 
     it("should grant access to authenticated user", async () => {
       const jwt = await import("jsonwebtoken");
-      const secret = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+      const secret =
+        process.env.JWT_SECRET || "your-secret-key-change-in-production";
       const token = jwt.sign(
         { id: "user-owner", email: "owner@example.com" },
         secret,
-        { issuer: "cloud-gallery", audience: "cloud-gallery-users", expiresIn: 3600 }
+        {
+          issuer: "cloud-gallery",
+          audience: "cloud-gallery-users",
+          expiresIn: 3600,
+        },
       );
 
       const response = await request(app)
@@ -156,7 +157,7 @@ describe("CORS Security", () => {
       .get("/test")
       .set("Origin", "https://evil.attacker.com");
     expect(untrustedResponse.headers["access-control-allow-origin"]).not.toBe(
-      "https://evil.attacker.com"
+      "https://evil.attacker.com",
     );
   });
 
@@ -176,7 +177,7 @@ describe("CORS Security", () => {
       .get("/test")
       .set("Origin", "https://trusted.example.com");
     expect(trustedResponse.headers["access-control-allow-origin"]).toBe(
-      "https://trusted.example.com"
+      "https://trusted.example.com",
     );
   });
 
@@ -201,7 +202,9 @@ describe("Rate Limiting Security", () => {
     const { rateLimit } = await import("../../server/middleware");
 
     const app = express();
-    app.use(rateLimit({ windowMs: 60000, max: 3, message: "Rate limit exceeded" }));
+    app.use(
+      rateLimit({ windowMs: 60000, max: 3, message: "Rate limit exceeded" }),
+    );
     app.get("/test", (_req, res) => res.json({ ok: true }));
 
     // Make requests up to the limit
@@ -219,14 +222,16 @@ describe("Rate Limiting Security", () => {
     const { rateLimit } = await import("../../server/middleware");
 
     const app = express();
-    app.use(rateLimit({ windowMs: 60000, max: 10, message: "Rate limit exceeded" }));
+    app.use(
+      rateLimit({ windowMs: 60000, max: 10, message: "Rate limit exceeded" }),
+    );
     app.get("/test", (_req, res) => res.json({ ok: true }));
 
     const response = await request(app).get("/test");
     // Must include RateLimit headers so clients can backoff appropriately
     expect(
       response.headers["x-ratelimit-limit"] ||
-      response.headers["ratelimit-limit"]
+        response.headers["ratelimit-limit"],
     ).toBeDefined();
   });
 });

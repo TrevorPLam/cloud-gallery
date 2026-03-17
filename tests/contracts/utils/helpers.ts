@@ -1,5 +1,5 @@
-import { Matchers } from '@pact-foundation/pact';
-import { matchers } from './setup';
+import { Matchers } from "@pact-foundation/pact";
+import { matchers } from "./setup";
 
 // Helper functions for creating contract expectations
 
@@ -11,7 +11,7 @@ export function createUserMatcher(overrides: Partial<any> = {}) {
     id: matchers.uuid,
     email: matchers.email,
     createdAt: matchers.timestamp,
-    ...overrides
+    ...overrides,
   });
 }
 
@@ -22,30 +22,30 @@ export function createPhotoMatcher(overrides: Partial<any> = {}) {
   return Matchers.like({
     id: matchers.uuid,
     uri: Matchers.term({
-      matcher: 'regex',
-      regex: '^https?://.*/photo/.*\\.(jpg|jpeg|png|gif)$',
-      generate: 'https://example.com/photo/test.jpg'
+      matcher: "regex",
+      regex: "^https?://.*/photo/.*\\.(jpg|jpeg|png|gif)$",
+      generate: "https://example.com/photo/test.jpg",
     }),
-    filename: Matchers.like('test-photo.jpg'),
+    filename: Matchers.like("test-photo.jpg"),
     width: Matchers.like(1920),
     height: Matchers.like(1080),
     size: Matchers.like(1024000),
-    mimeType: Matchers.like('image/jpeg'),
+    mimeType: Matchers.like("image/jpeg"),
     isFavorite: Matchers.like(false),
     isVideo: Matchers.like(false),
-    tags: Matchers.eachLike('vacation'),
-    mlLabels: Matchers.eachLike('beach'),
+    tags: Matchers.eachLike("vacation"),
+    mlLabels: Matchers.eachLike("beach"),
     location: Matchers.like({
       latitude: Matchers.like(40.7128),
-      longitude: Matchers.like(-74.0060),
-      city: Matchers.like('New York'),
-      country: Matchers.like('USA')
+      longitude: Matchers.like(-74.006),
+      city: Matchers.like("New York"),
+      country: Matchers.like("USA"),
     }),
     createdAt: matchers.timestamp,
     modifiedAt: matchers.timestamp,
     deletedAt: null,
     userId: matchers.uuid,
-    ...overrides
+    ...overrides,
   });
 }
 
@@ -55,14 +55,14 @@ export function createPhotoMatcher(overrides: Partial<any> = {}) {
 export function createAlbumMatcher(overrides: Partial<any> = {}) {
   return Matchers.like({
     id: matchers.uuid,
-    name: Matchers.like('Summer Vacation'),
-    description: Matchers.like('Photos from our summer trip'),
+    name: Matchers.like("Summer Vacation"),
+    description: Matchers.like("Photos from our summer trip"),
     coverPhotoId: matchers.uuid,
     photoCount: Matchers.like(25),
     createdAt: matchers.timestamp,
     modifiedAt: matchers.timestamp,
     userId: matchers.uuid,
-    ...overrides
+    ...overrides,
   });
 }
 
@@ -71,25 +71,29 @@ export function createAlbumMatcher(overrides: Partial<any> = {}) {
  */
 export function createAuthResponseMatcher(overrides: Partial<any> = {}) {
   return Matchers.like({
-    message: Matchers.like('Login successful'),
+    message: Matchers.like("Login successful"),
     user: createUserMatcher(),
     tokens: Matchers.like({
       accessToken: matchers.jwtToken,
-      refreshToken: matchers.jwtToken
+      refreshToken: matchers.jwtToken,
     }),
-    ...overrides
+    ...overrides,
   });
 }
 
 /**
  * Create pagination response matcher
  */
-export function createPaginationMatcher(total: number, limit: number, offset: number) {
+export function createPaginationMatcher(
+  total: number,
+  limit: number,
+  offset: number,
+) {
   return Matchers.like({
     limit: Matchers.like(limit),
     offset: Matchers.like(offset),
     total: Matchers.like(total),
-    hasMore: Matchers.like(offset + limit < total)
+    hasMore: Matchers.like(offset + limit < total),
   });
 }
 
@@ -101,18 +105,22 @@ export function createSearchResultsMatcher(photosCount: number, query: string) {
     photos: Matchers.eachLike(createPhotoMatcher()),
     total: Matchers.like(photosCount),
     query: Matchers.like(query),
-    suggestions: Matchers.eachLike('vacation'),
-    pagination: createPaginationMatcher(photosCount, 20, 0)
+    suggestions: Matchers.eachLike("vacation"),
+    pagination: createPaginationMatcher(photosCount, 20, 0),
   });
 }
 
 /**
  * Create API error response matcher
  */
-export function createErrorResponseMatcher(status: number, error: string, message: string) {
+export function createErrorResponseMatcher(
+  status: number,
+  error: string,
+  message: string,
+) {
   return Matchers.like({
     error: Matchers.like(error),
-    message: Matchers.like(message)
+    message: Matchers.like(message),
   });
 }
 
@@ -135,8 +143,8 @@ export function extractAccessToken(authResponse: any): string {
  */
 export function createRegistrationRequest() {
   return {
-    email: 'test@example.com',
-    password: 'SecurePassword123!'
+    email: "test@example.com",
+    password: "SecurePassword123!",
   };
 }
 
@@ -145,8 +153,8 @@ export function createRegistrationRequest() {
  */
 export function createLoginRequest() {
   return {
-    email: 'test@example.com',
-    password: 'SecurePassword123!'
+    email: "test@example.com",
+    password: "SecurePassword123!",
   };
 }
 
@@ -155,12 +163,12 @@ export function createLoginRequest() {
  */
 export function createPhotoCreationRequest() {
   return {
-    uri: 'https://example.com/photo/test.jpg',
-    filename: 'test-photo.jpg',
+    uri: "https://example.com/photo/test.jpg",
+    filename: "test-photo.jpg",
     width: 1920,
     height: 1080,
     size: 1024000,
-    mimeType: 'image/jpeg'
+    mimeType: "image/jpeg",
   };
 }
 
@@ -169,8 +177,8 @@ export function createPhotoCreationRequest() {
  */
 export function createAlbumCreationRequest() {
   return {
-    name: 'Test Album',
-    description: 'A test album for contract testing'
+    name: "Test Album",
+    description: "A test album for contract testing",
   };
 }
 
@@ -179,8 +187,8 @@ export function createAlbumCreationRequest() {
  */
 export function createSearchRequest() {
   return {
-    query: 'vacation',
+    query: "vacation",
     limit: 20,
-    offset: 0
+    offset: 0,
   };
 }

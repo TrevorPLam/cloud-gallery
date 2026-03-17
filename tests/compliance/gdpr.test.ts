@@ -11,11 +11,7 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
-import {
-  auditLogger,
-  AuditEventType,
-  AuditSeverity,
-} from "../../server/audit";
+import { auditLogger, AuditEventType, AuditSeverity } from "../../server/audit";
 import {
   sanitizeForLogging,
   hashPassword,
@@ -115,7 +111,7 @@ describe("GDPR Article 17 – Right to Erasure (Right to Be Forgotten)", () => {
       expect(events.length).toBeGreaterThan(before);
 
       const deleteEvent = events.find(
-        e =>
+        (e) =>
           e.eventType === AuditEventType.DATA_PHOTO_DELETE &&
           e.userId === "user-gdpr-erase",
       );
@@ -138,7 +134,7 @@ describe("GDPR Article 17 – Right to Erasure (Right to Be Forgotten)", () => {
       expect(events.length).toBeGreaterThan(before);
 
       const deleteEvent = events.find(
-        e =>
+        (e) =>
           e.eventType === AuditEventType.DATA_ALBUM_DELETE &&
           e.userId === "user-gdpr-album-erase",
       );
@@ -152,12 +148,15 @@ describe("GDPR Article 17 – Right to Erasure (Right to Be Forgotten)", () => {
         eventType: AuditEventType.ADMIN_DATA_EXPORT,
         userId: "user-gdpr-export",
         outcome: "SUCCESS",
-        details: { exportType: "full_data_export", requestReason: "gdpr_portability" },
+        details: {
+          exportType: "full_data_export",
+          requestReason: "gdpr_portability",
+        },
       });
 
       const events = auditLogger.getEvents();
       const exportEvent = events.find(
-        e =>
+        (e) =>
           e.eventType === AuditEventType.ADMIN_DATA_EXPORT &&
           e.userId === "user-gdpr-export",
       );
@@ -181,13 +180,15 @@ describe("GDPR Article 17 – Right to Erasure (Right to Be Forgotten)", () => {
 
       const events = auditLogger.getEvents();
       const deleteEvent = events.find(
-        e =>
+        (e) =>
           e.eventType === AuditEventType.DATA_PHOTO_DELETE &&
           e.userId === "user-timestamp-test",
       );
 
       expect(deleteEvent).toBeDefined();
-      expect(deleteEvent!.timestamp.getTime()).toBeGreaterThanOrEqual(timeBefore);
+      expect(deleteEvent!.timestamp.getTime()).toBeGreaterThanOrEqual(
+        timeBefore,
+      );
     });
   });
 });
@@ -201,9 +202,9 @@ describe("GDPR Article 20 – Right to Data Portability", () => {
       details: { format: "json", scope: "all_user_data" },
     });
 
-    const exportEvents = auditLogger.getEvents().filter(
-      e => e.eventType === AuditEventType.ADMIN_DATA_EXPORT,
-    );
+    const exportEvents = auditLogger
+      .getEvents()
+      .filter((e) => e.eventType === AuditEventType.ADMIN_DATA_EXPORT);
 
     expect(exportEvents.length).toBeGreaterThan(0);
     // Data exports must be logged as HIGH severity for accountability
@@ -270,7 +271,9 @@ describe("GDPR Article 25 – Data Protection by Design and by Default", () => {
     });
 
     it("should never reuse tokens (no predictability)", () => {
-      const tokens = new Set(Array.from({ length: 20 }, () => generateSecureToken()));
+      const tokens = new Set(
+        Array.from({ length: 20 }, () => generateSecureToken()),
+      );
       expect(tokens.size).toBe(20);
     });
   });
@@ -299,7 +302,7 @@ describe("GDPR Article 32 – Security of Processing", () => {
 
       const events = auditLogger.getEvents();
       const authEvents = events.filter(
-        e =>
+        (e) =>
           (e.eventType === AuditEventType.AUTH_LOGIN_SUCCESS ||
             e.eventType === AuditEventType.AUTH_LOGIN_FAILURE) &&
           e.userId === "user-accountability",
@@ -334,7 +337,7 @@ describe("GDPR Article 32 – Security of Processing", () => {
 
       const events = auditLogger.getSecurityEvents(1);
       const suspicious = events.find(
-        e => e.eventType === AuditEventType.SECURITY_SUSPICIOUS_ACTIVITY,
+        (e) => e.eventType === AuditEventType.SECURITY_SUSPICIOUS_ACTIVITY,
       );
 
       expect(suspicious).toBeDefined();
@@ -351,7 +354,7 @@ describe("GDPR Article 32 – Security of Processing", () => {
 
       const events = auditLogger.getSecurityEvents(1);
       const unauthorized = events.find(
-        e => e.eventType === AuditEventType.SECURITY_UNAUTHORIZED_ACCESS,
+        (e) => e.eventType === AuditEventType.SECURITY_UNAUTHORIZED_ACCESS,
       );
 
       expect(unauthorized?.ipAddress).toBeDefined();

@@ -87,7 +87,8 @@ export function createEmptyStore(): InMemoryStore {
  */
 export function createTestDb(store: InMemoryStore) {
   function resolveTableName(table: any): keyof InMemoryStore | null {
-    const name: string | undefined = table?._.name ?? table?.[Symbol.for("drizzle:Name")];
+    const name: string | undefined =
+      table?._.name ?? table?.[Symbol.for("drizzle:Name")];
     if (!name) return null;
     // Map Postgres table names to store keys
     const map: Record<string, keyof InMemoryStore> = {
@@ -173,7 +174,7 @@ export function createTestDb(store: InMemoryStore) {
           // For simplicity, update all rows in the table
           const key = resolveTableName(table);
           if (key && key in store) {
-            for (const id of Object.keys((store[key] as Record<string, any>))) {
+            for (const id of Object.keys(store[key] as Record<string, any>)) {
               (store[key] as Record<string, any>)[id] = {
                 ...(store[key] as Record<string, any>)[id],
                 ...data,
@@ -192,7 +193,7 @@ export function createTestDb(store: InMemoryStore) {
         if (key && key in store) {
           // For simplicity, clear all rows (tests that need selective deletes
           // should use populateStore to rebuild state after a targeted delete)
-          for (const id of Object.keys((store[key] as Record<string, any>))) {
+          for (const id of Object.keys(store[key] as Record<string, any>)) {
             delete (store[key] as Record<string, any>)[id];
           }
         }
@@ -296,13 +297,19 @@ export function populateStore(
 /**
  * Clears a specific table within the store.
  */
-export function clearTable(store: InMemoryStore, tableName: keyof InMemoryStore): void {
+export function clearTable(
+  store: InMemoryStore,
+  tableName: keyof InMemoryStore,
+): void {
   store[tableName] = {} as any;
 }
 
 /**
  * Returns all rows in a store table as an array.
  */
-export function getRows<T = any>(store: InMemoryStore, tableName: keyof InMemoryStore): T[] {
+export function getRows<T = any>(
+  store: InMemoryStore,
+  tableName: keyof InMemoryStore,
+): T[] {
   return Object.values((store as any)[tableName]) as T[];
 }

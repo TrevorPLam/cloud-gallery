@@ -510,7 +510,10 @@ describe("Migration-safety property tests", () => {
   it("face embedding vector always has exactly 128 dimensions", () => {
     fc.assert(
       fc.property(
-        fc.array(fc.float({ min: -1, max: 1 }), { minLength: 128, maxLength: 128 }),
+        fc.array(fc.float({ min: -1, max: 1 }), {
+          minLength: 128,
+          maxLength: 128,
+        }),
         (embedding) => embedding.length === 128,
       ),
     );
@@ -552,7 +555,10 @@ describe("Migration-safety property tests", () => {
 
   it("storage bytes used is always non-negative", () => {
     fc.assert(
-      fc.property(fc.integer({ min: 0, max: 10_000_000_000 }), (bytes) => bytes >= 0),
+      fc.property(
+        fc.integer({ min: 0, max: 10_000_000_000 }),
+        (bytes) => bytes >= 0,
+      ),
     );
   });
 
@@ -568,13 +574,19 @@ describe("Migration-safety property tests", () => {
 
   it("person faceCount is always non-negative", () => {
     fc.assert(
-      fc.property(fc.integer({ min: 0, max: 10000 }), (faceCount) => faceCount >= 0),
+      fc.property(
+        fc.integer({ min: 0, max: 10000 }),
+        (faceCount) => faceCount >= 0,
+      ),
     );
   });
 
   it("memory score is within [0, 1] range when provided", () => {
     fc.assert(
-      fc.property(fc.float({ min: 0, max: 1, noNaN: true }), (score) => score >= 0 && score <= 1),
+      fc.property(
+        fc.float({ min: 0, max: 1, noNaN: true }),
+        (score) => score >= 0 && score <= 1,
+      ),
     );
   });
 

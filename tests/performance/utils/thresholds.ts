@@ -24,7 +24,7 @@ export const serverThresholds = {
     generateThumbnail: { maxTime: 200 }, // 200ms per photo
     processBatch: { maxTime: 1000, minThroughput: 10 }, // 1s for 10+ photos
   },
-  
+
   /** Search operations */
   search: {
     indexPhoto: { maxTime: 10 }, // 10ms per photo
@@ -32,14 +32,14 @@ export const serverThresholds = {
     complexSearch: { maxTime: 500 }, // 500ms for complex queries
     batchSearch: { maxTime: 200, minThroughput: 50 }, // 200ms for 50+ queries
   },
-  
+
   /** Data operations */
   dataOperations: {
     databaseQuery: { maxTime: 50 }, // 50ms per query
     batchInsert: { maxTime: 500, minThroughput: 100 }, // 500ms for 100+ records
     dataExport: { maxTime: 2000, minThroughput: 1000 }, // 2s for 1000+ records
   },
-  
+
   /** Authentication and security */
   security: {
     passwordHash: { maxTime: 100 }, // 100ms for Argon2
@@ -58,14 +58,14 @@ export const clientThresholds = {
     loadPhotos: { maxTime: 500, minThroughput: 100 }, // 500ms for 100+ photos
     searchLocal: { maxTime: 200 }, // 200ms for local search
   },
-  
+
   /** UI rendering */
   ui: {
     componentRender: { maxTime: 16 }, // 16ms for 60fps
     listRender: { maxTime: 50, minThroughput: 100 }, // 50ms for 100+ items
     imageLoad: { maxTime: 300 }, // 300ms for image loading
   },
-  
+
   /** Image processing */
   imageProcessing: {
     resize: { maxTime: 200 }, // 200ms for image resize
@@ -84,14 +84,14 @@ export const sharedThresholds = {
     validateAlbum: { maxTime: 10 }, // 10ms per album validation
     batchValidation: { maxTime: 100, minThroughput: 1000 }, // 100ms for 1000+ validations
   },
-  
+
   /** Cryptographic operations */
   crypto: {
     hash: { maxTime: 50 }, // 50ms for hashing
     encrypt: { maxTime: 100 }, // 100ms for encryption
     decrypt: { maxTime: 100 }, // 100ms for decryption
   },
-  
+
   /** Serialization */
   serialization: {
     jsonStringify: { maxTime: 10, minThroughput: 10000 }, // 10ms for 10000+ objects
@@ -105,15 +105,15 @@ export const sharedThresholds = {
 export const regressionDetection = {
   /** Percentage increase that triggers regression alert */
   timeRegressionThreshold: 0.15, // 15% increase
-  memoryRegressionThreshold: 0.20, // 20% increase
-  throughputRegressionThreshold: 0.10, // 10% decrease
-  
+  memoryRegressionThreshold: 0.2, // 20% increase
+  throughputRegressionThreshold: 0.1, // 10% decrease
+
   /** Minimum number of samples needed for regression detection */
   minSamples: 5,
-  
+
   /** Statistical confidence level (0-1) */
   confidenceLevel: 0.95,
-  
+
   /** Maximum variance allowed in measurements */
   maxVariance: 0.05, // 5%
 } as const;
@@ -127,13 +127,13 @@ export const environmentAdjustments = {
     timeMultiplier: 1.5, // Allow 50% more time in CI
     memoryMultiplier: 2.0, // Allow 2x more memory in CI
   },
-  
+
   /** Development environments */
   development: {
     timeMultiplier: 1.2, // Allow 20% more time in development
     memoryMultiplier: 1.5, // Allow 1.5x more memory in development
   },
-  
+
   /** Production targets (stricter) */
   production: {
     timeMultiplier: 1.0, // No adjustment
@@ -146,17 +146,17 @@ export const environmentAdjustments = {
  */
 export function getThreshold(
   baseThreshold: PerformanceThresholds,
-  environment: 'ci' | 'development' | 'production' = 'production'
+  environment: "ci" | "development" | "production" = "production",
 ): PerformanceThresholds {
   const adjustment = environmentAdjustments[environment];
-  
+
   return {
     maxTime: baseThreshold.maxTime * adjustment.timeMultiplier,
-    maxMemoryIncrease: baseThreshold.maxMemoryIncrease 
-      ? baseThreshold.maxMemoryIncrease * adjustment.memoryMultiplier 
+    maxMemoryIncrease: baseThreshold.maxMemoryIncrease
+      ? baseThreshold.maxMemoryIncrease * adjustment.memoryMultiplier
       : undefined,
-    minThroughput: baseThreshold.minThroughput 
-      ? baseThreshold.minThroughput / adjustment.timeMultiplier 
+    minThroughput: baseThreshold.minThroughput
+      ? baseThreshold.minThroughput / adjustment.timeMultiplier
       : undefined,
     regressionSensitivity: baseThreshold.regressionSensitivity,
   };
@@ -168,19 +168,19 @@ export function getThreshold(
 export const performanceCategories = {
   critical: {
     maxTime: 100, // Critical operations must be under 100ms
-    description: 'Critical user-facing operations',
+    description: "Critical user-facing operations",
   },
   important: {
     maxTime: 500, // Important operations under 500ms
-    description: 'Important but not blocking operations',
+    description: "Important but not blocking operations",
   },
   background: {
     maxTime: 5000, // Background operations under 5s
-    description: 'Background processing and batch operations',
+    description: "Background processing and batch operations",
   },
   maintenance: {
     maxTime: 30000, // Maintenance operations under 30s
-    description: 'Maintenance and cleanup operations',
+    description: "Maintenance and cleanup operations",
   },
 } as const;
 

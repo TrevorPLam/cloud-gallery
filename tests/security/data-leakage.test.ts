@@ -26,8 +26,11 @@ function createErrorTestApp(opts: { nodeEnv?: string } = {}): Express {
 
   // Route that throws a detailed internal error
   app.get("/error", (_req, _res, next) => {
-    const err = new Error("Database connection failed: pg://user:secret@localhost/db");
-    (err as Error & { stack: string }).stack = `${err.message}\n    at Object.<anonymous> (server/db.ts:42:10)\n    at Module._compile (internal/modules/cjs/loader.js:1138:30)`;
+    const err = new Error(
+      "Database connection failed: pg://user:secret@localhost/db",
+    );
+    (err as Error & { stack: string }).stack =
+      `${err.message}\n    at Object.<anonymous> (server/db.ts:42:10)\n    at Module._compile (internal/modules/cjs/loader.js:1138:30)`;
     next(err);
   });
 
@@ -37,14 +40,21 @@ function createErrorTestApp(opts: { nodeEnv?: string } = {}): Express {
   });
 
   // Error handler that should NOT leak internals in production
-  app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    const env = opts.nodeEnv || process.env.NODE_ENV;
-    if (env === "production") {
-      res.status(500).json({ error: "Internal server error" });
-    } else {
-      res.status(500).json({ error: err.message });
-    }
-  });
+  app.use(
+    (
+      err: Error,
+      _req: express.Request,
+      res: express.Response,
+      _next: express.NextFunction,
+    ) => {
+      const env = opts.nodeEnv || process.env.NODE_ENV;
+      if (env === "production") {
+        res.status(500).json({ error: "Internal server error" });
+      } else {
+        res.status(500).json({ error: err.message });
+      }
+    },
+  );
 
   // Restore env
   process.env.NODE_ENV = originalEnv;
@@ -138,7 +148,9 @@ describe("Audit Log Sanitization", () => {
     });
 
     // Ensure the raw password never appears in any log output
-    const allLogArgs = consoleSpy.mock.calls.map(args => JSON.stringify(args));
+    const allLogArgs = consoleSpy.mock.calls.map((args) =>
+      JSON.stringify(args),
+    );
     for (const logOutput of allLogArgs) {
       expect(logOutput).not.toContain("super-secret-password");
     }
@@ -166,7 +178,7 @@ describe("Audit Log Sanitization", () => {
       ...consoleSpy.mock.calls,
       ...vi.mocked(console.warn).mock.calls,
       ...vi.mocked(console.error).mock.calls,
-    ].map(args => JSON.stringify(args));
+    ].map((args) => JSON.stringify(args));
 
     for (const logOutput of allLogArgs) {
       expect(logOutput).not.toContain("supersecretapikey");
@@ -194,7 +206,9 @@ describe("Audit Log Sanitization", () => {
     });
 
     const after = auditLogger.getEvents();
-    const newEvent = after.find((_, i) => i < after.length - beforeCount || after.length > beforeCount);
+    const newEvent = after.find(
+      (_, i) => i < after.length - beforeCount || after.length > beforeCount,
+    );
     const logged = after[0]; // Most recent (sorted DESC)
 
     if (logged?.details && "password" in logged.details) {
@@ -211,7 +225,7 @@ describe("JWT Claims – No Sensitive Data Leakage", () => {
 
     const token = generateAccessToken(
       { id: "user-123", email: "user@example.com" },
-      "test-secret"
+      "test-secret",
     );
 
     // Decode without verification to inspect payload claims
@@ -219,7 +233,13 @@ describe("JWT Claims – No Sensitive Data Leakage", () => {
     expect(decoded).not.toBeNull();
 
     // Sensitive fields must not appear in the token payload
-    const sensitiveFields = ["password", "passwordHash", "secret", "apiKey", "creditCard"];
+    const sensitiveFields = [
+      "password",
+      "passwordHash",
+      "secret",
+      "apiKey",
+      "creditCard",
+    ];
     for (const field of sensitiveFields) {
       expect(decoded[field]).toBeUndefined();
     }

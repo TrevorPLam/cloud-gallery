@@ -51,12 +51,16 @@ export function makeUser(overrides: Partial<User> = {}): User {
   return {
     id,
     username: `user_${id}`,
-    password: "$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$RdescudvJCsgt3ub+b+dWRWJTmaaJObG",
+    password:
+      "$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$RdescudvJCsgt3ub+b+dWRWJTmaaJObG",
     ...overrides,
   };
 }
 
-export function makeUsers(count: number, overrides: Partial<User> = {}): User[] {
+export function makeUsers(
+  count: number,
+  overrides: Partial<User> = {},
+): User[] {
   return Array.from({ length: count }, () => makeUser(overrides));
 }
 
@@ -64,7 +68,10 @@ export function makeUsers(count: number, overrides: Partial<User> = {}): User[] 
 // PHOTO FACTORY
 // ─────────────────────────────────────────────────────────
 
-export function makePhoto(userId: string, overrides: Partial<Photo> = {}): Photo {
+export function makePhoto(
+  userId: string,
+  overrides: Partial<Photo> = {},
+): Photo {
   const id = overrides.id ?? nextId("photo");
   const now = new Date();
   return {
@@ -114,7 +121,10 @@ export function makePhotos(
 // ALBUM FACTORY
 // ─────────────────────────────────────────────────────────
 
-export function makeAlbum(userId: string, overrides: Partial<Album> = {}): Album {
+export function makeAlbum(
+  userId: string,
+  overrides: Partial<Album> = {},
+): Album {
   const id = overrides.id ?? nextId("album");
   const now = new Date();
   return {
@@ -179,7 +189,10 @@ export function makeFace(photoId: string, overrides: Partial<Face> = {}): Face {
 // PERSON FACTORY
 // ─────────────────────────────────────────────────────────
 
-export function makePerson(userId: string, overrides: Partial<Person> = {}): Person {
+export function makePerson(
+  userId: string,
+  overrides: Partial<Person> = {},
+): Person {
   const id = overrides.id ?? nextId("person");
   const now = new Date();
   return {
@@ -229,7 +242,10 @@ export function makeSharedAlbum(
 // MEMORY FACTORY
 // ─────────────────────────────────────────────────────────
 
-export function makeMemory(userId: string, overrides: Partial<Memory> = {}): Memory {
+export function makeMemory(
+  userId: string,
+  overrides: Partial<Memory> = {},
+): Memory {
   const id = overrides.id ?? nextId("memory");
   const now = new Date();
   return {
@@ -255,7 +271,10 @@ export function makeMemory(userId: string, overrides: Partial<Memory> = {}): Mem
 // SMART ALBUM FACTORY
 // ─────────────────────────────────────────────────────────
 
-export function makeSmartAlbum(userId: string, overrides: Partial<SmartAlbum> = {}): SmartAlbum {
+export function makeSmartAlbum(
+  userId: string,
+  overrides: Partial<SmartAlbum> = {},
+): SmartAlbum {
   const id = overrides.id ?? nextId("smart-album");
   const now = new Date();
   return {
@@ -307,7 +326,10 @@ export function makeBackupQueueItem(
 // USER DEVICE FACTORY
 // ─────────────────────────────────────────────────────────
 
-export function makeUserDevice(userId: string, overrides: Partial<UserDevice> = {}): UserDevice {
+export function makeUserDevice(
+  userId: string,
+  overrides: Partial<UserDevice> = {},
+): UserDevice {
   const id = overrides.id ?? nextId("device");
   const now = new Date();
   return {
@@ -330,7 +352,10 @@ export function makeUserDevice(userId: string, overrides: Partial<UserDevice> = 
 // STORAGE USAGE FACTORY
 // ─────────────────────────────────────────────────────────
 
-export function makeStorageUsage(userId: string, overrides: Partial<StorageUsage> = {}): StorageUsage {
+export function makeStorageUsage(
+  userId: string,
+  overrides: Partial<StorageUsage> = {},
+): StorageUsage {
   const id = overrides.id ?? nextId("storage");
   const now = new Date();
   return {
@@ -408,16 +433,23 @@ export function seedDataset(store: InMemoryStore, dataset: TestDataset): void {
 /** Edge-case photo records useful for boundary testing. */
 export const edgeCasePhotos = {
   minDimensions: (userId: string) => makePhoto(userId, { width: 1, height: 1 }),
-  maxDimensions: (userId: string) => makePhoto(userId, { width: 99999, height: 99999 }),
+  maxDimensions: (userId: string) =>
+    makePhoto(userId, { width: 99999, height: 99999 }),
   favorite: (userId: string) => makePhoto(userId, { isFavorite: true }),
   private: (userId: string) => makePhoto(userId, { isPrivate: true }),
   softDeleted: (userId: string) => makePhoto(userId, { deletedAt: new Date() }),
-  withTags: (userId: string) => makePhoto(userId, { tags: ["beach", "vacation", "2024"] }),
+  withTags: (userId: string) =>
+    makePhoto(userId, { tags: ["beach", "vacation", "2024"] }),
   withLocation: (userId: string) =>
     makePhoto(userId, {
-      location: { latitude: 37.7749, longitude: -122.4194, city: "San Francisco" },
+      location: {
+        latitude: 37.7749,
+        longitude: -122.4194,
+        city: "San Francisco",
+      },
     }),
-  video: (userId: string) => makePhoto(userId, { isVideo: true, videoDuration: 120 }),
+  video: (userId: string) =>
+    makePhoto(userId, { isVideo: true, videoDuration: 120 }),
   mlProcessed: (userId: string) =>
     makePhoto(userId, {
       mlLabels: ["beach", "ocean"],
@@ -430,7 +462,10 @@ export const edgeCasePhotos = {
 export const edgeCaseAlbums = {
   emptyTitle: (userId: string) => makeAlbum(userId, { title: "" }),
   longTitle: (userId: string) => makeAlbum(userId, { title: "A".repeat(255) }),
-  unicodeTitle: (userId: string) => makeAlbum(userId, { title: "📸 Summer 2024 🌊" }),
+  unicodeTitle: (userId: string) =>
+    makeAlbum(userId, { title: "📸 Summer 2024 🌊" }),
   withDescription: (userId: string) =>
-    makeAlbum(userId, { description: "A carefully curated album of memories." }),
+    makeAlbum(userId, {
+      description: "A carefully curated album of memories.",
+    }),
 };
