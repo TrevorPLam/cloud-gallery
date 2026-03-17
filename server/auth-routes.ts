@@ -18,6 +18,7 @@ import {
   generateRefreshToken,
   checkPasswordBreach,
   validatePasswordStrength,
+  generateSecureToken,
 } from "./security";
 import { SRPRoutines, SRPParameters, SRPServerSession } from "tssrp6a";
 import { authenticateToken, authRateLimit } from "./auth";
@@ -28,6 +29,8 @@ import {
   recordAuthSuccess,
 } from "./auth-captcha-routes";
 import { logAuthEvent, logSecurityEvent, AuditEventType } from "./audit";
+import { createSRPSessionManager, SRPSessionData } from "./srp-sessions";
+import { getSRPSecurityService } from "./srp-security";
 
 import { db } from "./db";
 import { users } from "../shared/schema";
@@ -182,8 +185,8 @@ router.post("/register", authRateLimit, async (req: Request, res: Response) => {
   }
 });
 
-// In-memory storage for SRP sessions (in production, use Redis or similar)
-const srpSessions = new Map<string, any>();
+// SRP session manager (Redis in production, in-memory in development)
+const srpSessionManager = createSRPSessionManager();
 
 /**
  * POST /api/auth/login/challenge
@@ -197,6 +200,43 @@ router.post("/login/challenge", authRateLimit, async (req: Request, res: Respons
       return res.status(400).json({
         error: "Email required",
         message: "Email is required for SRP challenge",
+      });
+    }
+
+    // Security validation
+    const securityService = getSRPSecurityService();
+    const validation = await securityService.validateSessionRequest(
+      email,
+      req.ip,
+      req.get("User-Agent")
+    );
+    
+    if (!validation.valid) {
+      await logSecurityEvent(AuditEventType.SRP_INVALID_REQUEST, {
+        email,
+        reason: validation.reason,
+        ipAddress: req.ip,
+      });
+      
+      return res.status(400).json({
+        error: "Invalid request",
+        message: validation.reason,
+      });
+    }
+
+    // Check for suspicious activity
+    const suspiciousCheck = await securityService.checkSuspiciousActivity(email);
+    if (suspiciousCheck.isSuspicious) {
+      await logSecurityEvent(AuditEventType.SRP_SUSPICIOUS_ACTIVITY_BLOCKED, {
+        email,
+        reasons: suspiciousCheck.reasons,
+        riskScore: suspiciousCheck.riskScore,
+        ipAddress: req.ip,
+      });
+      
+      return res.status(429).json({
+        error: "Request blocked",
+        message: "Suspicious activity detected, please try again later",
       });
     }
 
@@ -216,11 +256,10 @@ router.post("/login/challenge", authRateLimit, async (req: Request, res: Respons
     // Server step 1: generate B
     const B = await serverSession.step1(email, user.srpSalt, user.srpVerifier);
     
-    // Store server session temporarily
-    const sessionId = generateSecureToken(32);
-    srpSessions.set(sessionId, {
-      serverSession,
+    // Store server session using session manager
+    const sessionId = await srpSessionManager.storeSession({
       email,
+      serverSession,
       expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
     });
 
@@ -255,9 +294,8 @@ router.post("/login/verify", authRateLimit, async (req: Request, res: Response) 
     }
 
     // Retrieve SRP session
-    const srpSession = srpSessions.get(sessionId);
-    if (!srpSession || srpSession.expiresAt < Date.now()) {
-      srpSessions.delete(sessionId);
+    const srpSession = await srpSessionManager.getSession(sessionId);
+    if (!srpSession) {
       return res.status(401).json({
         error: "Invalid or expired session",
         message: "SRP session has expired, please try again",
@@ -270,7 +308,7 @@ router.post("/login/verify", authRateLimit, async (req: Request, res: Response) 
     // Find user for token generation
     const user = await findUserByEmail(srpSession.email);
     if (!user) {
-      srpSessions.delete(sessionId);
+      await srpSessionManager.deleteSession(sessionId);
       return res.status(401).json({
         error: "User not found",
         message: "User account not found",
@@ -278,7 +316,7 @@ router.post("/login/verify", authRateLimit, async (req: Request, res: Response) 
     }
 
     // Clean up SRP session
-    srpSessions.delete(sessionId);
+    await srpSessionManager.deleteSession(sessionId);
 
     // Generate JWT tokens
     const accessToken = generateAccessToken(

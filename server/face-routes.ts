@@ -196,12 +196,27 @@ router.post("/detect", async (req: Request, res: Response) => {
       return res.status(401).json({ error: "User not authenticated" });
     }
 
-    // Validate request body
+    // Validate request body - support both old and new formats
     const detectFacesSchema = z.object({
       photoId: z.string().uuid(),
+      faces: z.array(z.object({
+        boundingBox: z.object({
+          x: z.number(),
+          y: z.number(),
+          width: z.number(),
+          height: z.number(),
+        }),
+        confidence: z.number(),
+        embedding: z.array(z.number()).optional(),
+        landmarks: z.array(z.object({
+          x: z.number(),
+          y: z.number(),
+          type: z.string(),
+        })).optional(),
+      })).optional(),
     });
 
-    const { photoId } = detectFacesSchema.parse(req.body);
+    const { photoId, faces: clientFaces } = detectFacesSchema.parse(req.body);
 
     // Verify photo belongs to user
     const photo = await db
@@ -210,7 +225,7 @@ router.post("/detect", async (req: Request, res: Response) => {
       .where(and(eq(photos.id, photoId), eq(photos.userId, userId)))
       .limit(1);
 
-    if (photo.length === 0) {
+    if (!photo.length) {
       return res.status(404).json({ error: "Photo not found" });
     }
 
@@ -227,17 +242,32 @@ router.post("/detect", async (req: Request, res: Response) => {
       });
     }
 
-    // In a real implementation, you would:
-    // 1. Fetch the image file from storage
-    // 2. Convert to buffer
-    // 3. Run face detection
-    // For now, return empty array as placeholder
-    const detectedFaces: any[] = [];
+    let detectedFaces: any[] = [];
+
+    if (clientFaces && clientFaces.length > 0) {
+      // Process client-provided face detections (preferred method)
+      console.log(`Processing ${clientFaces.length} client face detections`);
+      detectedFaces = await faceRecognitionService.processClientFaceDetections(
+        photoId,
+        clientFaces
+      );
+    } else {
+      // Fallback to server-side detection (placeholder)
+      console.warn("No client faces provided, using server-side placeholder");
+      // In a real implementation, you would:
+      // 1. Fetch the image file from storage
+      // 2. Convert to buffer
+      // 3. Run face detection
+      // For now, return empty array as placeholder
+      detectedFaces = [];
+    }
 
     res.json({
       faces: detectedFaces,
       count: detectedFaces.length,
-      message: "Face detection completed",
+      message: clientFaces
+        ? "Client face detection processed successfully"
+        : "Face detection completed (server-side placeholder)",
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

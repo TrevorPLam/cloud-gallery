@@ -11,10 +11,8 @@
 import { Platform, InteractionManager } from "react-native";
 import { loadTensorflowModel, TensorflowModel } from "react-native-fast-tflite";
 import RNMlkitOcr from "react-native-mlkit-ocr";
-import {
-  getPerceptualHasher,
-  generateCompositeHash,
-} from "../photo/perceptual-hash";
+import { getPerceptualHasher, generateCompositeHash } from "../photo/perceptual-hash";
+import { FaceDetectionService } from "./face-detection";
 
 // ─────────────────────────────────────────────────────────
 // TYPES AND INTERFACES
@@ -37,6 +35,9 @@ export interface MLAnalysisResult {
   // Object detection results
   objects?: DetectedObject[];
 
+  // Face detection results
+  faces?: FaceDetectionResult[];
+
   // OCR text extraction results
   ocrText?: string;
   ocrLanguage?: string;
@@ -48,6 +49,22 @@ export interface MLAnalysisResult {
   processingTime: number;
   mlVersion: string;
   timestamp: Date;
+}
+
+export interface FaceDetectionResult {
+  boundingBox: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  confidence: number;
+  landmarks?: Array<{
+    x: number;
+    y: number;
+    type: string;
+  }>;
+  embedding?: Float32Array; // 128-dimensional face embedding
 }
 
 export interface DetectedObject {
@@ -87,10 +104,12 @@ const ML_VERSION = "1.0.0";
 
 export class PhotoAnalyzer {
   private objectDetectionModel: TensorflowModel | null = null;
+  private faceDetectionService: FaceDetectionService;
   private isInitialized = false;
   private initializationPromise: Promise<void> | null = null;
 
   constructor() {
+    this.faceDetectionService = new FaceDetectionService();
     this.initializeModels();
   }
 
@@ -187,6 +206,16 @@ export class PhotoAnalyzer {
             analysisResult.objects = objects;
           }
 
+          // Perform face detection and generate embeddings
+          try {
+            const faces = await this.detectFacesWithEmbeddings(imageUri);
+            if (faces.length > 0) {
+              analysisResult.faces = faces;
+            }
+          } catch (error) {
+            console.warn("PhotoAnalyzer: Face detection failed, continuing without it:", error);
+          }
+
           // Perform OCR text extraction
           const ocrResult = await this.extractText(imageUri);
           if (ocrResult.text) {
@@ -211,8 +240,129 @@ export class PhotoAnalyzer {
   }
 
   /**
-   * Perform object detection using MobileNet v3
+   * Detect faces and generate embeddings using FaceDetectionService
    */
+  private async detectFacesWithEmbeddings(imageUri: string): Promise<FaceDetectionResult[]> {
+    try {
+      // Load image data from URI
+      const imageData = await this.loadImageDataFromUri(imageUri);
+      
+      // Detect faces using BlazeFace
+      const faceDetections = await this.faceDetectionService.detectFaces(
+        imageData.data,
+        imageData.width,
+        imageData.height
+      );
+
+      if (faceDetections.length === 0) {
+        return [];
+      }
+
+      console.log(`PhotoAnalyzer: Detected ${faceDetections.length} faces, generating embeddings`);
+
+      // Extract face regions for embedding generation
+      const faceImages = faceDetections.map(detection => {
+        const faceImageData = this.extractFaceRegion(
+          imageData.data,
+          imageData.width,
+          imageData.height,
+          detection.boundingBox
+        );
+        
+        return {
+          imageData: faceImageData,
+          width: Math.round(detection.boundingBox.width * imageData.width),
+          height: Math.round(detection.boundingBox.height * imageData.height)
+        };
+      });
+
+      // Generate embeddings using FaceNet
+      const embeddings = await this.faceDetectionService.generateFaceEmbeddings(faceImages);
+
+      // Combine face detections with embeddings
+      const faceResults: FaceDetectionResult[] = faceDetections.map((detection, index) => ({
+        boundingBox: detection.boundingBox,
+        confidence: detection.confidence,
+        landmarks: detection.landmarks.map(landmark => ({
+          x: landmark.x,
+          y: landmark.y,
+          type: landmark.type
+        })),
+        embedding: embeddings[index]
+      }));
+
+      console.log(`PhotoAnalyzer: Successfully processed ${faceResults.length} faces with embeddings`);
+      return faceResults;
+
+    } catch (error) {
+      console.error("PhotoAnalyzer: Face detection with embeddings failed:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Load image data from URI for processing
+   */
+  private async loadImageDataFromUri(imageUri: string): Promise<{
+    data: Uint8Array;
+    width: number;
+    height: number;
+  }> {
+    // This is a placeholder implementation
+    // In production, would use proper image loading library
+    // For now, return dummy data to test the pipeline
+    
+    const width = 640;
+    const height = 480;
+    const data = new Uint8Array(width * height * 3);
+    
+    // Fill with dummy RGB data
+    for (let i = 0; i < data.length; i += 3) {
+      data[i] = Math.random() * 255;     // R
+      data[i + 1] = Math.random() * 255; // G
+      data[i + 2] = Math.random() * 255; // B
+    }
+    
+    return { data, width, height };
+  }
+
+  /**
+   * Extract face region from image data
+   */
+  private extractFaceRegion(
+    imageData: Uint8Array,
+    imageWidth: number,
+    imageHeight: number,
+    boundingBox: { x: number; y: number; width: number; height: number }
+  ): Uint8Array {
+    // Convert normalized coordinates to pixel coordinates
+    const startX = Math.floor(boundingBox.x * imageWidth);
+    const startY = Math.floor(boundingBox.y * imageHeight);
+    const faceWidth = Math.floor(boundingBox.width * imageWidth);
+    const faceHeight = Math.floor(boundingBox.height * imageHeight);
+    
+    // Extract face region
+    const faceData = new Uint8Array(faceWidth * faceHeight * 3);
+    
+    for (let y = 0; y < faceHeight; y++) {
+      for (let x = 0; x < faceWidth; x++) {
+        const srcX = startX + x;
+        const srcY = startY + y;
+        
+        if (srcX >= 0 && srcX < imageWidth && srcY >= 0 && srcY < imageHeight) {
+          const srcIndex = (srcY * imageWidth + srcX) * 3;
+          const destIndex = (y * faceWidth + x) * 3;
+          
+          // Copy RGB values
+          faceData[destIndex] = imageData[srcIndex] || 0;
+          faceData[destIndex + 1] = imageData[srcIndex + 1] || 0;
+          faceData[destIndex + 2] = imageData[srcIndex + 2] || 0;
+        }
+      }
+    }
+    
+    return faceData;
+  }
   private async detectObjects(imageUri: string): Promise<DetectedObject[]> {
     if (!this.objectDetectionModel) {
       throw new Error("Object detection model not loaded");

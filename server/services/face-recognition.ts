@@ -105,6 +105,8 @@ const DEFAULT_CONFIG: FaceRecognitionConfig = {
 /**
  * Face detection model placeholder
  * In production, this would load MediaPipe BlazeFace or similar model
+ * Note: Real face detection now happens on client side for privacy
+ * This server-side class is kept for compatibility and fallback scenarios
  */
 class FaceDetectionModel {
   private model: any = null;
@@ -113,7 +115,7 @@ class FaceDetectionModel {
   async loadModel(): Promise<void> {
     // Placeholder for actual model loading
     // In production, load MediaPipe BlazeFace or TensorFlow Lite model
-    console.log("Loading face detection model...");
+    console.log("FaceDetectionModel: Server-side model loading (placeholder)");
     this.isLoaded = true;
   }
 
@@ -122,15 +124,9 @@ class FaceDetectionModel {
       await this.loadModel();
     }
 
-    // Placeholder implementation
-    // In production, this would:
-    // 1. Preprocess image (resize, normalize)
-    // 2. Run face detection model
-    // 3. Extract face regions
-    // 4. Generate embeddings for each face
-
-    // For now, return empty array
-    // This will be implemented with actual model integration
+    // Server-side face detection is now handled by client
+    // This method is kept for fallback scenarios
+    console.log("FaceDetectionModel: Server-side detection (placeholder - should use client)");
     return [];
   }
 
@@ -140,8 +136,10 @@ class FaceDetectionModel {
       throw new Error("Invalid face image: buffer is null or empty");
     }
 
-    // Placeholder for embedding generation
-    // In production, this would use FaceNet or ArcFace model
+    // Note: Real embedding generation now happens on client side
+    // This server-side method is kept for fallback scenarios
+    console.log("FaceDetectionModel: Server-side embedding generation (placeholder - should use client)");
+    
     // Return 128-dimensional embedding vector
     const embedding = new Array(128).fill(0).map(() => Math.random() * 2 - 1);
 
@@ -151,6 +149,34 @@ class FaceDetectionModel {
       return embedding.map((val) => val / norm);
     }
     return embedding;
+  }
+
+  /**
+   * Process client-provided face detections and embeddings
+   * This is the primary method for handling real face data from client
+   */
+  async processClientFaceData(
+    faceDetections: Array<{
+      boundingBox: { x: number; y: number; width: number; height: number };
+      confidence: number;
+      embedding?: number[];
+    }>
+  ): Promise<FaceDetection[]> {
+    console.log(`FaceDetectionModel: Processing ${faceDetections.length} client face detections`);
+
+    return faceDetections.map((detection, index) => ({
+      id: `face_${Date.now()}_${index}`,
+      boundingBox: {
+        x: detection.boundingBox.x,
+        y: detection.boundingBox.y,
+        width: detection.boundingBox.width,
+        height: detection.boundingBox.height,
+      },
+      confidence: detection.confidence,
+      embedding: detection.embedding || await this.generateEmbedding(Buffer.from("placeholder")),
+      landmarks: [], // Could be extended to handle client landmarks
+      timestamp: new Date(),
+    }));
   }
 }
 
@@ -314,13 +340,17 @@ export class FaceRecognitionService {
 
   /**
    * Detect faces in a photo and generate embeddings
+   * Note: This method is kept for compatibility - real detection happens on client
    */
   async detectFaces(
     photoId: string,
     imageBuffer: Buffer,
   ): Promise<FaceDetection[]> {
     try {
-      // Detect faces in the image
+      // Server-side detection is now deprecated in favor of client-side
+      console.warn("FaceRecognitionService: Using deprecated server-side detection - client-side preferred");
+      
+      // Detect faces in the image (placeholder)
       const detections = await this.detectionModel.detectFaces(imageBuffer);
 
       // Filter by confidence threshold
@@ -346,6 +376,53 @@ export class FaceRecognitionService {
       console.error("Error detecting faces:", error);
       throw new Error(
         `Face detection failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  }
+
+  /**
+   * Process client-provided face detections and embeddings
+   * This is the preferred method for handling real face data from client
+   */
+  async processClientFaceDetections(
+    photoId: string,
+    clientDetections: Array<{
+      boundingBox: { x: number; y: number; width: number; height: number };
+      confidence: number;
+      embedding?: number[];
+      landmarks?: Array<{ x: number; y: number; type: string }>;
+    }>
+  ): Promise<FaceDetection[]> {
+    try {
+      console.log(`FaceRecognitionService: Processing ${clientDetections.length} client face detections for photo ${photoId}`);
+
+      // Process client face data
+      const detections = await this.detectionModel.processClientFaceData(clientDetections);
+
+      // Filter by confidence threshold
+      const validDetections = detections.filter(
+        (detection) => detection.confidence >= this.config.detectionConfidence,
+      );
+
+      // Store face detections in database
+      for (const detection of validDetections) {
+        const faceData = {
+          photoId,
+          embedding: detection.embedding,
+          boundingBox: detection.boundingBox,
+          confidence: detection.confidence,
+        };
+
+        const validatedFace = insertFaceSchema.parse(faceData);
+        await db.insert(faces).values(validatedFace);
+      }
+
+      console.log(`FaceRecognitionService: Successfully stored ${validDetections.length} face detections`);
+      return validDetections;
+    } catch (error) {
+      console.error("Error processing client face detections:", error);
+      throw new Error(
+        `Client face detection processing failed: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
   }

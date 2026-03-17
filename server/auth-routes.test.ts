@@ -254,6 +254,272 @@ describe("Authentication Routes", () => {
     });
   });
 
+  // SRP Authentication Tests
+  describe("SRP Authentication", () => {
+    beforeEach(() => {
+      // Clear SRP sessions before each test
+      const { srpSessions } = require("./auth-routes");
+      if (srpSessions && srpSessions.clear) {
+        srpSessions.clear();
+      }
+    });
+
+    describe("POST /api/auth/register (SRP)", () => {
+      it("should register user with SRP verifier and salt", async () => {
+        const registerData = {
+          email: "srp@example.com",
+          srpSalt: "test-salt-32-chars-long-1234567890",
+          srpVerifier: "test-verifier-64-chars-long-1234567890123456789012345678901234567890",
+        };
+
+        const response = await request(app)
+          .post("/api/auth/register")
+          .send(registerData)
+          .expect(201);
+
+        expect(response.body).toMatchObject({
+          message: "User registered successfully",
+          user: {
+            email: registerData.email,
+          },
+          tokens: {
+            accessToken: "mock-access-token",
+            refreshToken: "mock-refresh-token",
+          },
+        });
+
+        expect(mockDb.insert).toHaveBeenCalledWith(users);
+        expect(mockDb.values).toHaveBeenCalledWith({
+          username: registerData.email,
+          srpSalt: registerData.srpSalt,
+          srpVerifier: registerData.srpVerifier,
+          password: null,
+        });
+      });
+
+      it("should reject SRP registration with missing fields", async () => {
+        const registerData = {
+          email: "srp@example.com",
+          srpSalt: "test-salt",
+          // Missing srpVerifier
+        };
+
+        const response = await request(app)
+          .post("/api/auth/register")
+          .send(registerData)
+          .expect(400);
+
+        expect(response.body).toMatchObject({
+          error: "Validation error",
+          message: "Invalid input data",
+        });
+      });
+
+      it("should reject SRP registration when user already exists", async () => {
+        mockDb.limit.mockResolvedValue([mockUser]); // User already exists
+
+        const registerData = {
+          email: "test@example.com", // Same as existing user
+          srpSalt: "test-salt-32-chars-long-1234567890",
+          srpVerifier: "test-verifier-64-chars-long-1234567890123456789012345678901234567890",
+        };
+
+        const response = await request(app)
+          .post("/api/auth/register")
+          .send(registerData)
+          .expect(409);
+
+        expect(response.body).toMatchObject({
+          error: "User already exists",
+          message: "An account with this email already exists",
+        });
+      });
+    });
+
+    describe("POST /api/auth/login/challenge", () => {
+      it("should generate SRP challenge for existing user", async () => {
+        const srpUser = {
+          ...mockUser,
+          srpSalt: "test-salt-32-chars-long-1234567890",
+          srpVerifier: "test-verifier-64-chars-long-1234567890123456789012345678901234567890",
+        };
+        mockDb.limit.mockResolvedValue([srpUser]);
+
+        const response = await request(app)
+          .post("/api/auth/login/challenge")
+          .send({ email: "test@example.com" })
+          .expect(200);
+
+        expect(response.body).toHaveProperty("sessionId");
+        expect(response.body).toHaveProperty("salt");
+        expect(response.body).toHaveProperty("B");
+        expect(response.body.salt).toBe(srpUser.srpSalt);
+        expect(typeof response.body.sessionId).toBe("string");
+        expect(typeof response.body.B).toBe("string");
+      });
+
+      it("should reject challenge for non-existent user", async () => {
+        mockDb.limit.mockResolvedValue([]); // No user found
+
+        const response = await request(app)
+          .post("/api/auth/login/challenge")
+          .send({ email: "nonexistent@example.com" })
+          .expect(401);
+
+        expect(response.body).toMatchObject({
+          error: "Invalid credentials",
+          message: "Email not found or user not set up for SRP",
+        });
+      });
+
+      it("should reject challenge for user without SRP setup", async () => {
+        const userWithoutSRP = { ...mockUser }; // No srpSalt or srpVerifier
+        mockDb.limit.mockResolvedValue([userWithoutSRP]);
+
+        const response = await request(app)
+          .post("/api/auth/login/challenge")
+          .send({ email: "test@example.com" })
+          .expect(401);
+
+        expect(response.body).toMatchObject({
+          error: "Invalid credentials",
+          message: "Email not found or user not set up for SRP",
+        });
+      });
+
+      it("should reject challenge without email", async () => {
+        const response = await request(app)
+          .post("/api/auth/login/challenge")
+          .send({})
+          .expect(400);
+
+        expect(response.body).toMatchObject({
+          error: "Email required",
+          message: "Email is required for SRP challenge",
+        });
+      });
+    });
+
+    describe("POST /api/auth/login/verify", () => {
+      it("should verify SRP login and return tokens", async () => {
+        const srpUser = {
+          ...mockUser,
+          srpSalt: "test-salt-32-chars-long-1234567890",
+          srpVerifier: "test-verifier-64-chars-long-1234567890123456789012345678901234567890",
+        };
+        mockDb.limit.mockResolvedValue([srpUser]);
+
+        // First, create a challenge
+        const challengeResponse = await request(app)
+          .post("/api/auth/login/challenge")
+          .send({ email: "test@example.com" })
+          .expect(200);
+
+        const { sessionId } = challengeResponse.body;
+
+        // Then verify with mock SRP values
+        const verifyData = {
+          sessionId,
+          A: "mock-client-public-key-A",
+          M1: "mock-client-proof-M1",
+        };
+
+        const response = await request(app)
+          .post("/api/auth/login/verify")
+          .send(verifyData)
+          .expect(200);
+
+        expect(response.body).toMatchObject({
+          message: "Login successful",
+          user: {
+            email: "test@example.com",
+          },
+          tokens: {
+            accessToken: "mock-access-token",
+            refreshToken: "mock-refresh-token",
+          },
+        });
+        expect(response.body).toHaveProperty("M2");
+      });
+
+      it("should reject verification with invalid session ID", async () => {
+        const verifyData = {
+          sessionId: "invalid-session-id",
+          A: "mock-client-public-key-A",
+          M1: "mock-client-proof-M1",
+        };
+
+        const response = await request(app)
+          .post("/api/auth/login/verify")
+          .send(verifyData)
+          .expect(401);
+
+        expect(response.body).toMatchObject({
+          error: "Invalid or expired session",
+          message: "SRP session has expired, please try again",
+        });
+      });
+
+      it("should reject verification with missing fields", async () => {
+        const response = await request(app)
+          .post("/api/auth/login/verify")
+          .send({ sessionId: "some-id" }) // Missing A and M1
+          .expect(400);
+
+        expect(response.body).toMatchObject({
+          error: "Missing required fields",
+          message: "sessionId, A, and M1 are required",
+        });
+      });
+    });
+
+    describe("SRP Integration", () => {
+      it("should support both traditional and SRP registration", async () => {
+        // Traditional registration
+        const traditionalData = {
+          email: "traditional@example.com",
+          password: "StrongPassword123!",
+        };
+
+        await request(app)
+          .post("/api/auth/register")
+          .send(traditionalData)
+          .expect(201);
+
+        expect(mockDb.values).toHaveBeenCalledWith(
+          expect.objectContaining({
+            password: "$argon2id$v=19$m=65536,t=3,p=4$hash",
+            srpSalt: null,
+            srpVerifier: null,
+          })
+        );
+
+        // Reset mock for SRP registration
+        vi.clearAllMocks();
+
+        // SRP registration
+        const srpData = {
+          email: "srp@example.com",
+          srpSalt: "test-salt-32-chars-long-1234567890",
+          srpVerifier: "test-verifier-64-chars-long-1234567890123456789012345678901234567890",
+        };
+
+        await request(app)
+          .post("/api/auth/register")
+          .send(srpData)
+          .expect(201);
+
+        expect(mockDb.values).toHaveBeenCalledWith(
+          expect.objectContaining({
+            password: null,
+            srpSalt: srpData.srpSalt,
+            srpVerifier: srpData.srpVerifier,
+          })
+        );
+      });
+    });
+  });
+
   describe("GET /api/auth/me", () => {
     it("should return user info with valid token", async () => {
       mockDb.limit.mockResolvedValue([mockUser]);

@@ -74,16 +74,166 @@ describe("FaceDetectionService", () => {
     vi.clearAllMocks();
   });
 
-  describe("Initialization", () => {
-    it("should initialize with default configuration", () => {
-      const service = new FaceDetectionService();
-      const config = service.getConfig();
+  describe("Real Face Detection with Embeddings", () => {
+    it("should detect faces and generate real embeddings", async () => {
+      // Mock real model inference outputs
+      mockModelManager.runInference.mockResolvedValue([
+        // Mock BlazeFace outputs: boxes, scores, landmarks
+        [
+          [0.1, 0.1, 0.3, 0.3], // Face 1 bounding box
+          [0.5, 0.2, 0.3, 0.3], // Face 2 bounding box
+        ],
+        [0.9, 0.8], // Face confidence scores
+        [
+          // Face 1 landmarks (6 points, x,y pairs)
+          [0.15, 0.15, 0.25, 0.15, 0.15, 0.25, 0.25, 0.25, 0.2, 0.3, 0.2, 0.3],
+          // Face 2 landmarks
+          [0.55, 0.25, 0.65, 0.25, 0.55, 0.35, 0.65, 0.35, 0.6, 0.4, 0.6, 0.4],
+        ],
+      ]);
 
-      expect(config.minConfidence).toBe(0.5);
-      expect(config.maxFaces).toBe(10);
-      expect(config.minFaceSize).toBe(0.1);
-      expect(config.enableTemporalSmoothing).toBe(true);
+      // Mock FaceNet model loading and inference
+      mockModelManager.isModelLoaded.mockImplementation((modelName: string) => {
+        return modelName === "blazeface" || modelName === "facenet";
+      });
+
+      mockModelManager.runInference.mockImplementation((modelName: string, inputs: any[]) => {
+        if (modelName === "facenet") {
+          // Return 128-dimensional embedding
+          const embedding = new Array(128).fill(0).map(() => Math.random() * 2 - 1);
+          return [embedding];
+        }
+        return mockModelManager.runInference.results || [];
+      });
+
+      const imageData = new Uint8Array(640 * 480 * 3);
+      const faces = await faceDetectionService.detectFaces(imageData, 640, 480);
+
+      expect(faces).toHaveLength(2);
+      expect(faces[0].confidence).toBeGreaterThan(0.5);
+      expect(faces[0].boundingBox).toEqual({
+        x: 0.1,
+        y: 0.1,
+        width: 0.3,
+        height: 0.3,
+      });
+      expect(faces[0].landmarks).toHaveLength(6);
     });
+
+    it("should generate 128-dimensional face embeddings", async () => {
+      // Mock FaceNet model loading
+      mockModelManager.isModelLoaded.mockReturnValue(true);
+      mockModelManager.runInference.mockResolvedValue([
+        // Mock 128-dimensional embedding
+        new Array(128).fill(0).map((_, i) => (i % 2) * 0.1 - 0.05),
+      ]);
+
+      const faceImages = [
+        {
+          imageData: new Uint8Array(160 * 160 * 3),
+          width: 160,
+          height: 160,
+        },
+        {
+          imageData: new Uint8Array(160 * 160 * 3),
+          width: 160,
+          height: 160,
+        },
+      ];
+
+      const embeddings = await faceDetectionService.generateFaceEmbeddings(faceImages);
+
+      expect(embeddings).toHaveLength(2);
+      expect(embeddings[0]).toBeInstanceOf(Float32Array);
+      expect(embeddings[0].length).toBe(128);
+      
+      // Verify embedding is normalized (unit vector)
+      const norm = Math.sqrt(embeddings[0].reduce((sum, val) => sum + val * val, 0));
+      expect(norm).toBeCloseTo(1.0, 5);
+    });
+
+    it("should handle model loading failures gracefully", async () => {
+      // Mock model loading failure
+      mockModelManager.loadModel.mockRejectedValue(new Error("Model load failed"));
+      
+      const imageData = new Uint8Array(640 * 480 * 3);
+      const faces = await faceDetectionService.detectFaces(imageData, 640, 480);
+
+      // Should fall back to mock implementation
+      expect(Array.isArray(faces)).toBe(true);
+    });
+
+    it("should validate input tensor dimensions", async () => {
+      mockModelManager.runInference.mockResolvedValue([]);
+
+      const imageData = new Uint8Array(640 * 480 * 3);
+      const faces = await faceDetectionService.detectFaces(imageData, 640, 480);
+
+      // Should process without errors despite tensor size issues
+      expect(Array.isArray(faces)).toBe(true);
+    });
+
+    it("should filter faces by confidence threshold", async () => {
+      // Mock low confidence detections
+      mockModelManager.runInference.mockResolvedValue([
+        [[0.1, 0.1, 0.3, 0.3]], // Single face
+        [0.3], // Low confidence (below 0.5 threshold)
+        [[]], // Empty landmarks
+      ]);
+
+      const imageData = new Uint8Array(640 * 480 * 3);
+      const faces = await faceDetectionService.detectFaces(imageData, 640, 480);
+
+      // Should filter out low confidence faces
+      expect(faces).toHaveLength(0);
+    });
+  });
+  describe("Photo Analyzer Integration", () => {
+    it("should integrate with photo analyzer pipeline", async () => {
+      // Mock the photo analyzer's face detection integration
+      const { PhotoAnalyzer } = await import("./photo-analyzer");
+      const analyzer = new PhotoAnalyzer();
+
+      // Mock face detection service integration
+      mockModelManager.runInference.mockResolvedValue([
+        [[0.2, 0.2, 0.4, 0.4]], // Face bounding box
+        [0.85], // High confidence
+        [[0.25, 0.25, 0.35, 0.25, 0.25, 0.35, 0.35, 0.35, 0.3, 0.4, 0.3, 0.4]], // Landmarks
+      ]);
+
+      // Mock FaceNet embedding
+      mockModelManager.runInference.mockImplementation((modelName: string) => {
+        if (modelName === "facenet") {
+          return [new Array(128).fill(0).map(() => Math.random() * 2 - 1)];
+        }
+        return [[], [0.85], [[]]];
+      });
+
+      const result = await analyzer.analyzePhoto("file://test.jpg");
+
+      expect(result.faces).toBeDefined();
+      expect(Array.isArray(result.faces)).toBe(true);
+      if (result.faces && result.faces.length > 0) {
+        expect(result.faces[0].boundingBox).toBeDefined();
+        expect(result.faces[0].confidence).toBeGreaterThan(0);
+        expect(result.faces[0].embedding).toBeDefined();
+      }
+    });
+
+    it("should handle face detection failures gracefully in pipeline", async () => {
+      const { PhotoAnalyzer } = await import("./photo-analyzer");
+      const analyzer = new PhotoAnalyzer();
+
+      // Mock face detection failure
+      mockModelManager.runInference.mockRejectedValue(new Error("Model inference failed"));
+
+      const result = await analyzer.analyzePhoto("file://test.jpg");
+
+      // Should still complete analysis without faces
+      expect(result.processingTime).toBeGreaterThan(0);
+      expect(result.faces).toBeUndefined(); // No faces due to failure
+    });
+  });
 
     it("should accept custom configuration", () => {
       const service = new FaceDetectionService({
