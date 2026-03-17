@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { DesktopFileService, FileEvent } from './file-service';
+import { useState, useEffect, useCallback } from "react";
+import { DesktopFileService, FileEvent } from "./file-service";
 
 export const useDesktopFileWatcher = (watchPath?: string) => {
   const [isWatching, setIsWatching] = useState(false);
@@ -11,44 +11,61 @@ export const useDesktopFileWatcher = (watchPath?: string) => {
 
   const initialize = useCallback(async () => {
     if (isInitialized) return;
-    
+
     try {
       await fileService.initialize();
       setIsInitialized(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to initialize file service');
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to initialize file service",
+      );
     }
   }, [fileService, isInitialized]);
 
-  const startWatching = useCallback(async (path: string) => {
-    try {
-      setError(null);
-      await fileService.startWatching(path);
-      setIsWatching(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start watching');
-    }
-  }, [fileService]);
+  const startWatching = useCallback(
+    async (path: string) => {
+      try {
+        setError(null);
+        await fileService.startWatching(path);
+        setIsWatching(true);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to start watching",
+        );
+      }
+    },
+    [fileService],
+  );
 
-  const stopWatching = useCallback(async (path: string) => {
-    try {
-      await fileService.stopWatching(path);
-      setIsWatching(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to stop watching');
-    }
-  }, [fileService]);
+  const stopWatching = useCallback(
+    async (path: string) => {
+      try {
+        await fileService.stopWatching(path);
+        setIsWatching(false);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to stop watching",
+        );
+      }
+    },
+    [fileService],
+  );
 
   const clearEvents = useCallback(() => {
     setFileEvents([]);
   }, []);
 
   const getEventStats = useCallback(() => {
-    const stats = fileEvents.reduce((acc, event) => {
-      const type = event.event_type;
-      acc[type] = (acc[type] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const stats = fileEvents.reduce(
+      (acc, event) => {
+        const type = event.event_type;
+        acc[type] = (acc[type] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     return {
       total: fileEvents.length,
@@ -65,13 +82,13 @@ export const useDesktopFileWatcher = (watchPath?: string) => {
     if (!watchPath || !isInitialized) return;
 
     const handleFileChange = (event: FileEvent) => {
-      setFileEvents(prev => [...prev.slice(-199), event]); // Keep last 200 events
+      setFileEvents((prev) => [...prev.slice(-199), event]); // Keep last 200 events
     };
 
-    fileService.onFileChange('desktop-hook', handleFileChange);
+    fileService.onFileChange("desktop-hook", handleFileChange);
 
     return () => {
-      fileService.offFileChange('desktop-hook');
+      fileService.offFileChange("desktop-hook");
     };
   }, [watchPath, fileService, isInitialized]);
 

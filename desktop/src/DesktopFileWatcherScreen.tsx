@@ -1,7 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView } from 'react-native';
-import { useDesktopFileWatcher } from './use-file-watcher';
-import { DesktopFileService } from './file-service';
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
+import { useDesktopFileWatcher } from "./use-file-watcher";
+import { DesktopFileService } from "./file-service";
 
 interface FileEvent {
   path: string;
@@ -10,19 +17,19 @@ interface FileEvent {
 }
 
 const DesktopFileWatcherScreen: React.FC = () => {
-  const [watchPath, setWatchPath] = useState<string>('');
+  const [watchPath, setWatchPath] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { 
-    isInitialized, 
-    isWatching, 
-    fileEvents, 
-    error, 
+  const {
+    isInitialized,
+    isWatching,
+    fileEvents,
+    error,
     supportedExtensions,
-    startWatching, 
-    stopWatching, 
+    startWatching,
+    stopWatching,
     clearEvents,
     getEventStats,
-    isSupportedFile
+    isSupportedFile,
   } = useDesktopFileWatcher(watchPath);
 
   useEffect(() => {
@@ -30,13 +37,13 @@ const DesktopFileWatcherScreen: React.FC = () => {
     const detectPhotoDirectory = async () => {
       const fileService = DesktopFileService.getInstance();
       await fileService.initialize();
-      
+
       // This would use Tauri APIs to detect common photo directories
       // For now, use a placeholder
       const commonPaths = [
-        '/Users/[username]/Pictures', // macOS
-        'C:\\Users\\[username]\\Pictures', // Windows
-        '/home/[username]/Pictures', // Linux
+        "/Users/[username]/Pictures", // macOS
+        "C:\\Users\\[username]\\Pictures", // Windows
+        "/home/[username]/Pictures", // Linux
       ];
       setWatchPath(commonPaths[0]); // Placeholder
     };
@@ -51,12 +58,12 @@ const DesktopFileWatcherScreen: React.FC = () => {
         directory: true,
         multiple: false,
       });
-      
+
       if (paths.length > 0) {
         setWatchPath(paths[0]);
       }
     } catch (error) {
-      console.error('Failed to select directory:', error);
+      console.error("Failed to select directory:", error);
     }
   };
 
@@ -69,9 +76,9 @@ const DesktopFileWatcherScreen: React.FC = () => {
   };
 
   const renderFileEvent = ({ item }: { item: FileEvent }) => {
-    const fileName = item.path.split(/[\\/]/).pop() || '';
+    const fileName = item.path.split(/[\\/]/).pop() || "";
     const timestamp = new Date(item.timestamp * 1000).toLocaleTimeString();
-    
+
     return (
       <View style={styles.eventItem}>
         <Text style={[styles.eventType, styles[item.event_type]]}>
@@ -81,9 +88,7 @@ const DesktopFileWatcherScreen: React.FC = () => {
           <Text style={styles.eventPath} numberOfLines={2}>
             {fileName}
           </Text>
-          <Text style={styles.eventTimestamp}>
-            {timestamp}
-          </Text>
+          <Text style={styles.eventTimestamp}>{timestamp}</Text>
         </View>
       </View>
     );
@@ -101,7 +106,9 @@ const DesktopFileWatcherScreen: React.FC = () => {
     return (
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Initializing desktop file service...</Text>
+          <Text style={styles.loadingText}>
+            Initializing desktop file service...
+          </Text>
         </View>
       </View>
     );
@@ -118,12 +125,12 @@ const DesktopFileWatcherScreen: React.FC = () => {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Watch Directory</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.directorySelector}
           onPress={handleSelectDirectory}
         >
           <Text style={styles.directoryPath}>
-            {watchPath || 'Select a directory to watch...'}
+            {watchPath || "Select a directory to watch..."}
           </Text>
           <Text style={styles.browseButton}>Browse</Text>
         </TouchableOpacity>
@@ -148,20 +155,17 @@ const DesktopFileWatcherScreen: React.FC = () => {
           <TouchableOpacity
             style={[
               styles.toggleButton,
-              isWatching ? styles.stopButton : styles.startButton
+              isWatching ? styles.stopButton : styles.startButton,
             ]}
             onPress={handleToggleWatching}
             disabled={!watchPath}
           >
             <Text style={styles.toggleButtonText}>
-              {isWatching ? 'Stop Watching' : 'Start Watching'}
+              {isWatching ? "Stop Watching" : "Start Watching"}
             </Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={styles.clearButton}
-            onPress={clearEvents}
-          >
+
+          <TouchableOpacity style={styles.clearButton} onPress={clearEvents}>
             <Text style={styles.clearButtonText}>Clear Events</Text>
           </TouchableOpacity>
         </View>
@@ -196,13 +200,17 @@ const DesktopFileWatcherScreen: React.FC = () => {
         <FlatList
           data={fileEvents.slice().reverse()}
           renderItem={renderFileEvent}
-          keyExtractor={(item, index) => `${item.path}-${item.timestamp}-${index}`}
+          keyExtractor={(item, index) =>
+            `${item.path}-${item.timestamp}-${index}`
+          }
           style={styles.eventsList}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>
-                {isWatching ? 'Waiting for file events...' : 'Start watching to see events'}
+                {isWatching
+                  ? "Waiting for file events..."
+                  : "Start watching to see events"}
               </Text>
             </View>
           }
@@ -215,16 +223,16 @@ const DesktopFileWatcherScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   loadingText: {
     fontSize: 16,
-    color: '#666',
+    color: "#666",
   },
   header: {
     padding: 20,
@@ -232,183 +240,183 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "bold",
+    color: "#333",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: "#666",
   },
   section: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     margin: 15,
     padding: 15,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: "#e0e0e0",
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: "600",
+    color: "#333",
     marginBottom: 12,
   },
   directorySelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f8f9fa",
     padding: 15,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
   },
   directoryPath: {
     flex: 1,
     fontSize: 16,
-    color: '#333',
+    color: "#333",
   },
   browseButton: {
-    color: '#007AFF',
+    color: "#007AFF",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   extensionContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   extensionBadge: {
-    backgroundColor: '#e3f2fd',
+    backgroundColor: "#e3f2fd",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
   extensionText: {
     fontSize: 12,
-    color: '#1976d2',
-    fontWeight: '600',
+    color: "#1976d2",
+    fontWeight: "600",
   },
   moreExtensionsText: {
     fontSize: 12,
-    color: '#666',
-    fontStyle: 'italic',
-    alignSelf: 'center',
+    color: "#666",
+    fontStyle: "italic",
+    alignSelf: "center",
   },
   controlRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
   },
   toggleButton: {
     flex: 1,
     padding: 15,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   startButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
   },
   stopButton: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: "#FF3B30",
   },
   toggleButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   clearButton: {
     padding: 15,
     borderRadius: 8,
-    backgroundColor: '#8E8E93',
-    alignItems: 'center',
+    backgroundColor: "#8E8E93",
+    alignItems: "center",
   },
   clearButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   errorContainer: {
-    backgroundColor: '#FFE5E5',
+    backgroundColor: "#FFE5E5",
     padding: 12,
     borderRadius: 8,
     margin: 15,
   },
   errorText: {
-    color: '#D70015',
+    color: "#D70015",
     fontSize: 14,
   },
   statsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 15,
   },
   statItem: {
-    alignItems: 'center',
+    alignItems: "center",
     minWidth: 60,
   },
   statValue: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "bold",
+    color: "#333",
   },
   statLabel: {
     fontSize: 12,
-    color: '#666',
+    color: "#666",
     marginTop: 2,
   },
   eventsList: {
     maxHeight: 300,
   },
   eventItem: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: "#f8f9fa",
     padding: 12,
     borderRadius: 6,
     marginBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   eventType: {
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: "600",
     marginRight: 12,
     padding: 4,
     borderRadius: 4,
     minWidth: 50,
-    textAlign: 'center',
+    textAlign: "center",
   },
   created: {
-    backgroundColor: '#D4F4DD',
-    color: '#34C759',
+    backgroundColor: "#D4F4DD",
+    color: "#34C759",
   },
   modified: {
-    backgroundColor: '#FFF3CD',
-    color: '#FF9500',
+    backgroundColor: "#FFF3CD",
+    color: "#FF9500",
   },
   removed: {
-    backgroundColor: '#FFE5E5',
-    color: '#FF3B30',
+    backgroundColor: "#FFE5E5",
+    color: "#FF3B30",
   },
   eventDetails: {
     flex: 1,
   },
   eventPath: {
     fontSize: 14,
-    color: '#333',
-    fontWeight: '500',
+    color: "#333",
+    fontWeight: "500",
   },
   eventTimestamp: {
     fontSize: 12,
-    color: '#666',
+    color: "#666",
     marginTop: 2,
   },
   emptyContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 20,
   },
   emptyText: {
     fontSize: 14,
-    color: '#666',
-    fontStyle: 'italic',
+    color: "#666",
+    fontStyle: "italic",
   },
 });
 

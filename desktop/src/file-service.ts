@@ -1,5 +1,5 @@
-import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 export interface FileEvent {
   path: string;
@@ -21,34 +21,36 @@ export class DesktopFileService {
 
   async initialize(): Promise<void> {
     try {
-      this.supportedExtensions = await invoke<string[]>('get_supported_extensions');
+      this.supportedExtensions = await invoke<string[]>(
+        "get_supported_extensions",
+      );
     } catch (error) {
-      console.error('Failed to get supported extensions:', error);
-      this.supportedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff'];
+      console.error("Failed to get supported extensions:", error);
+      this.supportedExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "tiff"];
     }
   }
 
   async startWatching(path: string): Promise<void> {
     try {
-      await invoke('start_file_watch', { path });
+      await invoke("start_file_watch", { path });
       this.setupEventListeners();
     } catch (error) {
-      console.error('Failed to start file watching:', error);
+      console.error("Failed to start file watching:", error);
       throw error;
     }
   }
 
   async stopWatching(path: string): Promise<void> {
     try {
-      await invoke('stop_file_watch', { path });
+      await invoke("stop_file_watch", { path });
     } catch (error) {
-      console.error('Failed to stop file watching:', error);
+      console.error("Failed to stop file watching:", error);
       throw error;
     }
   }
 
   private setupEventListeners(): void {
-    listen('file-change', (event) => {
+    listen("file-change", (event) => {
       this.notifyListeners(event.payload as FileEvent);
     });
   }
@@ -62,7 +64,7 @@ export class DesktopFileService {
   }
 
   private notifyListeners(event: FileEvent): void {
-    this.eventListeners.forEach(callback => callback(event));
+    this.eventListeners.forEach((callback) => callback(event));
   }
 
   getSupportedExtensions(): string[] {
@@ -70,7 +72,7 @@ export class DesktopFileService {
   }
 
   isSupportedFile(filename: string): boolean {
-    const extension = filename.split('.').pop()?.toLowerCase();
+    const extension = filename.split(".").pop()?.toLowerCase();
     return extension ? this.supportedExtensions.includes(extension) : false;
   }
 
@@ -78,25 +80,27 @@ export class DesktopFileService {
   async showOpenDialog(options: {
     multiple?: boolean;
     directory?: boolean;
-    filters?: Array<{
+    filters?: {
       name: string;
       extensions: string[];
-    }>;
+    }[];
   }): Promise<string[]> {
     try {
-      return await invoke<string[]>('show_file_dialog', { directory: !!options.directory });
+      return await invoke<string[]>("show_file_dialog", {
+        directory: !!options.directory,
+      });
     } catch (error) {
-      console.error('Failed to show open dialog:', error);
+      console.error("Failed to show open dialog:", error);
       return [];
     }
   }
 
   async showSaveDialog(options: {
     defaultPath?: string;
-    filters?: Array<{
+    filters?: {
       name: string;
       extensions: string[];
-    }>;
+    }[];
   }): Promise<string | null> {
     // For now, use open dialog as placeholder
     const paths = await this.showOpenDialog({ directory: false });
@@ -105,49 +109,49 @@ export class DesktopFileService {
 
   async showNotification(title: string, body: string): Promise<void> {
     try {
-      await invoke('show_notification', { title, body });
+      await invoke("show_notification", { title, body });
     } catch (error) {
-      console.error('Failed to show notification:', error);
+      console.error("Failed to show notification:", error);
     }
   }
 
   async minimizeToTray(): Promise<void> {
     try {
-      await invoke('minimize_to_tray');
+      await invoke("minimize_to_tray");
     } catch (error) {
-      console.error('Failed to minimize to tray:', error);
+      console.error("Failed to minimize to tray:", error);
     }
   }
 
   async restoreFromTray(): Promise<void> {
     try {
-      await invoke('restore_from_tray');
+      await invoke("restore_from_tray");
     } catch (error) {
-      console.error('Failed to restore from tray:', error);
+      console.error("Failed to restore from tray:", error);
     }
   }
 
   // Utility methods for file operations
   formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
-    
+    if (bytes === 0) return "0 Bytes";
+
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   }
 
   getFileExtension(filename: string): string {
-    return filename.split('.').pop()?.toLowerCase() || '';
+    return filename.split(".").pop()?.toLowerCase() || "";
   }
 
   getFileName(path: string): string {
-    return path.split(/[\\/]/).pop() || '';
+    return path.split(/[\\/]/).pop() || "";
   }
 
   getFileDirectory(path: string): string {
     const parts = path.split(/[\\/]/);
-    return parts.slice(0, -1).join('/') || '';
+    return parts.slice(0, -1).join("/") || "";
   }
 }
