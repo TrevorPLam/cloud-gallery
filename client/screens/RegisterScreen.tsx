@@ -71,6 +71,9 @@ export default function RegisterScreen() {
           autoCapitalize="none"
           keyboardType="email-address"
           editable={!submitting}
+          accessibilityLabel="Email address input"
+          accessibilityHint="Enter your email address to create an account"
+          accessibilityRole="textbox"
         />
         <TextInput
           style={[
@@ -83,6 +86,9 @@ export default function RegisterScreen() {
           onChangeText={setPassword}
           secureTextEntry
           editable={!submitting}
+          accessibilityLabel="Password input"
+          accessibilityHint="Enter a password with at least 8 characters"
+          accessibilityRole="textbox"
         />
         <TextInput
           style={[
@@ -95,11 +101,17 @@ export default function RegisterScreen() {
           onChangeText={setConfirmPassword}
           secureTextEntry
           editable={!submitting}
+          accessibilityLabel="Confirm password input"
+          accessibilityHint="Re-enter your password to confirm"
+          accessibilityRole="textbox"
         />
         <Pressable
           style={[styles.button, { backgroundColor: colors.accent }]}
           onPress={handleRegister}
           disabled={submitting}
+          accessibilityRole="button"
+          accessibilityLabel="Create account button"
+          accessibilityHint="Creates your new account"
         >
           {submitting ? (
             <ActivityIndicator color={colors.buttonText} />
@@ -111,6 +123,9 @@ export default function RegisterScreen() {
           style={styles.link}
           onPress={() => navigation.goBack()}
           disabled={submitting}
+          accessibilityRole="button"
+          accessibilityLabel="Sign in"
+          accessibilityHint="Navigate back to sign in page"
         >
           <ThemedText style={[styles.linkText, { color: colors.link }]}>
             Already have an account? Sign in

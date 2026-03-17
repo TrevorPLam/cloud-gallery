@@ -17,7 +17,13 @@ export default function ForgotPasswordScreen() {
         Password reset is not yet available. Please sign in with your current
         password or create a new account.
       </ThemedText>
-      <Pressable style={styles.link} onPress={() => navigation.goBack()}>
+      <Pressable 
+        style={styles.link} 
+        onPress={() => navigation.goBack()}
+        accessibilityRole="button"
+        accessibilityLabel="Back to sign in"
+        accessibilityHint="Navigate back to the sign in page"
+      >
         <ThemedText style={[styles.linkText, { color: colors.link }]}>
           Back to sign in
         </ThemedText>

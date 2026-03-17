@@ -62,6 +62,9 @@ export default function LoginScreen() {
           autoCapitalize="none"
           keyboardType="email-address"
           editable={!submitting}
+          accessibilityLabel="Email address input"
+          accessibilityHint="Enter your email address to sign in"
+          accessibilityRole="textbox"
         />
         <TextInput
           style={[
@@ -74,11 +77,17 @@ export default function LoginScreen() {
           onChangeText={setPassword}
           secureTextEntry
           editable={!submitting}
+          accessibilityLabel="Password input"
+          accessibilityHint="Enter your password to sign in"
+          accessibilityRole="textbox"
         />
         <Pressable
           style={[styles.button, { backgroundColor: colors.accent }]}
           onPress={handleLogin}
           disabled={submitting || isLoading}
+          accessibilityRole="button"
+          accessibilityLabel="Sign in button"
+          accessibilityHint="Signs you into your account"
         >
           {submitting ? (
             <ActivityIndicator color={colors.buttonText} />
@@ -90,6 +99,9 @@ export default function LoginScreen() {
           style={styles.link}
           onPress={() => navigation.navigate("Register")}
           disabled={submitting}
+          accessibilityRole="button"
+          accessibilityLabel="Create an account"
+          accessibilityHint="Navigate to account registration page"
         >
           <ThemedText style={[styles.linkText, { color: colors.link }]}>
             Create an account
@@ -99,6 +111,9 @@ export default function LoginScreen() {
           style={styles.link}
           onPress={() => navigation.navigate("ForgotPassword")}
           disabled={submitting}
+          accessibilityRole="button"
+          accessibilityLabel="Forgot password"
+          accessibilityHint="Navigate to password reset page"
         >
           <ThemedText style={[styles.linkText, { color: colors.link }]}>
             Forgot password?
@@ -108,6 +123,9 @@ export default function LoginScreen() {
           style={styles.link}
           onPress={continueAsGuest}
           disabled={submitting}
+          accessibilityRole="button"
+          accessibilityLabel="Continue as guest"
+          accessibilityHint="Use the app without creating an account"
         >
           <ThemedText style={[styles.linkText, { color: colors.link }]}>
             Continue as guest
