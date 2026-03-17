@@ -2392,6 +2392,174 @@ Successfully implemented a comprehensive CLIP-based semantic search system with 
 
 ---
 
+## 🔧 Priority 1: Testing Infrastructure Remediation (Weeks 1-5) - CRITICAL
+
+### [ ] TASK-032: Fix Critical Mock Infrastructure Issues
+**Target**: Resolve mock infrastructure problems causing 45 test failures
+
+#### Subtasks:
+- [ ] TASK-032-1: Fix duplicate keys in mock objects
+  - **Files**: `server/__mocks__/database.ts`, `client/lib/ml/__mocks__/tflite.ts`, `client/lib/live-photo/index.test.ts`
+  - **Issue**: Duplicate "orderBy", "Item", "unloadModel" keys causing ESBuild warnings
+  - **Action**: Remove duplicate keys and restructure mock objects
+
+- [ ] TASK-032-2: Standardize TensorFlow Lite mock initialization
+  - **Files**: `client/lib/ml/__mocks__/tflite.ts`, `vitest.setup.ts`
+  - **Issue**: TensorFlow Lite manager undefined in tests
+  - **Action**: Implement proper mock factory with `vi.hoisted()` for complex setups
+
+- [ ] TASK-032-3: Fix database mock chain method inconsistencies
+  - **Files**: `server/__mocks__/database.ts`
+  - **Issue**: Incomplete method chaining in database mocks
+  - **Action**: Implement full Drizzle ORM interface compliance
+
+- [ ] TASK-032-4: Resolve React Native module mocking conflicts
+  - **Files**: `vitest.setup.ts`, `__mocks__/react-native.ts`
+  - **Issue**: React Native TV compatibility and Flow syntax errors
+  - **Action**: Update mocks to support React Native TV 0.81-stable
+
+**Definition of Done**:
+- All ESBuild duplicate key warnings eliminated
+- TensorFlow Lite mocks initialize properly in all test contexts
+- Database mock supports full Drizzle ORM query patterns
+- React Native modules mock without syntax errors
+
+### [ ] TASK-033: Fix Property Testing Failures
+**Target**: Resolve 37 property testing failures in ML and photo processing
+
+#### Subtasks:
+- [ ] TASK-033-1: Fix ML camera property testing failures
+  - **Files**: `client/lib/ml/camera-ml.test.ts`
+  - **Issue**: 15/34 tests failing due to insufficient property constraints
+  - **Action**: Add proper fast-check constraints and edge case handling
+
+- [ ] TASK-033-2: Fix photo stacking property test failures
+  - **Files**: `client/lib/photo/photo-stacking.test.ts`
+  - **Issue**: 22/32 tests failing with property failures
+  - **Action**: Implement proper input validation and error simulation
+
+- [ ] TASK-033-3: Fix photo editor property testing
+  - **Files**: `client/lib/photo-editor.test.ts`
+  - **Issue**: 1/26 tests failing with property failure
+  - **Action**: Add proper constraints for filter operations
+
+- [ ] TASK-033-4: Standardize property testing framework
+  - **Files**: `tests/utils/property-testing.ts` (new)
+  - **Issue**: Inconsistent property testing patterns
+  - **Action**: Create unified property testing utilities with constraints
+
+**Definition of Done**:
+- All property tests pass with proper constraints
+- Edge cases are properly handled in property tests
+- Failure reproduction utilities are available
+- Property testing framework is standardized across test suite
+
+### [ ] TASK-034: Fix Async & Integration Test Failures
+**Target**: Resolve 38 async and integration test failures
+
+#### Subtasks:
+- [ ] TASK-034-1: Fix sync routes test failures
+  - **Files**: `server/sync-routes.test.ts`
+  - **Issue**: 17/27 tests failing with async issues
+  - **Action**: Implement proper async patterns with `waitFor` and fake timers
+
+- [ ] TASK-034-2: Standardize async testing patterns
+  - **Files**: `tests/utils/async-testing.ts` (new)
+  - **Issue**: Inconsistent async handling across test suite
+  - **Action**: Create unified async testing utilities and patterns
+
+- [ ] TASK-034-3: Fix server integration test failures
+  - **Files**: Multiple server test files
+  - **Issue**: Race conditions and improper async handling
+  - **Action**: Implement proper transaction handling and mock consistency
+
+- [ ] TASK-034-4: Add race condition prevention
+  - **Files**: `tests/utils/test-isolation.ts`
+  - **Issue**: Tests interfering with each other
+  - **Action**: Improve test isolation and state cleanup
+
+**Definition of Done**:
+- All async tests use consistent patterns with `waitFor`
+- Race conditions are eliminated through proper isolation
+- Server integration tests pass with proper transaction handling
+- Test execution is deterministic and reliable
+
+### [ ] TASK-035: Fix TypeScript & Interface Mismatches
+**Target**: Resolve 28 TypeScript errors in test files
+
+#### Subtasks:
+- [ ] TASK-035-1: Fix Album interface mismatches
+  - **Files**: `shared/schema.ts`, client test files
+  - **Issue**: name vs title property inconsistencies
+  - **Action**: Standardize Album interface and update all references
+
+- [ ] TASK-035-2: Resolve React Native TV compatibility
+  - **Files**: `package.json`, type definitions
+  - **Issue**: React Native TV 0.81-stable vs React 19.1.0 compatibility
+  - **Action**: Update type definitions and compatibility layer
+
+- [ ] TASK-035-3: Fix client component type definitions
+  - **Files**: Client component test files
+  - **Issue**: Component prop type mismatches
+  - **Action**: Add proper type guards and interface alignment
+
+- [ ] TASK-035-4: Add strict type checking for tests
+  - **Files**: `tsconfig.json`, test files
+  - **Issue**: TypeScript strict mode violations
+  - **Action**: Enable strict type checking and fix all violations
+
+**Definition of Done**:
+- Album interface is consistent across entire codebase
+- React Native TV types are compatible with React 19.1.0
+- All client components have proper type definitions
+- TypeScript strict mode passes without errors
+
+### [ ] TASK-036: Optimize Vitest Configuration & Performance
+**Target**: Optimize test execution and maintainability
+
+#### Subtasks:
+- [ ] TASK-036-1: Simplify Vitest configuration
+  - **Files**: `vitest.config.ts`
+  - **Issue**: Complex setup with conflicting performance configurations
+  - **Action**: Remove conflicts and standardize timeout settings
+
+- [ ] TASK-036-2: Optimize mock factory performance
+  - **Files**: Mock factory files
+  - **Issue**: Overly complex mock factories affecting performance
+  - **Action**: Simplify mocks and add proper reset capabilities
+
+- [ ] TASK-036-3: Implement test performance monitoring
+  - **Files**: `scripts/test-performance.js` (new)
+  - **Issue**: No visibility into test performance trends
+  - **Action**: Add performance benchmarking and monitoring
+
+- [ ] TASK-036-4: Add test health monitoring
+  - **Files**: `scripts/test-health.js` (new)
+  - **Issue**: No automated test health checks
+  - **Action**: Implement daily health checks and alerts
+
+**Definition of Done**:
+- Vitest configuration is simplified and conflict-free
+- Test execution time is optimized
+- Performance monitoring is in place
+- Automated health checks detect regressions
+
+**Overall Definition of Done for Testing Infrastructure**:
+- Test pass rate reaches 100% (0 failed tests)
+- All TypeScript errors in test files are resolved
+- Test execution is deterministic and reliable
+- Performance monitoring and health checks are active
+- Mock infrastructure is standardized and maintainable
+
+**Success Metrics**:
+- **Phase 1** (TASK-032): <100 failed tests (58% reduction)
+- **Phase 2** (TASK-033): <50 failed tests (79% reduction)
+- **Phase 3** (TASK-034): <25 failed tests (89% reduction)
+- **Phase 4** (TASK-035): <10 failed tests (96% reduction)
+- **Phase 5** (TASK-036): 0 failed tests (100% pass rate)
+
+---
+
 ## 🎨 Priority 10: AI & Innovation Features (Months 13-15)
 
 ### [ ] TASK-030: Implement Magic Editor/Eraser (Generative AI)
