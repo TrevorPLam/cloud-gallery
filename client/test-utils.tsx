@@ -2,10 +2,9 @@
  * Standardized test utilities for React Native components
  */
 
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
-import { QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { render } from "@testing-library/react-native";
 
@@ -36,13 +35,14 @@ interface TestWrapperProps {
   queryClient?: QueryClient;
 }
 
-export function TestWrapper({ children, queryClient = createTestQueryClient() }: TestWrapperProps) {
+export function TestWrapper({
+  children,
+  queryClient = createTestQueryClient(),
+}: TestWrapperProps) {
   return (
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
-        <NavigationContainer>
-          {children}
-        </NavigationContainer>
+        <NavigationContainer>{children}</NavigationContainer>
       </SafeAreaProvider>
     </QueryClientProvider>
   );
@@ -53,9 +53,13 @@ export function TestWrapper({ children, queryClient = createTestQueryClient() }:
  */
 export function renderWithProviders(
   ui: React.ReactElement,
-  { queryClient = createTestQueryClient() }: { queryClient?: QueryClient } = {}
+  { queryClient = createTestQueryClient() }: { queryClient?: QueryClient } = {},
 ) {
-  return render(ui, { wrapper: ({ children }) => <TestWrapper queryClient={queryClient}>{children}</TestWrapper> });
+  return render(ui, {
+    wrapper: ({ children }) => (
+      <TestWrapper queryClient={queryClient}>{children}</TestWrapper>
+    ),
+  });
 }
 
 /**
