@@ -28,6 +28,7 @@ import {
   NetworkError,
   ServerError,
 } from "@/lib/query-client";
+import { encryptAndUpload, encryptAndUploadVideo } from "@/lib/upload-encrypted";
 import { PhotoGrid } from "@/components/PhotoGrid";
 import { FloatingActionButton } from "@/components/FloatingActionButton";
 import { EmptyState } from "@/components/EmptyState";
@@ -112,17 +113,46 @@ export default function PhotosScreen() {
   });
 
   // ═══════════════════════════════════════════════════════════
-  // ADD PHOTO MUTATION (React Query)
+  // ADD PHOTO/VIDEO MUTATION (React Query)
   // ═══════════════════════════════════════════════════════════
   // useMutation for creating/updating/deleting data
   // Includes OPTIMISTIC UPDATE (show immediately, sync later)
 
   const addPhotoMutation = useMutation({
-    // The actual API call
+    // The actual API call - handle both photos and videos
     mutationFn: async (
       photo: Omit<Photo, "id" | "createdAt" | "modifiedAt">,
     ) => {
-      const res = await apiRequest("POST", "/api/photos", photo);
+      // Prepare metadata for upload
+      const metadata = {
+        width: photo.width,
+        height: photo.height,
+        filename: photo.filename,
+        isVideo: photo.isVideo || false,
+        videoDuration: photo.videoDuration,
+        tags: photo.tags || [],
+        notes: photo.notes,
+        isPrivate: photo.isPrivate || false,
+      };
+
+      // Use appropriate upload function based on file type
+      const uploadResult = photo.isVideo 
+        ? await encryptAndUploadVideo(photo.uri, metadata)
+        : await encryptAndUpload(photo.uri, metadata);
+
+      if (!uploadResult.success) {
+        throw new Error(uploadResult.error || "Upload failed");
+      }
+
+      // Create the photo record with server response
+      const photoData = {
+        ...photo,
+        ...metadata,
+        videoThumbnailUri: uploadResult.file?.encryptionMetadata ? metadata.videoThumbnailUri : undefined,
+      };
+
+      // Send to server to create photo record
+      const res = await apiRequest("POST", "/api/photos", photoData);
       return res.json();
     },
 
@@ -194,24 +224,30 @@ export default function PhotosScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
 
-    // AI-NOTE: Image picker allows multi-select; generates unique IDs using timestamp + random
+    // AI-NOTE: Image picker now supports both photos and videos; generates unique IDs using timestamp + random
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ImagePicker.MediaTypeOptions.All, // Include both images and videos
       allowsMultipleSelection: true,
       quality: 1,
       exif: true,
     });
 
     if (!result.canceled && result.assets.length > 0) {
-      // Process each selected photo sequentially
+      // Process each selected asset sequentially (photos and videos)
       for (const asset of result.assets) {
+        // Determine if this is a video
+        const isVideoAsset = asset.type === 'video' || asset.uri.endsWith('.mp4') || asset.uri.endsWith('.mov') || asset.uri.endsWith('.avi');
+        
         const newPhoto = {
           uri: asset.uri,
           width: asset.width || 0,
           height: asset.height || 0,
-          filename: asset.fileName || `photo_${Date.now()}.jpg`,
+          filename: asset.fileName || (isVideoAsset ? `video_${Date.now()}.mp4` : `photo_${Date.now()}.jpg`),
           isFavorite: false,
           albumIds: [] as string[],
+          // Add video-specific fields if this is a video
+          isVideo: isVideoAsset,
+          videoDuration: isVideoAsset ? (asset.duration || 0) : undefined,
         };
 
         // Send to server (with optimistic update)

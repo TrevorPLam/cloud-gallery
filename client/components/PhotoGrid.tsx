@@ -69,6 +69,11 @@ function PhotoItem({
   const accessibilityLabel = usePhotoAccessibilityLabel(photo);
   const { theme, isDark } = useTheme();
   
+  // Update accessibility label for videos
+  const videoAccessibilityLabel = photo.isVideo 
+    ? `${accessibilityLabel}, video, ${photo.videoDuration ? Math.round(photo.videoDuration) + ' seconds' : 'unknown duration'}`
+    : accessibilityLabel;
+  
   // Use focus indicator hook
   const { focusStyle } = useFocusIndicator({
     focused: isFocused,
@@ -111,21 +116,26 @@ function PhotoItem({
       delayLongPress={300}
       style={[style, animatedStyle, focusStyle]}
       testID={`photo-item-${photo.id}`}
-      accessibilityLabel={accessibilityLabel}
+      accessibilityLabel={videoAccessibilityLabel}
       accessibilityRole="button"
-      accessibilityHint="Opens photo to view in detail"
+      accessibilityHint={photo.isVideo ? "Opens video to view and play in detail" : "Opens photo to view in detail"}
       focusable={true}
     >
       <Image
-        source={{ uri: photo.uri }}
+        source={{ uri: photo.isVideo && photo.videoThumbnailUri ? photo.videoThumbnailUri : photo.uri }}
         style={styles.photo}
         contentFit="cover"
         transition={200}
-        accessibilityLabel={accessibilityLabel}
+        accessibilityLabel={videoAccessibilityLabel}
       />
       {photo.isFavorite ? (
         <View style={styles.favoriteIcon}>
           <Feather name="heart" size={14} color={Colors.light.accent} />
+        </View>
+      ) : null}
+      {photo.isVideo ? (
+        <View style={styles.videoPlayIcon}>
+          <Feather name="play" size={16} color="#FFFFFF" />
         </View>
       ) : null}
     </AnimatedPressable>
@@ -288,6 +298,19 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.9)",
     borderRadius: 12,
     padding: 4,
+  },
+  videoPlayIcon: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    marginLeft: -16,
+    marginTop: -16,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    borderRadius: 16,
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
   },
   sectionHeader: {
     paddingHorizontal: Spacing.lg,

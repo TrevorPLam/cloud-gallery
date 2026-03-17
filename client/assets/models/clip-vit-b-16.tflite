@@ -1,0 +1,10 @@
+# Placeholder CLIP ViT-B/16 Model
+# This is a placeholder file for testing purposes.
+# Replace with actual CLIP ViT-B/16 .tflite model.
+# Download from: https://huggingface.co/openai/clip-vit-base-patch16/tree/main
+# Model details:
+# - Vision Transformer Base (ViT-B/16) architecture  
+# - 224x224 image input, 77 token text input
+# - 512-dimensional embedding space
+# - Higher resolution patches (16x16) for better image understanding
+# - Image and text encoders in single model

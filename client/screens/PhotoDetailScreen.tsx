@@ -35,6 +35,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { Photo } from "@/types";
 import { apiRequest } from "@/lib/query-client";
 import { ThemedText } from "@/components/ThemedText";
@@ -698,6 +699,8 @@ export default function PhotoDetailScreen() {
             showControls={!isSelectionMode}
             autoPlay={false}
           />
+        ) : item.isVideo ? (
+          <VideoPlayerComponent videoUri={photoUri} />
         ) : (
           <Image
             source={{ uri: photoUri }}
@@ -731,6 +734,24 @@ export default function PhotoDetailScreen() {
       month: "long",
       day: "numeric",
     });
+  };
+
+  // Video player component for videos
+  const VideoPlayerComponent = ({ videoUri }: { videoUri: string }) => {
+    const player = useVideoPlayer(videoUri, (p) => {
+      p.loop = false;
+      p.muted = false;
+    });
+
+    return (
+      <VideoView
+        player={player}
+        style={styles.fullImage}
+        allowsFullscreen
+        allowsPictureInPicture
+        accessibilityLabel="Video player"
+      />
+    );
   };
 
   return (

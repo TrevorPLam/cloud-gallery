@@ -5,6 +5,7 @@ import { encryptData } from "./encryption";
 import { retrieveMasterKey } from "./key-derivation";
 import * as FileSystem from "expo-file-system";
 import { api } from "./api";
+import { generateVideoThumbnail, isVideoFile } from "./video-thumbnail";
 
 export interface EncryptionMetadata {
   iv: string; // Initialization vector (hex)
@@ -61,6 +62,65 @@ export interface PhotoMetadata {
   tags?: string[];
   notes?: string;
   isPrivate?: boolean;
+  // Video-specific fields
+  isVideo?: boolean;
+  videoDuration?: number;
+  videoThumbnailUri?: string;
+}
+
+/**
+ * Encrypt and upload a video file with thumbnail generation to the server
+ * @param videoUri - Local URI of the video to encrypt and upload
+ * @param metadata - Video metadata to include with the upload
+ * @param onProgress - Optional progress callback (0-100)
+ * @returns Upload result with file information including thumbnail URI
+ */
+export async function encryptAndUploadVideo(
+  videoUri: string,
+  metadata: PhotoMetadata,
+  onProgress?: (progress: number) => void
+): Promise<EncryptedUploadResult> {
+  try {
+    // Validate this is a video file
+    if (!isVideoFile(videoUri, metadata.mimeType)) {
+      return {
+        success: false,
+        error: "File is not a supported video format",
+      };
+    }
+
+    // Generate video thumbnail before upload
+    onProgress?.(5);
+    let thumbnailUri: string | undefined;
+    
+    try {
+      thumbnailUri = await generateVideoThumbnail(videoUri, 1); // Generate thumbnail at 1 second
+      onProgress?.(15);
+    } catch (thumbnailError) {
+      console.warn("Failed to generate video thumbnail:", thumbnailError);
+      // Continue without thumbnail - it's not critical for upload
+    }
+
+    // Update metadata with thumbnail URI
+    const videoMetadata = {
+      ...metadata,
+      isVideo: true,
+      videoThumbnailUri: thumbnailUri,
+    };
+
+    // Use the existing encryptAndUpload function for the actual video file
+    return await encryptAndUpload(videoUri, videoMetadata, (progress) => {
+      // Adjust progress to account for thumbnail generation (0-15% already used)
+      const adjustedProgress = Math.round((progress / 100) * 85 + 15);
+      onProgress?.(adjustedProgress);
+    });
+  } catch (error) {
+    console.error("Video upload failed:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Video upload failed",
+    };
+  }
 }
 
 /**

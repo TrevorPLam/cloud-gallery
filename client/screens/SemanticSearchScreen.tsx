@@ -43,11 +43,14 @@ import { RootStackParamList } from "@/navigation/RootStackNavigator";
 
 import {
   getCLIPEmbeddingsService,
-  getEmbeddingCache,
   EmbeddingSimilarity,
+} from "@/lib/ml/clip-embeddings";
+import {
+  getEmbeddingCache,
   GenerationProgress,
   CacheStats,
-} from "@/lib/ml/clip-embeddings";
+} from "@/lib/ml/embedding-cache";
+import { getEmbeddingIndex, SemanticSearchQuery } from "@/lib/ml/embedding-index";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const NUM_COLUMNS = 3;
@@ -289,6 +292,7 @@ export default function SemanticSearchScreen() {
   // Services
   const clipService = getCLIPEmbeddingsService();
   const embeddingCache = getEmbeddingCache();
+  const embeddingIndex = getEmbeddingIndex();
 
   // Refs
   const searchInputRef = useRef<TextInput>(null);
@@ -321,7 +325,7 @@ export default function SemanticSearchScreen() {
     }
   }, [stats]);
 
-  // Semantic search implementation
+  // Semantic search implementation using embedding index
   const performSemanticSearch = useCallback(async () => {
     if (!searchQuery.trim() || !clipService.isReady()) {
       return;
@@ -331,94 +335,35 @@ export default function SemanticSearchScreen() {
     setGenerationProgress(null);
 
     try {
-      // Generate query embedding
-      const queryEmbedding = await clipService.generateTextEmbeddings([
-        searchQuery,
-      ]);
-      const queryVector = queryEmbedding[0];
+      // Initialize embedding index if needed
+      await embeddingIndex.initialize();
 
-      // Generate embeddings for all photos (or use cached ones)
-      const photoEmbeddings: Float32Array[] = [];
-      const results: SemanticSearchResult[] = [];
+      // Create search query
+      const searchQueryObj: SemanticSearchQuery = {
+        text: searchQuery,
+        limit: 50,
+        threshold: 0.1,
+      };
 
-      for (let i = 0; i < localPhotos.length; i++) {
-        const photo = localPhotos[i];
-        const cacheKey = `photo_${photo.id}`;
+      // Perform semantic search using embedding index
+      const results = await embeddingIndex.semanticSearch(searchQueryObj);
 
-        try {
-          // Try to get from cache first
-          let embedding = await embeddingCache.get(cacheKey);
+      // Convert to SemanticSearchResult format
+      const semanticResults: SemanticSearchResult[] = results.map((result) => ({
+        photo: {
+          id: result.id,
+          uri: result.metadata.uri,
+          width: result.metadata.width,
+          height: result.metadata.height,
+          createdAt: result.metadata.createdAt,
+          isFavorite: false, // Would need to fetch from storage
+          isVideo: false, // Would need to fetch from storage
+        } as Photo,
+        similarity: result.similarity,
+        embeddingGenerated: result.embeddingGenerated,
+      }));
 
-          if (!embedding) {
-            // Generate embedding if not cached
-            setGenerationProgress({
-              id: cacheKey,
-              type: "image",
-              progress: 0,
-              stage: "processing",
-              startTime: Date.now(),
-            });
-
-            embedding = await embeddingCache.generateAndCache(
-              cacheKey,
-              "image",
-              photo.uri,
-              "medium",
-            );
-          }
-
-          photoEmbeddings.push(embedding);
-
-          // Calculate similarity
-          const similarity = clipService.cosineSimilarity(
-            queryVector,
-            embedding,
-          );
-
-          if (similarity > 0.1) {
-            // Only include results with meaningful similarity
-            results.push({
-              photo,
-              similarity: {
-                score: similarity,
-                distance: clipService.euclideanDistance(queryVector, embedding),
-                rank: 0,
-              },
-              embeddingGenerated: true,
-            });
-          }
-        } catch (error) {
-          console.error(`Failed to process photo ${photo.id}:`, error);
-          // Add result without embedding
-          results.push({
-            photo,
-            similarity: {
-              score: 0,
-              distance: 0,
-              rank: localPhotos.length,
-            },
-            embeddingGenerated: false,
-          });
-        }
-
-        // Update progress
-        if (generationProgress) {
-          const progress = ((i + 1) / localPhotos.length) * 100;
-          setGenerationProgress((prev) =>
-            prev ? { ...prev, progress } : null,
-          );
-        }
-      }
-
-      // Sort results by similarity
-      results.sort((a, b) => b.similarity.score - a.similarity.score);
-
-      // Update ranks
-      results.forEach((result, index) => {
-        result.similarity.rank = index + 1;
-      });
-
-      setSearchResults(results);
+      setSearchResults(semanticResults);
     } catch (error) {
       console.error("Semantic search failed:", error);
       Alert.alert(
@@ -431,10 +376,8 @@ export default function SemanticSearchScreen() {
     }
   }, [
     searchQuery,
-    localPhotos,
     clipService,
-    embeddingCache,
-    generationProgress,
+    embeddingIndex,
   ]);
 
   // Debounced search

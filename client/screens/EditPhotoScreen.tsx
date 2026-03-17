@@ -28,11 +28,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import PhotoPreview from "@/components/PhotoPreview";
+import CropOverlay from "@/components/CropOverlay";
 import { useTheme } from "@/hooks/useTheme";
 import { Colors, Spacing, BorderRadius } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { apiRequest } from "@/lib/query-client";
 import { Photo } from "@/types";
+import Slider from "@react-native-community/slider";
 import {
   PhotoEditor,
   createPhotoEditor,
@@ -49,6 +52,16 @@ import {
   getAdjustmentsByCategory,
   resetAdjustmentsToDefault,
 } from "@/lib/adjustments";
+import {
+  rotatePhoto,
+  flipPhoto,
+  rotateAndFlipPhoto,
+  cropPhoto,
+  CropSettings,
+  FlipSettings,
+  ASPECT_RATIOS,
+  AspectRatioKey,
+} from "@/lib/photo-editor-actions";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -74,6 +87,22 @@ export default function EditPhotoScreen() {
   const [adjustments, setAdjustments] =
     useState<ImageAdjustments>(DEFAULT_ADJUSTMENTS);
   const [showBeforeAfter, setShowBeforeAfter] = useState(false);
+  const [rotationDegrees, setRotationDegrees] = useState<90 | 180 | 270>(90);
+  const [flipSettings, setFlipSettings] = useState<FlipSettings>({
+    horizontal: false,
+    vertical: false,
+  });
+  const [cropSettings, setCropSettings] = useState<CropSettings>({
+    originX: 0,
+    originY: 0,
+    width: 1000,
+    height: 1000,
+  });
+  const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatioKey>("FREE");
+  const [imageDimensions, setImageDimensions] = useState({
+    width: 1000,
+    height: 1000,
+  });
 
   // Initialize photo editor
   useEffect(() => {
@@ -149,6 +178,119 @@ export default function EditPhotoScreen() {
       }
     }
   }, [editor]);
+
+  // Handle rotate
+  const handleRotate = useCallback(async () => {
+    try {
+      const newUri = await rotatePhoto(currentUri, rotationDegrees);
+      setCurrentUri(newUri);
+      if (editor) {
+        // Add to editor history for undo/redo
+        await editor.applyRotation({
+          degrees: rotationDegrees,
+          flipHorizontal: false,
+          flipVertical: false,
+        });
+      }
+    } catch (error) {
+      console.error("Rotate error:", error);
+      Alert.alert("Error", "Failed to rotate photo");
+    }
+  }, [currentUri, rotationDegrees, editor]);
+
+  // Handle flip horizontal
+  const handleFlipHorizontal = useCallback(async () => {
+    try {
+      const newFlipSettings = { ...flipSettings, horizontal: !flipSettings.horizontal };
+      const newUri = await flipPhoto(currentUri, newFlipSettings);
+      setCurrentUri(newUri);
+      setFlipSettings(newFlipSettings);
+      if (editor) {
+        await editor.applyRotation({
+          degrees: 0,
+          flipHorizontal: newFlipSettings.horizontal,
+          flipVertical: newFlipSettings.vertical,
+        });
+      }
+    } catch (error) {
+      console.error("Flip error:", error);
+      Alert.alert("Error", "Failed to flip photo");
+    }
+  }, [currentUri, flipSettings, editor]);
+
+  // Handle flip vertical
+  const handleFlipVertical = useCallback(async () => {
+    try {
+      const newFlipSettings = { ...flipSettings, vertical: !flipSettings.vertical };
+      const newUri = await flipPhoto(currentUri, newFlipSettings);
+      setCurrentUri(newUri);
+      setFlipSettings(newFlipSettings);
+      if (editor) {
+        await editor.applyRotation({
+          degrees: 0,
+          flipHorizontal: newFlipSettings.horizontal,
+          flipVertical: newFlipSettings.vertical,
+        });
+      }
+    } catch (error) {
+      console.error("Flip error:", error);
+      Alert.alert("Error", "Failed to flip photo");
+    }
+  }, [currentUri, flipSettings, editor]);
+
+  // Handle crop
+  const handleCrop = useCallback(async () => {
+    try {
+      const newUri = await cropPhoto(currentUri, cropSettings);
+      setCurrentUri(newUri);
+      if (editor) {
+        await editor.applyCrop(cropSettings);
+      }
+      // Switch back to tools tab after successful crop
+      setActiveTab("tools");
+    } catch (error) {
+      console.error("Crop error:", error);
+      Alert.alert("Error", "Failed to crop photo");
+    }
+  }, [currentUri, cropSettings, editor]);
+
+  // Handle crop change
+  const handleCropChange = useCallback((newCropSettings: CropSettings) => {
+    setCropSettings(newCropSettings);
+  }, []);
+
+  // Handle aspect ratio change
+  const handleAspectRatioChange = useCallback((ratio: AspectRatioKey) => {
+    setSelectedAspectRatio(ratio);
+    const aspectRatio = ASPECT_RATIOS[ratio];
+    // Calculate new crop settings based on aspect ratio
+    const newCrop = {
+      originX: imageDimensions.width * 0.1,
+      originY: imageDimensions.height * 0.1,
+      width: imageDimensions.width * 0.8,
+      height: imageDimensions.height * 0.8,
+    };
+
+    if (aspectRatio && ratio !== "FREE") {
+      // Apply aspect ratio constraints
+      const imgWidth = imageDimensions.width * 0.8;
+      const imgHeight = imageDimensions.height * 0.8;
+      
+      if (imgWidth / aspectRatio <= imgHeight) {
+        newCrop.width = imgWidth;
+        newCrop.height = imgWidth / aspectRatio;
+      } else {
+        newCrop.height = imgHeight;
+        newCrop.width = imgHeight * aspectRatio;
+      }
+      
+      // Center the crop
+      newCrop.originX = (imageDimensions.width - newCrop.width) / 2;
+      newCrop.originY = (imageDimensions.height - newCrop.height) / 2;
+    }
+
+    setCropSettings(newCrop);
+  }, [imageDimensions]);
 
   // Handle save
   const saveMutation = useMutation({
@@ -297,15 +439,18 @@ export default function EditPhotoScreen() {
                   </ThemedText>
                 </View>
                 <View style={styles.adjustmentSlider}>
-                  {/* Slider placeholder - would implement actual slider component */}
-                  <View style={styles.sliderTrack} />
-                  <View
-                    style={[
-                      styles.sliderThumb,
-                      {
-                        left: `${((adjustments[config.id] - config.min) / (config.max - config.min)) * 100}%`,
-                      },
-                    ]}
+                  <Slider
+                    style={styles.slider}
+                    minimumValue={config.min}
+                    maximumValue={config.max}
+                    value={adjustments[config.id]}
+                    onValueChange={(value) =>
+                      handleAdjustmentChange(config.id, value)
+                    }
+                    minimumTrackTintColor={theme.accent}
+                    maximumTrackTintColor={theme.textSecondary}
+                    thumbStyle={{ backgroundColor: theme.accent }}
+                    step={config.step || 0.01}
                   />
                 </View>
               </View>
@@ -323,12 +468,16 @@ export default function EditPhotoScreen() {
       <View style={styles.tabContent}>
         <View style={styles.toolsGrid}>
           {[
-            { id: "rotate", name: "Rotate", icon: "rotate-cw" },
-            { id: "flip", name: "Flip", icon: "columns" },
-            { id: "crop", name: "Crop", icon: "crop" },
-            { id: "straighten", name: "Straighten", icon: "maximize-2" },
+            { id: "rotate", name: "Rotate", icon: "rotate-cw", onPress: handleRotate },
+            { id: "flip-horizontal", name: "Flip H", icon: "columns", onPress: handleFlipHorizontal },
+            { id: "flip-vertical", name: "Flip V", icon: "maximize-2", onPress: handleFlipVertical },
+            { id: "crop", name: "Crop", icon: "crop", onPress: () => setActiveTab("crop") },
           ].map((tool) => (
-            <Pressable key={tool.id} style={styles.toolItem}>
+            <Pressable 
+              key={tool.id} 
+              style={styles.toolItem}
+              onPress={tool.onPress}
+            >
               <View style={styles.toolIcon}>
                 <Feather name={tool.icon as any} size={24} color={theme.text} />
               </View>
@@ -338,7 +487,7 @@ export default function EditPhotoScreen() {
         </View>
       </View>
     ),
-    [theme],
+    [theme, handleRotate, handleFlipHorizontal, handleFlipVertical, setActiveTab],
   );
 
   // Render crop tab
@@ -350,22 +499,43 @@ export default function EditPhotoScreen() {
           <ThemedText type="body" style={styles.cropDescription}>
             Select aspect ratio and drag corners to crop
           </ThemedText>
+          
+          {/* Aspect ratio selection */}
           <View style={styles.aspectRatios}>
-            {[
-              { ratio: "Free", aspect: null },
-              { ratio: "1:1", aspect: 1 },
-              { ratio: "4:3", aspect: 4 / 3 },
-              { ratio: "16:9", aspect: 16 / 9 },
-            ].map((item) => (
-              <Pressable key={item.ratio} style={styles.aspectRatioButton}>
-                <ThemedText type="small">{item.ratio}</ThemedText>
+            {Object.keys(ASPECT_RATIOS).map((ratio) => (
+              <Pressable
+                key={ratio}
+                style={[
+                  styles.aspectRatioButton,
+                  selectedAspectRatio === ratio && styles.aspectRatioButtonSelected,
+                ]}
+                onPress={() => handleAspectRatioChange(ratio as AspectRatioKey)}
+              >
+                <ThemedText 
+                  type="small" 
+                  style={[
+                    selectedAspectRatio === ratio && { color: theme.accent }
+                  ]}
+                >
+                  {ratio === "FREE" ? "Free" : ratio.replace("_", ":")}
+                </ThemedText>
               </Pressable>
             ))}
           </View>
+
+          {/* Crop apply button */}
+          <Pressable
+            style={[styles.cropButton, { backgroundColor: theme.accent }]}
+            onPress={handleCrop}
+          >
+            <ThemedText type="body" style={{ color: "white" }}>
+              Apply Crop
+            </ThemedText>
+          </Pressable>
         </View>
       </View>
     ),
-    [],
+    [selectedAspectRatio, theme, handleAspectRatioChange, handleCrop],
   );
 
   // Render tab content
@@ -464,16 +634,24 @@ export default function EditPhotoScreen() {
           style={styles.previewWrapper}
           onPress={() => setShowBeforeAfter(!showBeforeAfter)}
         >
-          <Image
-            source={{ uri: showBeforeAfter ? initialUri : currentUri }}
-            style={styles.previewImage}
-            contentFit="contain"
-            cachePolicy="none"
+          <PhotoPreview
+            uri={currentUri}
+            adjustments={adjustments}
+            showBeforeAfter={showBeforeAfter}
+            originalUri={initialUri}
+            width={SCREEN_WIDTH}
+            height={SCREEN_HEIGHT * 0.5}
           />
-          {showBeforeAfter && (
-            <View style={styles.beforeAfterLabel}>
-              <ThemedText type="small">Before</ThemedText>
-            </View>
+          
+          {/* Crop overlay when crop tab is active */}
+          {activeTab === "crop" && (
+            <CropOverlay
+              imageWidth={SCREEN_WIDTH}
+              imageHeight={SCREEN_HEIGHT * 0.5}
+              onCropChange={handleCropChange}
+              initialCrop={cropSettings}
+              aspectRatio={selectedAspectRatio === "FREE" ? null : ASPECT_RATIOS[selectedAspectRatio]}
+            />
           )}
         </Pressable>
       </View>
@@ -621,25 +799,11 @@ const styles = StyleSheet.create({
   },
   adjustmentSlider: {
     height: 40,
-    position: "relative",
+    justifyContent: 'center',
   },
-  sliderTrack: {
-    position: "absolute",
-    top: 15,
-    left: 0,
-    right: 0,
-    height: 10,
-    backgroundColor: "#E5E5EA",
-    borderRadius: 5,
-  },
-  sliderThumb: {
-    position: "absolute",
-    top: 5,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "#007AFF",
-    transform: [{ translateX: -15 }],
+  slider: {
+    width: '100%',
+    height: 40,
   },
   toolsGrid: {
     flexDirection: "row",
@@ -679,6 +843,16 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     backgroundColor: "#F2F2F7",
     borderRadius: BorderRadius.sm,
+  },
+  aspectRatioButtonSelected: {
+    backgroundColor: theme.accent,
+  },
+  cropButton: {
+    marginTop: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    alignItems: "center",
   },
   bottomActions: {
     flexDirection: "row",

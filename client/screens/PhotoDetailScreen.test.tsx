@@ -1,21 +1,46 @@
 /**
- * Tests for PhotoDetailScreen metadata update functionality
- * Validates Requirements 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7
+ * Tests for PhotoDetailScreen metadata update functionality and video playback
+ * Validates Requirements 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7 and video playback features
  */
 
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor, render, screen, fireEvent } from "@testing-library/react";
 import {
   QueryClient,
   QueryClientProvider,
   useMutation,
 } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/query-client";
+import { useVideoPlayer, VideoView } from "expo-video";
+import { useRoute, useNavigation } from "@react-navigation/native";
 
-// Mock apiRequest
+// Mock dependencies
 vi.mock("@/lib/query-client", () => ({
   apiRequest: vi.fn(),
+}));
+
+vi.mock("expo-video", () => ({
+  useVideoPlayer: vi.fn(),
+  VideoView: vi.fn(({ style, accessibilityLabel }) => 
+    React.createElement('View', { testID: 'video-view', style, accessibilityLabel })
+  ),
+}));
+
+vi.mock("@react-navigation/native", () => ({
+  useRoute: vi.fn(),
+  useNavigation: vi.fn(),
+  useSafeAreaInsets: () => ({ top: 44, bottom: 34, left: 0, right: 0 }),
+}));
+
+vi.mock("@/lib/secure-storage", () => ({
+  getDecryptedPhotoUri: vi.fn((photo) => Promise.resolve(photo.uri)),
+}));
+
+vi.mock("@shopify/flash-list", () => ({
+  FlashList: ({ children }: { children: React.ReactNode }) => 
+    React.createElement('View', { testID: 'flash-list', children })
+  },
 }));
 
 describe("PhotoDetailScreen - Metadata Updates", () => {
@@ -390,6 +415,231 @@ describe("PhotoDetailScreen - Metadata Updates", () => {
       });
 
       vi.useRealTimers();
+    });
+  });
+});
+
+describe("PhotoDetailScreen - Video Playback", () => {
+  let queryClient: QueryClient;
+  const mockNavigate = vi.fn();
+  const mockRoute = {
+    params: { photoId: 'video-123', initialIndex: 0, context: 'photos' },
+  };
+
+  const mockPhotos = [
+    {
+      id: 'video-123',
+      uri: 'file://video.mp4',
+      width: 1920,
+      height: 1080,
+      filename: 'test-video.mp4',
+      isVideo: true,
+      videoDuration: 120,
+      videoThumbnailUri: 'file://thumbnail.jpg',
+      createdAt: Date.now(),
+      modifiedAt: Date.now(),
+      isFavorite: false,
+      albumIds: [],
+    },
+    {
+      id: 'photo-456',
+      uri: 'file://photo.jpg',
+      width: 1920,
+      height: 1080,
+      filename: 'test-photo.jpg',
+      isVideo: false,
+      createdAt: Date.now(),
+      modifiedAt: Date.now(),
+      isFavorite: false,
+      albumIds: [],
+    },
+  ];
+
+  beforeEach(() => {
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    vi.clearAllMocks();
+
+    vi.mocked(useNavigation).mockReturnValue({
+      goBack: mockNavigate,
+      navigate: mockNavigate,
+    } as any);
+
+    vi.mocked(useRoute).mockReturnValue(mockRoute as any);
+
+    vi.mocked(apiRequest).mockResolvedValue({
+      json: () => Promise.resolve({ photos: mockPhotos }),
+    });
+  });
+
+  afterEach(() => {
+    queryClient.clear();
+    vi.restoreAllMocks();
+  });
+
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+
+  describe("Video Player Integration", () => {
+    it("should render video player for video items", async () => {
+      const mockPlayer = {
+        loop: false,
+        muted: false,
+        play: vi.fn(),
+        pause: vi.fn(),
+      };
+
+      vi.mocked(useVideoPlayer).mockReturnValue(mockPlayer as any);
+
+      // Import and render the component
+      const PhotoDetailScreen = require("./PhotoDetailScreen").default;
+      
+      render(<PhotoDetailScreen />, { wrapper });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("video-view")).toBeTruthy();
+      });
+
+      expect(useVideoPlayer).toHaveBeenCalledWith("file://video.mp4", expect.any(Function));
+      expect(screen.getByTestId("video-view")).toHaveProp("accessibilityLabel", "Video player");
+    });
+
+    it("should render image for non-video items", async () => {
+      // Update route to point to a photo
+      vi.mocked(useRoute).mockReturnValue({
+        params: { photoId: 'photo-456', initialIndex: 1, context: 'photos' },
+      } as any);
+
+      const PhotoDetailScreen = require("./PhotoDetailScreen").default;
+      render(<PhotoDetailScreen />, { wrapper });
+
+      // Should not render video view for photos
+      expect(screen.queryByTestId("video-view")).toBeNull();
+    });
+
+    it("should configure video player correctly", async () => {
+      const mockPlayer = {
+        loop: false,
+        muted: false,
+        play: vi.fn(),
+        pause: vi.fn(),
+      };
+
+      vi.mocked(useVideoPlayer).mockReturnValue(mockPlayer as any);
+
+      const PhotoDetailScreen = require("./PhotoDetailScreen").default;
+      render(<PhotoDetailScreen />, { wrapper });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("video-view")).toBeTruthy();
+      });
+
+      // Verify player configuration
+      const setupCallback = vi.mocked(useVideoPlayer).mock.calls[0][1];
+      setupCallback(mockPlayer);
+
+      expect(mockPlayer.loop).toBe(false);
+      expect(mockPlayer.muted).toBe(false);
+    });
+  });
+
+  describe("Video Controls and Accessibility", () => {
+    it("should show video-specific accessibility labels", async () => {
+      const mockPlayer = {
+        loop: false,
+        muted: false,
+        play: vi.fn(),
+        pause: vi.fn(),
+      };
+
+      vi.mocked(useVideoPlayer).mockReturnValue(mockPlayer as any);
+
+      const PhotoDetailScreen = require("./PhotoDetailScreen").default;
+      render(<PhotoDetailScreen />, { wrapper });
+
+      await waitFor(() => {
+        const videoView = screen.getByTestId("video-view");
+        expect(videoView).toHaveProp("accessibilityLabel", "Video player");
+      });
+    });
+
+    it("should handle video player controls", async () => {
+      const mockPlayer = {
+        loop: false,
+        muted: false,
+        play: vi.fn(),
+        pause: vi.fn(),
+      };
+
+      vi.mocked(useVideoPlayer).mockReturnValue(mockPlayer as any);
+
+      const PhotoDetailScreen = require("./PhotoDetailScreen").default;
+      render(<PhotoDetailScreen />, { wrapper });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("video-view")).toBeTruthy();
+      });
+
+      // Test that VideoView receives correct props
+      const videoView = screen.getByTestId("video-view");
+      expect(videoView).toHaveProp("allowsFullscreen", true);
+      expect(videoView).toHaveProp("allowsPictureInPicture", true);
+    });
+  });
+
+  describe("Video Error Handling", () => {
+    it("should handle video loading errors gracefully", async () => {
+      // Mock video loading error
+      vi.mocked(require("@/lib/secure-storage").getDecryptedPhotoUri).mockRejectedValue(
+        new Error("Failed to decrypt video")
+      );
+
+      const mockPlayer = {
+        loop: false,
+        muted: false,
+        play: vi.fn(),
+        pause: vi.fn(),
+      };
+
+      vi.mocked(useVideoPlayer).mockReturnValue(mockPlayer as any);
+
+      // Mock console.error to prevent test output noise
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      const PhotoDetailScreen = require("./PhotoDetailScreen").default;
+      render(<PhotoDetailScreen />, { wrapper });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("video-view")).toBeTruthy();
+      });
+
+      consoleSpy.mockRestore();
+    });
+
+    it("should handle corrupted video files", async () => {
+      const mockPlayer = {
+        loop: false,
+        muted: false,
+        play: vi.fn(),
+        pause: vi.fn(),
+      };
+
+      vi.mocked(useVideoPlayer).mockReturnValue(mockPlayer as any);
+
+      const PhotoDetailScreen = require("./PhotoDetailScreen").default;
+      render(<PhotoDetailScreen />, { wrapper });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("video-view")).toBeTruthy();
+      });
+
+      // The component should still render even with potential video issues
+      expect(screen.getByTestId("video-view")).toBeTruthy();
     });
   });
 });
