@@ -19,14 +19,22 @@ if (typeof process !== "undefined") {
 // Expo/React Native globals
 (globalThis as unknown as { __DEV__?: boolean }).__DEV__ = false;
 
-// Mock React Native modules
+// Mock React Native modules with TV compatibility
 vi.mock("react-native", () => ({
   Platform: {
     OS: "ios",
     select: (obj: any) => obj.ios || obj.default,
+    isTV: false, // TV detection
+    isPad: false, // iPad detection
+    constants: {
+      Version: "14.0",
+      systemName: "iOS",
+      model: "iPhone",
+    },
   },
   StyleSheet: {
     create: (styles: any) => styles,
+    flatten: (style: any) => style,
   },
   Dimensions: {
     get: () => ({ width: 375, height: 812 }),
@@ -35,9 +43,22 @@ vi.mock("react-native", () => ({
   },
   PixelRatio: {
     get: () => 2,
+    getFontScale: () => 1,
+    getPixelSizeForLayoutSize: vi.fn((size) => size * 2),
   },
   AppRegistry: {
     registerComponent: vi.fn(),
+    unregisterComponent: vi.fn(),
+    runApplication: vi.fn(),
+  },
+  // TV-specific additions
+  TVEventHandler: {
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+  },
+  NavigationExperimental: {
+    StackNavigator: vi.fn(),
+    TabNavigator: vi.fn(),
   },
 }));
 
@@ -148,10 +169,15 @@ vi.mock("react-native-gesture-handler", () => ({
   Directions: {},
 }));
 
-// Mock ML modules
+// Mock ML modules with proper hoisted initialization
+const mockTFLiteManager = vi.hoisted(() => {
+  const { createMockTFLiteManager } = require("../client/lib/ml/__mocks__/tflite");
+  return createMockTFLiteManager();
+});
+
 vi.mock("react-native-fast-tflite", () => ({
-  createMockTFLiteManager: vi.fn(),
-  TFLiteManager: vi.fn(),
+  createMockTFLiteManager: vi.fn().mockReturnValue(mockTFLiteManager),
+  TFLiteManager: vi.fn().mockImplementation(() => mockTFLiteManager),
 }));
 
 // Mock database module to prevent DATABASE_URL warnings

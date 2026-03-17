@@ -1,7 +1,7 @@
 # Prompt.md
 
 
-1. Read all of @TODO.md for the highest priority open/active task.
+1. Read @AGENTS.md all of @TODO.md for the highest priority open/active task.
 
 
 <stop> Execute step one. </stop>
