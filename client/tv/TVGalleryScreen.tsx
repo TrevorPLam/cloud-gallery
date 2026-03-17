@@ -7,7 +7,7 @@
 // TESTS: test with D-pad navigation; verify focus indicators and accessibility
 // AI-META-END
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -20,16 +20,24 @@ import {
   ScrollView,
   TextInput,
   Alert,
-} from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
-import { TVFocusGuideView } from 'react-native-tvos';
-import { Video } from 'expo-av';
-import { Ionicons } from '@expo/vector-icons';
+} from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import { TVFocusGuideView } from "react-native-tvos";
+import { Video } from "expo-av";
+import { Ionicons } from "@expo/vector-icons";
 
-import { tvStreamingService, StreamConfig, StreamingState } from '../streaming-service';
-import { tvVoiceSearchService, VoiceCommand, VoiceSearchState } from '../voice-search';
+import {
+  tvStreamingService,
+  StreamConfig,
+  StreamingState,
+} from "../streaming-service";
+import {
+  tvVoiceSearchService,
+  VoiceCommand,
+  VoiceSearchState,
+} from "../voice-search";
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 // TV-specific constants for 10-foot UI
 const TV_CONSTANTS = {
@@ -72,7 +80,9 @@ export const TVGalleryScreen: React.FC<TVGalleryScreenProps> = ({
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoItem | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(route.params?.initialQuery || '');
+  const [searchQuery, setSearchQuery] = useState(
+    route.params?.initialQuery || "",
+  );
   const [focusedIndex, setFocusedIndex] = useState(0);
   const [showVoiceHelp, setShowVoiceHelp] = useState(false);
   const [gridColumns, setGridColumns] = useState(4);
@@ -84,7 +94,9 @@ export const TVGalleryScreen: React.FC<TVGalleryScreenProps> = ({
   const focusGuideRefs = useRef<(View | null)[]>([]);
 
   // Streaming and voice states
-  const [streamingState, setStreamingState] = useState<StreamingState | null>(null);
+  const [streamingState, setStreamingState] = useState<StreamingState | null>(
+    null,
+  );
   const [voiceState, setVoiceState] = useState<VoiceSearchState | null>(null);
 
   // Initialize services and TV-specific setup
@@ -118,7 +130,8 @@ export const TVGalleryScreen: React.FC<TVGalleryScreenProps> = ({
       }
 
       // Subscribe to streaming state changes
-      const unsubscribeStreaming = tvStreamingService.subscribe(setStreamingState);
+      const unsubscribeStreaming =
+        tvStreamingService.subscribe(setStreamingState);
 
       // Setup voice search
       const unsubscribeVoice = tvVoiceSearchService.subscribe(setVoiceState);
@@ -129,7 +142,7 @@ export const TVGalleryScreen: React.FC<TVGalleryScreenProps> = ({
         unsubscribeVoice();
       };
     } catch (error) {
-      console.error('Failed to setup TV services:', error);
+      console.error("Failed to setup TV services:", error);
     }
   };
 
@@ -151,23 +164,27 @@ export const TVGalleryScreen: React.FC<TVGalleryScreenProps> = ({
   const loadPhotos = async () => {
     try {
       // Mock data - in real implementation, this would fetch from API
-      const mockPhotos: PhotoItem[] = Array.from({ length: 20 }, (_, index) => ({
-        id: `photo-${index}`,
-        uri: `https://picsum.photos/400/300?random=${index}`,
-        thumbnail: `https://picsum.photos/200/150?random=${index}`,
-        title: `Photo ${index + 1}`,
-        isVideo: index % 5 === 0, // Every 5th item is a video
-        duration: index % 5 === 0 ? Math.floor(Math.random() * 300) + 30 : undefined,
-        resolution: {
-          width: 1920,
-          height: 1080,
-        },
-      }));
+      const mockPhotos: PhotoItem[] = Array.from(
+        { length: 20 },
+        (_, index) => ({
+          id: `photo-${index}`,
+          uri: `https://picsum.photos/400/300?random=${index}`,
+          thumbnail: `https://picsum.photos/200/150?random=${index}`,
+          title: `Photo ${index + 1}`,
+          isVideo: index % 5 === 0, // Every 5th item is a video
+          duration:
+            index % 5 === 0 ? Math.floor(Math.random() * 300) + 30 : undefined,
+          resolution: {
+            width: 1920,
+            height: 1080,
+          },
+        }),
+      );
 
       setPhotos(mockPhotos);
     } catch (error) {
-      console.error('Failed to load photos:', error);
-      Alert.alert('Error', 'Failed to load photos');
+      console.error("Failed to load photos:", error);
+      Alert.alert("Error", "Failed to load photos");
     }
   };
 
@@ -198,8 +215,8 @@ export const TVGalleryScreen: React.FC<TVGalleryScreenProps> = ({
       await tvStreamingService.play();
       setIsPlaying(true);
     } catch (error) {
-      console.error('Failed to setup video playback:', error);
-      Alert.alert('Error', 'Failed to play video');
+      console.error("Failed to setup video playback:", error);
+      Alert.alert("Error", "Failed to play video");
     }
   };
 
@@ -208,28 +225,31 @@ export const TVGalleryScreen: React.FC<TVGalleryScreenProps> = ({
    */
   const showPhotoPreview = (photo: PhotoItem) => {
     // In a real implementation, this would show a full-screen preview
-    navigation.navigate('PhotoPreview', { photoId: photo.id });
+    navigation.navigate("PhotoPreview", { photoId: photo.id });
   };
 
   /**
    * Handle voice commands
    */
-  const handleVoiceCommand = useCallback((command: VoiceCommand) => {
-    switch (command.intent) {
-      case 'search':
-        handleSearch(command.parameters.query);
-        break;
-      case 'navigate':
-        handleNavigation(command.parameters.destination);
-        break;
-      case 'play':
-        if (selectedPhoto?.isVideo) {
-          tvStreamingService.play();
-          setIsPlaying(true);
-        }
-        break;
-    }
-  }, [selectedPhoto]);
+  const handleVoiceCommand = useCallback(
+    (command: VoiceCommand) => {
+      switch (command.intent) {
+        case "search":
+          handleSearch(command.parameters.query);
+          break;
+        case "navigate":
+          handleNavigation(command.parameters.destination);
+          break;
+        case "play":
+          if (selectedPhoto?.isVideo) {
+            tvStreamingService.play();
+            setIsPlaying(true);
+          }
+          break;
+      }
+    },
+    [selectedPhoto],
+  );
 
   /**
    * Handle search functionality
@@ -237,30 +257,33 @@ export const TVGalleryScreen: React.FC<TVGalleryScreenProps> = ({
   const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);
     // In real implementation, this would filter photos
-    console.log('Searching for:', query);
+    console.log("Searching for:", query);
   }, []);
 
   /**
    * Handle navigation commands
    */
-  const handleNavigation = useCallback((destination: string) => {
-    switch (destination) {
-      case 'albums':
-        navigation.navigate('Albums');
-        break;
-      case 'recent':
-        navigation.navigate('Recent');
-        break;
-      case 'favorites':
-        navigation.navigate('Favorites');
-        break;
-      case 'settings':
-        navigation.navigate('Settings');
-        break;
-      default:
-        console.log('Unknown destination:', destination);
-    }
-  }, [navigation]);
+  const handleNavigation = useCallback(
+    (destination: string) => {
+      switch (destination) {
+        case "albums":
+          navigation.navigate("Albums");
+          break;
+        case "recent":
+          navigation.navigate("Recent");
+          break;
+        case "favorites":
+          navigation.navigate("Favorites");
+          break;
+        case "settings":
+          navigation.navigate("Settings");
+          break;
+        default:
+          console.log("Unknown destination:", destination);
+      }
+    },
+    [navigation],
+  );
 
   /**
    * Start voice search
@@ -269,8 +292,8 @@ export const TVGalleryScreen: React.FC<TVGalleryScreenProps> = ({
     try {
       await tvVoiceSearchService.startListening();
     } catch (error) {
-      console.error('Failed to start voice search:', error);
-      Alert.alert('Error', 'Failed to start voice search');
+      console.error("Failed to start voice search:", error);
+      Alert.alert("Error", "Failed to start voice search");
     }
   };
 
@@ -280,22 +303,44 @@ export const TVGalleryScreen: React.FC<TVGalleryScreenProps> = ({
   const createStreamConfig = (photo: PhotoItem): StreamConfig => {
     return {
       url: photo.uri,
-      format: 'hls',
+      format: "hls",
       qualities: [
-        { bitrate: 2000, resolution: { width: 1920, height: 1080 }, label: '1080p' },
-        { bitrate: 1000, resolution: { width: 1280, height: 720 }, label: '720p' },
-        { bitrate: 500, resolution: { width: 854, height: 480 }, label: '480p' },
+        {
+          bitrate: 2000,
+          resolution: { width: 1920, height: 1080 },
+          label: "1080p",
+        },
+        {
+          bitrate: 1000,
+          resolution: { width: 1280, height: 720 },
+          label: "720p",
+        },
+        {
+          bitrate: 500,
+          resolution: { width: 854, height: 480 },
+          label: "480p",
+        },
       ],
-      fallbackQuality: { bitrate: 500, resolution: { width: 854, height: 480 }, label: '480p' },
+      fallbackQuality: {
+        bitrate: 500,
+        resolution: { width: 854, height: 480 },
+        label: "480p",
+      },
     };
   };
 
   /**
    * Render photo grid item with TV focus
    */
-  const renderPhotoItem = ({ item, index }: { item: PhotoItem; index: number }) => {
+  const renderPhotoItem = ({
+    item,
+    index,
+  }: {
+    item: PhotoItem;
+    index: number;
+  }) => {
     const isFocused = focusedIndex === index;
-    
+
     return (
       <TVFocusGuideView
         key={item.id}
@@ -303,10 +348,7 @@ export const TVGalleryScreen: React.FC<TVGalleryScreenProps> = ({
         autoFocus={index === 0}
       >
         <TouchableOpacity
-          style={[
-            styles.photoItem,
-            isFocused && styles.photoItemFocused,
-          ]}
+          style={[styles.photoItem, isFocused && styles.photoItemFocused]}
           onPress={() => handlePhotoSelect(item, index)}
           onFocus={() => setFocusedIndex(index)}
           activeOpacity={0.8}
@@ -316,7 +358,7 @@ export const TVGalleryScreen: React.FC<TVGalleryScreenProps> = ({
             style={styles.photoThumbnail}
             resizeMode="cover"
           />
-          
+
           {/* Video indicator */}
           {item.isVideo && (
             <View style={styles.videoIndicator}>
@@ -328,9 +370,7 @@ export const TVGalleryScreen: React.FC<TVGalleryScreenProps> = ({
           )}
 
           {/* Focus indicator */}
-          {isFocused && (
-            <View style={styles.focusIndicator} />
-          )}
+          {isFocused && <View style={styles.focusIndicator} />}
 
           <Text style={styles.photoTitle} numberOfLines={1}>
             {item.title}
@@ -346,7 +386,12 @@ export const TVGalleryScreen: React.FC<TVGalleryScreenProps> = ({
   const renderSearchBar = () => (
     <View style={styles.searchBarContainer}>
       <View style={styles.searchInputContainer}>
-        <Ionicons name="search" size={24} color="#666" style={styles.searchIcon} />
+        <Ionicons
+          name="search"
+          size={24}
+          color="#666"
+          style={styles.searchIcon}
+        />
         <TextInput
           ref={searchInputRef}
           style={styles.searchInput}
@@ -358,7 +403,7 @@ export const TVGalleryScreen: React.FC<TVGalleryScreenProps> = ({
           clearButtonMode="while-editing"
         />
       </View>
-      
+
       <TouchableOpacity
         style={[
           styles.voiceButton,
@@ -368,10 +413,10 @@ export const TVGalleryScreen: React.FC<TVGalleryScreenProps> = ({
         onFocus={() => setShowVoiceHelp(true)}
         onBlur={() => setShowVoiceHelp(false)}
       >
-        <Ionicons 
-          name="mic" 
-          size={24} 
-          color={voiceState?.isListening ? "#fff" : "#666"} 
+        <Ionicons
+          name="mic"
+          size={24}
+          color={voiceState?.isListening ? "#fff" : "#666"}
         />
       </TouchableOpacity>
 
@@ -407,7 +452,7 @@ export const TVGalleryScreen: React.FC<TVGalleryScreenProps> = ({
             }
           }}
         />
-        
+
         {/* Streaming quality indicator */}
         {streamingState?.currentQuality && (
           <View style={styles.qualityIndicator}>
@@ -434,7 +479,7 @@ export const TVGalleryScreen: React.FC<TVGalleryScreenProps> = ({
   const formatDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
   };
 
   /**
@@ -493,19 +538,19 @@ export const TVGalleryScreen: React.FC<TVGalleryScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: "#1a1a1a",
   },
   searchBarContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: TV_CONSTANTS.GRID_SPACING,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: "#2a2a2a",
   },
   searchInputContainer: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#3a3a3a',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#3a3a3a",
     borderRadius: TV_CONSTANTS.CARD_BORDER_RADIUS,
     paddingHorizontal: TV_CONSTANTS.GRID_SPACING,
     marginRight: TV_CONSTANTS.GRID_SPACING,
@@ -516,31 +561,31 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     height: TV_CONSTANTS.MIN_TOUCH_TARGET,
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
   },
   voiceButton: {
     width: TV_CONSTANTS.MIN_TOUCH_TARGET,
     height: TV_CONSTANTS.MIN_TOUCH_TARGET,
     borderRadius: TV_CONSTANTS.MIN_TOUCH_TARGET / 2,
-    backgroundColor: '#3a3a3a',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#3a3a3a",
+    justifyContent: "center",
+    alignItems: "center",
   },
   voiceButtonActive: {
-    backgroundColor: '#e74c3c',
+    backgroundColor: "#e74c3c",
   },
   voiceHelp: {
-    position: 'absolute',
+    position: "absolute",
     top: TV_CONSTANTS.MIN_TOUCH_TARGET + 8,
     right: 0,
-    backgroundColor: '#333',
+    backgroundColor: "#333",
     padding: 8,
     borderRadius: 8,
     minWidth: 200,
   },
   voiceHelpText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 14,
   },
   contentContainer: {
@@ -554,117 +599,117 @@ const styles = StyleSheet.create({
     margin: TV_CONSTANTS.GRID_SPACING / 2,
   },
   photoItem: {
-    backgroundColor: '#2a2a2a',
+    backgroundColor: "#2a2a2a",
     borderRadius: TV_CONSTANTS.CARD_BORDER_RADIUS,
-    overflow: 'hidden',
-    position: 'relative',
+    overflow: "hidden",
+    position: "relative",
   },
   photoItemFocused: {
     borderWidth: TV_CONSTANTS.FOCUS_BORDER_WIDTH,
-    borderColor: '#3498db',
-    shadowColor: '#3498db',
+    borderColor: "#3498db",
+    shadowColor: "#3498db",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 8,
     elevation: 8,
   },
   photoThumbnail: {
-    width: '100%',
+    width: "100%",
     aspectRatio: 1,
-    backgroundColor: '#333',
+    backgroundColor: "#333",
   },
   videoIndicator: {
-    position: 'absolute',
+    position: "absolute",
     top: 8,
     right: 8,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: "rgba(0,0,0,0.7)",
     borderRadius: 4,
     padding: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   videoDuration: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 12,
     marginLeft: 4,
   },
   focusIndicator: {
-    position: 'absolute',
+    position: "absolute",
     top: -2,
     left: -2,
     right: -2,
     bottom: -2,
     borderWidth: 2,
-    borderColor: '#3498db',
+    borderColor: "#3498db",
     borderRadius: TV_CONSTANTS.CARD_BORDER_RADIUS + 2,
-    pointerEvents: 'none',
+    pointerEvents: "none",
   },
   photoTitle: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 14,
     padding: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   videoPlayerContainer: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#000',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#000",
+    justifyContent: "center",
+    alignItems: "center",
   },
   videoPlayer: {
     width: screenWidth,
     aspectRatio: TV_CONSTANTS.PREVIEW_ASPECT_RATIO,
   },
   qualityIndicator: {
-    position: 'absolute',
+    position: "absolute",
     top: 20,
     right: 20,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: "rgba(0,0,0,0.7)",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
   },
   qualityText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   voiceStatus: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 20,
     left: 20,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: "rgba(0,0,0,0.7)",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   voiceStatusText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 12,
     marginLeft: 4,
   },
   statusBar: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: "#2a2a2a",
     paddingVertical: 8,
     paddingHorizontal: TV_CONSTANTS.GRID_SPACING,
   },
   statusText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 12,
-    textAlign: 'center',
+    textAlign: "center",
   },
   errorText: {
-    color: '#e74c3c',
+    color: "#e74c3c",
   },
 });
 

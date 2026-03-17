@@ -7,9 +7,9 @@
 // TESTS: test with various network conditions; verify adaptive bitrate switching
 // AI-META-END
 
-import { AppState, AppStateStatus, Platform } from 'react-native';
-import { Audio, Video } from 'expo-av';
-import * as Network from 'expo-network';
+import { AppState, AppStateStatus, Platform } from "react-native";
+import { Audio, Video } from "expo-av";
+import * as Network from "expo-network";
 
 export interface StreamQuality {
   bitrate: number;
@@ -22,7 +22,7 @@ export interface StreamQuality {
 
 export interface StreamConfig {
   url: string;
-  format: 'hls' | 'dash';
+  format: "hls" | "dash";
   qualities: StreamQuality[];
   fallbackQuality?: StreamQuality;
 }
@@ -55,7 +55,7 @@ class TVStreamingService {
     };
 
     // Monitor app state for proper resource management
-    AppState.addEventListener('change', this.handleAppStateChange.bind(this));
+    AppState.addEventListener("change", this.handleAppStateChange.bind(this));
     this.startNetworkMonitoring();
   }
 
@@ -68,17 +68,22 @@ class TVStreamingService {
 
     try {
       // Validate stream format support
-      if (config.format === 'dash' && Platform.OS === 'ios') {
-        throw new Error('DASH format not fully supported on iOS, use HLS instead');
+      if (config.format === "dash" && Platform.OS === "ios") {
+        throw new Error(
+          "DASH format not fully supported on iOS, use HLS instead",
+        );
       }
 
       // Set up video player with streaming optimizations
       await this.setupVideoPlayer();
       this.updateState({ isLoading: false });
     } catch (error) {
-      this.updateState({ 
-        error: error instanceof Error ? error.message : 'Failed to initialize streaming',
-        isLoading: false 
+      this.updateState({
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to initialize streaming",
+        isLoading: false,
       });
       throw error;
     }
@@ -88,7 +93,7 @@ class TVStreamingService {
    * Set up video player with TV-specific optimizations
    */
   private async setupVideoPlayer(): Promise<void> {
-    if (!this.config) throw new Error('Stream configuration not set');
+    if (!this.config) throw new Error("Stream configuration not set");
 
     // Configure video for TV playback
     await Video.setAudioModeAsync({
@@ -109,25 +114,26 @@ class TVStreamingService {
    */
   async play(): Promise<void> {
     if (!this.config || !this.videoRef) {
-      throw new Error('Streaming not properly initialized');
+      throw new Error("Streaming not properly initialized");
     }
 
     try {
       this.updateState({ isLoading: true });
 
       await this.videoRef.playAsync();
-      this.updateState({ 
-        isPlaying: true, 
+      this.updateState({
+        isPlaying: true,
         isLoading: false,
-        error: null 
+        error: null,
       });
 
       // Start adaptive quality monitoring
       this.startAdaptiveMonitoring();
     } catch (error) {
-      this.updateState({ 
-        error: error instanceof Error ? error.message : 'Failed to start playback',
-        isLoading: false 
+      this.updateState({
+        error:
+          error instanceof Error ? error.message : "Failed to start playback",
+        isLoading: false,
       });
       throw error;
     }
@@ -143,7 +149,7 @@ class TVStreamingService {
       await this.videoRef.pauseAsync();
       this.updateState({ isPlaying: false });
     } catch (error) {
-      console.error('Failed to pause playback:', error);
+      console.error("Failed to pause playback:", error);
     }
   }
 
@@ -155,13 +161,13 @@ class TVStreamingService {
 
     try {
       await this.videoRef.stopAsync();
-      this.updateState({ 
-        isPlaying: false, 
+      this.updateState({
+        isPlaying: false,
         currentQuality: null,
-        error: null 
+        error: null,
       });
     } catch (error) {
-      console.error('Failed to stop playback:', error);
+      console.error("Failed to stop playback:", error);
     }
   }
 
@@ -192,7 +198,7 @@ class TVStreamingService {
   subscribe(listener: (state: StreamingState) => void): () => void {
     this.listeners.push(listener);
     return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
+      this.listeners = this.listeners.filter((l) => l !== listener);
     };
   }
 
@@ -224,7 +230,7 @@ class TVStreamingService {
           this.adaptQuality(networkSpeed);
         }
       } catch (error) {
-        console.error('Network monitoring error:', error);
+        console.error("Network monitoring error:", error);
       }
     }, 5000); // Check every 5 seconds
   }
@@ -243,20 +249,27 @@ class TVStreamingService {
 
       try {
         const status = await this.videoRef.getStatusAsync();
-        
-        if (status.isLoaded && 'playableDuration' in status && 'position' in status) {
-          const bufferHealth = (status.playableDuration || 0) - (status.position || 0);
+
+        if (
+          status.isLoaded &&
+          "playableDuration" in status &&
+          "position" in status
+        ) {
+          const bufferHealth =
+            (status.playableDuration || 0) - (status.position || 0);
           this.updateState({ bufferHealth });
 
           // Adapt quality based on buffer health and network speed
-          if (bufferHealth < 2) { // Less than 2 seconds buffered
+          if (bufferHealth < 2) {
+            // Less than 2 seconds buffered
             this.adaptQuality(this.state.networkSpeed, true); // Prefer lower quality
-          } else if (bufferHealth > 10) { // More than 10 seconds buffered
+          } else if (bufferHealth > 10) {
+            // More than 10 seconds buffered
             this.adaptQuality(this.state.networkSpeed, false); // Can try higher quality
           }
         }
       } catch (error) {
-        console.error('Adaptive monitoring error:', error);
+        console.error("Adaptive monitoring error:", error);
       }
     }, 2000); // Check every 2 seconds during playback
   }
@@ -264,25 +277,33 @@ class TVStreamingService {
   /**
    * Adapt streaming quality based on network conditions
    */
-  private adaptQuality(networkSpeed: number, preferLower: boolean = false): void {
+  private adaptQuality(
+    networkSpeed: number,
+    preferLower: boolean = false,
+  ): void {
     if (!this.config) return;
 
     const optimalQuality = this.selectOptimalQuality(networkSpeed, preferLower);
-    
+
     if (optimalQuality !== this.state.currentQuality) {
       this.updateState({ currentQuality: optimalQuality });
-      
+
       // In a real implementation, this would switch the actual stream
-      console.log(`Adapted quality to: ${optimalQuality.label} (${optimalQuality.bitrate} kbps)`);
+      console.log(
+        `Adapted quality to: ${optimalQuality.label} (${optimalQuality.bitrate} kbps)`,
+      );
     }
   }
 
   /**
    * Select optimal quality based on network speed
    */
-  private selectOptimalQuality(networkSpeed: number, preferLower: boolean = false): StreamQuality {
+  private selectOptimalQuality(
+    networkSpeed: number,
+    preferLower: boolean = false,
+  ): StreamQuality {
     if (!this.config) {
-      throw new Error('Stream configuration not set');
+      throw new Error("Stream configuration not set");
     }
 
     const sortedQualities = [...this.config.qualities].sort((a, b) => {
@@ -294,23 +315,26 @@ class TVStreamingService {
 
     // Find the best quality for current network speed
     for (const quality of sortedQualities) {
-      if (quality.bitrate <= networkSpeed * 0.8) { // Use 80% of available bandwidth
+      if (quality.bitrate <= networkSpeed * 0.8) {
+        // Use 80% of available bandwidth
         return quality;
       }
     }
 
     // Fallback to lowest quality if none fit
-    return this.config.fallbackQuality || sortedQualities[sortedQualities.length - 1];
+    return (
+      this.config.fallbackQuality || sortedQualities[sortedQualities.length - 1]
+    );
   }
 
   /**
    * Handle app state changes for resource management
    */
   private handleAppStateChange(nextAppState: AppStateStatus): void {
-    if (nextAppState === 'background' && this.state.isPlaying) {
+    if (nextAppState === "background" && this.state.isPlaying) {
       // Pause playback when app goes to background
       this.pause();
-    } else if (nextAppState === 'active' && this.config) {
+    } else if (nextAppState === "active" && this.config) {
       // Resume monitoring when app comes to foreground
       this.startNetworkMonitoring();
     }
@@ -321,7 +345,7 @@ class TVStreamingService {
    */
   private updateState(updates: Partial<StreamingState>): void {
     this.state = { ...this.state, ...updates };
-    this.listeners.forEach(listener => listener(this.state));
+    this.listeners.forEach((listener) => listener(this.state));
   }
 
   /**
@@ -345,19 +369,23 @@ export const tvStreamingService = new TVStreamingService();
 export const createStreamConfig = (
   baseUrl: string,
   videoId: string,
-  format: 'hls' | 'dash' = 'hls'
+  format: "hls" | "dash" = "hls",
 ): StreamConfig => {
   const qualities: StreamQuality[] = [
-    { bitrate: 2000, resolution: { width: 1920, height: 1080 }, label: '1080p' },
-    { bitrate: 1000, resolution: { width: 1280, height: 720 }, label: '720p' },
-    { bitrate: 500, resolution: { width: 854, height: 480 }, label: '480p' },
-    { bitrate: 300, resolution: { width: 640, height: 360 }, label: '360p' },
+    {
+      bitrate: 2000,
+      resolution: { width: 1920, height: 1080 },
+      label: "1080p",
+    },
+    { bitrate: 1000, resolution: { width: 1280, height: 720 }, label: "720p" },
+    { bitrate: 500, resolution: { width: 854, height: 480 }, label: "480p" },
+    { bitrate: 300, resolution: { width: 640, height: 360 }, label: "360p" },
   ];
 
   const fallbackQuality = qualities[qualities.length - 1]; // 360p fallback
 
   let url: string;
-  if (format === 'hls') {
+  if (format === "hls") {
     url = `${baseUrl}/streams/${videoId}/playlist.m3u8`;
   } else {
     url = `${baseUrl}/streams/${videoId}/manifest.mpd`;

@@ -7,9 +7,9 @@
 // TESTS: test voice recognition accuracy; verify privacy compliance
 // AI-META-END
 
-import { Platform, Alert } from 'react-native';
-import Voice from 'react-native-voice';
-import * as Speech from 'expo-speech';
+import { Platform, Alert } from "react-native";
+import Voice from "react-native-voice";
+import * as Speech from "expo-speech";
 
 export interface VoiceCommand {
   intent: string;
@@ -39,14 +39,14 @@ class TVVoiceSearchService {
 
   // Photo gallery specific voice commands
   private readonly PHOTO_COMMANDS = {
-    SEARCH: ['search', 'find', 'look for', 'show me'],
-    NAVIGATE: ['go to', 'navigate to', 'open', 'show'],
-    PLAY: ['play', 'start', 'watch'],
-    ALBUM: ['album', 'gallery', 'collection'],
-    PHOTOS: ['photos', 'pictures', 'images', 'memories'],
-    RECENT: ['recent', 'latest', 'new'],
-    FAVORITES: ['favorites', 'liked', 'starred'],
-    SETTINGS: ['settings', 'preferences', 'options'],
+    SEARCH: ["search", "find", "look for", "show me"],
+    NAVIGATE: ["go to", "navigate to", "open", "show"],
+    PLAY: ["play", "start", "watch"],
+    ALBUM: ["album", "gallery", "collection"],
+    PHOTOS: ["photos", "pictures", "images", "memories"],
+    RECENT: ["recent", "latest", "new"],
+    FAVORITES: ["favorites", "liked", "starred"],
+    SETTINGS: ["settings", "preferences", "options"],
   };
 
   constructor() {
@@ -73,24 +73,25 @@ class TVVoiceSearchService {
       Voice.onSpeechError = this.onSpeechError.bind(this);
 
       // Platform-specific configuration
-      if (Platform.OS === 'ios') {
-        await Voice.start('en-US', {
-          RECOGNIZER_ENGINE: 'SPEECH_RECOGNITION_ENGINE_SFSI',
+      if (Platform.OS === "ios") {
+        await Voice.start("en-US", {
+          RECOGNIZER_ENGINE: "SPEECH_RECOGNITION_ENGINE_SFSI",
           EXTRA_PARTIAL_RESULTS: true,
           EXTRA_MAX_ALTERNATIVES: 3,
         });
       } else {
-        await Voice.start('en-US', {
+        await Voice.start("en-US", {
           EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS: 2000,
           EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS: 1500,
           EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS: 15000,
-          EXTRA_LANGUAGE_MODEL: 'LANGUAGE_MODEL_FREE_FORM',
+          EXTRA_LANGUAGE_MODEL: "LANGUAGE_MODEL_FREE_FORM",
         });
       }
     } catch (error) {
-      console.error('Failed to initialize voice recognition:', error);
-      this.updateState({ 
-        error: 'Voice recognition initialization failed. Please check microphone permissions.' 
+      console.error("Failed to initialize voice recognition:", error);
+      this.updateState({
+        error:
+          "Voice recognition initialization failed. Please check microphone permissions.",
       });
     }
   }
@@ -107,14 +108,17 @@ class TVVoiceSearchService {
       // Check microphone permissions
       const hasPermission = await this.checkMicrophonePermission();
       if (!hasPermission) {
-        throw new Error('Microphone permission required for voice search');
+        throw new Error("Microphone permission required for voice search");
       }
 
-      await Voice.start('en-US');
+      await Voice.start("en-US");
     } catch (error) {
-      this.updateState({ 
+      this.updateState({
         isListening: false,
-        error: error instanceof Error ? error.message : 'Failed to start voice recognition'
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to start voice recognition",
       });
     }
   }
@@ -129,7 +133,7 @@ class TVVoiceSearchService {
       await Voice.stop();
       this.updateState({ isListening: false });
     } catch (error) {
-      console.error('Failed to stop voice recognition:', error);
+      console.error("Failed to stop voice recognition:", error);
     }
   }
 
@@ -141,27 +145,27 @@ class TVVoiceSearchService {
 
     try {
       const command = this.parseVoiceCommand(transcript);
-      
+
       if (command) {
-        this.updateState({ 
+        this.updateState({
           lastResult: {
             query: transcript,
             timestamp: new Date(),
             confidence: command.confidence,
-          }
+          },
         });
 
         // Provide audio feedback
         await this.speakConfirmation(command);
-        
+
         return command;
       }
 
       return null;
     } catch (error) {
-      console.error('Failed to process voice command:', error);
-      this.updateState({ 
-        error: 'Failed to process voice command'
+      console.error("Failed to process voice command:", error);
+      this.updateState({
+        error: "Failed to process voice command",
       });
       return null;
     } finally {
@@ -178,9 +182,12 @@ class TVVoiceSearchService {
     // Search commands
     for (const searchKeyword of this.PHOTO_COMMANDS.SEARCH) {
       if (normalizedText.includes(searchKeyword)) {
-        const searchQuery = this.extractSearchQuery(normalizedText, searchKeyword);
+        const searchQuery = this.extractSearchQuery(
+          normalizedText,
+          searchKeyword,
+        );
         return {
-          intent: 'search',
+          intent: "search",
           parameters: { query: searchQuery },
           confidence: 0.9,
         };
@@ -192,7 +199,7 @@ class TVVoiceSearchService {
       if (normalizedText.includes(navKeyword)) {
         const destination = this.extractDestination(normalizedText, navKeyword);
         return {
-          intent: 'navigate',
+          intent: "navigate",
           parameters: { destination },
           confidence: 0.85,
         };
@@ -203,7 +210,7 @@ class TVVoiceSearchService {
     for (const playKeyword of this.PHOTO_COMMANDS.PLAY) {
       if (normalizedText.includes(playKeyword)) {
         return {
-          intent: 'play',
+          intent: "play",
           parameters: {},
           confidence: 0.8,
         };
@@ -211,26 +218,38 @@ class TVVoiceSearchService {
     }
 
     // Simple keyword detection for basic commands
-    if (this.PHOTO_COMMANDS.RECENT.some(keyword => normalizedText.includes(keyword))) {
+    if (
+      this.PHOTO_COMMANDS.RECENT.some((keyword) =>
+        normalizedText.includes(keyword),
+      )
+    ) {
       return {
-        intent: 'navigate',
-        parameters: { destination: 'recent' },
+        intent: "navigate",
+        parameters: { destination: "recent" },
         confidence: 0.8,
       };
     }
 
-    if (this.PHOTO_COMMANDS.FAVORITES.some(keyword => normalizedText.includes(keyword))) {
+    if (
+      this.PHOTO_COMMANDS.FAVORITES.some((keyword) =>
+        normalizedText.includes(keyword),
+      )
+    ) {
       return {
-        intent: 'navigate',
-        parameters: { destination: 'favorites' },
+        intent: "navigate",
+        parameters: { destination: "favorites" },
         confidence: 0.8,
       };
     }
 
-    if (this.PHOTO_COMMANDS.SETTINGS.some(keyword => normalizedText.includes(keyword))) {
+    if (
+      this.PHOTO_COMMANDS.SETTINGS.some((keyword) =>
+        normalizedText.includes(keyword),
+      )
+    ) {
       return {
-        intent: 'navigate',
-        parameters: { destination: 'settings' },
+        intent: "navigate",
+        parameters: { destination: "settings" },
         confidence: 0.8,
       };
     }
@@ -247,10 +266,13 @@ class TVVoiceSearchService {
     let query = transcript.substring(queryStart).trim();
 
     // Remove common stop words
-    const stopWords = ['the', 'a', 'an', 'of', 'in', 'on', 'at', 'to', 'for'];
-    query = query.split(' ').filter(word => !stopWords.includes(word)).join(' ');
+    const stopWords = ["the", "a", "an", "of", "in", "on", "at", "to", "for"];
+    query = query
+      .split(" ")
+      .filter((word) => !stopWords.includes(word))
+      .join(" ");
 
-    return query || 'all photos';
+    return query || "all photos";
   }
 
   /**
@@ -262,45 +284,49 @@ class TVVoiceSearchService {
     const destination = transcript.substring(destinationStart).trim();
 
     // Map common destination phrases to screen names
-    if (this.PHOTO_COMMANDS.ALBUM.some(album => destination.includes(album))) {
-      return 'albums';
+    if (
+      this.PHOTO_COMMANDS.ALBUM.some((album) => destination.includes(album))
+    ) {
+      return "albums";
     }
-    if (this.PHOTO_COMMANDS.PHOTOS.some(photo => destination.includes(photo))) {
-      return 'photos';
+    if (
+      this.PHOTO_COMMANDS.PHOTOS.some((photo) => destination.includes(photo))
+    ) {
+      return "photos";
     }
 
-    return destination.toLowerCase() || 'home';
+    return destination.toLowerCase() || "home";
   }
 
   /**
    * Provide audio confirmation for voice commands
    */
   private async speakConfirmation(command: VoiceCommand): Promise<void> {
-    let confirmationText = '';
+    let confirmationText = "";
 
     switch (command.intent) {
-      case 'search':
+      case "search":
         confirmationText = `Searching for ${command.parameters.query}`;
         break;
-      case 'navigate':
+      case "navigate":
         confirmationText = `Opening ${command.parameters.destination}`;
         break;
-      case 'play':
-        confirmationText = 'Starting playback';
+      case "play":
+        confirmationText = "Starting playback";
         break;
       default:
-        confirmationText = 'Command recognized';
+        confirmationText = "Command recognized";
     }
 
     try {
       await Speech.speak(confirmationText, {
-        language: 'en',
+        language: "en",
         pitch: 1.0,
         rate: 0.9,
         volume: 0.8,
       });
     } catch (error) {
-      console.error('Failed to speak confirmation:', error);
+      console.error("Failed to speak confirmation:", error);
     }
   }
 
@@ -313,7 +339,7 @@ class TVVoiceSearchService {
       // For now, we'll assume permission is granted
       return true;
     } catch (error) {
-      console.error('Failed to check microphone permission:', error);
+      console.error("Failed to check microphone permission:", error);
       return false;
     }
   }
@@ -323,12 +349,12 @@ class TVVoiceSearchService {
    */
   private getAllSupportedCommands(): string[] {
     return [
-      ...this.PHOTO_COMMANDS.SEARCH.map(cmd => `${cmd} [photos/albums]`),
-      ...this.PHOTO_COMMANDS.NAVIGATE.map(cmd => `${cmd} [screen name]`),
-      ...this.PHOTO_COMMANDS.PLAY.map(cmd => `${cmd} [video/photo]`),
-      'show recent photos',
-      'show favorites',
-      'open settings',
+      ...this.PHOTO_COMMANDS.SEARCH.map((cmd) => `${cmd} [photos/albums]`),
+      ...this.PHOTO_COMMANDS.NAVIGATE.map((cmd) => `${cmd} [screen name]`),
+      ...this.PHOTO_COMMANDS.PLAY.map((cmd) => `${cmd} [video/photo]`),
+      "show recent photos",
+      "show favorites",
+      "open settings",
     ];
   }
 
@@ -351,10 +377,10 @@ class TVVoiceSearchService {
   }
 
   private onSpeechError(e: any): void {
-    console.error('Speech recognition error:', e);
-    this.updateState({ 
+    console.error("Speech recognition error:", e);
+    this.updateState({
       isListening: false,
-      error: e.error || 'Voice recognition error'
+      error: e.error || "Voice recognition error",
     });
   }
 
@@ -378,7 +404,7 @@ class TVVoiceSearchService {
   subscribe(listener: (state: VoiceSearchState) => void): () => void {
     this.listeners.push(listener);
     return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
+      this.listeners = this.listeners.filter((l) => l !== listener);
     };
   }
 
@@ -387,7 +413,7 @@ class TVVoiceSearchService {
    */
   private updateState(updates: Partial<VoiceSearchState>): void {
     this.state = { ...this.state, ...updates };
-    this.listeners.forEach(listener => listener(this.state));
+    this.listeners.forEach((listener) => listener(this.state));
 
     // Notify command callback if we have a new command
     if (updates.lastResult && this.onCommandCallback) {
