@@ -158,6 +158,32 @@ export const photos = pgTable("photos", {
 
   // Compressed file size in bytes
   compressedSize: integer("compressed_size"),
+
+  // ─── Live Photo fields ───
+
+  // Is this a Live Photo (contains motion video)?
+  isLivePhoto: boolean("is_live_photo").default(false).notNull(),
+
+  // URI for the motion video component (separate from main photo)
+  liveVideoUri: text("live_video_uri"),
+
+  // Presentation timestamp in microseconds (when to show still frame in video)
+  livePresentationTimestampUs: integer("live_presentation_timestamp_us"),
+
+  // Live Photo format: "apple", "android", or null
+  livePhotoFormat: varchar("live_photo_format", { length: 10 }),
+
+  // Asset identifier that links still and motion components
+  liveAssetIdentifier: varchar("live_asset_identifier", { length: 255 }),
+
+  // Video duration for Live Photos (typically 3 seconds)
+  liveVideoDuration: integer("live_video_duration"),
+
+  // When Live Photo processing was completed
+  liveProcessedAt: timestamp("live_processed_at", {
+    mode: "date",
+    withTimezone: true,
+  }),
 });
 
 // ─────────────────────────────────────────────────────────
