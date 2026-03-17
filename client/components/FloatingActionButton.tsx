@@ -70,6 +70,9 @@ export function FloatingActionButton({
         animatedStyle,
       ]}
       testID="fab-upload"
+      accessibilityRole="button"
+      accessibilityLabel={icon === "plus" ? "Upload photos" : `Add ${icon}`}
+      accessibilityHint="Opens photo upload interface"
     >
       <Feather name={icon} size={24} color="#FFFFFF" />
     </AnimatedPressable>

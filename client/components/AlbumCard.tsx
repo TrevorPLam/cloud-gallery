@@ -68,6 +68,9 @@ export function AlbumCard({ album, onPress, onLongPress }: AlbumCardProps) {
         animatedStyle,
       ]}
       testID={`album-card-${album.id}`}
+      accessibilityRole="button"
+      accessibilityLabel={`Album: ${album.title} with ${album.photoIds.length} photos`}
+      accessibilityHint="Opens album to view photos"
     >
       <View
         style={[
