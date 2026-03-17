@@ -252,7 +252,6 @@ describe("InpaintingModelService", () => {
       }
 
       const qualities: ('fast' | 'balanced' | 'high')[] = ['fast', 'balanced', 'high'];
-      ];
 
       for (const quality of qualities) {
         const qualityRequest = { ...request, quality };

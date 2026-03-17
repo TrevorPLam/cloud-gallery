@@ -103,7 +103,6 @@ describe("Albums API Provider Verification", () => {
         throw error;
       }
     }, 60000);
-    });
 
     it("should verify GET /api/albums/:id", async () => {
       const pactFiles = [
@@ -205,7 +204,6 @@ describe("Albums API Provider Verification", () => {
         throw error;
       }
     }, 60000);
-    });
 
     it("should verify DELETE /api/albums/:id", async () => {
       const pactFiles = [
@@ -231,9 +229,8 @@ describe("Albums API Provider Verification", () => {
         throw error;
       }
     }, 60000);
-    });
-  });
 });
+
 // Album-specific state handlers
 export const albumStateHandlers = {
   setupAlbumStates: (app: any) => {
