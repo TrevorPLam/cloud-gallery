@@ -9,10 +9,30 @@
  * Only the lifecycle APIs that Detox doesn't re-declare are listed below.
  */
 declare function describe(name: string, fn: () => void): void;
-declare function it(name: string, fn: () => Promise<void> | void, timeout?: number): void;
-declare function test(name: string, fn: () => Promise<void> | void, timeout?: number): void;
-declare function beforeAll(fn: () => Promise<void> | void, timeout?: number): void;
-declare function afterAll(fn: () => Promise<void> | void, timeout?: number): void;
-declare function beforeEach(fn: () => Promise<void> | void, timeout?: number): void;
-declare function afterEach(fn: () => Promise<void> | void, timeout?: number): void;
+declare function it(
+  name: string,
+  fn: () => Promise<void> | void,
+  timeout?: number,
+): void;
+declare function test(
+  name: string,
+  fn: () => Promise<void> | void,
+  timeout?: number,
+): void;
+declare function beforeAll(
+  fn: () => Promise<void> | void,
+  timeout?: number,
+): void;
+declare function afterAll(
+  fn: () => Promise<void> | void,
+  timeout?: number,
+): void;
+declare function beforeEach(
+  fn: () => Promise<void> | void,
+  timeout?: number,
+): void;
+declare function afterEach(
+  fn: () => Promise<void> | void,
+  timeout?: number,
+): void;
 declare function jest(...args: unknown[]): unknown;

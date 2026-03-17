@@ -1,4 +1,4 @@
-import { DEFAULT_LAUNCH_ARGS, TEST_CREDENTIALS } from '../setup';
+import { DEFAULT_LAUNCH_ARGS, TEST_CREDENTIALS } from "../setup";
 
 /**
  * Launch the app with standard E2E flags and optional extra arguments.
@@ -33,7 +33,7 @@ export async function terminateApp(): Promise<void> {
 export async function resetToLogin(): Promise<void> {
   await device.launchApp({
     newInstance: true,
-    permissions: { photos: 'YES', camera: 'YES' },
+    permissions: { photos: "YES", camera: "YES" },
     launchArgs: { ...DEFAULT_LAUNCH_ARGS, clearAsyncStorage: 1 },
   });
 }
@@ -43,15 +43,15 @@ export async function resetToLogin(): Promise<void> {
  */
 export async function loginWithTestCredentials(): Promise<void> {
   const { email, password } = TEST_CREDENTIALS;
-  await element(by.text('Sign in')).tap();
-  const emailField = element(by.traits(['none']).and(by.label('Email')));
+  await element(by.text("Sign in")).tap();
+  const emailField = element(by.traits(["none"]).and(by.label("Email")));
   await emailField.clearText();
   await emailField.typeText(email);
-  const passwordField = element(by.traits(['none']).and(by.label('Password')));
+  const passwordField = element(by.traits(["none"]).and(by.label("Password")));
   await passwordField.clearText();
   await passwordField.typeText(password);
-  await element(by.text('Sign in')).atIndex(1).tap();
-  await waitFor(element(by.text('Photos')))
+  await element(by.text("Sign in")).atIndex(1).tap();
+  await waitFor(element(by.text("Photos")))
     .toBeVisible()
     .withTimeout(10000);
 }

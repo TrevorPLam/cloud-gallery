@@ -15,8 +15,8 @@
  * In CI these are overridden by environment variables.
  */
 export const TEST_CREDENTIALS = {
-  email: process.env.E2E_TEST_EMAIL ?? 'e2e-test@photovault.example',
-  password: process.env.E2E_TEST_PASSWORD ?? 'E2eTestPass123!',
+  email: process.env.E2E_TEST_EMAIL ?? "e2e-test@photovault.example",
+  password: process.env.E2E_TEST_PASSWORD ?? "E2eTestPass123!",
 };
 
 /**
@@ -28,4 +28,3 @@ export const DEFAULT_LAUNCH_ARGS = {
   detoxEnableSynchronization: 1,
   isE2ETest: 1,
 };
-
