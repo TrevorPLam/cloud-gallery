@@ -361,12 +361,13 @@ async function processMLAnalysis(
 ): Promise<MLAnalysisResult> {
   const startTime = Date.now();
 
-  // Placeholder implementation
+  // TODO: Implement real ML processing
   // In production, this would:
   // 1. Load the photo from storage
   // 2. Run ML models based on analysisTypes
   // 3. Return structured results
-
+  
+  // For now, return placeholder results to test the pipeline
   const result: MLAnalysisResult = {
     photoId: request.photoId,
     userId: request.userId,
@@ -377,30 +378,56 @@ async function processMLAnalysis(
 
   // Add placeholder results based on requested analysis types
   if (request.analysisTypes.includes(AnalysisType.OBJECT_DETECTION)) {
+    // Simulate object detection results
+    // In production, these would come from the actual MobileNet model
     result.objects = [
       {
-        label: "person",
+        label: "Dog",
         confidence: 0.85,
-        boundingBox: { x: 10, y: 10, width: 100, height: 150 },
+        boundingBox: { x: 0.1, y: 0.1, width: 0.3, height: 0.4 },
       },
       {
-        label: "outdoor",
+        label: "Outdoor",
         confidence: 0.92,
-        boundingBox: { x: 0, y: 0, width: 200, height: 200 },
+        boundingBox: { x: 0, y: 0, width: 1.0, height: 1.0 },
+      },
+      {
+        label: "Park",
+        confidence: 0.78,
+        boundingBox: { x: 0, y: 0, width: 1.0, height: 1.0 },
       },
     ];
   }
 
   if (request.analysisTypes.includes(AnalysisType.OCR)) {
-    result.ocrText = "Sample extracted text";
+    // OCR is already functional, so we can simulate real results
+    result.ocrText = "Sample extracted text from image";
     result.ocrLanguage = "en";
   }
 
   if (request.analysisTypes.includes(AnalysisType.PERCEPTUAL_HASH)) {
-    result.perceptualHash = "placeholder_hash_value";
+    // Perceptual hashing is already functional
+    result.perceptualHash = generateSamplePerceptualHash(request.photoId);
   }
 
   return result;
+}
+
+/**
+ * Generate sample perceptual hash for testing
+ * In production, this would use the real perceptual hashing service
+ */
+function generateSamplePerceptualHash(photoId: string): string {
+  // Create a deterministic hash based on photo ID for testing
+  let hash = 0;
+  for (let i = 0; i < photoId.length; i++) {
+    const char = photoId.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  
+  // Convert to 64-character hexadecimal hash
+  return Math.abs(hash).toString(16).padStart(64, '0').slice(0, 64);
 }
 
 /**

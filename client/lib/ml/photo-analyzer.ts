@@ -13,6 +13,7 @@ import { loadTensorflowModel, TensorflowModel } from "react-native-fast-tflite";
 import RNMlkitOcr from "react-native-mlkit-ocr";
 import { getPerceptualHasher, generateCompositeHash } from "../photo/perceptual-hash";
 import { FaceDetectionService } from "./face-detection";
+import { preprocessImageForModel } from "./image-preprocessing";
 
 // ─────────────────────────────────────────────────────────
 // TYPES AND INTERFACES
@@ -441,27 +442,219 @@ export class PhotoAnalyzer {
   private async preprocessImage(
     imageUri: string,
     targetSize: number,
-  ): Promise<Uint8Array> {
-    // This is a placeholder implementation
-    // In production, would use proper image processing library
-    // to resize, normalize, and convert to tensor format
-
-    // TODO: Implement actual image preprocessing
-    const dummyData = new Uint8Array(targetSize * targetSize * 3);
-    return dummyData;
+  ): Promise<Float32Array> {
+    try {
+      // Use real image preprocessing with expo-image-manipulator
+      const result = await preprocessImageForModel(
+        imageUri,
+        targetSize,
+        '[-1,1]' // MobileNet normalization
+      );
+      
+      console.log(`PhotoAnalyzer: Image preprocessed to ${result.width}x${result.height} in ${result.processingTime}ms`);
+      
+      return result.tensor;
+    } catch (error) {
+      console.error("PhotoAnalyzer: Image preprocessing failed:", error);
+      throw new Error(`Image preprocessing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   /**
    * Post-process object detection outputs
-   * Convert model outputs to DetectedObject format
+   * Convert MobileNet classification outputs to DetectedObject format
    */
   private postprocessObjectDetection(outputs: any[]): DetectedObject[] {
-    // This is a placeholder implementation
-    // In production, would parse actual model outputs
-    // and apply confidence threshold
+    try {
+      if (!outputs || outputs.length === 0) {
+        console.log("PhotoAnalyzer: No model outputs to post-process");
+        return [];
+      }
 
-    // TODO: Implement actual post-processing
-    return [];
+      // MobileNet typically outputs classification probabilities
+      // The first output tensor contains the classification scores
+      const classificationScores = outputs[0] as Float32Array;
+      
+      if (!classificationScores || classificationScores.length === 0) {
+        console.log("PhotoAnalyzer: Empty classification scores");
+        return [];
+      }
+
+      // Load ImageNet labels (simplified version - in production would load from file)
+      const imagenetLabels = this.getImagenetLabels();
+      
+      if (classificationScores.length !== imagenetLabels.length) {
+        console.warn(`PhotoAnalyzer: Label count mismatch: ${classificationScores.length} scores vs ${imagenetLabels.length} labels`);
+      }
+
+      // Convert scores to detected objects with confidence threshold
+      const detectedObjects: DetectedObject[] = [];
+      const confidenceThreshold = OBJECT_DETECTION_CONFIG.threshold;
+
+      for (let i = 0; i < Math.min(classificationScores.length, imagenetLabels.length); i++) {
+        const confidence = classificationScores[i];
+        const label = imagenetLabels[i];
+
+        // Apply confidence threshold and filter out background classes
+        if (confidence >= confidenceThreshold && this.isValidObjectLabel(label)) {
+          detectedObjects.push({
+            label: this.formatLabel(label),
+            confidence: confidence,
+            boundingBox: {
+              // For classification models, use full image as bounding box
+              x: 0,
+              y: 0,
+              width: 1.0, // Normalized coordinates (0-1)
+              height: 1.0,
+            },
+          });
+        }
+      }
+
+      // Sort by confidence (highest first) and limit to top 10
+      const sortedObjects = detectedObjects
+        .sort((a, b) => b.confidence - a.confidence)
+        .slice(0, 10);
+
+      console.log(`PhotoAnalyzer: Detected ${sortedObjects.length} objects above threshold ${confidenceThreshold}`);
+      
+      return sortedObjects;
+    } catch (error) {
+      console.error("PhotoAnalyzer: Post-processing failed:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Get ImageNet class labels
+   * In production, this would load from a labels file included with the model
+   */
+  private getImagenetLabels(): string[] {
+    // Simplified ImageNet labels for demonstration
+    // In production, load from assets/models/imagenet_labels.txt
+    return [
+      "background", "tench", "goldfish", "great white shark", "tiger shark",
+      "hammerhead", "electric ray", "stingray", "cock", "hen",
+      "ostrich", "brambling", "goldfinch", "house finch", "junco",
+      "indigo bunting", "robin", "bulbul", "jay", "magpie",
+      "chickadee", "water ouzel", "kite", "bald eagle", "vulture",
+      "great grey owl", "European fire salamander", "common newt", "eft", "spotted salamander",
+      "axolotl", "bullfrog", "tree frog", "tailed frog", "loggerhead",
+      "leatherback turtle", "mud turtle", "terrapin", "box turtle", "banded gecko",
+      "common iguana", "American chameleon", "whiptail", "agama", "frilled lizard",
+      "alligator lizard", "Gila monster", "green lizard", "African chameleon", "Komodo dragon",
+      "African crocodile", "American alligator", "triceratops", "thunder snake", "ringneck snake",
+      "hognose snake", "green snake", "king snake", "garter snake", "water snake",
+      "vine snake", "night snake", "boa constrictor", "rock python", "Indian cobra",
+      "green mamba", "sea snake", "horned viper", "diamondback", "sidewinder",
+      "trilobite", "harvestman", "scorpion", "black and gold garden spider", "barn spider",
+      "garden spider", "black widow", "tarantula", "wolf spider", "tick",
+      "centipede", "black grouse", "ptarmigan", "ruffed grouse", "prairie chicken",
+      "peacock", "quail", "partridge", "African grey", "macaw",
+      "sulphur-crested cockatoo", "lorikeet", "coucal", "bee eater", "hornbill",
+      "hummingbird", "jacamar", "toucan", "drake", "red-breasted merganser",
+      "goose", "black swan", "tusker", "echidna", "platypus",
+      "wallaby", "koala", "wombat", "jellyfish", "sea anemone",
+      "brain coral", "flatworm", "nematode", "conch", "snail",
+      "slug", "sea slug", "chiton", "chambered nautilus", "Dungeness crab",
+      "rock crab", "fiddler crab", "king crab", "American lobster", "spiny lobster",
+      "crayfish", "hermit crab", "isopod", "white stork", "black stork",
+      "spoonbill", "flamingo", "little blue heron", "American egret", "heron",
+      "bustard", "ruddy turnstone", "red-backed sandpiper", "redshank", "dowitcher",
+      "oystercatcher", "pelican", "king penguin", "albatross", "grey whale",
+      "humpback whale", "blue whale", "beluga", "narwhal", "sperm whale",
+      "killer whale", "dugong", "sea lion", "Chihuahua", "Japanese spaniel",
+      "Maltese dog", "Pekinese", "Shih-Tzu", "Blenheim spaniel", "papillon",
+      "toy terrier", "Rhodesian ridgeback", "Afghan hound", "basset", "beagle",
+      "bloodhound", "bluetick", "black-and-tan coonhound", "Walker hound", "English foxhound",
+      "redbone", "borzoi", "Irish wolfhound", "Italian greyhound", "whippet",
+      "Ibizan hound", "Norwegian elkhound", "otterhound", "Saluki", "Scottish deerhound",
+      "Weimaraner", "Staffordshire bullterrier", "American Staffordshire terrier", "Bedlington terrier", "Border terrier",
+      "Kerry blue terrier", "Irish terrier", "Norfolk terrier", "Norwich terrier", "Yorkshire terrier",
+      "wire-haired fox terrier", "Lakeland terrier", "Sealyham terrier", "Airedale", "cairn",
+      "Australian terrier", "Dandie Dinmont", "Boston bull", "miniature schnauzer", "giant schnauzer",
+      "standard schnauzer", "Scotch terrier", "Tibetan terrier", "silky terrier", "soft-coated wheaton terrier",
+      "West Highland white terrier", "Lhasa", "flat-coated retriever", "curly-coated retriever", "golden retriever",
+      "Labrador retriever", "Chesapeake Bay retriever", "German short-haired pointer", "vizsla", "English setter",
+      "Irish setter", "Gordon setter", "Brittany spaniel", "clumber", "English springer",
+      "Welsh springer spaniel", "cocker spaniel", "Sussex spaniel", "Irish water spaniel", "kuvasz",
+      "schipperke", "groenendael", "malinois", "briard", "kelpie",
+      "komondor", "Old English sheepdog", "Shetland sheepdog", "collie", "Border collie",
+      "Bouvier des Flandres", "Rottweiler", "German shepherd", "Doberman", "miniature pinscher",
+      "Greater Swiss Mountain dog", "Bernese mountain dog", "Appenzeller", "EntleBucher", "boxer",
+      "bull mastiff", "Tibetan mastiff", "French bulldog", "Great Dane", "Saint Bernard",
+      "Eskimo dog", "malamute", "Siberian husky", "dalmatian", "dachshund",
+      "miniature pinscher", "Pembroke", "Cardigan", "toy poodle", "miniature poodle",
+      "standard poodle", "Mexican hairless", "timber wolf", "white wolf", "red wolf",
+      "coyote", "dingo", "dhole", "African hunting dog", "hyena",
+      "red fox", "kit fox", "Arctic fox", "grey fox", "tabby cat",
+      "tiger cat", "Persian cat", "Siamese cat", "Egyptian cat", "cougar",
+      "lynx", "leopard", "snow leopard", "jaguar", "lion",
+      "tiger", "cheetah", "brown bear", "American black bear", "ice bear",
+      "sloth bear", "mongoose", "meerkat", "tiger beetle", "ladybug",
+      "ground beetle", "long-horned beetle", "leaf beetle", "dung beetle", "rhinoceros beetle",
+      "weevil", "fly", "bee", "ant", "grasshopper",
+      "cricket", "walking stick", "cockroach", "mantis", "cicada",
+      "leafhopper", "lacewing", "dragonfly", "damselfly", "admiral",
+      "ringlet", "monarch", "cabbage butterfly", "sulphur butterfly", "lycaenid",
+      "harvester", "snail", "slug", "sea slug", "nudibranch",
+      "banana", "hand-held computer", "computer keyboard", "desktop computer", "monitor",
+      "notebook computer", "mouse", "electric fan", "electric shaver", "bicycle",
+      "tricycle", "unicycle", "motor scooter", "sports car", "pickup truck",
+      "fire engine", "school bus", "tractor", "lawn mower", "harvester",
+      "helmet", "suitcase", "brassiere", "backpack", "wardrobe",
+      "cloak", "dress", "bunting", "apron", "sari",
+      "gown", "raincoat", "vest", "shirt", "sweater",
+      "tunic", "tank top", "maillot", "bikini", "bath towel",
+      "barbell", "trampoline", "ski", "snowboard", "sports ball",
+      "kayak", "baseball bat", "skateboard", "surfboard", "tennis racket",
+      "balloon", "scissors", "military uniform", "gas mask", "feather boa",
+      "necktie", "bow tie", "abaya", "academic gown", "lab coat",
+      "stethoscope", "academic cap", "mortarboard", "pajamas", "swimming trunks",
+      "kimono", "clothing", "web", "spider web", "cobweb",
+      "plate", "dish", "tableware", "coffee mug", "teapot",
+      "wine bottle", "cup", "fork", "knife", "spoon",
+      "bowl", "banana", "apple", "sandwich", "orange",
+      "broccoli", "carrot", "hot dog", "pizza", "donut",
+      "cake", "chair", "sofa", "potted plant", "bed",
+      "dining table", "toilet", "tv", "laptop", "mouse",
+      "remote", "keyboard", "cell phone", "microwave", "oven",
+      "toaster", "sink", "refrigerator", "book", "clock",
+      "vase", "scissors", "teddy bear", "hair drier", "toothbrush",
+      "backpack", "umbrella", "handbag", "tie", "suitcase",
+      "frisbee", "skis", "snowboard", "sports ball", "kite",
+      "baseball bat", "skateboard", "surfboard", "tennis racket", "bottle",
+      "wine glass", "cup", "fork", "knife", "spoon",
+      "bowl", "banana", "apple", "sandwich", "orange",
+      "broccoli", "carrot", "hot dog", "pizza", "donut",
+      "cake", "chair", "sofa", "potted plant", "bed",
+      "dining table", "toilet", "tv", "laptop", "mouse",
+      "remote", "keyboard", "cell phone", "microwave", "oven",
+      "toaster", "sink", "refrigerator", "book", "clock",
+      "vase", "scissors", "teddy bear", "hair drier", "toothbrush"
+    ];
+  }
+
+  /**
+   * Check if a label represents a valid object (not background or irrelevant)
+   */
+  private isValidObjectLabel(label: string): boolean {
+    const invalidLabels = [
+      'background', 'web', 'spider web', 'cobweb', 'clothing', 'wardrobe',
+      'suitcase', 'backpack', 'handbag', 'umbrella', 'tie'
+    ];
+    
+    return !invalidLabels.includes(label.toLowerCase());
+  }
+
+  /**
+   * Format label for better readability
+   */
+  private formatLabel(label: string): string {
+    return label
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   }
 
   /**
