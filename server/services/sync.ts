@@ -137,7 +137,9 @@ export class SyncService {
       this.startSyncWorker();
       this.startConflictWorker();
     } else {
-      console.log("Redis is disabled. Sync queues and workers will not be initialized.");
+      console.log(
+        "Redis is disabled. Sync queues and workers will not be initialized.",
+      );
     }
   }
 
@@ -600,14 +602,14 @@ export class SyncService {
         async (job) => {
           const { conflict, strategy } = job.data;
 
-        try {
-          await this.resolveConflict(conflict, strategy);
-          console.log(`Conflict resolved: ${conflict.id}`);
-        } catch (error) {
-          console.error(`Conflict resolution failed: ${conflict.id}:`, error);
-          throw error;
-        }
-      },
+          try {
+            await this.resolveConflict(conflict, strategy);
+            console.log(`Conflict resolved: ${conflict.id}`);
+          } catch (error) {
+            console.error(`Conflict resolution failed: ${conflict.id}:`, error);
+            throw error;
+          }
+        },
         {
           connection: {
             host: process.env.REDIS_HOST || "localhost",

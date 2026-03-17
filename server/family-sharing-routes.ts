@@ -4,7 +4,11 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { authenticateToken } from "./auth";
-import { familySharingService, PartnerStatus, PartnerType } from "./services/family-sharing";
+import {
+  familySharingService,
+  PartnerStatus,
+  PartnerType,
+} from "./services/family-sharing";
 
 const router = Router();
 
@@ -23,13 +27,15 @@ const createInvitationSchema = z.object({
 });
 
 const updateRelationshipSchema = z.object({
-  privacySettings: z.object({
-    allowViewAll: z.boolean(),
-    allowDownload: z.boolean(),
-    allowShare: z.boolean(),
-    showMetadata: z.boolean(),
-    requireApproval: z.boolean(),
-  }).optional(),
+  privacySettings: z
+    .object({
+      allowViewAll: z.boolean(),
+      allowDownload: z.boolean(),
+      allowShare: z.boolean(),
+      showMetadata: z.boolean(),
+      requireApproval: z.boolean(),
+    })
+    .optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -37,10 +43,12 @@ const createAutoShareRuleSchema = z.object({
   name: z.string().min(1).max(100),
   criteria: z.object({
     contentType: z.enum(["photos", "videos", "all"]).optional(),
-    dateRange: z.object({
-      start: z.string().datetime(),
-      end: z.string().datetime(),
-    }).optional(),
+    dateRange: z
+      .object({
+        start: z.string().datetime(),
+        end: z.string().datetime(),
+      })
+      .optional(),
     people: z.array(z.string().uuid()).optional(),
     albums: z.array(z.string().uuid()).optional(),
     tags: z.array(z.string()).optional(),
@@ -71,7 +79,10 @@ router.post("/invitations", async (req: Request, res: Response) => {
     }
 
     // Create invitation
-    const result = await familySharingService.createInvitation(userId, validatedData);
+    const result = await familySharingService.createInvitation(
+      userId,
+      validatedData,
+    );
 
     res.status(201).json({
       invitationId: result.invitationId,
@@ -90,64 +101,70 @@ router.post("/invitations", async (req: Request, res: Response) => {
 // ═══════════════════════════════════════════════════════════
 // POST /api/family-sharing/invitations/:token/accept - Accept invitation
 // ═══════════════════════════════════════════════════════════
-router.post("/invitations/:token/accept", async (req: Request, res: Response) => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: "Authentication required" });
-    }
+router.post(
+  "/invitations/:token/accept",
+  async (req: Request, res: Response) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
 
-    const { token } = req.params;
+      const { token } = req.params;
 
-    const result = await familySharingService.acceptInvitation(token, userId);
+      const result = await familySharingService.acceptInvitation(token, userId);
 
-    res.json({
-      relationshipId: result.relationshipId,
-      partnerId: result.partnerId,
-      partnerType: result.partnerType,
-      message: "Partnership established successfully",
-    });
-  } catch (error) {
-    console.error("Failed to accept invitation:", error);
-    if (error instanceof Error && error.message.includes("not found")) {
-      return res.status(404).json({ error: "Invitation not found" });
+      res.json({
+        relationshipId: result.relationshipId,
+        partnerId: result.partnerId,
+        partnerType: result.partnerType,
+        message: "Partnership established successfully",
+      });
+    } catch (error) {
+      console.error("Failed to accept invitation:", error);
+      if (error instanceof Error && error.message.includes("not found")) {
+        return res.status(404).json({ error: "Invitation not found" });
+      }
+      if (error instanceof Error && error.message.includes("expired")) {
+        return res.status(410).json({ error: "Invitation expired" });
+      }
+      res.status(500).json({
+        error: "Failed to accept invitation",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
     }
-    if (error instanceof Error && error.message.includes("expired")) {
-      return res.status(410).json({ error: "Invitation expired" });
-    }
-    res.status(500).json({
-      error: "Failed to accept invitation",
-      message: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-});
+  },
+);
 
 // ═══════════════════════════════════════════════════════════
 // POST /api/family-sharing/invitations/:token/decline - Decline invitation
 // ═══════════════════════════════════════════════════════════
-router.post("/invitations/:token/decline", async (req: Request, res: Response) => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: "Authentication required" });
+router.post(
+  "/invitations/:token/decline",
+  async (req: Request, res: Response) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const { token } = req.params;
+
+      await familySharingService.declineInvitation(token, userId);
+
+      res.json({ message: "Invitation declined" });
+    } catch (error) {
+      console.error("Failed to decline invitation:", error);
+      if (error instanceof Error && error.message.includes("not found")) {
+        return res.status(404).json({ error: "Invitation not found" });
+      }
+      res.status(500).json({
+        error: "Failed to decline invitation",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
     }
-
-    const { token } = req.params;
-
-    await familySharingService.declineInvitation(token, userId);
-
-    res.json({ message: "Invitation declined" });
-  } catch (error) {
-    console.error("Failed to decline invitation:", error);
-    if (error instanceof Error && error.message.includes("not found")) {
-      return res.status(404).json({ error: "Invitation not found" });
-    }
-    res.status(500).json({
-      error: "Failed to decline invitation",
-      message: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-});
+  },
+);
 
 // ═══════════════════════════════════════════════════════════
 // GET /api/family-sharing/partners - Get user's partners
@@ -184,7 +201,11 @@ router.put("/partnerships/:id", async (req: Request, res: Response) => {
     const { id } = req.params;
     const validatedData = updateRelationshipSchema.parse(req.body);
 
-    await familySharingService.updatePartnerRelationship(id, userId, validatedData);
+    await familySharingService.updatePartnerRelationship(
+      id,
+      userId,
+      validatedData,
+    );
 
     res.json({ message: "Partnership updated successfully" });
   } catch (error) {
@@ -212,17 +233,22 @@ router.post("/auto-share-rules", async (req: Request, res: Response) => {
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    const { partnershipId, name, criteria, permissions } = createAutoShareRuleSchema.parse(req.body);
+    const { partnershipId, name, criteria, permissions } =
+      createAutoShareRuleSchema.parse(req.body);
 
     if (!partnershipId) {
       return res.status(400).json({ error: "partnershipId is required" });
     }
 
-    const ruleId = await familySharingService.createAutoShareRule(partnershipId, userId, {
-      name,
-      criteria,
-      permissions,
-    });
+    const ruleId = await familySharingService.createAutoShareRule(
+      partnershipId,
+      userId,
+      {
+        name,
+        criteria,
+        permissions,
+      },
+    );
 
     res.status(201).json({
       ruleId,

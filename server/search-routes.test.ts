@@ -14,7 +14,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // Mock modules before importing search routes
 vi.mock("./services/search", () => {
-  const SearchService = vi.fn(function() {
+  const SearchService = vi.fn(function () {
     this.search = vi.fn().mockResolvedValue({
       photos: [],
       total: 0,
@@ -28,7 +28,7 @@ vi.mock("./services/search", () => {
 });
 
 vi.mock("./services/search-index", () => {
-  const SearchIndexService = vi.fn(function() {
+  const SearchIndexService = vi.fn(function () {
     this.getSearchSuggestions = vi.fn().mockResolvedValue([]);
     this.getPopularSearchTerms = vi.fn().mockResolvedValue([]);
     this.fullTextSearch = vi.fn().mockResolvedValue([]);
@@ -57,30 +57,32 @@ vi.mock("./db", () => {
         where: vi.fn(() => ({
           orderBy: vi.fn(() => ({
             limit: vi.fn(() => ({
-              offset: vi.fn(() => Promise.resolve([]))
-            }))
-          }))
-        }))
-      }))
+              offset: vi.fn(() => Promise.resolve([])),
+            })),
+          })),
+        })),
+      })),
     })),
     $count: vi.fn(),
     // Mock for complex queries in filters endpoint
     selectWithDistinct: vi.fn((columns) => ({
       from: vi.fn((table) => ({
-        where: vi.fn((condition) => Promise.resolve([
-          { label: "beach" },
-          { label: "sunset" },
-          { tag: "vacation" },
-          { tag: "family" },
-          { city: "Miami" },
-          { country: "USA" }
-        ]))
-      }))
+        where: vi.fn((condition) =>
+          Promise.resolve([
+            { label: "beach" },
+            { label: "sunset" },
+            { tag: "vacation" },
+            { tag: "family" },
+            { city: "Miami" },
+            { country: "USA" },
+          ]),
+        ),
+      })),
     })),
     // Mock for count queries
-    countQuery: vi.fn(() => Promise.resolve([{ count: "5" }]))
+    countQuery: vi.fn(() => Promise.resolve([{ count: "5" }])),
   };
-  
+
   return {
     db: mockDb,
     isDbConfigured: true,
@@ -88,13 +90,13 @@ vi.mock("./db", () => {
     sql: vi.fn((template, ...values) => {
       // Mock SQL template literal function
       return template.reduce((result, part, i) => {
-        return result + part + (values[i] || '');
-      }, '');
+        return result + part + (values[i] || "");
+      }, "");
     }),
     eq: vi.fn((column, value) => `${column} = ${value}`),
-    and: vi.fn((...conditions) => conditions.join(' AND ')),
-    or: vi.fn((...conditions) => `(${conditions.join(' OR ')})`),
-    ilike: vi.fn((column, pattern) => `${column} ILIKE ${pattern}`)
+    and: vi.fn((...conditions) => conditions.join(" AND ")),
+    or: vi.fn((...conditions) => `(${conditions.join(" OR ")})`),
+    ilike: vi.fn((column, pattern) => `${column} ILIKE ${pattern}`),
   };
 });
 
@@ -231,8 +233,8 @@ describe("Search Routes", () => {
         })
         .expect(200);
 
-      expect(response.body).toHaveProperty('photos');
-      expect(response.body).toHaveProperty('total');
+      expect(response.body).toHaveProperty("photos");
+      expect(response.body).toHaveProperty("total");
     });
 
     it("should use default pagination values", async () => {
@@ -243,8 +245,8 @@ describe("Search Routes", () => {
         })
         .expect(200);
 
-      expect(response.body).toHaveProperty('photos');
-      expect(response.body).toHaveProperty('pagination');
+      expect(response.body).toHaveProperty("photos");
+      expect(response.body).toHaveProperty("pagination");
       expect(response.body.pagination).toEqual({
         limit: 20,
         offset: 0,
@@ -259,13 +261,16 @@ describe("Search Routes", () => {
       // Reset service mocks for this test suite
       const { SearchService } = await import("./services/search");
       const { SearchIndexService } = await import("./services/search-index");
-      
+
       const searchInstance = vi.mocked(SearchService).mock.instances[0];
       if (searchInstance) {
-        searchInstance.getSuggestions = vi.fn().mockResolvedValue(["beach", "sunset", "ocean"]);
+        searchInstance.getSuggestions = vi
+          .fn()
+          .mockResolvedValue(["beach", "sunset", "ocean"]);
       }
-      
-      const searchIndexInstance = vi.mocked(SearchIndexService).mock.instances[0];
+
+      const searchIndexInstance =
+        vi.mocked(SearchIndexService).mock.instances[0];
       if (searchIndexInstance) {
         searchIndexInstance.getSearchSuggestions = vi.fn().mockResolvedValue([
           { suggestion: "beach", type: "label", count: 10 },
@@ -309,13 +314,16 @@ describe("Search Routes", () => {
       // Reset service mocks for this test suite
       const { SearchService } = await import("./services/search");
       const { SearchIndexService } = await import("./services/search-index");
-      
+
       const searchInstance = vi.mocked(SearchService).mock.instances[0];
       if (searchInstance) {
-        searchInstance.getPopularSearches = vi.fn().mockResolvedValue(["beach photos", "sunset photos"]);
+        searchInstance.getPopularSearches = vi
+          .fn()
+          .mockResolvedValue(["beach photos", "sunset photos"]);
       }
-      
-      const searchIndexInstance = vi.mocked(SearchIndexService).mock.instances[0];
+
+      const searchIndexInstance =
+        vi.mocked(SearchIndexService).mock.instances[0];
       if (searchIndexInstance) {
         searchIndexInstance.getPopularSearchTerms = vi.fn().mockResolvedValue([
           { term: "beach", count: 15 },
@@ -365,9 +373,12 @@ describe("Search Routes", () => {
     beforeEach(async () => {
       // Reset service mocks for this test suite
       const { SearchIndexService } = await import("./services/search-index");
-      const searchIndexInstance = vi.mocked(SearchIndexService).mock.instances[0];
+      const searchIndexInstance =
+        vi.mocked(SearchIndexService).mock.instances[0];
       if (searchIndexInstance) {
-        searchIndexInstance.fullTextSearch = vi.fn().mockResolvedValue(mockPhotos);
+        searchIndexInstance.fullTextSearch = vi
+          .fn()
+          .mockResolvedValue(mockPhotos);
       }
     });
 
@@ -420,30 +431,35 @@ describe("Search Routes", () => {
     beforeEach(async () => {
       // Setup database mocks for filters endpoint
       const { db } = await import("./db");
-      
+
       // Mock the complex database queries for filters
       const mockSelect = vi.mocked(db.select);
       mockSelect.mockImplementation((columns) => {
-        if (typeof columns === 'function' && columns.toString().includes('DISTINCT unnest')) {
+        if (
+          typeof columns === "function" &&
+          columns.toString().includes("DISTINCT unnest")
+        ) {
           return {
             from: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue([
-                { label: "beach" },
-                { label: "sunset" },
-                { tag: "vacation" },
-                { tag: "family" },
-                { city: "Miami" },
-                { country: "USA" }
-              ])
-            })
+              where: vi
+                .fn()
+                .mockResolvedValue([
+                  { label: "beach" },
+                  { label: "sunset" },
+                  { tag: "vacation" },
+                  { tag: "family" },
+                  { city: "Miami" },
+                  { country: "USA" },
+                ]),
+            }),
           };
         }
-        
+
         // Mock count queries
         return {
           from: vi.fn().mockReturnValue({
-            where: vi.fn().mockResolvedValue([{ count: "5" }])
-          })
+            where: vi.fn().mockResolvedValue([{ count: "5" }]),
+          }),
         };
       });
     });
@@ -482,10 +498,15 @@ describe("Search Routes", () => {
     beforeEach(async () => {
       // Setup service mocks for index rebuild
       const { SearchIndexService } = await import("./services/search-index");
-      const searchIndexInstance = vi.mocked(SearchIndexService).mock.instances[0];
+      const searchIndexInstance =
+        vi.mocked(SearchIndexService).mock.instances[0];
       if (searchIndexInstance) {
-        searchIndexInstance.rebuildSearchIndexes = vi.fn().mockResolvedValue(undefined);
-        searchIndexInstance.refreshPopularSearches = vi.fn().mockResolvedValue(undefined);
+        searchIndexInstance.rebuildSearchIndexes = vi
+          .fn()
+          .mockResolvedValue(undefined);
+        searchIndexInstance.refreshPopularSearches = vi
+          .fn()
+          .mockResolvedValue(undefined);
       }
     });
 
@@ -506,8 +527,8 @@ describe("Search Routes", () => {
         .post("/api/search/index/rebuild")
         .expect(200);
 
-      expect(response.body).toHaveProperty('message');
-      expect(response.body).toHaveProperty('timestamp');
+      expect(response.body).toHaveProperty("message");
+      expect(response.body).toHaveProperty("timestamp");
     });
   });
 
@@ -515,7 +536,8 @@ describe("Search Routes", () => {
     beforeEach(async () => {
       // Setup service mocks for index stats
       const { SearchIndexService } = await import("./services/search-index");
-      const searchIndexInstance = vi.mocked(SearchIndexService).mock.instances[0];
+      const searchIndexInstance =
+        vi.mocked(SearchIndexService).mock.instances[0];
       if (searchIndexInstance) {
         searchIndexInstance.getIndexStats = vi.fn().mockResolvedValue({
           totalPhotos: 1000,
@@ -552,8 +574,8 @@ describe("Search Routes", () => {
         .get("/api/search/index/stats")
         .expect(200);
 
-      expect(response.body).toHaveProperty('indexes');
-      expect(response.body).toHaveProperty('timestamp');
+      expect(response.body).toHaveProperty("indexes");
+      expect(response.body).toHaveProperty("timestamp");
     });
   });
 

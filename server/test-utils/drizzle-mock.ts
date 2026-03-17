@@ -56,14 +56,13 @@ export function createDeleteChain() {
  * Build a full mock db object. Use in vi.mock("../db", () => ({ db: createMockDb() }))
  * or in beforeEach: Object.assign(mockDb, createMockDb()) after clearing mocks.
  */
-export function createMockDb(options: {
-  selectResolved?: unknown[];
-  insertReturning?: unknown[];
-} = {}) {
-  const {
-    selectResolved = [],
-    insertReturning = [],
-  } = options;
+export function createMockDb(
+  options: {
+    selectResolved?: unknown[];
+    insertReturning?: unknown[];
+  } = {},
+) {
+  const { selectResolved = [], insertReturning = [] } = options;
   return {
     select: vi.fn(() => createSelectChain(selectResolved as unknown[])),
     insert: vi.fn(() => createInsertChain(insertReturning as unknown[])),

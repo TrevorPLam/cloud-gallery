@@ -38,7 +38,12 @@ const mockSet = vi.fn();
 describe("Public Routes Integration Tests", () => {
   let app: express.Application;
   let testUser: { id: string; username: string };
-  let testAlbum: { id: string; userId: string; title: string; description?: string };
+  let testAlbum: {
+    id: string;
+    userId: string;
+    title: string;
+    description?: string;
+  };
   let authToken: string;
   let publicLink: {
     id: string;
@@ -109,7 +114,14 @@ describe("Public Routes Integration Tests", () => {
           albumTitle: null,
           customTitle: null,
         });
-      if (["token-123", "protected-token", "no-dl-token", "malicious-token"].includes(token))
+      if (
+        [
+          "token-123",
+          "protected-token",
+          "no-dl-token",
+          "malicious-token",
+        ].includes(token)
+      )
         return Promise.resolve({
           valid: true,
           expired: false,
@@ -161,21 +173,25 @@ describe("Public Routes Integration Tests", () => {
       totalViews: 0,
       protectedLinks: 0,
     });
-    mockUpdatePublicLink.mockImplementation((shareId: string, userId: string, opts: any) => {
-      if (userId !== testUser.id)
-        return Promise.reject(new Error("Share not found or access denied"));
-      return Promise.resolve({
-        ...publicLink,
-        id: shareId,
-        ...opts,
-        allowDownload: opts.allowDownload ?? publicLink.allowDownload,
-        showMetadata: opts.showMetadata ?? publicLink.showMetadata,
-        customTitle: opts.customTitle ?? publicLink.customTitle,
-      });
-    });
-    mockRender.mockImplementation((_path: string, _options: any, cb?: Function) => {
-      if (typeof cb === "function") cb(null, "mocked template");
-    });
+    mockUpdatePublicLink.mockImplementation(
+      (shareId: string, userId: string, opts: any) => {
+        if (userId !== testUser.id)
+          return Promise.reject(new Error("Share not found or access denied"));
+        return Promise.resolve({
+          ...publicLink,
+          id: shareId,
+          ...opts,
+          allowDownload: opts.allowDownload ?? publicLink.allowDownload,
+          showMetadata: opts.showMetadata ?? publicLink.showMetadata,
+          customTitle: opts.customTitle ?? publicLink.customTitle,
+        });
+      },
+    );
+    mockRender.mockImplementation(
+      (_path: string, _options: any, cb?: Function) => {
+        if (typeof cb === "function") cb(null, "mocked template");
+      },
+    );
 
     app = express();
     app.use(express.json());
@@ -672,7 +688,8 @@ describe("Public Routes Integration Tests", () => {
         }),
         expect.any(Function),
       );
-      const [, options] = mockRender.mock.calls[mockRender.mock.calls.length - 1];
+      const [, options] =
+        mockRender.mock.calls[mockRender.mock.calls.length - 1];
       expect(String(options?.customTitle ?? "")).not.toContain("<script>");
       expect(String(options?.customDescription ?? "")).not.toContain("<img");
     });

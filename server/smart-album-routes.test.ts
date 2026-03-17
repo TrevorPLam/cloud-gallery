@@ -492,7 +492,9 @@ describe("Smart Albums API Routes", () => {
         id: "album-1",
         isHidden: true,
       });
-      expect(response.body.data.message).toBe("Smart album hidden successfully");
+      expect(response.body.data.message).toBe(
+        "Smart album hidden successfully",
+      );
 
       expect(smartAlbumsService.updateSmartAlbumSettings).toHaveBeenCalledWith(
         "test-user-id",

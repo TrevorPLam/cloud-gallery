@@ -53,6 +53,10 @@ const DEFAULT_CSP_DIRECTIVES: Record<string, string[]> = {
   "base-uri": ["'self'"],
   "form-action": ["'self'"],
   "upgrade-insecure-requests": [],
+  "object-src": ["'none'"], // Prevent plugin execution
+  "media-src": ["'self'"],
+  "manifest-src": ["'self'"],
+  "worker-src": ["'self'"], // Restrict worker origins
 };
 
 /**
@@ -166,11 +170,25 @@ export function securityHeaders(
     // Permissions-Policy (restrict browser features)
     res.setHeader(
       "Permissions-Policy",
-      "geolocation=(), microphone=(), camera=()",
+      "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), ambient-light-sensor=()",
     );
+
+    // Additional security headers
+    res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+    res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+    res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
+    
+    // Content-Type options with nosniff
+    if (otherHeadersConfig.xContentTypeOptions) {
+      res.setHeader("X-Content-Type-Options", "nosniff");
+    }
 
     // Remove X-Powered-By header (information disclosure)
     res.removeHeader("X-Powered-By");
+
+    // Add nonce for CSP if needed
+    const nonce = randomBytes(16).toString('base64');
+    res.locals.cspNonce = nonce;
 
     next();
   };

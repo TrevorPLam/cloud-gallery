@@ -82,12 +82,18 @@ describe("PartnerSharingService - Property Tests", () => {
     vi.clearAllMocks();
     mockDb.select.mockImplementation(() => createChain() as any);
     mockDb.insert.mockImplementation(() => createInsertReturn() as any);
-    mockDb.update.mockImplementation(() => ({
-      set: vi.fn(() => ({ where: vi.fn(() => Promise.resolve([])) })),
-    }) as any);
-    mockDb.delete.mockImplementation(() => ({
-      where: vi.fn(() => Promise.resolve([])),
-    }) as any);
+    mockDb.update.mockImplementation(
+      () =>
+        ({
+          set: vi.fn(() => ({ where: vi.fn(() => Promise.resolve([])) })),
+        }) as any,
+    );
+    mockDb.delete.mockImplementation(
+      () =>
+        ({
+          where: vi.fn(() => Promise.resolve([])),
+        }) as any,
+    );
     service = new PartnerSharingService();
   });
 
@@ -336,7 +342,10 @@ describe("PartnerSharingService - Property Tests", () => {
           )
           .mockReturnValueOnce(
             createChain([
-              { partnership: { ...partnershipRow, status: "pending" }, partnerUsername: "other" },
+              {
+                partnership: { ...partnershipRow, status: "pending" },
+                partnerUsername: "other",
+              },
             ]) as any,
           );
 
@@ -490,9 +499,7 @@ describe("PartnerSharingService - Property Tests", () => {
     };
 
     // Mock partnership lookup
-    mockDb.select.mockReturnValue(
-      createChain([{ id: partnershipId }]) as any,
-    );
+    mockDb.select.mockReturnValue(createChain([{ id: partnershipId }]) as any);
 
     const result = await service.updatePrivacySettings(
       partnershipId,
@@ -518,11 +525,7 @@ describe("PartnerSharingService - Property Tests", () => {
     mockDb.select.mockReturnValue(createChain([]) as any);
 
     await expect(
-      service.updatePrivacySettings(
-        partnershipId,
-        userId,
-        privacySettings,
-      ),
+      service.updatePrivacySettings(partnershipId, userId, privacySettings),
     ).rejects.toThrow("Partnership not found or access denied");
   });
 
@@ -567,9 +570,7 @@ describe("PartnerSharingService - Property Tests", () => {
     };
 
     // Mock rule ownership verification
-    mockDb.select.mockReturnValue(
-      createChain([{ id: ruleId, userId }]) as any,
-    );
+    mockDb.select.mockReturnValue(createChain([{ id: ruleId, userId }]) as any);
 
     const result = await service.updateAutoShareRule(ruleId, userId, updates);
 
@@ -587,9 +588,7 @@ describe("PartnerSharingService - Property Tests", () => {
     const userId = "user-123";
 
     // Mock rule ownership verification
-    mockDb.select.mockReturnValue(
-      createChain([{ id: ruleId, userId }]) as any,
-    );
+    mockDb.select.mockReturnValue(createChain([{ id: ruleId, userId }]) as any);
 
     const result = await service.deleteAutoShareRule(ruleId, userId);
 
@@ -606,9 +605,7 @@ describe("PartnerSharingService - Property Tests", () => {
     const userId = "user-123";
 
     // Mock partnership lookup
-    mockDb.select.mockReturnValue(
-      createChain([{ id: partnershipId }]) as any,
-    );
+    mockDb.select.mockReturnValue(createChain([{ id: partnershipId }]) as any);
 
     const result = await service.endPartnership(partnershipId, userId);
 

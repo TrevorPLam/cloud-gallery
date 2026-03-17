@@ -12,7 +12,17 @@ import {
   albums,
   albumPhotos,
 } from "../../shared/schema";
-import { eq, and, or, isNull, isNotNull, desc, lt, gt, inArray } from "drizzle-orm";
+import {
+  eq,
+  and,
+  or,
+  isNull,
+  isNotNull,
+  desc,
+  lt,
+  gt,
+  inArray,
+} from "drizzle-orm";
 import { randomBytes, createHash } from "crypto";
 import { sharingService, Permission } from "./sharing";
 
@@ -24,7 +34,7 @@ export enum PartnerStatus {
   ACCEPTED = "accepted",
   DECLINED = "declined",
   REVOKED = "revoked",
-  EXPIRED = "expired"
+  EXPIRED = "expired",
 }
 
 /**
@@ -34,7 +44,7 @@ export enum PartnerType {
   FAMILY = "family",
   FRIEND = "friend",
   COLLEAGUE = "colleague",
-  CUSTOM = "custom"
+  CUSTOM = "custom",
 }
 
 /**
@@ -90,7 +100,7 @@ export class FamilySharingService {
    */
   async createInvitation(
     inviterId: string,
-    options: CreateInvitationOptions
+    options: CreateInvitationOptions,
   ): Promise<{
     invitationId: string;
     invitationToken: string;
@@ -102,12 +112,14 @@ export class FamilySharingService {
       message,
       partnerType,
       autoShareRules,
-      expiresInDays = 7
+      expiresInDays = 7,
     } = options;
 
     // Generate secure invitation token
     const invitationToken = this.generateInvitationToken();
-    const expiresAt = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(
+      Date.now() + expiresInDays * 24 * 60 * 60 * 1000,
+    );
 
     // Create invitation record
     const [invitation] = await db
@@ -141,7 +153,7 @@ export class FamilySharingService {
    */
   async acceptInvitation(
     invitationToken: string,
-    accepteeId: string
+    accepteeId: string,
   ): Promise<{
     relationshipId: string;
     partnerId: string;
@@ -229,7 +241,10 @@ export class FamilySharingService {
   /**
    * Decline partner invitation
    */
-  async declineInvitation(invitationToken: string, accepteeId: string): Promise<void> {
+  async declineInvitation(
+    invitationToken: string,
+    accepteeId: string,
+  ): Promise<void> {
     const invitation = await db
       .select()
       .from(partnerInvitations)
@@ -254,7 +269,7 @@ export class FamilySharingService {
    * Get user's partner relationships
    */
   async getUserPartners(userId: string): Promise<
-    Array<{
+    {
       id: string;
       partnerId: string;
       partnerName: string;
@@ -264,7 +279,7 @@ export class FamilySharingService {
       isActive: boolean;
       acceptedAt?: Date;
       privacySettings: any;
-    }>
+    }[]
   > {
     const relationships = await db
       .select({
@@ -299,7 +314,7 @@ export class FamilySharingService {
     updates: {
       privacySettings?: any;
       isActive?: boolean;
-    }
+    },
   ): Promise<void> {
     // Verify user is part of this relationship
     const relationship = await db
@@ -310,9 +325,9 @@ export class FamilySharingService {
           eq(partnerRelationships.id, relationshipId),
           or(
             eq(partnerRelationships.userId, userId),
-            eq(partnerRelationships.partnerId, userId)
-          )
-        )
+            eq(partnerRelationships.partnerId, userId),
+          ),
+        ),
       )
       .limit(1);
 
@@ -339,7 +354,7 @@ export class FamilySharingService {
       name: string;
       criteria: AutoShareCriteria;
       permissions: Permission;
-    }
+    },
   ): Promise<string> {
     // Verify user is part of this partnership
     const relationship = await db
@@ -350,9 +365,9 @@ export class FamilySharingService {
           eq(partnerRelationships.id, partnershipId),
           or(
             eq(partnerRelationships.userId, userId),
-            eq(partnerRelationships.partnerId, userId)
-          )
-        )
+            eq(partnerRelationships.partnerId, userId),
+          ),
+        ),
       )
       .limit(1);
 
@@ -380,10 +395,7 @@ export class FamilySharingService {
   /**
    * Share photo with partner based on auto-share rules
    */
-  async autoSharePhoto(
-    photoId: string,
-    userId: string
-  ): Promise<string[]> {
+  async autoSharePhoto(photoId: string, userId: string): Promise<string[]> {
     const sharedWith: string[] = [];
 
     // Get user's active partnerships
@@ -394,8 +406,8 @@ export class FamilySharingService {
         and(
           eq(partnerRelationships.userId, userId),
           eq(partnerRelationships.status, PartnerStatus.ACCEPTED),
-          eq(partnerRelationships.isActive, true)
-        )
+          eq(partnerRelationships.isActive, true),
+        ),
       );
 
     // Get photo details for rule evaluation
@@ -420,16 +432,26 @@ export class FamilySharingService {
           and(
             eq(partnerAutoShareRules.partnershipId, partnership.id),
             eq(partnerAutoShareRules.userId, userId),
-            eq(partnerAutoShareRules.isActive, true)
-          )
+            eq(partnerAutoShareRules.isActive, true),
+          ),
         );
 
       // Evaluate each rule
       for (const rule of rules) {
-        if (this.evaluateAutoShareRule(rule.criteria as AutoShareCriteria, photoData)) {
+        if (
+          this.evaluateAutoShareRule(
+            rule.criteria as AutoShareCriteria,
+            photoData,
+          )
+        ) {
           // Share photo with partner
           try {
-            await this.sharePhotoWithPartner(photoId, partnership.id, userId, rule.id);
+            await this.sharePhotoWithPartner(
+              photoId,
+              partnership.id,
+              userId,
+              rule.id,
+            );
             sharedWith.push(partnership.partnerId);
           } catch (error) {
             console.error("Failed to auto-share photo:", error);
@@ -450,9 +472,9 @@ export class FamilySharingService {
       limit?: number;
       offset?: number;
       partnerId?: string;
-    } = {}
+    } = {},
   ): Promise<
-    Array<{
+    {
       id: string;
       uri: string;
       filename: string;
@@ -464,7 +486,7 @@ export class FamilySharingService {
       ruleId?: string;
       isSaved: boolean;
       savedAt?: Date;
-    }>
+    }[]
   > {
     const { limit = 50, offset = 0, partnerId } = options;
 
@@ -490,14 +512,14 @@ export class FamilySharingService {
         .where(
           and(
             eq(partnerRelationships.partnerId, partnerId),
-            eq(partnerRelationships.userId, userId)
-          )
+            eq(partnerRelationships.userId, userId),
+          ),
         )
         .limit(1);
 
       if (partnership.length > 0) {
         query = query.where(
-          eq(partnerSharedPhotos.partnershipId, partnership[0].id)
+          eq(partnerSharedPhotos.partnershipId, partnership[0].id),
         );
       }
     }
@@ -525,7 +547,7 @@ export class FamilySharingService {
   async saveSharedPhoto(
     photoId: string,
     userId: string,
-    partnershipId: string
+    partnershipId: string,
   ): Promise<void> {
     // Find the shared photo record
     const sharedPhoto = await db
@@ -534,8 +556,8 @@ export class FamilySharingService {
       .where(
         and(
           eq(partnerSharedPhotos.photoId, photoId),
-          eq(partnerSharedPhotos.partnershipId, partnershipId)
-        )
+          eq(partnerSharedPhotos.partnershipId, partnershipId),
+        ),
       )
       .limit(1);
 
@@ -581,8 +603,8 @@ export class FamilySharingService {
           .where(
             and(
               eq(partnerRelationships.userId, userId),
-              eq(partnerRelationships.isActive, true)
-            )
+              eq(partnerRelationships.isActive, true),
+            ),
           )
           .as("active"),
       })
@@ -600,7 +622,7 @@ export class FamilySharingService {
       .from(partnerSharedPhotos)
       .innerJoin(
         partnerRelationships,
-        eq(partnerSharedPhotos.partnershipId, partnerRelationships.id)
+        eq(partnerSharedPhotos.partnershipId, partnerRelationships.id),
       )
       .where(eq(partnerRelationships.partnerId, userId));
 
@@ -611,7 +633,7 @@ export class FamilySharingService {
 
     return {
       totalPartners: partnerStats.length,
-      activePartners: partnerStats.filter(p => p.isActive).length,
+      activePartners: partnerStats.filter((p) => p.isActive).length,
       photosShared: photosShared.length,
       photosReceived: photosReceived.length,
       autoShareRules: autoShareRules.length,
@@ -635,7 +657,7 @@ export class FamilySharingService {
 
   private evaluateAutoShareRule(
     criteria: AutoShareCriteria,
-    photo: any
+    photo: any,
   ): boolean {
     // Check content type
     if (criteria.contentType === "photos" && photo.isVideo) return false;
@@ -644,7 +666,10 @@ export class FamilySharingService {
     // Check date range
     if (criteria.dateRange) {
       const photoDate = photo.createdAt;
-      if (photoDate < criteria.dateRange.start || photoDate > criteria.dateRange.end) {
+      if (
+        photoDate < criteria.dateRange.start ||
+        photoDate > criteria.dateRange.end
+      ) {
         return false;
       }
     }
@@ -652,14 +677,18 @@ export class FamilySharingService {
     // Check tags
     if (criteria.tags && criteria.tags.length > 0) {
       const photoTags = photo.tags || [];
-      const hasMatchingTag = criteria.tags.some(tag => photoTags.includes(tag));
+      const hasMatchingTag = criteria.tags.some((tag) =>
+        photoTags.includes(tag),
+      );
       if (!hasMatchingTag) return false;
     }
 
     // Check exclude tags
     if (criteria.excludeTags && criteria.excludeTags.length > 0) {
       const photoTags = photo.tags || [];
-      const hasExcludedTag = criteria.excludeTags.some(tag => photoTags.includes(tag));
+      const hasExcludedTag = criteria.excludeTags.some((tag) =>
+        photoTags.includes(tag),
+      );
       if (hasExcludedTag) return false;
     }
 
@@ -675,7 +704,7 @@ export class FamilySharingService {
     photoId: string,
     partnershipId: string,
     userId: string,
-    ruleId?: string
+    ruleId?: string,
   ): Promise<void> {
     // Check if already shared
     const existing = await db
@@ -684,8 +713,8 @@ export class FamilySharingService {
       .where(
         and(
           eq(partnerSharedPhotos.photoId, photoId),
-          eq(partnerSharedPhotos.partnershipId, partnershipId)
-        )
+          eq(partnerSharedPhotos.partnershipId, partnershipId),
+        ),
       )
       .limit(1);
 
@@ -694,15 +723,13 @@ export class FamilySharingService {
     }
 
     // Create shared photo record
-    await db
-      .insert(partnerSharedPhotos)
-      .values({
-        photoId,
-        partnershipId,
-        sharedBy: userId,
-        ruleId,
-        isSavedByPartner: false,
-      });
+    await db.insert(partnerSharedPhotos).values({
+      photoId,
+      partnershipId,
+      sharedBy: userId,
+      ruleId,
+      isSavedByPartner: false,
+    });
   }
 }
 

@@ -4,7 +4,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import request from "supertest";
 import express from "express";
-import { setupTestDatabase, cleanupTestDatabase, createTestUser } from "../test-utils/test-database";
+import {
+  setupTestDatabase,
+  cleanupTestDatabase,
+  createTestUser,
+} from "../test-utils/test-database";
 import { seedTestData, clearTestData } from "../test-utils/test-factories";
 
 // Mock only external boundaries
@@ -78,20 +82,20 @@ describe("Authentication Routes (Sociable Tests)", () => {
   beforeEach(async () => {
     // Set up real in-memory database
     db = await setupTestDatabase();
-    
+
     // Create Express app
     app = express();
     app.use(express.json());
-    
+
     // Import and use real auth routes (they will use mocked external boundaries)
     const authRoutes = (await import("../auth-routes")).default;
     app.use("/api/auth", authRoutes);
-    
+
     // Create test user
     testUser = createTestUser({
       passwordHash: "$argon2id$v=19$m=65536,t=3,p=4$mock_hash_for_testing",
     });
-    
+
     // Seed database
     await seedTestData(db, { user: testUser, photos: [], albums: [] });
   });
@@ -117,7 +121,7 @@ describe("Authentication Routes (Sociable Tests)", () => {
       expect(response.body.user.email).toBe(newUser.email);
       expect(response.body.user.username).toBe(newUser.username);
       expect(response.body.user).not.toHaveProperty("passwordHash");
-      
+
       // Verify user was actually saved to database
       const savedUser = await db.query.users.findFirst({
         where: (users, { eq }) => eq(users.email, newUser.email),
@@ -234,7 +238,12 @@ describe("Authentication Routes (Sociable Tests)", () => {
 
   describe("GET /api/auth/profile", () => {
     it("should return user profile for authenticated user", async () => {
-      const validToken = "mock_token_{\"id\":\"" + testUser.id + "\",\"email\":\"" + testUser.email + "\"}";
+      const validToken =
+        'mock_token_{"id":"' +
+        testUser.id +
+        '","email":"' +
+        testUser.email +
+        '"}';
 
       const response = await request(app)
         .get("/api/auth/profile")
@@ -248,9 +257,7 @@ describe("Authentication Routes (Sociable Tests)", () => {
     });
 
     it("should reject profile request without token", async () => {
-      const response = await request(app)
-        .get("/api/auth/profile")
-        .expect(401);
+      const response = await request(app).get("/api/auth/profile").expect(401);
 
       expect(response.body).toHaveProperty("error");
       expect(response.body.error).toContain("token required");
@@ -269,7 +276,12 @@ describe("Authentication Routes (Sociable Tests)", () => {
 
   describe("POST /api/auth/logout", () => {
     it("should logout successfully", async () => {
-      const validToken = "mock_token_{\"id\":\"" + testUser.id + "\",\"email\":\"" + testUser.email + "\"}";
+      const validToken =
+        'mock_token_{"id":"' +
+        testUser.id +
+        '","email":"' +
+        testUser.email +
+        '"}';
 
       const response = await request(app)
         .post("/api/auth/logout")
@@ -283,7 +295,12 @@ describe("Authentication Routes (Sociable Tests)", () => {
 
   describe("POST /api/auth/change-password", () => {
     it("should change password successfully", async () => {
-      const validToken = "mock_token_{\"id\":\"" + testUser.id + "\",\"email\":\"" + testUser.email + "\"}";
+      const validToken =
+        'mock_token_{"id":"' +
+        testUser.id +
+        '","email":"' +
+        testUser.email +
+        '"}';
       const passwordChange = {
         currentPassword: "oldpassword",
         newPassword: "NewSecurePassword123!",
@@ -314,7 +331,12 @@ describe("Authentication Routes (Sociable Tests)", () => {
     });
 
     it("should reject password change with weak new password", async () => {
-      const validToken = "mock_token_{\"id\":\"" + testUser.id + "\",\"email\":\"" + testUser.email + "\"}";
+      const validToken =
+        'mock_token_{"id":"' +
+        testUser.id +
+        '","email":"' +
+        testUser.email +
+        '"}';
       const passwordChange = {
         currentPassword: "oldpassword",
         newPassword: "123", // Too weak

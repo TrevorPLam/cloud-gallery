@@ -4,7 +4,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import request from "supertest";
 import express from "express";
-import { setupTestDatabase, cleanupTestDatabase, createTestUser, createTestPhotos, createTestAlbum } from "../test-utils/test-database";
+import {
+  setupTestDatabase,
+  cleanupTestDatabase,
+  createTestUser,
+  createTestPhotos,
+  createTestAlbum,
+} from "../test-utils/test-database";
 import { seedTestData, clearTestData } from "../test-utils/test-factories";
 
 // Mock only external boundaries
@@ -35,22 +41,26 @@ describe("Smart Albums Routes (Sociable Tests - No Interaction Assertions)", () 
   beforeEach(async () => {
     // Set up real in-memory database
     db = await setupTestDatabase();
-    
+
     // Create Express app
     app = express();
     app.use(express.json());
-    
+
     // Import and use real smart albums routes
     const smartAlbumsRoutes = (await import("../smart-album-routes")).default;
     app.use("/api/smart-albums", smartAlbumsRoutes);
-    
+
     // Create test data
     testUser = createTestUser();
     testPhotos = createTestPhotos(testUser.id, 20);
     testAlbums = createTestAlbums(testUser.id, 3);
-    
+
     // Seed database with realistic test data
-    await seedTestData(db, { user: testUser, photos: testPhotos, albums: testAlbums });
+    await seedTestData(db, {
+      user: testUser,
+      photos: testPhotos,
+      albums: testAlbums,
+    });
   });
 
   afterEach(async () => {
@@ -71,14 +81,14 @@ describe("Smart Albums Routes (Sociable Tests - No Interaction Assertions)", () 
       expect(response.body).toHaveProperty("data");
       expect(response.body.data).toHaveProperty("albums");
       expect(response.body.data).toHaveProperty("generatedAt");
-      
+
       // Verify smart albums were created with expected structure
       const albums = response.body.data.albums;
       expect(albums).toBeInstanceOf(Array);
       expect(albums.length).toBeGreaterThan(0);
-      
+
       // Check that albums have expected properties
-      albums.forEach(album => {
+      albums.forEach((album) => {
         expect(album).toHaveProperty("id");
         expect(album).toHaveProperty("title");
         expect(album).toHaveProperty("type", "smart");
@@ -86,12 +96,12 @@ describe("Smart Albums Routes (Sociable Tests - No Interaction Assertions)", () 
         expect(album).toHaveProperty("createdAt");
         expect(album.userId).toBe(testUser.id);
       });
-      
+
       // Verify specific smart album types were generated
       const albumTitles = albums.map((a: any) => a.title);
       expect(albumTitles).toContain("Recent Photos");
       expect(albumTitles).toContain("Favorites");
-      
+
       // Verify database state - albums were actually saved
       const savedAlbums = await db.query.smartAlbums.findMany({
         where: (albums, { eq }) => eq(albums.userId, testUser.id),
@@ -103,8 +113,12 @@ describe("Smart Albums Routes (Sociable Tests - No Interaction Assertions)", () 
       // Create another user with different photos
       const otherUser = createTestUser();
       const otherPhotos = createTestPhotos(otherUser.id, 5);
-      await seedTestData(db, { user: otherUser, photos: otherPhotos, albums: [] });
-      
+      await seedTestData(db, {
+        user: otherUser,
+        photos: otherPhotos,
+        albums: [],
+      });
+
       const token1 = `Bearer test-token-${testUser.id}`;
       const token2 = `Bearer test-token-${otherUser.id}`;
 
@@ -119,15 +133,19 @@ describe("Smart Albums Routes (Sociable Tests - No Interaction Assertions)", () 
         .expect(200);
 
       // Test behavior - users get different results
-      expect(response1.body.data.albums).not.toEqual(response2.body.data.albums);
-      expect(response1.body.data.albums.length).toBeGreaterThan(response2.body.data.albums.length);
+      expect(response1.body.data.albums).not.toEqual(
+        response2.body.data.albums,
+      );
+      expect(response1.body.data.albums.length).toBeGreaterThan(
+        response2.body.data.albums.length,
+      );
     });
   });
 
   describe("PUT /api/smart-albums/:id/settings", () => {
     it("should update smart album settings", async () => {
       const token = `Bearer test-token-${testUser.id}`;
-      
+
       // First generate some smart albums
       await request(app)
         .post("/api/smart-albums/generate")
@@ -154,7 +172,7 @@ describe("Smart Albums Routes (Sociable Tests - No Interaction Assertions)", () 
       expect(response.body).toHaveProperty("data");
       expect(response.body.data).toMatchObject(newSettings);
       expect(response.body.data.updatedAt).toBeDefined();
-      
+
       // Verify database state was actually updated
       const updatedAlbum = await db.query.smartAlbums.findFirst({
         where: (albums, { eq }) => eq(albums.id, albumId),
@@ -184,7 +202,7 @@ describe("Smart Albums Routes (Sociable Tests - No Interaction Assertions)", () 
   describe("GET /api/smart-albums/:id/photos", () => {
     it("should get photos for a smart album", async () => {
       const token = `Bearer test-token-${testUser.id}`;
-      
+
       // Generate smart albums first
       await request(app)
         .post("/api/smart-albums/generate")
@@ -197,7 +215,9 @@ describe("Smart Albums Routes (Sociable Tests - No Interaction Assertions)", () 
         .set("Authorization", token)
         .expect(200);
 
-      const albumWithPhotos = albumsResponse.body.data.find((a: any) => a.photoCount > 0);
+      const albumWithPhotos = albumsResponse.body.data.find(
+        (a: any) => a.photoCount > 0,
+      );
       const albumId = albumWithPhotos.id;
 
       const response = await request(app)
@@ -210,12 +230,12 @@ describe("Smart Albums Routes (Sociable Tests - No Interaction Assertions)", () 
       expect(response.body).toHaveProperty("data");
       expect(response.body.data).toHaveProperty("photos");
       expect(response.body.data).toHaveProperty("pagination");
-      
+
       const photos = response.body.data.photos;
       expect(photos).toBeInstanceOf(Array);
       expect(photos.length).toBeGreaterThan(0);
       expect(photos.length).toBeLessThanOrEqual(20); // Default limit
-      
+
       // Verify photo structure
       photos.forEach((photo: any) => {
         expect(photo).toHaveProperty("id");
@@ -225,7 +245,7 @@ describe("Smart Albums Routes (Sociable Tests - No Interaction Assertions)", () 
         expect(photo).toHaveProperty("createdAt");
         expect(photo.userId).toBe(testUser.id);
       });
-      
+
       // Test pagination behavior
       expect(response.body.data.pagination).toMatchObject({
         page: 1,
@@ -237,7 +257,7 @@ describe("Smart Albums Routes (Sociable Tests - No Interaction Assertions)", () 
 
     it("should respect pagination parameters", async () => {
       const token = `Bearer test-token-${testUser.id}`;
-      
+
       // Generate smart albums
       await request(app)
         .post("/api/smart-albums/generate")
@@ -249,7 +269,9 @@ describe("Smart Albums Routes (Sociable Tests - No Interaction Assertions)", () 
         .set("Authorization", token)
         .expect(200);
 
-      const albumWithPhotos = albumsResponse.body.data.find((a: any) => a.photoCount > 5);
+      const albumWithPhotos = albumsResponse.body.data.find(
+        (a: any) => a.photoCount > 5,
+      );
       const albumId = albumWithPhotos.id;
 
       // Request first page with limit 5
@@ -268,7 +290,7 @@ describe("Smart Albums Routes (Sociable Tests - No Interaction Assertions)", () 
       expect(response1.body.data.photos).toHaveLength(5);
       expect(response1.body.data.pagination.page).toBe(1);
       expect(response1.body.data.pagination.limit).toBe(5);
-      
+
       // Photos should be different between pages
       const photoIds1 = response1.body.data.photos.map((p: any) => p.id);
       const photoIds2 = response2.body.data.photos.map((p: any) => p.id);
@@ -280,7 +302,7 @@ describe("Smart Albums Routes (Sociable Tests - No Interaction Assertions)", () 
   describe("POST /api/smart-albums/update-for-new-photos", () => {
     it("should update smart albums when new photos are added", async () => {
       const token = `Bearer test-token-${testUser.id}`;
-      
+
       // Generate initial smart albums
       await request(app)
         .post("/api/smart-albums/generate")
@@ -293,8 +315,8 @@ describe("Smart Albums Routes (Sociable Tests - No Interaction Assertions)", () 
         .expect(200);
 
       const initialPhotoCount = initialAlbumsResponse.body.data.reduce(
-        (sum: number, album: any) => sum + album.photoCount, 
-        0
+        (sum: number, album: any) => sum + album.photoCount,
+        0,
       );
 
       // Add new photos
@@ -304,7 +326,7 @@ describe("Smart Albums Routes (Sociable Tests - No Interaction Assertions)", () 
       }
 
       // Trigger smart album update
-      const photoIds = newPhotos.map(p => p.id);
+      const photoIds = newPhotos.map((p) => p.id);
       const response = await request(app)
         .post("/api/smart-albums/update-for-new-photos")
         .set("Authorization", token)
@@ -316,7 +338,7 @@ describe("Smart Albums Routes (Sociable Tests - No Interaction Assertions)", () 
       expect(response.body).toHaveProperty("data");
       expect(response.body.data).toHaveProperty("updatedAlbums");
       expect(response.body.data).toHaveProperty("message");
-      
+
       // Verify photo counts increased
       const updatedAlbumsResponse = await request(app)
         .get("/api/smart-albums")
@@ -324,10 +346,10 @@ describe("Smart Albums Routes (Sociable Tests - No Interaction Assertions)", () 
         .expect(200);
 
       const updatedPhotoCount = updatedAlbumsResponse.body.data.reduce(
-        (sum: number, album: any) => sum + album.photoCount, 
-        0
+        (sum: number, album: any) => sum + album.photoCount,
+        0,
       );
-      
+
       expect(updatedPhotoCount).toBeGreaterThan(initialPhotoCount);
     });
   });
@@ -359,7 +381,7 @@ describe("Smart Albums Routes (Sociable Tests - No Interaction Assertions)", () 
     it("should handle database errors gracefully", async () => {
       // Close database to simulate error
       cleanupTestDatabase();
-      
+
       const token = `Bearer test-token-${testUser.id}`;
       const response = await request(app)
         .post("/api/smart-albums/generate")

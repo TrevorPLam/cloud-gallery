@@ -12,7 +12,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import * as fc from "fast-check";
 import { SyncService, ConflictType } from "./sync";
-import { setupTestDatabase, cleanupTestDatabase, createTestUser, createTestPhotos } from "../test-utils/test-database";
+import {
+  setupTestDatabase,
+  cleanupTestDatabase,
+  createTestUser,
+  createTestPhotos,
+} from "../test-utils/test-database";
 import { clearTestData, seedTestData } from "../test-utils/test-factories";
 
 // Mock only external boundaries (BullMQ queues)
@@ -32,14 +37,14 @@ describe("SyncService (Sociable Tests)", () => {
   beforeEach(async () => {
     // Set up real in-memory database
     db = await setupTestDatabase();
-    
+
     // Create real SyncService with real database
     syncService = new SyncService(db);
-    
+
     // Create test data
     testUser = createTestUser();
     testPhotos = createTestPhotos(testUser.id, 5);
-    
+
     // Seed database with test data
     await seedTestData(db, { user: testUser, photos: testPhotos, albums: [] });
   });
@@ -50,8 +55,15 @@ describe("SyncService (Sociable Tests)", () => {
 
   // Filter out all Object prototype properties to avoid conflicts
   const objectPrototypeProps = Object.getOwnPropertyNames(Object.prototype);
-  const safeDeviceId = fc.string({ minLength: 2 }).filter((s) => !objectPrototypeProps.includes(s));
-  const safeDict = fc.dictionary(fc.string({ minLength: 2 }).filter((s) => !objectPrototypeProps.includes(s)), fc.integer({ min: 0 }));
+  const safeDeviceId = fc
+    .string({ minLength: 2 })
+    .filter((s) => !objectPrototypeProps.includes(s));
+  const safeDict = fc.dictionary(
+    fc
+      .string({ minLength: 2 })
+      .filter((s) => !objectPrototypeProps.includes(s)),
+    fc.integer({ min: 0 }),
+  );
 
   describe("Version Vector Operations", () => {
     it("Property 1: Version vector monotonicity", () => {
@@ -184,13 +196,17 @@ describe("SyncService (Sociable Tests)", () => {
         version: "15.0",
       };
 
-      const result = await syncService.registerDevice(testUser.id, deviceId, deviceInfo);
+      const result = await syncService.registerDevice(
+        testUser.id,
+        deviceId,
+        deviceInfo,
+      );
 
       expect(result).toBeDefined();
       expect(result.deviceId).toBe(deviceId);
       expect(result.userId).toBe(testUser.id);
       expect(result.isActive).toBe(true);
-      
+
       // Verify device was actually saved to database
       const savedDevice = await db.query.devices.findFirst({
         where: (devices, { eq }) => eq(devices.id, deviceId),
@@ -211,11 +227,15 @@ describe("SyncService (Sociable Tests)", () => {
       await syncService.registerDevice(testUser.id, deviceId, deviceInfo);
 
       // Register same device again - should update existing
-      const result = await syncService.registerDevice(testUser.id, deviceId, deviceInfo);
+      const result = await syncService.registerDevice(
+        testUser.id,
+        deviceId,
+        deviceInfo,
+      );
 
       expect(result).toBeDefined();
       expect(result.deviceId).toBe(deviceId);
-      
+
       // Verify only one device exists
       const devices = await db.query.devices.findMany({
         where: (devices, { eq }) => eq(devices.id, deviceId),
@@ -280,7 +300,7 @@ describe("SyncService (Sociable Tests)", () => {
       };
 
       const update2 = {
-        title: "Updated Photo 2", 
+        title: "Updated Photo 2",
         timestamp: Date.now(),
       };
 
@@ -303,16 +323,20 @@ describe("SyncService (Sociable Tests)", () => {
       });
 
       // Perform delta sync
-      const syncResult = await syncService.performDeltaSync(testUser.id, deviceId, {
-        lastSyncTime: Date.now() - 10000,
-        clientVersionVector: {},
-      });
+      const syncResult = await syncService.performDeltaSync(
+        testUser.id,
+        deviceId,
+        {
+          lastSyncTime: Date.now() - 10000,
+          clientVersionVector: {},
+        },
+      );
 
       expect(syncResult).toBeDefined();
       expect(syncResult.success).toBe(true);
       expect(syncResult.updates).toBeDefined();
       expect(syncResult.newVersionVector).toBeDefined();
-      
+
       // Verify sync state was updated
       const status = await syncService.getSyncStatus(testUser.id);
       expect(status.lastSyncTime).toBeGreaterThan(0);

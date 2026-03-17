@@ -181,7 +181,9 @@ describe("BackupService", () => {
 
     it("should maintain consistency between backup queue and storage", async () => {
       // Property: Database records should match cloud storage reality
-      const validUuid = fc.uuid().filter((id) => id !== "00000000-0000-1000-8000-000000000000");
+      const validUuid = fc
+        .uuid()
+        .filter((id) => id !== "00000000-0000-1000-8000-000000000000");
       await fc.assert(
         fc.asyncProperty(
           fc.array(validUuid, { minLength: 1, maxLength: 10 }),
@@ -219,7 +221,9 @@ describe("BackupService", () => {
               expect(backup.cloudKey).toBeTruthy();
               expect(backup.cloudKey).toMatch(/^backups\/test\/.+\.enc$/);
             });
-            backupIds.forEach((id) => (backupService as any).backupStore.delete(id));
+            backupIds.forEach((id) =>
+              (backupService as any).backupStore.delete(id),
+            );
           },
         ),
         { numRuns: 50 },
@@ -434,7 +438,9 @@ describe("BackupService", () => {
 
     it("should maintain consistent state after retry operations", async () => {
       // Property: Retry operations should not corrupt backup state
-      const validUuid = fc.uuid().filter((id) => id !== "00000000-0000-1000-8000-000000000000");
+      const validUuid = fc
+        .uuid()
+        .filter((id) => id !== "00000000-0000-1000-8000-000000000000");
       await fc.assert(
         fc.asyncProperty(
           validUuid,
@@ -446,9 +452,11 @@ describe("BackupService", () => {
               status: finalStatus,
               size: finalStatus === BackupStatus.COMPLETED ? 1024 : 0,
               fileCount: finalStatus === BackupStatus.COMPLETED ? 10 : 0,
-              cloudKey: finalStatus === BackupStatus.COMPLETED ? "test-key" : "",
+              cloudKey:
+                finalStatus === BackupStatus.COMPLETED ? "test-key" : "",
               createdAt: new Date(),
-              completedAt: finalStatus === BackupStatus.COMPLETED ? new Date() : undefined,
+              completedAt:
+                finalStatus === BackupStatus.COMPLETED ? new Date() : undefined,
               userId,
             };
             (backupService as any).backupStore.set("backup-123", metadata);
@@ -483,10 +491,15 @@ describe("BackupService", () => {
         max: new Date(2030, 11, 31),
       });
       const uniqueIdRecord = fc
-        .uniqueArray(fc.uuid().filter((id) => id !== "00000000-0000-1000-8000-000000000000"), {
-          minLength: 1,
-          maxLength: 20,
-        })
+        .uniqueArray(
+          fc
+            .uuid()
+            .filter((id) => id !== "00000000-0000-1000-8000-000000000000"),
+          {
+            minLength: 1,
+            maxLength: 20,
+          },
+        )
         .chain((ids) =>
           fc
             .array(
@@ -506,48 +519,48 @@ describe("BackupService", () => {
         );
       await fc.assert(
         fc.asyncProperty(uniqueIdRecord, async (backupRecords) => {
-            (backupService as any).backupStore.clear();
-            const testUserId = backupRecords[0].userId;
-            const metadataList = backupRecords.map((r) => ({
-                id: r.id,
-                type: BackupType.FULL,
-                status: r.status,
-              size: r.size,
-              fileCount: 10,
-              cloudKey: r.status === BackupStatus.COMPLETED ? "key" : "",
-              createdAt: r.createdAt,
-                completedAt: r.status === BackupStatus.COMPLETED ? r.createdAt : undefined,
-                userId: r.userId,
-            }));
-            metadataList.forEach((m) =>
-              (backupService as any).backupStore.set(m.id, m),
-            );
+          (backupService as any).backupStore.clear();
+          const testUserId = backupRecords[0].userId;
+          const metadataList = backupRecords.map((r) => ({
+            id: r.id,
+            type: BackupType.FULL,
+            status: r.status,
+            size: r.size,
+            fileCount: 10,
+            cloudKey: r.status === BackupStatus.COMPLETED ? "key" : "",
+            createdAt: r.createdAt,
+            completedAt:
+              r.status === BackupStatus.COMPLETED ? r.createdAt : undefined,
+            userId: r.userId,
+          }));
+          metadataList.forEach((m) =>
+            (backupService as any).backupStore.set(m.id, m),
+          );
 
-            const stats = await backupService.getBackupStats(testUserId);
+          const stats = await backupService.getBackupStats(testUserId);
 
-            const forUser = backupRecords.filter((r) => r.userId === testUserId);
-            expect(stats.totalBackups).toBe(forUser.length);
+          const forUser = backupRecords.filter((r) => r.userId === testUserId);
+          expect(stats.totalBackups).toBe(forUser.length);
 
-            const completedCount = forUser.filter(
-              (r) => r.status === BackupStatus.COMPLETED,
-            ).length;
-            expect(stats.completedBackups).toBe(completedCount);
+          const completedCount = forUser.filter(
+            (r) => r.status === BackupStatus.COMPLETED,
+          ).length;
+          expect(stats.completedBackups).toBe(completedCount);
 
-            const failedCount = forUser.filter(
-              (r) => r.status === BackupStatus.FAILED,
-            ).length;
-            expect(stats.failedBackups).toBe(failedCount);
+          const failedCount = forUser.filter(
+            (r) => r.status === BackupStatus.FAILED,
+          ).length;
+          expect(stats.failedBackups).toBe(failedCount);
 
-            const totalSize = forUser
-              .filter((r) => r.status === BackupStatus.COMPLETED)
-              .reduce((sum, r) => sum + r.size, 0);
-            expect(stats.totalSize).toBe(totalSize);
+          const totalSize = forUser
+            .filter((r) => r.status === BackupStatus.COMPLETED)
+            .reduce((sum, r) => sum + r.size, 0);
+          expect(stats.totalSize).toBe(totalSize);
 
-            metadataList.forEach((m) =>
-              (backupService as any).backupStore.delete(m.id),
-            );
-          },
-        ),
+          metadataList.forEach((m) =>
+            (backupService as any).backupStore.delete(m.id),
+          );
+        }),
         { numRuns: 100 },
       );
     });
@@ -557,7 +570,9 @@ describe("BackupService", () => {
     it("should handle invalid backup IDs gracefully", async () => {
       await fc.assert(
         fc.asyncProperty(
-          fc.string({ minLength: 1 }).filter((s) => s.trim().length > 0 && !/^[a-f0-9]{32}$/.test(s)),
+          fc
+            .string({ minLength: 1 })
+            .filter((s) => s.trim().length > 0 && !/^[a-f0-9]{32}$/.test(s)),
           async (invalidId) => {
             const result = await backupService.getBackupStatus(invalidId);
             expect(result).toBeNull();

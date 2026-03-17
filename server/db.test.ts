@@ -149,7 +149,9 @@ describe("testConnection()", () => {
 
   it("returns false and warns when DATABASE_URL is not set", async () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const { testConnection } = await importDbModule({ DATABASE_URL: undefined });
+    const { testConnection } = await importDbModule({
+      DATABASE_URL: undefined,
+    });
     const result = await testConnection();
     expect(result).toBe(false);
     expect(warnSpy).toHaveBeenCalledWith(
@@ -166,9 +168,7 @@ describe("testConnection()", () => {
     });
     const result = await testConnection();
     expect(result).toBe(false);
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining("disabled"),
-    );
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("disabled"));
     warnSpy.mockRestore();
   });
 });

@@ -286,7 +286,9 @@ export class BackupService {
       // Initialize worker
       this.initializeWorker();
     } else {
-      console.log("Redis is disabled. Backup queue and worker will not be initialized.");
+      console.log(
+        "Redis is disabled. Backup queue and worker will not be initialized.",
+      );
     }
   }
 
@@ -413,7 +415,9 @@ export class BackupService {
         },
       );
     } else {
-      console.log("Redis is disabled. Incremental backup job queued but not processed.");
+      console.log(
+        "Redis is disabled. Incremental backup job queued but not processed.",
+      );
     }
 
     return backupId;
@@ -457,7 +461,7 @@ export class BackupService {
         userId: jobData.userId,
       };
     }
-    
+
     return null;
   }
 
@@ -504,11 +508,15 @@ export class BackupService {
         }
       }
 
-      return allBackups.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      return allBackups.sort(
+        (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+      );
     }
-    
+
     // Return only stored backups if Redis is disabled
-    return storedBackups.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return storedBackups.sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+    );
   }
 
   /**

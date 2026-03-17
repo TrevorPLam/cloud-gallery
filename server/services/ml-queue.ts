@@ -161,7 +161,7 @@ export async function getMLQueueStats(): Promise<{
       paused: true,
     };
   }
-  
+
   const [waiting, active, completed, failed, delayed, paused] =
     await Promise.all([
       mlQueue.getWaiting(),
@@ -229,7 +229,7 @@ export async function removeMLJob(jobId: string): Promise<boolean> {
       console.log("ML queue is not available (Redis disabled)");
       return false;
     }
-    
+
     const job = await mlQueue.getJob(jobId);
     if (job) {
       await job.remove();

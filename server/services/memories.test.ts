@@ -33,17 +33,27 @@ vi.mock("../db", () => {
           limit: vi.fn(limitFn),
           offset: vi.fn(() => Promise.resolve(resolved)),
           groupBy: vi.fn(() => Promise.resolve(resolved)),
-          leftJoin: vi.fn(() => ({ where: vi.fn(() => Promise.resolve(resolved)) })),
+          leftJoin: vi.fn(() => ({
+            where: vi.fn(() => Promise.resolve(resolved)),
+          })),
         })),
-        innerJoin: vi.fn(() => ({ where: vi.fn(() => Promise.resolve(resolved)) })),
+        innerJoin: vi.fn(() => ({
+          where: vi.fn(() => Promise.resolve(resolved)),
+        })),
       })),
     };
   };
   return {
     db: {
       select: vi.fn(() => chain()),
-      insert: vi.fn(() => ({ values: vi.fn(() => ({ returning: vi.fn(() => Promise.resolve([])) })) })),
-      update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn(() => ({ returning: vi.fn(() => Promise.resolve([])) })) })) })),
+      insert: vi.fn(() => ({
+        values: vi.fn(() => ({ returning: vi.fn(() => Promise.resolve([])) })),
+      })),
+      update: vi.fn(() => ({
+        set: vi.fn(() => ({
+          where: vi.fn(() => ({ returning: vi.fn(() => Promise.resolve([])) })),
+        })),
+      })),
       delete: vi.fn(() => ({ where: vi.fn(() => Promise.resolve([])) })),
     },
   };
@@ -295,7 +305,9 @@ describe("MemoriesService Property Tests", () => {
         coverPhotoStrategy: "newest" as const,
       };
 
-      const mockInsertReturning = vi.fn().mockResolvedValue([{ id: "memory1" }]);
+      const mockInsertReturning = vi
+        .fn()
+        .mockResolvedValue([{ id: "memory1" }]);
       vi.mocked(db.insert).mockReturnValue({
         values: vi.fn().mockReturnValue({
           returning: mockInsertReturning,
@@ -326,7 +338,10 @@ describe("MemoriesService Property Tests", () => {
     it.skip("should maintain memory photo count accuracy", async () => {
       await fc.assert(
         fc.asyncProperty(
-          fc.array(fc.string({ minLength: 1 }), { minLength: 1, maxLength: 20 }),
+          fc.array(fc.string({ minLength: 1 }), {
+            minLength: 1,
+            maxLength: 20,
+          }),
           async (photoIds) => {
             fc.pre(photoIds.every((id) => id.length > 0));
             const mockGeneration = {
@@ -366,9 +381,7 @@ describe("MemoriesService Property Tests", () => {
   describe("Property 4: Memory Type Validation", () => {
     it.skip("should only generate valid memory types", async () => {
       const userId = "user1";
-      vi.mocked(db.select).mockReturnValue(
-        createSelectChain([]) as any,
-      );
+      vi.mocked(db.select).mockReturnValue(createSelectChain([]) as any);
 
       const generations = await memoriesService.getMemoryGenerations(userId);
 

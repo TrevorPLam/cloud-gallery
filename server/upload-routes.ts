@@ -30,10 +30,26 @@ const upload = multer({
   limits: {
     fileSize: 20 * 1024 * 1024, // 20MB max (individual limits enforced per file type)
     files: 5, // Maximum 5 files per request
+    fields: 10, // Maximum 10 fields per request
+    fieldSize: 1024 * 1024, // Maximum 1MB per field
   },
   fileFilter: (req, file, cb) => {
     // Basic filename sanitization
     file.originalname = sanitizeFilename(file.originalname);
+    
+    // Additional security checks
+    const dangerousExtensions = ['.exe', '.bat', '.cmd', '.scr', '.pif', '.com', '.js', '.vbs', '.jar', '.ps1'];
+    const fileExt = path.extname(file.originalname).toLowerCase();
+    
+    if (dangerousExtensions.includes(fileExt)) {
+      return cb(new Error(`Dangerous file extension not allowed: ${fileExt}`), false);
+    }
+    
+    // Check for double extensions (e.g., file.jpg.exe)
+    if (file.originalname.split('.').length > 2) {
+      return cb(new Error('Files with multiple extensions are not allowed'), false);
+    }
+    
     cb(null, true);
   },
 });

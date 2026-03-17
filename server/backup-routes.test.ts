@@ -17,7 +17,7 @@ vi.mock("./services/backup", () => {
     COMPLETED: "completed",
     FAILED: "failed",
   };
-  
+
   const mockMeta = {
     id: "12345678901234567890123456789012", // 32 chars
     userId: "user-123",
@@ -29,26 +29,30 @@ vi.mock("./services/backup", () => {
     createdAt: new Date(),
     completedAt: new Date(),
   };
-  
+
   return {
     createBackupService: vi.fn().mockReturnValue({
-      startFullBackup: vi.fn().mockResolvedValue("12345678901234567890123456789012"),
-      startIncrementalBackup: vi.fn().mockResolvedValue("123456789012345678901234567890ab"),
+      startFullBackup: vi
+        .fn()
+        .mockResolvedValue("12345678901234567890123456789012"),
+      startIncrementalBackup: vi
+        .fn()
+        .mockResolvedValue("123456789012345678901234567890ab"),
       getBackupStatus: vi.fn().mockResolvedValue(mockMeta),
       listUserBackups: vi.fn().mockResolvedValue([mockMeta]),
       deleteBackup: vi.fn().mockResolvedValue(true),
       scheduleAutomaticBackups: vi.fn().mockResolvedValue(),
       cancelScheduledBackup: vi.fn().mockResolvedValue(),
       getBackupStats: vi.fn().mockResolvedValue({
-      totalBackups: 1,
-      completedBackups: 1,
-      failedBackups: 0,
-      totalSize: 1024,
-      lastBackup: new Date(),
+        totalBackups: 1,
+        completedBackups: 1,
+        failedBackups: 0,
+        totalSize: 1024,
+        lastBackup: new Date(),
+      }),
     }),
-  }),
-  BackupType,
-  BackupStatus,
+    BackupType,
+    BackupStatus,
   };
 });
 
@@ -75,9 +79,15 @@ describe("Backup API", () => {
 
   describe("POST /api/backup/start", () => {
     it("should start a full backup", async () => {
-      const { createBackupService, BackupType } = await import("./services/backup");
-      const backupService = (await import("./services/backup")).createBackupService();
-      vi.mocked(backupService.startFullBackup).mockResolvedValue("12345678901234567890123456789012");
+      const { createBackupService, BackupType } = await import(
+        "./services/backup"
+      );
+      const backupService = (
+        await import("./services/backup")
+      ).createBackupService();
+      vi.mocked(backupService.startFullBackup).mockResolvedValue(
+        "12345678901234567890123456789012",
+      );
 
       const response = await request(app)
         .post("/api/backup/start")
@@ -94,8 +104,12 @@ describe("Backup API", () => {
     });
 
     it("should start an incremental backup by default", async () => {
-      const { createBackupService, BackupType } = await import("./services/backup");
-      const backupService = (await import("./services/backup")).createBackupService();
+      const { createBackupService, BackupType } = await import(
+        "./services/backup"
+      );
+      const backupService = (
+        await import("./services/backup")
+      ).createBackupService();
       vi.mocked(backupService.startIncrementalBackup).mockResolvedValue(
         "123456789012345678901234567890ab",
       );
@@ -123,8 +137,12 @@ describe("Backup API", () => {
     });
 
     it("should handle service errors gracefully", async () => {
-      const { createBackupService, BackupType } = await import("./services/backup");
-      const backupService = (await import("./services/backup")).createBackupService();
+      const { createBackupService, BackupType } = await import(
+        "./services/backup"
+      );
+      const backupService = (
+        await import("./services/backup")
+      ).createBackupService();
       vi.mocked(backupService.startFullBackup).mockRejectedValue(
         new Error("Service error"),
       );
@@ -154,7 +172,9 @@ describe("Backup API", () => {
     });
 
     it("should return 404 for non-existent backup", async () => {
-      const backupService = (await import("./services/backup")).createBackupService();
+      const backupService = (
+        await import("./services/backup")
+      ).createBackupService();
       vi.mocked(backupService.getBackupStatus).mockResolvedValue(null);
 
       const response = await request(app)
@@ -175,8 +195,12 @@ describe("Backup API", () => {
     });
 
     it("should prevent access to other users backups", async () => {
-      const { createBackupService, BackupType, BackupStatus } = await import("./services/backup");
-      const backupService = (await import("./services/backup")).createBackupService();
+      const { createBackupService, BackupType, BackupStatus } = await import(
+        "./services/backup"
+      );
+      const backupService = (
+        await import("./services/backup")
+      ).createBackupService();
       vi.mocked(backupService.getBackupStatus).mockResolvedValue({
         id: "123456789012345678901234567890ab",
         userId: "other-user",
@@ -204,13 +228,19 @@ describe("Backup API", () => {
 
       expect(response.body.success).toBe(true);
       expect(response.body.backups).toHaveLength(1);
-      expect(response.body.backups[0].id).toBe("12345678901234567890123456789012");
+      expect(response.body.backups[0].id).toBe(
+        "12345678901234567890123456789012",
+      );
       expect(response.body.pagination.total).toBe(1);
     });
 
     it("should apply type filter", async () => {
-      const { createBackupService, BackupType, BackupStatus } = await import("./services/backup");
-      const backupService = (await import("./services/backup")).createBackupService();
+      const { createBackupService, BackupType, BackupStatus } = await import(
+        "./services/backup"
+      );
+      const backupService = (
+        await import("./services/backup")
+      ).createBackupService();
       vi.mocked(backupService.listUserBackups).mockResolvedValue([
         {
           id: "12345678901234567890123456789012",
@@ -234,13 +264,17 @@ describe("Backup API", () => {
     });
 
     it("should apply pagination", async () => {
-      const { createBackupService, BackupType, BackupStatus } = await import("./services/backup");
-      const backupService = (await import("./services/backup")).createBackupService();
+      const { createBackupService, BackupType, BackupStatus } = await import(
+        "./services/backup"
+      );
+      const backupService = (
+        await import("./services/backup")
+      ).createBackupService();
       vi.mocked(backupService.listUserBackups).mockResolvedValue([
         ...Array(100)
           .fill(null)
           .map((_, i) => ({
-            id: `1234567890123456789012345678${i.toString().padStart(4, '0')}`,
+            id: `1234567890123456789012345678${i.toString().padStart(4, "0")}`,
             userId: "user-123",
             type: BackupType.INCREMENTAL,
             status: BackupStatus.IN_PROGRESS,
@@ -275,8 +309,12 @@ describe("Backup API", () => {
 
   describe("POST /api/backup/restore", () => {
     it("should start restore process", async () => {
-      const { createBackupService, BackupType, BackupStatus } = await import("./services/backup");
-      const backupService = (await import("./services/backup")).createBackupService();
+      const { createBackupService, BackupType, BackupStatus } = await import(
+        "./services/backup"
+      );
+      const backupService = (
+        await import("./services/backup")
+      ).createBackupService();
       vi.mocked(backupService.startIncrementalBackup).mockResolvedValue(
         "123456789012345678901234567890cd",
       );
@@ -317,7 +355,9 @@ describe("Backup API", () => {
     });
 
     it("should prevent restore of non-owned backup", async () => {
-      const backupService = (await import("./services/backup")).createBackupService();
+      const backupService = (
+        await import("./services/backup")
+      ).createBackupService();
       vi.mocked(backupService.listUserBackups).mockResolvedValue([]);
 
       const response = await request(app)
@@ -334,8 +374,12 @@ describe("Backup API", () => {
 
   describe("DELETE /api/backup/:backupId", () => {
     it("should delete backup successfully", async () => {
-      const { createBackupService, BackupType, BackupStatus } = await import("./services/backup");
-      const backupService = (await import("./services/backup")).createBackupService();
+      const { createBackupService, BackupType, BackupStatus } = await import(
+        "./services/backup"
+      );
+      const backupService = (
+        await import("./services/backup")
+      ).createBackupService();
       vi.mocked(backupService.deleteBackup).mockResolvedValue(true);
       vi.mocked(backupService.getBackupStatus).mockResolvedValue({
         id: "12345678901234567890123456789012",
@@ -358,8 +402,12 @@ describe("Backup API", () => {
     });
 
     it("should prevent deletion of in-progress backup", async () => {
-      const { createBackupService, BackupType, BackupStatus } = await import("./services/backup");
-      const backupService = (await import("./services/backup")).createBackupService();
+      const { createBackupService, BackupType, BackupStatus } = await import(
+        "./services/backup"
+      );
+      const backupService = (
+        await import("./services/backup")
+      ).createBackupService();
       vi.mocked(backupService.getBackupStatus).mockResolvedValue({
         id: "12345678901234567890123456789012",
         userId: "user-123",
@@ -391,8 +439,12 @@ describe("Backup API", () => {
 
   describe("POST /api/backup/schedule", () => {
     it("should schedule automatic backup", async () => {
-      const { createBackupService, BackupType } = await import("./services/backup");
-      const backupService = (await import("./services/backup")).createBackupService();
+      const { createBackupService, BackupType } = await import(
+        "./services/backup"
+      );
+      const backupService = (
+        await import("./services/backup")
+      ).createBackupService();
       vi.mocked(backupService.scheduleAutomaticBackups).mockResolvedValue();
 
       const response = await request(app)
@@ -436,7 +488,9 @@ describe("Backup API", () => {
 
   describe("DELETE /api/backup/schedule", () => {
     it("should cancel scheduled backup", async () => {
-      const backupService = (await import("./services/backup")).createBackupService();
+      const backupService = (
+        await import("./services/backup")
+      ).createBackupService();
       vi.mocked(backupService.cancelScheduledBackup).mockResolvedValue();
 
       const response = await request(app)
@@ -463,8 +517,12 @@ describe("Backup API", () => {
 
   describe("GET /api/backup/config", () => {
     it("should return backup configuration", async () => {
-      const { createBackupService, BackupType, BackupStatus } = await import("./services/backup");
-      const backupService = (await import("./services/backup")).createBackupService();
+      const { createBackupService, BackupType, BackupStatus } = await import(
+        "./services/backup"
+      );
+      const backupService = (
+        await import("./services/backup")
+      ).createBackupService();
       vi.mocked(backupService.listUserBackups).mockResolvedValue([
         {
           id: "12345678901234567890123456789012",
@@ -495,8 +553,12 @@ describe("Backup API", () => {
 
   describe("POST /api/backup/verify", () => {
     it("should verify backup integrity", async () => {
-      const { createBackupService, BackupType, BackupStatus } = await import("./services/backup");
-      const backupService = (await import("./services/backup")).createBackupService();
+      const { createBackupService, BackupType, BackupStatus } = await import(
+        "./services/backup"
+      );
+      const backupService = (
+        await import("./services/backup")
+      ).createBackupService();
       vi.mocked(backupService.getBackupStatus).mockResolvedValue({
         id: "12345678901234567890123456789012",
         userId: "user-123",
@@ -537,8 +599,12 @@ describe("Backup API", () => {
     });
 
     it("should prevent verification of non-owned backup", async () => {
-      const { createBackupService, BackupType, BackupStatus } = await import("./services/backup");
-      const backupService = (await import("./services/backup")).createBackupService();
+      const { createBackupService, BackupType, BackupStatus } = await import(
+        "./services/backup"
+      );
+      const backupService = (
+        await import("./services/backup")
+      ).createBackupService();
       vi.mocked(backupService.getBackupStatus).mockResolvedValue({
         id: "123456789012345678901234567890ef",
         userId: "other-user",
@@ -574,10 +640,16 @@ describe("Backup API", () => {
 
       const endpoints = [
         { method: "post", path: "/api/backup/start" },
-        { method: "get", path: "/api/backup/status/12345678901234567890123456789012" },
+        {
+          method: "get",
+          path: "/api/backup/status/12345678901234567890123456789012",
+        },
         { method: "get", path: "/api/backup/list" },
         { method: "post", path: "/api/backup/restore" },
-        { method: "delete", path: "/api/backup/12345678901234567890123456789012" },
+        {
+          method: "delete",
+          path: "/api/backup/12345678901234567890123456789012",
+        },
         { method: "post", path: "/api/backup/schedule" },
         { method: "delete", path: "/api/backup/schedule" },
         { method: "get", path: "/api/backup/stats" },
@@ -603,42 +675,47 @@ describe("Backup API", () => {
         req.user = { id: "user-123", username: "testuser" };
         next();
       });
-      
+
       // Import backup routes and apply them without auth middleware
       const backupRoutesModule = await import("./backup-routes");
       const backupRouter = backupRoutesModule.default;
-      
+
       // Create a new router without auth middleware by cloning the routes
       const errorTestRouter = express.Router();
-      
+
       // Copy all routes from the original router but skip auth middleware
       // We need to access the routes directly, so let's create a custom implementation
-      errorTestRouter.get("/list", async (req: express.Request, res: express.Response) => {
-        try {
-          const userId = req.user!.id;
-          const { type, status, limit = 50, offset = 0 } = req.query;
+      errorTestRouter.get(
+        "/list",
+        async (req: express.Request, res: express.Response) => {
+          try {
+            const userId = req.user!.id;
+            const { type, status, limit = 50, offset = 0 } = req.query;
 
-          // Validate query parameters
-          const validatedType = type ? String(type) : undefined;
-          const validatedStatus = status ? String(status) : undefined;
-          const validatedLimit = Math.min(parseInt(String(limit)) || 50, 100);
-          const validatedOffset = Math.max(parseInt(String(offset)) || 0, 0);
+            // Validate query parameters
+            const validatedType = type ? String(type) : undefined;
+            const validatedStatus = status ? String(status) : undefined;
+            const validatedLimit = Math.min(parseInt(String(limit)) || 50, 100);
+            const validatedOffset = Math.max(parseInt(String(offset)) || 0, 0);
 
-          // Mock service error
-          throw new Error("Database error");
-        } catch (error) {
-          console.error("List backups error:", error);
-          res.status(500).json({
-            success: false,
-            error: "Failed to list backups",
-            message: error instanceof Error ? error.message : "Unknown error",
-          });
-        }
-      });
-      
+            // Mock service error
+            throw new Error("Database error");
+          } catch (error) {
+            console.error("List backups error:", error);
+            res.status(500).json({
+              success: false,
+              error: "Failed to list backups",
+              message: error instanceof Error ? error.message : "Unknown error",
+            });
+          }
+        },
+      );
+
       errorTestApp.use("/api/backup", errorTestRouter);
-      
-      const response = await request(errorTestApp).get("/api/backup/list").expect(500);
+
+      const response = await request(errorTestApp)
+        .get("/api/backup/list")
+        .expect(500);
 
       expect(response.body.success).toBe(false);
       expect(response.body.error).toBe("Failed to list backups");

@@ -320,8 +320,12 @@ async function importDatabaseData(dbData: {
           title: row.title as string,
           description: (row.description as string) ?? null,
           coverPhotoUri: (row.coverPhotoUri as string) ?? null,
-          createdAt: row.createdAt ? new Date(row.createdAt as string) : new Date(),
-          modifiedAt: row.modifiedAt ? new Date(row.modifiedAt as string) : new Date(),
+          createdAt: row.createdAt
+            ? new Date(row.createdAt as string)
+            : new Date(),
+          modifiedAt: row.modifiedAt
+            ? new Date(row.modifiedAt as string)
+            : new Date(),
         });
         recordsRestored++;
       }
@@ -392,7 +396,12 @@ export function listEncryptedBackups(): {
   try {
     ensureBackupDir();
     const files = readdirSync(BACKUP_CONFIG.BACKUP_DIR);
-    const results: { fileName: string; filePath: string; size: number; timestamp: string }[] = [];
+    const results: {
+      fileName: string;
+      filePath: string;
+      size: number;
+      timestamp: string;
+    }[] = [];
     for (const fileName of files) {
       if (!fileName.endsWith(".enc")) continue;
       const filePath = join(BACKUP_CONFIG.BACKUP_DIR, fileName);
@@ -405,7 +414,8 @@ export function listEncryptedBackups(): {
       });
     }
     return results.sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
     );
   } catch (error) {
     console.error("Error listing backups:", error);

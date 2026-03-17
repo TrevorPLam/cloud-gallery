@@ -32,7 +32,7 @@ describe("SyncService (Sociable Testing Demonstration)", () => {
       // Verify outcomes - the actual behavior we care about
       expect(vector2[deviceId]).toBeGreaterThan(vector1[deviceId]);
       expect(vector1[deviceId]).toBeGreaterThan(baseVector[deviceId] || 0);
-      
+
       // Other device counters should remain unchanged (business rule)
       Object.keys(baseVector).forEach((key) => {
         if (key !== deviceId) {
@@ -67,7 +67,7 @@ describe("SyncService (Sociable Testing Demonstration)", () => {
       };
 
       const update2 = {
-        title: "Updated Photo 2", 
+        title: "Updated Photo 2",
         timestamp: Date.now(),
       };
 
@@ -92,7 +92,11 @@ describe("SyncService (Sociable Testing Demonstration)", () => {
       };
 
       // Test behavior outcome - not internal state
-      const result = await syncService.registerDevice("user-123", deviceId, deviceInfo);
+      const result = await syncService.registerDevice(
+        "user-123",
+        deviceId,
+        deviceInfo,
+      );
 
       // Verify actual business results
       expect(result).toBeDefined();
@@ -111,7 +115,7 @@ describe("SyncService (Sociable Testing Demonstration)", () => {
 
       // Test error handling behavior
       await expect(
-        syncService.registerDevice("user-123", deviceId, deviceInfo)
+        syncService.registerDevice("user-123", deviceId, deviceInfo),
       ).rejects.toThrow("Device ID is required");
     });
   });
@@ -136,7 +140,7 @@ describe("SyncService (Sociable Testing Demonstration)", () => {
 
     it("should identify clear version ordering", () => {
       const deviceId = "device-1";
-      
+
       // Create sequential version vectors
       const vector1 = syncService.generateVersionVector(deviceId, {});
       const vector2 = syncService.generateVersionVector(deviceId, vector1);

@@ -15,7 +15,7 @@ export interface TestDataOverrides {
  */
 export function createTestUser(overrides: TestDataOverrides = {}) {
   const now = Date.now();
-  
+
   return {
     id: `user-${Math.random().toString(36).substr(2, 9)}`,
     email: `test-${Math.random().toString(36).substr(2, 9)}@example.com`,
@@ -30,9 +30,12 @@ export function createTestUser(overrides: TestDataOverrides = {}) {
 /**
  * Creates a test photo with optional overrides
  */
-export function createTestPhoto(userId: string, overrides: TestDataOverrides = {}) {
+export function createTestPhoto(
+  userId: string,
+  overrides: TestDataOverrides = {},
+) {
   const now = Date.now();
-  
+
   return {
     id: `photo-${Math.random().toString(36).substr(2, 9)}`,
     userId,
@@ -52,9 +55,12 @@ export function createTestPhoto(userId: string, overrides: TestDataOverrides = {
 /**
  * Creates a test album with optional overrides
  */
-export function createTestAlbum(userId: string, overrides: TestDataOverrides = {}) {
+export function createTestAlbum(
+  userId: string,
+  overrides: TestDataOverrides = {},
+) {
   const now = Date.now();
-  
+
   return {
     id: `album-${Math.random().toString(36).substr(2, 9)}`,
     userId,
@@ -70,25 +76,41 @@ export function createTestAlbum(userId: string, overrides: TestDataOverrides = {
 /**
  * Creates multiple test photos for a user
  */
-export function createTestPhotos(userId: string, count: number, overrides: TestDataOverrides = {}) {
-  return Array.from({ length: count }, () => createTestPhoto(userId, overrides));
+export function createTestPhotos(
+  userId: string,
+  count: number,
+  overrides: TestDataOverrides = {},
+) {
+  return Array.from({ length: count }, () =>
+    createTestPhoto(userId, overrides),
+  );
 }
 
 /**
  * Creates multiple test albums for a user
  */
-export function createTestAlbums(userId: string, count: number, overrides: TestDataOverrides = {}) {
-  return Array.from({ length: count }, () => createTestAlbum(userId, overrides));
+export function createTestAlbums(
+  userId: string,
+  count: number,
+  overrides: TestDataOverrides = {},
+) {
+  return Array.from({ length: count }, () =>
+    createTestAlbum(userId, overrides),
+  );
 }
 
 /**
  * Creates a complete test dataset with user, photos, and albums
  */
-export function createTestDataset(photoCount = 10, albumCount = 3, overrides: TestDataOverrides = {}) {
+export function createTestDataset(
+  photoCount = 10,
+  albumCount = 3,
+  overrides: TestDataOverrides = {},
+) {
   const user = createTestUser(overrides.user);
   const photos = createTestPhotos(user.id, photoCount, overrides.photos);
   const albums = createTestAlbums(user.id, albumCount, overrides.albums);
-  
+
   return {
     user,
     photos,
@@ -101,19 +123,19 @@ export function createTestDataset(photoCount = 10, albumCount = 3, overrides: Te
  */
 export async function seedTestData(db: any, testData: any) {
   const { user, photos, albums } = testData;
-  
+
   // Insert user
   await db.insert(schema.users).values(user);
-  
+
   // Insert photos
   if (photos.length > 0) {
     await db.insert(schema.photos).values(photos);
   }
-  
+
   // Insert albums
   if (albums.length > 0) {
     await db.insert(schema.albums).values(albums);
-    
+
     // Add some photos to albums
     for (const album of albums) {
       const photosToAdd = photos.slice(0, Math.min(3, photos.length));
@@ -126,7 +148,7 @@ export async function seedTestData(db: any, testData: any) {
       }
     }
   }
-  
+
   return testData;
 }
 
@@ -143,7 +165,7 @@ export const boundaryTestData = {
     createTestPhoto("user-1", { width: 0, height: 100 }),
     createTestPhoto("user-1", { width: 100, height: 0 }),
   ],
-  
+
   /**
    * Creates albums with edge case titles
    */
@@ -153,7 +175,7 @@ export const boundaryTestData = {
     createTestAlbum("user-1", { title: "📸🎨🎭" }), // Unicode
     createTestAlbum("user-1", { title: "Album with\nnewlines\tand\ttabs" }),
   ],
-  
+
   /**
    * Creates users with edge case data
    */
@@ -176,7 +198,7 @@ export const performanceTestData = {
     const user = createTestUser();
     const photos = createTestPhotos(user.id, photoCount);
     const albums = createTestAlbums(user.id, albumCount);
-    
+
     return {
       user,
       photos,

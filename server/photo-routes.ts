@@ -14,6 +14,7 @@ import { db } from "./db";
 import { photos, insertPhotoSchema } from "../shared/schema";
 import { eq, and, desc, isNull, isNotNull } from "drizzle-orm";
 import { authenticateToken } from "./auth";
+import * as path from "path";
 import {
   processMLAnalysis,
   updatePhotoWithMLResults,
@@ -21,6 +22,7 @@ import {
 } from "./ml-routes";
 import { updateDuplicateGroups } from "./services/duplicate-detection";
 import { faceRecognitionService } from "./services/face-recognition";
+import { detectLivePhotoFromUpload } from "./services/live-photo";
 
 const router = Router();
 
@@ -133,10 +135,43 @@ router.post("/", async (req: Request, res: Response) => {
       userId, // Ensure photo belongs to authenticated user
     });
 
-    // Insert photo into database
+    // Detect Live Photo if URI is provided
+    let livePhotoData = {};
+    if (validatedData.uri) {
+      try {
+        // Convert URI to file path for server-side processing
+        const filePath = validatedData.uri.startsWith('/uploads/') 
+          ? path.resolve(process.cwd(), validatedData.uri)
+          : validatedData.uri;
+
+        const livePhotoDetection = await detectLivePhotoFromUpload(filePath);
+        
+        if (livePhotoDetection.isLivePhoto && livePhotoDetection.metadata) {
+          const metadata = livePhotoDetection.metadata;
+          livePhotoData = {
+            isLivePhoto: true,
+            livePhotoFormat: metadata.format,
+            livePresentationTimestampUs: metadata.presentationTimestampUs,
+            liveVideoDuration: metadata.videoDuration,
+            liveAssetIdentifier: metadata.assetIdentifier,
+            liveProcessedAt: new Date(),
+          };
+
+          console.log(`Live Photo detected: ${livePhotoDetection.format} format for photo ${validatedData.uri}`);
+        }
+      } catch (error) {
+        console.warn('Live Photo detection failed:', error);
+        // Continue without Live Photo processing if detection fails
+      }
+    }
+
+    // Insert photo into database with Live Photo data
     const [newPhoto] = await db
       .insert(photos)
-      .values(validatedData)
+      .values({
+        ...validatedData,
+        ...livePhotoData,
+      })
       .returning();
 
     // Trigger ML analysis asynchronously
@@ -495,8 +530,8 @@ router.post("/cleanup-expired", async (req: Request, res: Response) => {
         and(
           eq(photos.userId, userId),
           isNotNull(photos.deletedAt),
-          sql`${photos.deletedAt} < ${expirationDate}`
-        )
+          sql`${photos.deletedAt} < ${expirationDate}`,
+        ),
       );
 
     // Permanently delete expired photos
@@ -506,8 +541,8 @@ router.post("/cleanup-expired", async (req: Request, res: Response) => {
         and(
           eq(photos.userId, userId),
           isNotNull(photos.deletedAt),
-          sql`${photos.deletedAt} < ${expirationDate}`
-        )
+          sql`${photos.deletedAt} < ${expirationDate}`,
+        ),
       )
       .returning({ id: photos.id });
 
@@ -527,7 +562,11 @@ router.post("/cleanup-expired", async (req: Request, res: Response) => {
 // ═══════════════════════════════════════════════════════════
 router.post("/batch-restore", async (req: Request, res: Response) => {
   try {
-    const { photoIds, restoreToAlbums = true, restoreMetadata = true } = req.body;
+    const {
+      photoIds,
+      restoreToAlbums = true,
+      restoreMetadata = true,
+    } = req.body;
     const userId = req.user?.id;
 
     if (!userId) {
@@ -545,7 +584,7 @@ router.post("/batch-restore", async (req: Request, res: Response) => {
 
     for (let i = 0; i < photoIds.length; i += batchSize) {
       const batch = photoIds.slice(i, i + batchSize);
-      
+
       try {
         const restored = await db
           .update(photos)
@@ -554,18 +593,20 @@ router.post("/batch-restore", async (req: Request, res: Response) => {
             and(
               sql`${photos.id} = ANY(${batch})`,
               eq(photos.userId, userId),
-              isNotNull(photos.deletedAt)
-            )
+              isNotNull(photos.deletedAt),
+            ),
           )
           .returning();
 
         restoredPhotos.push(...restored);
       } catch (error) {
         console.error(`Batch restore failed for batch ${i}:`, error);
-        failedPhotos.push(...batch.map(id => ({
-          id,
-          error: "Batch restore failed",
-        })));
+        failedPhotos.push(
+          ...batch.map((id) => ({
+            id,
+            error: "Batch restore failed",
+          })),
+        );
       }
     }
 
@@ -606,17 +647,19 @@ router.get("/:id/recovery-info", async (req: Request, res: Response) => {
 
     const photoData = photo[0];
     const deletedAt = new Date(photoData.deletedAt!);
-    const daysInTrash = Math.floor((Date.now() - deletedAt.getTime()) / (1000 * 60 * 60 * 24));
-    
+    const daysInTrash = Math.floor(
+      (Date.now() - deletedAt.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
     // Determine recovery risk
-    let recoveryRisk: 'low' | 'medium' | 'high' = 'low';
+    let recoveryRisk: "low" | "medium" | "high" = "low";
     let canRecoverFully = true;
 
     if (daysInTrash > 25) {
-      recoveryRisk = 'high';
+      recoveryRisk = "high";
       canRecoverFully = false;
     } else if (daysInTrash > 20) {
-      recoveryRisk = 'medium';
+      recoveryRisk = "medium";
     }
 
     // Get original albums (placeholder - would need album_photos join)
@@ -662,17 +705,22 @@ router.get("/recovery-stats", async (req: Request, res: Response) => {
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const twentyDaysAgo = new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000);
 
-    const recentlyDeleted = trashPhotos.filter(photo => 
-      new Date(photo.deletedAt!) > sevenDaysAgo
+    const recentlyDeleted = trashPhotos.filter(
+      (photo) => new Date(photo.deletedAt!) > sevenDaysAgo,
     ).length;
 
-    const highRiskItems = trashPhotos.filter(photo => 
-      new Date(photo.deletedAt!) <= twentyDaysAgo
+    const highRiskItems = trashPhotos.filter(
+      (photo) => new Date(photo.deletedAt!) <= twentyDaysAgo,
     ).length;
 
-    const oldestDeletion = trashPhotos.length > 0 
-      ? new Date(Math.min(...trashPhotos.map(p => new Date(p.deletedAt!).getTime())))
-      : null;
+    const oldestDeletion =
+      trashPhotos.length > 0
+        ? new Date(
+            Math.min(
+              ...trashPhotos.map((p) => new Date(p.deletedAt!).getTime()),
+            ),
+          )
+        : null;
 
     res.json({
       totalRecoverable: trashPhotos.length,

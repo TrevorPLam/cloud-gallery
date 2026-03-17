@@ -64,8 +64,15 @@ describe("SyncService", () => {
 
   // Filter out all Object prototype properties to avoid conflicts
   const objectPrototypeProps = Object.getOwnPropertyNames(Object.prototype);
-  const safeDeviceId = fc.string({ minLength: 2 }).filter((s) => !objectPrototypeProps.includes(s));
-  const safeDict = fc.dictionary(fc.string({ minLength: 2 }).filter((s) => !objectPrototypeProps.includes(s)), fc.integer({ min: 0 }));
+  const safeDeviceId = fc
+    .string({ minLength: 2 })
+    .filter((s) => !objectPrototypeProps.includes(s));
+  const safeDict = fc.dictionary(
+    fc
+      .string({ minLength: 2 })
+      .filter((s) => !objectPrototypeProps.includes(s)),
+    fc.integer({ min: 0 }),
+  );
 
   describe("Version Vector Operations", () => {
     it("Property 1: Version vector monotonicity", () => {
@@ -214,13 +221,17 @@ describe("SyncService", () => {
           fc.string({ minLength: 1 }).filter((s) => s.trim().length > 0),
           fc.array(
             fc.record({
-              id: fc.string({ minLength: 1 }).filter((s) => s.trim().length > 0),
+              id: fc
+                .string({ minLength: 1 })
+                .filter((s) => s.trim().length > 0),
               modifiedAt: fc.date(),
             }),
           ),
           fc.array(
             fc.record({
-              id: fc.string({ minLength: 1 }).filter((s) => s.trim().length > 0),
+              id: fc
+                .string({ minLength: 1 })
+                .filter((s) => s.trim().length > 0),
               modifiedAt: fc.date(),
             }),
           ),
@@ -257,7 +268,9 @@ describe("SyncService", () => {
           fc.string({ minLength: 1 }).filter((s) => s.trim().length > 0),
           fc.array(
             fc.record({
-              id: fc.string({ minLength: 1 }).filter((s) => s.trim().length > 0),
+              id: fc
+                .string({ minLength: 1 })
+                .filter((s) => s.trim().length > 0),
               modifiedAt: fc.date(),
               data: fc.record({ value: fc.integer() }),
             }),

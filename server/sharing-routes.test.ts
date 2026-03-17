@@ -186,7 +186,12 @@ describe("Sharing API Integration Tests", () => {
       expect(response.body.message).toBe("Shared album accessed successfully");
       expect(response.body.data).toMatchObject({
         share: mockAccessResult.share,
-        album: { id: mockAccessResult.album.id, title: mockAccessResult.album.title, description: mockAccessResult.album.description, coverPhotoUri: null },
+        album: {
+          id: mockAccessResult.album.id,
+          title: mockAccessResult.album.title,
+          description: mockAccessResult.album.description,
+          coverPhotoUri: null,
+        },
         photos: [],
       });
 
@@ -360,8 +365,27 @@ describe("Sharing API Integration Tests", () => {
         .expect(200);
 
       expect(response.body).toMatchObject({
-        owned: [{ id: "share-1", albumId: "album-1", albumTitle: "My Album", shareToken: "token123", permissions: "view", viewCount: 10, isActive: true }],
-        collaborated: [{ id: "collab-1", sharedAlbumId: "share-2", albumId: "album-2", albumTitle: "Shared Album", permissions: "edit", invitedBy: "user-2" }],
+        owned: [
+          {
+            id: "share-1",
+            albumId: "album-1",
+            albumTitle: "My Album",
+            shareToken: "token123",
+            permissions: "view",
+            viewCount: 10,
+            isActive: true,
+          },
+        ],
+        collaborated: [
+          {
+            id: "collab-1",
+            sharedAlbumId: "share-2",
+            albumId: "album-2",
+            albumTitle: "Shared Album",
+            permissions: "edit",
+            invitedBy: "user-2",
+          },
+        ],
       });
       expect(sharingService.getUserSharedAlbums).toHaveBeenCalledWith(
         "test-user-id",

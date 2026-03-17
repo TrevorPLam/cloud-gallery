@@ -17,6 +17,8 @@ import { eq } from "drizzle-orm";
 import { randomBytes } from "crypto";
 import { createSelectChain } from "../test-utils/drizzle-mock";
 
+import { sharingService } from "./sharing";
+
 // Share result for createShare mock (unique per call)
 const createMockShareResult = () => ({
   id: `share-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -66,8 +68,6 @@ vi.mock("../db", () => {
   };
 });
 
-import { sharingService } from "./sharing";
-
 describe("PublicLinksService Property Tests", () => {
   let service: PublicLinksService;
   let testUser: any;
@@ -96,9 +96,7 @@ describe("PublicLinksService Property Tests", () => {
       .then((result) => result[0]);
 
     // Album lookup and createShare are used by createPublicLink
-    vi.mocked(db.select).mockReturnValue(
-      createSelectChain([testAlbum]) as any,
-    );
+    vi.mocked(db.select).mockReturnValue(createSelectChain([testAlbum]) as any);
     vi.mocked(sharingService.createShare).mockImplementation((opts: any) =>
       Promise.resolve({
         ...createMockShareResult(),
@@ -282,15 +280,23 @@ describe("PublicLinksService Property Tests", () => {
     });
 
     it("Property 1: View count increment - Each access should increment view count", async () => {
-      vi.mocked(sharingService).accessSharedAlbum
-        .mockResolvedValueOnce({
+      vi.mocked(sharingService)
+        .accessSharedAlbum.mockResolvedValueOnce({
           share: { id: publicLink.id, albumId: testAlbum.id, viewCount: 1 },
-          album: { id: testAlbum.id, title: "Test Album", createdAt: new Date() },
+          album: {
+            id: testAlbum.id,
+            title: "Test Album",
+            createdAt: new Date(),
+          },
           photos: [],
         })
         .mockResolvedValueOnce({
           share: { id: publicLink.id, albumId: testAlbum.id, viewCount: 2 },
-          album: { id: testAlbum.id, title: "Test Album", createdAt: new Date() },
+          album: {
+            id: testAlbum.id,
+            title: "Test Album",
+            createdAt: new Date(),
+          },
           photos: [],
         });
 
@@ -329,7 +335,9 @@ describe("PublicLinksService Property Tests", () => {
         photos: mockPhotos,
       };
 
-      vi.mocked(sharingService).accessSharedAlbum.mockResolvedValue(mockShareAccess);
+      vi.mocked(sharingService).accessSharedAlbum.mockResolvedValue(
+        mockShareAccess,
+      );
 
       // Test page 1
       const page1 = await service.accessPublicLink(
@@ -389,7 +397,9 @@ describe("PublicLinksService Property Tests", () => {
         photos: [],
       };
 
-      vi.mocked(sharingService).accessSharedAlbum.mockResolvedValue(mockShareAccess);
+      vi.mocked(sharingService).accessSharedAlbum.mockResolvedValue(
+        mockShareAccess,
+      );
 
       // First two requests should work
       await limitedService.accessPublicLink(
@@ -696,7 +706,9 @@ describe("PublicLinksService Property Tests", () => {
         })),
       };
 
-      vi.mocked(sharingService).accessSharedAlbum.mockResolvedValue(mockShareAccess);
+      vi.mocked(sharingService).accessSharedAlbum.mockResolvedValue(
+        mockShareAccess,
+      );
 
       const publicLink = await service.createPublicLink({
         albumId: testAlbum.id,
