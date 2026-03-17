@@ -164,6 +164,7 @@
     "react-native-zip-archive": "^7.0.0",
     "rollup": "^4.59.0",
     "supercluster": "^8.0.1",
+    "tssrp6a": "^3.0.0",
     "underscore": "^1.13.8",
     "wink-nlp": "^2.4.0",
     "ws": "^8.18.0",

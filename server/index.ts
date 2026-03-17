@@ -18,6 +18,7 @@ import { sanitizeForLogging } from "./security";
 import { auditLogger } from "./audit";
 import { validateBackupConfig } from "./backup-encryption";
 import { validateEncryptionConfig } from "./db-encryption";
+import { initializeObjectStorage } from "./services/object-storage";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -461,7 +462,22 @@ function setupErrorHandler(app: express.Application) {
       }
     }
 
-    // 6c. Audit logging for all API requests (auth, backup, sharing, data)
+    // 6c. Initialize object storage service
+    try {
+      const storageService = initializeObjectStorage();
+      const providerInfo = storageService.getProviderInfo();
+      log(`Object storage initialized: ${providerInfo.provider} -> bucket: ${providerInfo.bucket}`);
+    } catch (storageError) {
+      log("Failed to initialize object storage:", storageError instanceof Error ? storageError.message : "Unknown error");
+      if (isProduction) {
+        log("Production startup aborted: Object storage is required.");
+        process.exit(1);
+      } else {
+        log("Warning: Continuing without object storage in development mode.");
+      }
+    }
+
+    // 6d. Audit logging for all API requests (auth, backup, sharing, data)
     app.use(auditLogger.middleware());
 
     // 7. Expo static serving and routing

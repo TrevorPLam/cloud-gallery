@@ -196,52 +196,71 @@ router.post(
         }
       }
 
-      // Save the file to disk
-      const fileId = Math.random().toString(36).substr(2, 9);
-      const filename = `${fileId}-${sanitizeFilename(req.file.originalname)}`;
-      const uploadPath = path.resolve(process.cwd(), "uploads", filename);
+      // Upload to object storage instead of local filesystem
+      const { initializeObjectStorage, generateObjectKey } = await import('./services/object-storage');
+      
+      try {
+        const storage = initializeObjectStorage();
+        const objectKey = generateObjectKey(req.user!.id, req.file.originalname);
+        
+        const uploadResult = await storage.uploadObject(
+          objectKey,
+          req.file.buffer,
+          isEncrypted ? "application/octet-stream" : validationResult.mimeType,
+          req.user!.id
+        );
 
-      await fs.promises.writeFile(uploadPath, req.file.buffer);
+        console.log(`File uploaded to object storage: ${uploadResult.key} (${req.file.buffer.length} bytes)${isEncrypted ? " [ENCRYPTED]" : ""}`);
 
-      // Build file metadata
-      const fileMetadata: any = {
-        id: fileId,
-        originalName: req.file.originalname,
-        sanitizedFilename: filename,
-        mimeType: isEncrypted ? "application/octet-stream" : validationResult.mimeType,
-        extension: validationResult.extension,
-        size: validationResult.size,
-        hash: validationResult.hash,
-        uploadedAt: new Date().toISOString(),
-        uploadedBy: req.user?.id,
-        uri: `/uploads/${filename}`, // Public URI
-        encrypted: isEncrypted,
-      };
-
-      // Add encryption metadata for encrypted files
-      if (isEncrypted) {
-        fileMetadata.encryptionMetadata = {
-          iv,
-          authTag,
-          algorithm: algorithm || "XChaCha20-Poly1305",
-          encryptedAt: new Date().toISOString(),
+        // Build file metadata with object storage information
+        const fileMetadata: any = {
+          id: uploadResult.key.split('/').pop(), // Use UUID part as ID
+          originalName: req.file.originalname,
+          objectKey: uploadResult.key, // Store object key instead of local path
+          mimeType: isEncrypted ? "application/octet-stream" : validationResult.mimeType,
+          extension: validationResult.extension,
+          size: validationResult.size,
+          hash: validationResult.hash,
+          uploadedAt: new Date().toISOString(),
+          uploadedBy: req.user?.id,
+          uri: uploadResult.key, // Store object key as URI for now
+          encrypted: isEncrypted,
+          storageProvider: storage.getProviderInfo().provider,
         };
 
-        // Validate that encryption metadata is properly included in file metadata
-        if (!fileMetadata.encryptionMetadata.iv || !fileMetadata.encryptionMetadata.authTag) {
-          throw new Error("Encryption metadata validation failed after processing");
+      // Add encryption metadata for encrypted files
+        if (isEncrypted) {
+          fileMetadata.encryptionMetadata = {
+            iv,
+            authTag,
+            algorithm: algorithm || "XChaCha20-Poly1305",
+            encryptedAt: new Date().toISOString(),
+          };
+
+          // Validate that encryption metadata is properly included in file metadata
+          if (!fileMetadata.encryptionMetadata.iv || !fileMetadata.encryptionMetadata.authTag) {
+            throw new Error("Encryption metadata validation failed after processing");
+          }
         }
+
+        // Log successful upload (without sensitive data)
+        console.log(
+          `File uploaded successfully: ${fileMetadata.originalName} (${fileMetadata.size} bytes) -> ${fileMetadata.objectKey}${isEncrypted ? " [ENCRYPTED]" : ""}`,
+        );
+
+        res.status(201).json({
+          message: "File uploaded successfully",
+          file: fileMetadata,
+        });
+      } catch (storageError) {
+        console.error("Object storage upload error:", storageError);
+        res.status(500).json({
+          error: "Storage upload failed",
+          message: "Failed to upload file to object storage",
+          details: storageError instanceof Error ? storageError.message : "Unknown storage error",
+        });
+        return;
       }
-
-      // Log successful upload (without sensitive data)
-      console.log(
-        `File uploaded successfully: ${fileMetadata.originalName} (${fileMetadata.size} bytes) -> ${fileMetadata.uri}${isEncrypted ? " [ENCRYPTED]" : ""}`,
-      );
-
-      res.status(201).json({
-        message: "File uploaded successfully",
-        file: fileMetadata,
-      });
     } catch (error) {
       console.error("Upload error:", error);
       res.status(500).json({

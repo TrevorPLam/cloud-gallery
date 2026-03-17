@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   TextInput,
@@ -13,6 +13,7 @@ import { useNavigation } from "@react-navigation/native";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { Spacing, Colors } from "@/constants/theme";
 
 export default function RegisterScreen() {
@@ -23,6 +24,40 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // Refs for focus management
+  const emailInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInput>(null);
+  const confirmPasswordInputRef = useRef<TextInput>(null);
+  const signUpButtonRef = useRef<Pressable>(null);
+  const signInButtonRef = useRef<Pressable>(null);
+
+  // Keyboard navigation setup
+  const { handleActivate } = useKeyboardNavigation({
+    enabled: true,
+    onTab: (direction) => {
+      const refs = [emailInputRef, passwordInputRef, confirmPasswordInputRef, signUpButtonRef, signInButtonRef];
+      const currentIndex = refs.findIndex(ref => ref.current?.isFocused?.());
+      
+      if (direction === 'forward') {
+        const nextIndex = (currentIndex + 1) % refs.length;
+        refs[nextIndex].current?.focus?.();
+      } else {
+        const prevIndex = currentIndex <= 0 ? refs.length - 1 : currentIndex - 1;
+        refs[prevIndex].current?.focus?.();
+      }
+    },
+    onActivate: () => {
+      const currentIndex = [emailInputRef, passwordInputRef, confirmPasswordInputRef, signUpButtonRef, signInButtonRef]
+        .findIndex(ref => ref.current?.isFocused?.());
+      
+      if (currentIndex === 3) { // Sign up button
+        handleRegister();
+      } else if (currentIndex === 4) { // Sign in button
+        navigation.navigate("Login");
+      }
+    },
+  });
 
   const handleRegister = async () => {
     if (!email.trim() || !password) {
@@ -60,6 +95,7 @@ export default function RegisterScreen() {
       <View style={styles.form}>
         <ThemedText style={styles.title}>Create account</ThemedText>
         <TextInput
+          ref={emailInputRef}
           style={[
             styles.input,
             { backgroundColor: theme.backgroundDefault, color: colors.text },
@@ -74,8 +110,12 @@ export default function RegisterScreen() {
           accessibilityLabel="Email address input"
           accessibilityHint="Enter your email address to create an account"
           accessibilityRole="textbox"
+          onSubmitEditing={() => passwordInputRef.current?.focus()}
+          returnKeyType="next"
+          blurOnSubmit={false}
         />
         <TextInput
+          ref={passwordInputRef}
           style={[
             styles.input,
             { backgroundColor: theme.backgroundDefault, color: colors.text },
@@ -89,8 +129,12 @@ export default function RegisterScreen() {
           accessibilityLabel="Password input"
           accessibilityHint="Enter a password with at least 8 characters"
           accessibilityRole="textbox"
+          onSubmitEditing={() => confirmPasswordInputRef.current?.focus()}
+          returnKeyType="next"
+          blurOnSubmit={false}
         />
         <TextInput
+          ref={confirmPasswordInputRef}
           style={[
             styles.input,
             { backgroundColor: theme.backgroundDefault, color: colors.text },
@@ -104,14 +148,18 @@ export default function RegisterScreen() {
           accessibilityLabel="Confirm password input"
           accessibilityHint="Re-enter your password to confirm"
           accessibilityRole="textbox"
+          onSubmitEditing={handleRegister}
+          returnKeyType="done"
         />
         <Pressable
+          ref={signUpButtonRef}
           style={[styles.button, { backgroundColor: colors.accent }]}
           onPress={handleRegister}
           disabled={submitting}
           accessibilityRole="button"
           accessibilityLabel="Create account button"
           accessibilityHint="Creates your new account"
+          focusable={true}
         >
           {submitting ? (
             <ActivityIndicator color={colors.buttonText} />
@@ -120,12 +168,13 @@ export default function RegisterScreen() {
           )}
         </Pressable>
         <Pressable
+          ref={signInButtonRef}
           style={styles.link}
           onPress={() => navigation.goBack()}
-          disabled={submitting}
           accessibilityRole="button"
-          accessibilityLabel="Sign in"
-          accessibilityHint="Navigate back to sign in page"
+          accessibilityLabel="Back to sign in"
+          accessibilityHint="Navigate back to login screen"
+          focusable={true}
         >
           <ThemedText style={[styles.linkText, { color: colors.link }]}>
             Already have an account? Sign in

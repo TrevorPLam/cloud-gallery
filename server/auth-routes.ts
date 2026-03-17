@@ -19,6 +19,7 @@ import {
   checkPasswordBreach,
   validatePasswordStrength,
 } from "./security";
+import { SRPRoutines, SRPParameters, SRPServerSession } from "tssrp6a";
 import { authenticateToken, authRateLimit } from "./auth";
 import {
   checkCaptchaRequirement,
@@ -42,7 +43,18 @@ const JWT_SECRET =
 const registerSchema = z.object({
   email: z.string().email("Invalid email format"),
   password: z.string().min(8, "Password must be at least 8 characters long"),
-});
+  srpSalt: z.string().optional(), // SRP salt (for SRP registration)
+  srpVerifier: z.string().optional(), // SRP verifier (for SRP registration)
+}).refine(
+  (data) => {
+    // Either traditional password OR SRP fields must be provided
+    return (data.password && !data.srpSalt && !data.srpVerifier) || 
+           (!data.password && data.srpSalt && data.srpVerifier);
+  },
+  {
+    message: "Provide either password with email, or srpSalt and srpVerifier for SRP registration",
+  }
+);
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email format"),
@@ -60,11 +72,13 @@ async function findUserByEmail(email: string) {
 }
 
 // Helper function to create user
-async function createUser(email: string, passwordHash: string) {
+async function createUser(email: string, passwordHash?: string, srpSalt?: string, srpVerifier?: string) {
   const [user] = await db
     .insert(users)
     .values({
-      password: passwordHash,
+      password: passwordHash || null,
+      srpSalt: srpSalt || null,
+      srpVerifier: srpVerifier || null,
       username: email, // Use email as username for now since schema requires it
     })
     .returning();
@@ -73,7 +87,7 @@ async function createUser(email: string, passwordHash: string) {
 
 /**
  * POST /api/auth/register
- * Register a new user
+ * Register a new user (supports both traditional and SRP registration)
  */
 router.post("/register", authRateLimit, async (req: Request, res: Response) => {
   try {
@@ -89,31 +103,44 @@ router.post("/register", authRateLimit, async (req: Request, res: Response) => {
       });
     }
 
-    // Validate password strength
-    const passwordValidation = validatePasswordStrength(validatedData.password);
-    if (!passwordValidation.isValid) {
-      return res.status(400).json({
-        error: "Weak password",
-        message: "Password does not meet security requirements",
-        details: passwordValidation.errors,
-      });
+    let user;
+    
+    // Handle SRP registration
+    if (validatedData.srpSalt && validatedData.srpVerifier) {
+      // SRP registration - client provides salt and verifier
+      user = await createUser(
+        validatedData.email,
+        undefined, // No password hash for SRP
+        validatedData.srpSalt,
+        validatedData.srpVerifier
+      );
+    } else {
+      // Traditional registration - validate password strength and breach
+      const passwordValidation = validatePasswordStrength(validatedData.password);
+      if (!passwordValidation.isValid) {
+        return res.status(400).json({
+          error: "Weak password",
+          message: "Password does not meet security requirements",
+          details: passwordValidation.errors,
+        });
+      }
+
+      // Check if password has been breached
+      const isBreached = await checkPasswordBreach(validatedData.password);
+      if (isBreached) {
+        return res.status(400).json({
+          error: "Breached password",
+          message:
+            "This password has been found in known data breaches. Please choose a different password.",
+        });
+      }
+
+      // Hash password
+      const passwordHash = await hashPassword(validatedData.password);
+
+      // Create user
+      user = await createUser(validatedData.email, passwordHash);
     }
-
-    // Check if password has been breached
-    const isBreached = await checkPasswordBreach(validatedData.password);
-    if (isBreached) {
-      return res.status(400).json({
-        error: "Breached password",
-        message:
-          "This password has been found in known data breaches. Please choose a different password.",
-      });
-    }
-
-    // Hash password
-    const passwordHash = await hashPassword(validatedData.password);
-
-    // Create user
-    const user = await createUser(validatedData.email, passwordHash);
 
     // Generate tokens
     const accessToken = generateAccessToken(
@@ -155,9 +182,139 @@ router.post("/register", authRateLimit, async (req: Request, res: Response) => {
   }
 });
 
+// In-memory storage for SRP sessions (in production, use Redis or similar)
+const srpSessions = new Map<string, any>();
+
+/**
+ * POST /api/auth/login/challenge
+ * SRP login challenge - server step 1
+ */
+router.post("/login/challenge", authRateLimit, async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({
+        error: "Email required",
+        message: "Email is required for SRP challenge",
+      });
+    }
+
+    // Find user
+    const user = await findUserByEmail(email);
+    if (!user || !user.srpSalt || !user.srpVerifier) {
+      return res.status(401).json({
+        error: "Invalid credentials",
+        message: "Email not found or user not set up for SRP",
+      });
+    }
+
+    // Initialize SRP server session
+    const srpRoutines = new SRPRoutines(new SRPParameters());
+    const serverSession = new SRPServerSession(srpRoutines);
+    
+    // Server step 1: generate B
+    const B = await serverSession.step1(email, user.srpSalt, user.srpVerifier);
+    
+    // Store server session temporarily
+    const sessionId = generateSecureToken(32);
+    srpSessions.set(sessionId, {
+      serverSession,
+      email,
+      expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
+    });
+
+    // Return challenge to client
+    res.json({
+      sessionId,
+      salt: user.srpSalt,
+      B,
+    });
+  } catch (error) {
+    console.error("SRP challenge error:", error);
+    res.status(500).json({
+      error: "Internal server error",
+      message: "Failed to generate SRP challenge",
+    });
+  }
+});
+
+/**
+ * POST /api/auth/login/verify
+ * SRP login verify - server step 2
+ */
+router.post("/login/verify", authRateLimit, async (req: Request, res: Response) => {
+  try {
+    const { sessionId, A, M1 } = req.body;
+    
+    if (!sessionId || !A || !M1) {
+      return res.status(400).json({
+        error: "Missing required fields",
+        message: "sessionId, A, and M1 are required",
+      });
+    }
+
+    // Retrieve SRP session
+    const srpSession = srpSessions.get(sessionId);
+    if (!srpSession || srpSession.expiresAt < Date.now()) {
+      srpSessions.delete(sessionId);
+      return res.status(401).json({
+        error: "Invalid or expired session",
+        message: "SRP session has expired, please try again",
+      });
+    }
+
+    // Server step 2: verify client proof and generate M2
+    const M2 = await srpSession.serverSession.step2(A, M1);
+    
+    // Find user for token generation
+    const user = await findUserByEmail(srpSession.email);
+    if (!user) {
+      srpSessions.delete(sessionId);
+      return res.status(401).json({
+        error: "User not found",
+        message: "User account not found",
+      });
+    }
+
+    // Clean up SRP session
+    srpSessions.delete(sessionId);
+
+    // Generate JWT tokens
+    const accessToken = generateAccessToken(
+      { id: user.id, email: user.username },
+      JWT_SECRET,
+    );
+    const refreshToken = generateRefreshToken(
+      { id: user.id, email: user.username },
+      JWT_SECRET,
+    );
+
+    // Return tokens and server proof
+    res.json({
+      message: "Login successful",
+      user: {
+        id: user.id,
+        email: user.username,
+      },
+      tokens: {
+        accessToken,
+        refreshToken,
+      },
+      M2, // Server proof for client verification
+    });
+  } catch (error) {
+    console.error("SRP verify error:", error);
+    res.status(401).json({
+      error: "Authentication failed",
+      message: "Invalid SRP credentials",
+    });
+  }
+});
+
 /**
  * POST /api/auth/login
- * Authenticate user and return tokens
+ * Authenticate user and return tokens (traditional login)
  */
 router.post(
   "/login",

@@ -90,7 +90,7 @@ router.get("/", async (req: Request, res: Response) => {
 });
 
 // ═══════════════════════════════════════════════════════════
-// GET /api/photos/:id - Get a specific photo by ID
+// GET /api/photos/:id - Get a specific photo by ID with presigned URL
 // ═══════════════════════════════════════════════════════════
 router.get("/:id", async (req: Request, res: Response) => {
   try {
@@ -112,7 +112,28 @@ router.get("/:id", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Photo not found" });
     }
 
-    res.json({ photo: photo[0] });
+    const photoData = photo[0];
+
+    // Generate presigned URL for object storage photos
+    if (photoData.objectKey || photoData.storageProvider) {
+      try {
+        const { getObjectStorage } = await import('./services/object-storage');
+        const storage = getObjectStorage();
+        
+        // Generate presigned URL for 5 minutes (300 seconds)
+        const presignedUrl = await storage.getPresignedUrl(photoData.objectKey, { expiresIn: 300 });
+        
+        // Add presigned URL to response
+        photoData.presignedUrl = presignedUrl;
+        photoData.urlExpiresAt = new Date(Date.now() + 300 * 1000).toISOString();
+      } catch (urlError) {
+        console.error('Failed to generate presigned URL:', urlError);
+        // Don't fail the request, but log the error
+        // Client can fall back to any existing URI if available
+      }
+    }
+
+    res.json({ photo: photoData });
   } catch (error) {
     console.error("Error fetching photo:", error);
     res.status(500).json({ error: "Failed to fetch photo" });

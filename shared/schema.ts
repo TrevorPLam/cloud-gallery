@@ -31,12 +31,16 @@ export const users = pgTable("users", {
     .primaryKey()
     .default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  password: text("password"), // Made nullable for SRP migration - will be removed after migration
+  srpSalt: text("srp_salt"), // SRP salt for verifier generation
+  srpVerifier: text("srp_verifier"), // SRP verifier for authentication
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
+  srpSalt: true,
+  srpVerifier: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -192,6 +196,27 @@ export const photos = pgTable("photos", {
 
   // Encryption metadata (IV, authTag, etc.) - only stored if encrypted=true
   encryptionMetadata: jsonb("encryption_metadata"),
+
+  // ─── Object Storage fields ───
+
+  // Object key in storage (e.g., "userId/uuid.jpg")
+  // Used instead of local filesystem paths
+  objectKey: text("object_key"),
+
+  // Storage provider: "s3", "b2", "minio", or null for local storage
+  storageProvider: varchar("storage_provider", { length: 10 }),
+
+  // Original filename before sanitization
+  originalName: text("original_name"),
+
+  // File hash for integrity verification
+  fileHash: varchar("file_hash", { length: 64 }),
+
+  // MIME type of the uploaded file
+  mimeType: varchar("mime_type", { length: 100 }),
+
+  // File extension
+  extension: varchar("extension", { length: 10 }),
 });
 
 // ─────────────────────────────────────────────────────────

@@ -29,6 +29,8 @@ import * as Haptics from "expo-haptics";
 import { Photo } from "@/types";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
+import { useGridNavigation } from "@/hooks/useKeyboardNavigation";
+import { getFocusIndicatorStyle, useFocusIndicator } from "@/styles/focusIndicators";
 import { Spacing, Colors } from "@/constants/theme";
 import { usePhotoAccessibilityLabel } from "@/lib/photo-descriptions";
 
@@ -50,6 +52,8 @@ interface PhotoItemProps {
   onPress: (photo: Photo, index: number) => void;
   onLongPress?: (photo: Photo) => void;
   style?: any;
+  isFocused?: boolean;
+  onFocus?: (index: number) => void;
 }
 
 function PhotoItem({
@@ -58,9 +62,19 @@ function PhotoItem({
   onPress,
   onLongPress,
   style,
+  isFocused = false,
+  onFocus,
 }: PhotoItemProps) {
   const scale = useSharedValue(1);
   const accessibilityLabel = usePhotoAccessibilityLabel(photo);
+  const { theme, isDark } = useTheme();
+  
+  // Use focus indicator hook
+  const { focusStyle } = useFocusIndicator({
+    focused: isFocused,
+    darkTheme: isDark,
+    tvFocus: Platform.isTVOS,
+  });
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -81,20 +95,26 @@ function PhotoItem({
     onLongPress?.(photo);
   };
 
+  const handlePress = () => {
+    onFocus?.(index);
+    onPress(photo, index);
+  };
+
   const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
   return (
     <AnimatedPressable
-      onPress={() => onPress(photo, index)}
+      onPress={handlePress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       onLongPress={handleLongPress}
       delayLongPress={300}
-      style={[style, animatedStyle]}
+      style={[style, animatedStyle, focusStyle]}
       testID={`photo-item-${photo.id}`}
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
       accessibilityHint="Opens photo to view in detail"
+      focusable={true}
     >
       <Image
         source={{ uri: photo.uri }}
@@ -135,6 +155,27 @@ export function PhotoGrid({
 
   const photoSize = (width - GAP * (numColumns - 1)) / numColumns;
 
+  // Grid navigation for keyboard support
+  const {
+    currentIndex,
+    navigateToIndex,
+    handleArrowKey,
+    handleActivate,
+    setIndex,
+  } = useGridNavigation({
+    columns: numColumns,
+    itemCount: photos.length,
+    onNavigate: (index) => {
+      // Scroll to the focused photo if needed
+      // This could be implemented with FlashList's scrollToIndex
+    },
+    onActivate: (index) => {
+      if (index < photos.length) {
+        onPhotoPress(photos[index], index);
+      }
+    },
+  });
+
   // Dynamic style for photo container
   const photoContainerStyle = {
     width: photoSize,
@@ -159,6 +200,8 @@ export function PhotoGrid({
     }
     const photo = item as Photo;
     const photoIndex = photos.findIndex((p) => p.id === photo.id);
+    const isFocused = photoIndex === currentIndex;
+    
     return (
       <PhotoItem
         photo={photo}
@@ -166,6 +209,8 @@ export function PhotoGrid({
         onPress={onPhotoPress}
         onLongPress={onPhotoLongPress}
         style={photoContainerStyle}
+        isFocused={isFocused}
+        onFocus={setIndex}
       />
     );
   };
@@ -221,6 +266,8 @@ export function PhotoGrid({
           onPress={onPhotoPress}
           onLongPress={onPhotoLongPress}
           style={photoContainerStyle}
+          isFocused={index === currentIndex}
+          onFocus={setIndex}
         />
       )}
       key={`grid-${numColumns}`}

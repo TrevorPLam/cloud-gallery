@@ -12,6 +12,8 @@ import {
   AuthUser,
   login as apiLogin,
   register as apiRegister,
+  registerSRP,
+  loginSRP,
   logout as apiLogout,
   getMe,
   refreshAuth,
@@ -125,7 +127,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const res = await apiLogin(email, password);
+    // Use SRP login for zero-knowledge authentication
+    const res = await loginSRP(email, password);
     setUser(res.user);
 
     // Automatically set up encryption if not already done
@@ -152,7 +155,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const register = useCallback(async (email: string, password: string) => {
-    const res = await apiRegister(email, password);
+    // Use SRP registration for zero-knowledge authentication
+    const res = await registerSRP(email, password);
     setUser(res.user);
 
     // Automatically set up encryption for new users
