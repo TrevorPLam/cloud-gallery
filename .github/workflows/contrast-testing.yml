@@ -1,0 +1,251 @@
+name: Color Contrast Testing
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run daily at 2 AM UTC to catch contrast regressions
+    - cron: '0 2 * * *'
+
+jobs:
+  contrast-check:
+    name: WCAG 2.2 Contrast Validation
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run TypeScript compilation
+        run: npm run check:types
+      
+      - name: Run color contrast validation
+        run: |
+          chmod +x scripts/test-contrast.js
+          node scripts/test-contrast.js --json
+      
+      - name: Upload contrast report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: contrast-report-node-${{ matrix.node-version }}
+          path: contrast-report.json
+          retention-days: 30
+      
+      - name: Comment PR with contrast results
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            const fs = require('fs');
+            
+            try {
+              const report = JSON.parse(fs.readFileSync('contrast-report.json', 'utf8'));
+              const { summary } = report.report;
+              
+              const comment = `
+              ## 🎨 WCAG 2.2 Color Contrast Report
+              
+              ### Summary
+              - **Themes Tested**: ${summary.totalThemes}
+              - **Valid Themes**: ${summary.validThemes} ✅
+              - **Invalid Themes**: ${summary.invalidThemes} ${summary.invalidThemes > 0 ? '❌' : '✅'}
+              - **Total Violations**: ${summary.totalViolations}
+              
+              ${summary.totalViolations > 0 ? `
+              ### ❌ Contrast Violations Found
+              
+              ${report.report.violations.map((v, i) => 
+                `${i + 1}. **${v.context}**\n   - Ratio: ${v.ratio}:1\n   - Colors: \`${v.foreground}\` on \`${v.background}\`\n   - Expected: ${v.expectedLevel}\n   - Actual: ${v.actualLevel}`
+              ).join('\n\n')}
+              
+              ### 💡 Recommendations
+              ${report.report.recommendations.map(r => `- ${r}`).join('\n')}
+              
+              ⚠️ **Please fix these contrast issues before merging.**
+              ` : `
+              ### ✅ All Contrast Checks Passed
+              
+              All theme color combinations meet WCAG 2.2 AA requirements!
+              
+              🎉 **Great job maintaining accessibility compliance!**
+              `}
+              
+              ---
+              
+              *This check runs automatically on every PR and push to ensure accessibility compliance.*
+              `;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+              
+            } catch (error) {
+              console.log('Could not read contrast report:', error.message);
+            }
+      
+      - name: Check for AAA compliance (optional)
+        run: |
+          echo "Checking for AAA level compliance..."
+          node scripts/test-contrast.js --threshold=7.0 --level=AAA --json || echo "AAA compliance not achieved (this is optional)"
+
+  contrast-regression:
+    name: Contrast Regression Detection
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout PR code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Get base branch
+        id: base
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "branch=${{ github.base_ref }}" >> $GITHUB_OUTPUT
+          else
+            echo "branch=main" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Checkout base branch
+        run: |
+          git fetch origin ${{ steps.base.outputs.branch }}
+          git checkout origin/${{ steps.base.outputs.branch }}
+      
+      - name: Run contrast check on base branch
+        run: |
+          chmod +x scripts/test-contrast.js
+          node scripts/test-contrast.js --json
+          mv contrast-report.json base-contrast-report.json
+      
+      - name: Checkout PR branch
+        run: git checkout ${{ github.sha }}
+      
+      - name: Run contrast check on PR branch
+        run: |
+          node scripts/test-contrast.js --json
+          mv contrast-report.json pr-contrast-report.json
+      
+      - name: Compare contrast results
+        run: |
+          node -e "
+          const fs = require('fs');
+          const base = JSON.parse(fs.readFileSync('base-contrast-report.json', 'utf8'));
+          const pr = JSON.parse(fs.readFileSync('pr-contrast-report.json', 'utf8'));
+          
+          const baseViolations = base.report.summary.totalViolations;
+          const prViolations = pr.report.summary.totalViolations;
+          
+          console.log('Base branch violations:', baseViolations);
+          console.log('PR branch violations:', prViolations);
+          
+          if (prViolations > baseViolations) {
+            console.error('❌ Contrast regression detected!');
+            console.error('New violations introduced:', prViolations - baseViolations);
+            process.exit(1);
+          } else if (prViolations < baseViolations) {
+            console.log('✅ Contrast improvements detected!');
+            console.log('Violations fixed:', baseViolations - prViolations);
+          } else {
+            console.log('✅ No contrast changes detected');
+          }
+          "
+
+  accessibility-score:
+    name: Accessibility Score Calculation
+    runs-on: ubuntu-latest
+    needs: contrast-check
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Download contrast report
+        uses: actions/download-artifact@v4
+        with:
+          name: contrast-report-node-20.x
+          path: ./
+      
+      - name: Calculate accessibility score
+        run: |
+          node -e "
+          const fs = require('fs');
+          
+          try {
+            const report = JSON.parse(fs.readFileSync('contrast-report.json', 'utf8'));
+            const { summary } = report.report;
+            
+            const totalChecks = summary.totalThemes * 7; // Approximate checks per theme
+            const passedChecks = totalChecks - summary.totalViolations;
+            const score = Math.round((passedChecks / totalChecks) * 100);
+            
+            console.log('Accessibility Score:', score + '/100');
+            console.log('Total Checks:', totalChecks);
+            console.log('Passed Checks:', passedChecks);
+            console.log('Failed Checks:', summary.totalViolations);
+            
+            // Create badge data
+            const badgeColor = score >= 90 ? 'brightgreen' : score >= 70 ? 'yellow' : 'red';
+            const badgeData = {
+              schemaVersion: 1,
+              label: 'Accessibility',
+              message: score + '/100',
+              color: badgeColor
+            };
+            
+            fs.writeFileSync('accessibility-badge.json', JSON.stringify(badgeData, null, 2));
+            
+            // Set output for other jobs
+            console.log('::set-output name=score::' + score);
+            console.log('::set-output name=color::' + badgeColor);
+            
+          } catch (error) {
+            console.error('Could not calculate accessibility score:', error.message);
+            console.log('::set-output name=score::0');
+            console.log('::set-output name=color::red');
+          }
+          "
+      
+      - name: Generate accessibility badge
+        if: github.ref == 'refs/heads/main'
+        run: |
+          # This would update a badge in the README if needed
+          echo "Accessibility badge data available in accessibility-badge.json"

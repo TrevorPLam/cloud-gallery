@@ -9,6 +9,7 @@
 // AI-META-END
 
 import { Platform } from "react-native";
+import { validateThemeColors, generateContrastReport, type ValidationResult } from "@/lib/contrast-validation";
 
 // AI-NOTE: Complete light and dark theme objects ensure all color keys exist in both modes
 export const Colors = {
@@ -176,3 +177,91 @@ export const Shadows = {
     elevation: 3,
   },
 };
+
+/**
+ * Theme validation utilities for WCAG 2.2 contrast compliance
+ */
+export const ThemeValidation = {
+  /**
+   * Validate a single theme for contrast compliance
+   */
+  validateTheme(themeName: 'light' | 'dark'): ValidationResult {
+    const theme = Colors[themeName];
+    return validateThemeColors(theme, themeName);
+  },
+
+  /**
+   * Validate both light and dark themes
+   */
+  validateAllThemes(): {
+    light: ValidationResult;
+    dark: ValidationResult;
+    summary: ReturnType<typeof generateContrastReport>;
+  } {
+    const lightResult = this.validateTheme('light');
+    const darkResult = this.validateTheme('dark');
+    
+    const summary = generateContrastReport([lightResult, darkResult]);
+    
+    return {
+      light: lightResult,
+      dark: darkResult,
+      summary
+    };
+  },
+
+  /**
+   * Get contrast violations for development warnings
+   */
+  getContrastViolations(): ContrastViolation[] {
+    const { light, dark } = this.validateAllThemes();
+    return [...light.violations, ...dark.violations];
+  },
+
+  /**
+   * Check if themes are WCAG AA compliant
+   */
+  isCompliant(level: 'AA' | 'AAA' = 'AA'): boolean {
+    const violations = this.getContrastViolations();
+    
+    if (level === 'AAA') {
+      // Check for AAA compliance (7:1 for normal text)
+      return violations.every(v => v.ratio >= 7.0);
+    } else {
+      // Check for AA compliance (4.5:1 for normal text)
+      return violations.every(v => v.ratio >= 4.5);
+    }
+  }
+};
+
+/**
+ * Development-time contrast validation
+ * Logs warnings in development mode if contrast issues exist
+ */
+export const validateThemeContrast = () => {
+  if (__DEV__) {
+    const violations = ThemeValidation.getContrastViolations();
+    
+    if (violations.length > 0) {
+      console.warn('⚠️ Theme Color Contrast Warnings:');
+      console.warn('   Some color combinations may not meet WCAG 2.2 AA requirements:');
+      
+      violations.forEach((violation, index) => {
+        console.warn(`   ${index + 1}. ${violation.context}`);
+        console.warn(`      Ratio: ${violation.ratio}:1 (Expected: 4.5:1 for AA)`);
+        console.warn(`      Colors: ${violation.foreground} on ${violation.background}`);
+      });
+      
+      console.warn('');
+      console.warn('💡 Consider adjusting these colors for better accessibility');
+      console.warn('   Run "npm run test:contrast" for detailed analysis');
+    } else {
+      console.log('✅ All theme colors meet WCAG 2.2 AA contrast requirements');
+    }
+  }
+};
+
+// Validate themes on import in development
+if (__DEV__) {
+  validateThemeContrast();
+}

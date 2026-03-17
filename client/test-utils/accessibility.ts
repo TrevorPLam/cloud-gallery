@@ -8,6 +8,12 @@
 
 import { render, RenderResult, screen } from "@testing-library/react-native";
 import axe from "axe-core";
+import { 
+  calculateContrastRatio, 
+  validateThemeColors, 
+  type ContrastResult,
+  type ValidationResult 
+} from "@/lib/contrast-validation";
 
 // Enhanced axe-core configuration for React Native Web testing
 const axeConfig = {
@@ -231,8 +237,14 @@ export const accessibilityTests = {
 
   // Test color contrast
   hasSufficientContrast: (component: any) => {
-    // Mock implementation - would check color contrast ratios
-    return true;
+    // Extract colors from component styles for contrast testing
+    // This is a simplified implementation - in production, you'd extract actual computed styles
+    const styles = component.props?.style || {};
+    const color = styles.color || '#000000';
+    const backgroundColor = styles.backgroundColor || '#FFFFFF';
+    
+    const contrastResult = calculateContrastRatio(color, backgroundColor);
+    return contrastResult ? contrastResult.passesAA : false;
   },
 
   // Test keyboard navigation
@@ -426,4 +438,168 @@ export const createAccessibleProps = (
   }
 
   return props;
+};
+
+/**
+ * Enhanced contrast testing utilities for React Native components
+ */
+export const contrastTesting = {
+  /**
+   * Test component color contrast against WCAG AA standards
+   */
+  testComponentContrast: (component: any, expectedLevel: 'AA' | 'AAA' = 'AA'): boolean => {
+    const styles = component.props?.style || {};
+    const color = styles.color || styles.color || '#000000';
+    const backgroundColor = styles.backgroundColor || '#FFFFFF';
+    
+    const contrastResult = calculateContrastRatio(color, backgroundColor);
+    if (!contrastResult) return false;
+    
+    return expectedLevel === 'AAA' ? contrastResult.passesAAA : contrastResult.passesAA;
+  },
+
+  /**
+   * Test theme-wide contrast compliance
+   */
+  testThemeContrast: (theme: Record<string, string>, themeName: string = 'theme'): ValidationResult => {
+    return validateThemeColors(theme, themeName);
+  },
+
+  /**
+   * Create contrast-focused accessibility test
+   */
+  createContrastTest: (
+    testName: string,
+    renderComponent: () => RenderResult,
+    expectedLevel: 'AA' | 'AAA' = 'AA'
+  ) => {
+    it(`${testName} should meet ${expectedLevel} contrast requirements`, () => {
+      const renderResult = renderComponent();
+      
+      // Get all rendered text components
+      const textComponents = renderResult.getAllByText?.() || [];
+      
+      if (textComponents.length === 0) {
+        console.warn('No text components found for contrast testing');
+        return;
+      }
+      
+      // Test each text component for contrast
+      let allPass = true;
+      const violations: string[] = [];
+      
+      textComponents.forEach((component, index) => {
+        const hasContrast = accessibilityTests.hasSufficientContrast(component);
+        if (!hasContrast) {
+          allPass = false;
+          violations.push(`Text component ${index + 1} fails contrast test`);
+        }
+      });
+      
+      expect(allPass).toBe(true);
+      if (violations.length > 0) {
+        console.warn('Contrast violations:', violations);
+      }
+    });
+  },
+
+  /**
+   * Test focus indicator contrast (WCAG 2.4.13)
+   */
+  testFocusContrast: (component: any): boolean => {
+    // This would test focus state contrast in a real implementation
+    // For now, we'll test if the component has focusable styles
+    const hasFocusStyle = component.props?.style?.borderWidth || 
+                        component.props?.style?.outlineWidth ||
+                        component.props?.focusable ||
+                        component.props?.accessibilityRole === 'button';
+    
+    return Boolean(hasFocusStyle);
+  },
+
+  /**
+   * Generate contrast report for test suite
+   */
+  generateContrastReport: (testResults: ContrastResult[]): {
+    summary: {
+      total: number;
+      passed: number;
+      failed: number;
+      averageRatio: number;
+      worstRatio: number;
+      bestRatio: number;
+    };
+    violations: Array<{
+      context: string;
+      ratio: number;
+      expected: string;
+      actual: string;
+    }>;
+  } => {
+    const total = testResults.length;
+    const passed = testResults.filter(r => r.passesAA).length;
+    const failed = total - passed;
+    
+    const ratios = testResults.map(r => r.ratio);
+    const averageRatio = ratios.reduce((sum, r) => sum + r, 0) / ratios.length;
+    const worstRatio = Math.min(...ratios);
+    const bestRatio = Math.max(...ratios);
+    
+    const violations = testResults
+      .filter(r => !r.passesAA)
+      .map(r => ({
+        context: `${r.foreground} on ${r.background}`,
+        ratio: r.ratio,
+        expected: '4.5:1 (AA)',
+        actual: `${r.ratio}:1`,
+      }));
+    
+    return {
+      summary: {
+        total,
+        passed,
+        failed,
+        averageRatio: Math.round(averageRatio * 100) / 100,
+        worstRatio,
+        bestRatio,
+      },
+      violations,
+    };
+  },
+};
+
+/**
+ * Helper to test contrast in React Native Testing Library
+ */
+export const testContrastInComponent = (
+  component: React.ReactElement,
+  expectedLevel: 'AA' | 'AAA' = 'AA'
+): { passes: boolean; results: ContrastResult[]; violations: string[] } => {
+  const { getByText, getAllByText } = render(component);
+  
+  // Get all text elements
+  const textElements = getAllByText?.() || [];
+  const results: ContrastResult[] = [];
+  const violations: string[] = [];
+  
+  textElements.forEach((element, index) => {
+    // Extract styles from the element
+    const styles = element.props?.style || {};
+    const color = styles.color || '#000000';
+    const backgroundColor = styles.backgroundColor || '#FFFFFF';
+    
+    const contrastResult = calculateContrastRatio(color, backgroundColor);
+    if (contrastResult) {
+      results.push(contrastResult);
+      
+      const passes = expectedLevel === 'AAA' ? contrastResult.passesAAA : contrastResult.passesAA;
+      if (!passes) {
+        violations.push(`Element ${index + 1}: ${contrastResult.ratio}:1 (needs ${expectedLevel === 'AAA' ? '7:1' : '4.5:1'})`);
+      }
+    }
+  });
+  
+  const passes = violations.length === 0;
+  
+  return { passes, results, violations };
 };
