@@ -127,16 +127,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     const res = await apiLogin(email, password);
     setUser(res.user);
+
+    // Automatically set up encryption if not already done
+    try {
+      const masterKey = await retrieveMasterKey(false);
+      if (!masterKey) {
+        // No encryption key exists, set it up with the login password
+        const setupSuccess = await setupEncryption(password, false);
+        if (setupSuccess) {
+          console.log("Encryption automatically set up during login");
+        } else {
+          console.warn("Failed to auto-setup encryption during login");
+        }
+      } else {
+        // Verify the existing key with the current password
+        const isValid = await verifyMasterKey(password);
+        if (!isValid) {
+          console.warn("Existing encryption key doesn't match login password");
+        }
+      }
+    } catch (error) {
+      console.error("Error during encryption setup on login:", error);
+    }
   }, []);
 
   const register = useCallback(async (email: string, password: string) => {
     const res = await apiRegister(email, password);
     setUser(res.user);
+
+    // Automatically set up encryption for new users
+    try {
+      const setupSuccess = await setupEncryption(password, false);
+      if (setupSuccess) {
+        console.log("Encryption automatically set up during registration");
+      } else {
+        console.warn("Failed to auto-setup encryption during registration");
+      }
+    } catch (error) {
+      console.error("Error during encryption setup on registration:", error);
+    }
   }, []);
 
   const logout = useCallback(async () => {
     await apiLogout();
     setUser(null);
+    
+    // Clear encryption keys on logout for security
+    try {
+      await clearAllKeys();
+      setHasKeySetup(false);
+      setBiometricEnabled(false);
+      console.log("Encryption keys cleared on logout");
+    } catch (error) {
+      console.error("Error clearing encryption keys on logout:", error);
+    }
   }, []);
 
   const continueAsGuest = useCallback(() => {

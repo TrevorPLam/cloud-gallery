@@ -4,12 +4,20 @@
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
+import * as FileSystem from "expo-file-system";
 import { Photo, Album, StorageInfo } from "@/types";
 import {
   encryptMetadata,
   decryptMetadata,
   generateEncryptionKeyHex,
 } from "./client-crypto";
+import { 
+  isPhotoEncrypted, 
+  downloadAndDecryptPhoto, 
+  getOriginalFileExtension,
+  generateDecryptedPhotoUri,
+  cleanupDecryptedPhotos
+} from "./photo-decryption";
 
 const PHOTOS_KEY = "@photo_vault_photos";
 const ALBUMS_KEY = "@photo_vault_albums";
@@ -148,6 +156,68 @@ export async function getPhotos(): Promise<Photo[]> {
   } catch (error) {
     console.error("Failed to get photos:", error);
     return [];
+  }
+}
+
+/**
+ * Get decrypted photos for display, handling both local and server-stored encrypted photos
+ * @param includeServerPhotos - Whether to include server-stored photos
+ * @returns Array of photos with decrypted URIs
+ */
+export async function getDecryptedPhotos(includeServerPhotos: boolean = false): Promise<Photo[]> {
+  try {
+    // Get local photos first
+    const localPhotos = await getPhotos();
+    
+    if (!includeServerPhotos) {
+      return localPhotos;
+    }
+
+    // TODO: Integrate with server API to get server-stored photos
+    // For now, return local photos
+    return localPhotos;
+  } catch (error) {
+    console.error("Failed to get decrypted photos:", error);
+    return [];
+  }
+}
+
+/**
+ * Get a decrypted photo URI for display
+ * @param photo - Photo object (can be encrypted or unencrypted)
+ * @returns Local URI of the decrypted photo
+ */
+export async function getDecryptedPhotoUri(photo: Photo): Promise<string> {
+  try {
+    // If photo is not encrypted, return original URI
+    if (!isPhotoEncrypted(photo)) {
+      return photo.uri;
+    }
+
+    // For encrypted photos, check if we already have a decrypted version
+    const originalExtension = getOriginalFileExtension(photo);
+    const decryptedUri = generateDecryptedPhotoUri(photo.id, originalExtension);
+    
+    // Check if decrypted version already exists
+    const info = await FileSystem.getInfoAsync(decryptedUri);
+    if (info.exists) {
+      return decryptedUri;
+    }
+
+    // Download and decrypt the photo
+    return await downloadAndDecryptPhoto(
+      {
+        id: photo.id,
+        uri: photo.uri,
+        encrypted: photo.encrypted || false,
+        encryptionMetadata: photo.encryptionMetadata,
+        originalMimeType: photo.mimeType,
+      },
+      decryptedUri
+    );
+  } catch (error) {
+    console.error("Failed to get decrypted photo URI:", error);
+    throw error;
   }
 }
 

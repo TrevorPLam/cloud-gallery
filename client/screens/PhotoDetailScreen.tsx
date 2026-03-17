@@ -44,6 +44,7 @@ import { Spacing, Colors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { PhotoMetadataEditor } from "@/components/PhotoMetadataEditor";
 import LivePhotoViewer from "@/components/LivePhotoViewer";
+import { getDecryptedPhotoUri } from "@/lib/secure-storage";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -66,6 +67,7 @@ export default function PhotoDetailScreen() {
   const [isShareSheetVisible, setIsShareSheetVisible] = useState(false);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
+  const [decryptedUris, setDecryptedUris] = useState<Map<string, string>>(new Map());
   const listRef = useRef<any>(null);
 
   // Fetch photos using React Query
@@ -620,8 +622,56 @@ export default function PhotoDetailScreen() {
     setShowControls(!showControls);
   };
 
+  // Helper function to get decrypted URI for a photo
+  const getPhotoUri = async (photo: Photo): Promise<string> => {
+    // Check if we already have the decrypted URI cached
+    if (decryptedUris.has(photo.id)) {
+      return decryptedUris.get(photo.id)!;
+    }
+
+    try {
+      // Get decrypted URI (handles both encrypted and unencrypted photos)
+      const decryptedUri = await getDecryptedPhotoUri(photo);
+      
+      // Cache the result
+      setDecryptedUris(prev => new Map(prev).set(photo.id, decryptedUri));
+      
+      return decryptedUri;
+    } catch (error) {
+      console.error('Failed to get decrypted URI for photo:', photo.id, error);
+      // Fallback to original URI
+      return photo.uri;
+    }
+  };
+
   const renderPhoto = ({ item, index }: { item: Photo; index: number }) => {
     const isSelected = isPhotoSelected(item.id);
+    const [photoUri, setPhotoUri] = useState<string>(item.uri);
+
+    // Update URI when photo changes
+    useEffect(() => {
+      let mounted = true;
+      
+      const updateUri = async () => {
+        try {
+          const uri = await getPhotoUri(item);
+          if (mounted) {
+            setPhotoUri(uri);
+          }
+        } catch (error) {
+          console.error('Failed to update photo URI:', error);
+          if (mounted) {
+            setPhotoUri(item.uri);
+          }
+        }
+      };
+
+      updateUri();
+
+      return () => {
+        mounted = false;
+      };
+    }, [item.id, item.uri, item.encrypted, item.encryptionMetadata]);
 
     return (
       <Pressable
@@ -650,7 +700,7 @@ export default function PhotoDetailScreen() {
           />
         ) : (
           <Image
-            source={{ uri: item.uri }}
+            source={{ uri: photoUri }}
             style={styles.fullImage}
             contentFit="contain"
             transition={200}

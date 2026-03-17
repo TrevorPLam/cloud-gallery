@@ -184,6 +184,14 @@ export const photos = pgTable("photos", {
     mode: "date",
     withTimezone: true,
   }),
+
+  // ─── End-to-End Encryption fields ───
+
+  // Is this photo encrypted on the server?
+  encrypted: boolean("encrypted").default(false).notNull(),
+
+  // Encryption metadata (IV, authTag, etc.) - only stored if encrypted=true
+  encryptionMetadata: jsonb("encryption_metadata"),
 });
 
 // ─────────────────────────────────────────────────────────

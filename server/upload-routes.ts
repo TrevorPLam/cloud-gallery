@@ -92,23 +92,108 @@ router.post(
         });
       }
 
-      // Validate the file
-      const validationResult = await validateFile(
-        req.file.buffer,
-        req.file.originalname,
-      );
+      // Check if this is an encrypted upload
+      const isEncrypted = req.body.encrypted === "true";
+      const iv = req.body.iv;
+      const authTag = req.body.authTag;
+      const algorithm = req.body.algorithm;
+      let metadata = {};
 
-      if (!validationResult.isValid) {
-        return res.status(400).json({
-          error: "File validation failed",
-          message: "File does not meet security requirements",
-          details: validationResult.errors,
-          fileInfo: {
-            originalName: req.file.originalname,
-            size: validationResult.size,
-            detectedType: validationResult.mimeType,
-          },
-        });
+      // Parse metadata if provided
+      if (req.body.metadata) {
+        try {
+          metadata = JSON.parse(req.body.metadata);
+        } catch (error) {
+          console.warn("Failed to parse metadata:", error);
+        }
+      }
+
+      // For encrypted files, validate encryption metadata
+      let validationResult;
+      if (isEncrypted) {
+        // Validate required encryption fields
+        if (!iv || !authTag) {
+          return res.status(400).json({
+            error: "Missing encryption metadata",
+            message: "Encrypted uploads must include IV and authTag",
+            details: {
+              required: ["iv", "authTag"],
+              provided: {
+                iv: !!iv,
+                authTag: !!authTag,
+                algorithm,
+              },
+            },
+          });
+        }
+
+        // Validate IV format (should be hex string, 48 chars for 24 bytes)
+        if (!/^[0-9a-fA-F]{48}$/.test(iv)) {
+          return res.status(400).json({
+            error: "Invalid IV format",
+            message: "IV must be a 48-character hex string (24 bytes)",
+            details: {
+              received: iv ? `${iv.length} characters` : "missing",
+              expected: "48 characters (hex)",
+            },
+          });
+        }
+
+        // Validate authTag format (should be hex string, 32 chars for 16 bytes)
+        if (!/^[0-9a-fA-F]{32}$/.test(authTag)) {
+          return res.status(400).json({
+            error: "Invalid authTag format",
+            message: "authTag must be a 32-character hex string (16 bytes)",
+            details: {
+              received: authTag ? `${authTag.length} characters` : "missing",
+              expected: "32 characters (hex)",
+            },
+          });
+        }
+
+        // Validate algorithm
+        const supportedAlgorithms = ["XChaCha20-Poly1305"];
+        if (algorithm && !supportedAlgorithms.includes(algorithm)) {
+          return res.status(400).json({
+            error: "Unsupported encryption algorithm",
+            message: `Algorithm '${algorithm}' is not supported`,
+            details: {
+              supported: supportedAlgorithms,
+              received: algorithm,
+            },
+          });
+        }
+
+        // Basic validation for encrypted files (server can't validate content)
+        validationResult = {
+          isValid: true,
+          mimeType: "application/octet-stream", // Encrypted files are binary
+          extension: path.extname(req.file.originalname),
+          size: req.file.buffer.length,
+          hash: "", // Can't hash encrypted content meaningfully
+          errors: [],
+        };
+
+        console.log(`Processing encrypted upload: ${req.file.originalname} (${validationResult.size} bytes)`);
+      } else {
+        // Regular file validation for unencrypted uploads
+        validationResult = await validateFile(
+          req.file.buffer,
+          req.file.originalname,
+        );
+
+        if (!validationResult.isValid) {
+          return res.status(400).json({
+            error: "File validation failed",
+            message: "File does not meet security requirements",
+            details: validationResult.errors,
+            fileInfo: {
+              originalName: req.file.originalname,
+              size: validationResult.size,
+              detectedType: validationResult.mimeType,
+            },
+          });
+        }
       }
 
       // Save the file to disk
@@ -118,22 +203,39 @@ router.post(
 
       await fs.promises.writeFile(uploadPath, req.file.buffer);
 
-      const fileMetadata = {
+      // Build file metadata
+      const fileMetadata: any = {
         id: fileId,
         originalName: req.file.originalname,
         sanitizedFilename: filename,
-        mimeType: validationResult.mimeType,
+        mimeType: isEncrypted ? "application/octet-stream" : validationResult.mimeType,
         extension: validationResult.extension,
         size: validationResult.size,
         hash: validationResult.hash,
         uploadedAt: new Date().toISOString(),
         uploadedBy: req.user?.id,
         uri: `/uploads/${filename}`, // Public URI
+        encrypted: isEncrypted,
       };
 
-      // Log successful upload
+      // Add encryption metadata for encrypted files
+      if (isEncrypted) {
+        fileMetadata.encryptionMetadata = {
+          iv,
+          authTag,
+          algorithm: algorithm || "XChaCha20-Poly1305",
+          encryptedAt: new Date().toISOString(),
+        };
+
+        // Validate that encryption metadata is properly included in file metadata
+        if (!fileMetadata.encryptionMetadata.iv || !fileMetadata.encryptionMetadata.authTag) {
+          throw new Error("Encryption metadata validation failed after processing");
+        }
+      }
+
+      // Log successful upload (without sensitive data)
       console.log(
-        `File uploaded successfully: ${fileMetadata.originalName} (${fileMetadata.size} bytes) -> ${fileMetadata.uri}`,
+        `File uploaded successfully: ${fileMetadata.originalName} (${fileMetadata.size} bytes) -> ${fileMetadata.uri}${isEncrypted ? " [ENCRYPTED]" : ""}`,
       );
 
       res.status(201).json({
