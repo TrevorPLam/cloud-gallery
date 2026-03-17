@@ -1,13 +1,13 @@
 /**
  * Storybook preview configuration
- * 
+ *
  * Purpose: Global Storybook settings for visual testing
  * Usage: Configures themes, viewports, and Chromatic parameters
  * Standards: Consistent visual testing environment
  */
 
-import type { Preview } from '@storybook/react';
-import { themes } from '@storybook/theming';
+import type { Preview } from "@storybook/react";
+import { themes } from "@storybook/theming";
 
 const preview: Preview = {
   parameters: {
@@ -15,45 +15,45 @@ const preview: Preview = {
     docs: {
       theme: themes.light,
     },
-    
+
     // Viewport configuration for mobile testing
     viewport: {
       viewports: {
         mobile: {
-          name: 'Mobile',
+          name: "Mobile",
           styles: {
-            width: '375px',
-            height: '667px',
+            width: "375px",
+            height: "667px",
           },
         },
         tablet: {
-          name: 'Tablet',
+          name: "Tablet",
           styles: {
-            width: '768px',
-            height: '1024px',
+            width: "768px",
+            height: "1024px",
           },
         },
         desktop: {
-          name: 'Desktop',
+          name: "Desktop",
           styles: {
-            width: '1200px',
-            height: '800px',
+            width: "1200px",
+            height: "800px",
           },
         },
       },
-      defaultViewport: 'mobile',
+      defaultViewport: "mobile",
     },
-    
+
     // Chromatic configuration
     chromatic: {
       // Global delay for animations
       delay: 300,
       // Capture all viewports for responsive testing
-      viewports: ['mobile', 'tablet', 'desktop'],
+      viewports: ["mobile", "tablet", "desktop"],
       // Skip stories that are marked as disabled
       disableSnapshot: false,
     },
-    
+
     // Controls configuration
     controls: {
       matchers: {
@@ -61,23 +61,23 @@ const preview: Preview = {
         date: /Date$/i,
       },
     },
-    
+
     // Background configuration for theme testing
     backgrounds: {
-      default: 'light',
+      default: "light",
       values: [
         {
-          name: 'light',
-          value: '#ffffff',
+          name: "light",
+          value: "#ffffff",
         },
         {
-          name: 'dark',
-          value: '#333333',
+          name: "dark",
+          value: "#333333",
         },
       ],
     },
   },
-  
+
   // Global decorators
   decorators: [
     (Story) => {
@@ -86,9 +86,9 @@ const preview: Preview = {
       return Story();
     },
   ],
-  
+
   // Global tags
-  tags: ['autodocs'],
+  tags: ["autodocs"],
 };
 
 export default preview;
