@@ -29,9 +29,9 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { Photo } from "@/types";
 import { getPhotos } from "../lib/storage";
-import { 
-  getPhotoStackingService, 
-  getStacks, 
+import {
+  getPhotoStackingService,
+  getStacks,
   getStackSummary,
   updateStackPreferences,
   selectBestPhoto,
@@ -50,7 +50,10 @@ type RootStackParamList = {
   Settings: undefined;
 };
 
-type PhotoStackingNavigationProp = StackNavigationProp<RootStackParamList, "PhotoStacking">;
+type PhotoStackingNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  "PhotoStacking"
+>;
 type PhotoStackingRouteProp = RouteProp<RootStackParamList, "PhotoStacking">;
 
 interface StackItemProps {
@@ -84,7 +87,9 @@ export const PhotoStackingScreen: React.FC = () => {
   const [selectedStackId, setSelectedStackId] = useState<string | null>(null);
   const [statistics, setStatistics] = useState<StackingStatistics | null>(null);
   const [showStatistics, setShowStatistics] = useState(false);
-  const [processingStacks, setProcessingStacks] = useState<Set<string>>(new Set());
+  const [processingStacks, setProcessingStacks] = useState<Set<string>>(
+    new Set(),
+  );
 
   const stackingService = useMemo(() => getPhotoStackingService(), []);
 
@@ -130,21 +135,24 @@ export const PhotoStackingScreen: React.FC = () => {
             try {
               setLoading(true);
               const result = await stackingService.analyzeAndStackPhotos();
-              
+
               Alert.alert(
                 "Analysis Complete",
                 `Found ${result.stacksCreated} stacks containing ${result.photosInStacks} photos.\nProcessing time: ${(result.processingTime / 1000).toFixed(1)}s`,
-                [{ text: "OK", onPress: () => loadData() }]
+                [{ text: "OK", onPress: () => loadData() }],
               );
             } catch (error) {
               console.error("Stacking analysis failed:", error);
-              Alert.alert("Error", "Failed to analyze photos. Please try again.");
+              Alert.alert(
+                "Error",
+                "Failed to analyze photos. Please try again.",
+              );
             } finally {
               setLoading(false);
             }
           },
         },
-      ]
+      ],
     );
   }, [stackingService, loadData]);
 
@@ -156,38 +164,47 @@ export const PhotoStackingScreen: React.FC = () => {
   }, []);
 
   // Handle best photo selection
-  const handleBestPhotoSelect = useCallback(async (stackId: string, photoId: string) => {
-    try {
-      setProcessingStacks(prev => new Set(prev).add(stackId));
-      await selectBestPhoto(stackId, photoId);
-      await loadData(); // Refresh data
-    } catch (error) {
-      console.error("Failed to select best photo:", error);
-      Alert.alert("Error", "Failed to update photo selection.");
-    } finally {
-      setProcessingStacks(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(stackId);
-        return newSet;
-      });
-    }
-  }, [loadData]);
+  const handleBestPhotoSelect = useCallback(
+    async (stackId: string, photoId: string) => {
+      try {
+        setProcessingStacks((prev) => new Set(prev).add(stackId));
+        await selectBestPhoto(stackId, photoId);
+        await loadData(); // Refresh data
+      } catch (error) {
+        console.error("Failed to select best photo:", error);
+        Alert.alert("Error", "Failed to update photo selection.");
+      } finally {
+        setProcessingStacks((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(stackId);
+          return newSet;
+        });
+      }
+    },
+    [loadData],
+  );
 
   // Handle review toggle
-  const handleReviewToggle = useCallback(async (stackId: string, reviewed: boolean) => {
-    try {
-      await updateStackPreferences(stackId, { reviewed });
-      await loadData(); // Refresh data
-    } catch (error) {
-      console.error("Failed to update review status:", error);
-      Alert.alert("Error", "Failed to update review status.");
-    }
-  }, [loadData]);
+  const handleReviewToggle = useCallback(
+    async (stackId: string, reviewed: boolean) => {
+      try {
+        await updateStackPreferences(stackId, { reviewed });
+        await loadData(); // Refresh data
+      } catch (error) {
+        console.error("Failed to update review status:", error);
+        Alert.alert("Error", "Failed to update review status.");
+      }
+    },
+    [loadData],
+  );
 
   // Get photos for stack
-  const getPhotosForStack = useCallback((stack: PhotoStack): Photo[] => {
-    return allPhotos.filter(photo => stack.photoIds.includes(photo.id));
-  }, [allPhotos]);
+  const getPhotosForStack = useCallback(
+    (stack: PhotoStack): Photo[] => {
+      return allPhotos.filter((photo) => stack.photoIds.includes(photo.id));
+    },
+    [allPhotos],
+  );
 
   // Initial load
   useEffect(() => {
@@ -195,24 +212,29 @@ export const PhotoStackingScreen: React.FC = () => {
   }, [loadData]);
 
   // Render stack item
-  const renderStackItem = useCallback(({ item: { stack: PhotoStack; photos: Photo[] } }) => (
-    <StackItem
-      stack={item.stack}
-      photos={item.photos}
-      onPress={handleStackPress}
-      onBestPhotoSelect={handleBestPhotoSelect}
-      onReviewToggle={handleReviewToggle}
-    />
-  ), [handleStackPress, handleBestPhotoSelect, handleReviewToggle]);
+  const renderStackItem = useCallback(
+    ({ item }: { item: { stack: PhotoStack; photos: Photo[] } }) => (
+      <StackItem
+        stack={item.stack}
+        photos={item.photos}
+        onPress={handleStackPress}
+        onBestPhotoSelect={handleBestPhotoSelect}
+        onReviewToggle={handleReviewToggle}
+      />
+    ),
+    [handleStackPress, handleBestPhotoSelect, handleReviewToggle],
+  );
 
   // Prepare data for FlashList
-  const stackData = useMemo(() => 
-    stacks.map(stack => ({
-      stack,
-      photos: getPhotosForStack(stack),
-      key: stack.id,
-    }))
-  , [stacks, getPhotosForStack]);
+  const stackData = useMemo(
+    () =>
+      stacks.map((stack) => ({
+        stack,
+        photos: getPhotosForStack(stack),
+        key: stack.id,
+      })),
+    [stacks, getPhotosForStack],
+  );
 
   if (loading && stacks.length === 0) {
     return (
@@ -253,7 +275,12 @@ export const PhotoStackingScreen: React.FC = () => {
           </View>
           <View style={styles.statItem}>
             <Text style={styles.statNumber}>
-              {((statistics.userEngagement.reviewedStacks / Math.max(statistics.totalStacks, 1)) * 100).toFixed(0)}%
+              {(
+                (statistics.userEngagement.reviewedStacks /
+                  Math.max(statistics.totalStacks, 1)) *
+                100
+              ).toFixed(0)}
+              %
             </Text>
             <Text style={styles.statLabel}>Reviewed</Text>
           </View>
@@ -274,7 +301,10 @@ export const PhotoStackingScreen: React.FC = () => {
           <Text style={styles.emptySubtitle}>
             Run analysis to find duplicates, bursts, and similar photos
           </Text>
-          <TouchableOpacity style={styles.analyzeButton} onPress={runStackingAnalysis}>
+          <TouchableOpacity
+            style={styles.analyzeButton}
+            onPress={runStackingAnalysis}
+          >
             <Text style={styles.analyzeButtonText}>Analyze Photos</Text>
           </TouchableOpacity>
         </View>
@@ -282,7 +312,7 @@ export const PhotoStackingScreen: React.FC = () => {
         <FlashList
           data={stackData}
           renderItem={renderStackItem}
-          keyExtractor={item => item.key}
+          keyExtractor={(item) => item.key}
           estimatedItemSize={120}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
@@ -305,18 +335,22 @@ export const PhotoStackingScreen: React.FC = () => {
             <Text style={styles.modalTitle}>Stacking Statistics</Text>
             <View style={styles.modalSpacer} />
           </View>
-          
+
           {statistics && (
             <ScrollView style={styles.modalContent}>
               <View style={styles.statSection}>
                 <Text style={styles.statSectionTitle}>Overview</Text>
                 <View style={styles.statGrid}>
                   <View style={styles.statGridItem}>
-                    <Text style={styles.statGridNumber}>{statistics.totalStacks}</Text>
+                    <Text style={styles.statGridNumber}>
+                      {statistics.totalStacks}
+                    </Text>
                     <Text style={styles.statGridLabel}>Total Stacks</Text>
                   </View>
                   <View style={styles.statGridItem}>
-                    <Text style={styles.statGridNumber}>{statistics.avgStackSize.toFixed(1)}</Text>
+                    <Text style={styles.statGridNumber}>
+                      {statistics.avgStackSize.toFixed(1)}
+                    </Text>
                     <Text style={styles.statGridLabel}>Avg Size</Text>
                   </View>
                 </View>
@@ -326,19 +360,27 @@ export const PhotoStackingScreen: React.FC = () => {
                 <Text style={styles.statSectionTitle}>Stack Types</Text>
                 <View style={styles.statGrid}>
                   <View style={styles.statGridItem}>
-                    <Text style={styles.statGridNumber}>{statistics.stackTypes.duplicate}</Text>
+                    <Text style={styles.statGridNumber}>
+                      {statistics.stackTypes.duplicate}
+                    </Text>
                     <Text style={styles.statGridLabel}>Duplicates</Text>
                   </View>
                   <View style={styles.statGridItem}>
-                    <Text style={styles.statGridNumber}>{statistics.stackTypes.burst}</Text>
+                    <Text style={styles.statGridNumber}>
+                      {statistics.stackTypes.burst}
+                    </Text>
                     <Text style={styles.statGridLabel}>Bursts</Text>
                   </View>
                   <View style={styles.statGridItem}>
-                    <Text style={styles.statGridNumber}>{statistics.stackTypes.similar}</Text>
+                    <Text style={styles.statGridNumber}>
+                      {statistics.stackTypes.similar}
+                    </Text>
                     <Text style={styles.statGridLabel}>Similar</Text>
                   </View>
                   <View style={styles.statGridItem}>
-                    <Text style={styles.statGridNumber}>{statistics.stackTypes.mixed}</Text>
+                    <Text style={styles.statGridNumber}>
+                      {statistics.stackTypes.mixed}
+                    </Text>
                     <Text style={styles.statGridLabel}>Mixed</Text>
                   </View>
                 </View>
@@ -348,11 +390,15 @@ export const PhotoStackingScreen: React.FC = () => {
                 <Text style={styles.statSectionTitle}>User Engagement</Text>
                 <View style={styles.statGrid}>
                   <View style={styles.statGridItem}>
-                    <Text style={styles.statGridNumber}>{statistics.userEngagement.reviewedStacks}</Text>
+                    <Text style={styles.statGridNumber}>
+                      {statistics.userEngagement.reviewedStacks}
+                    </Text>
                     <Text style={styles.statGridLabel}>Reviewed</Text>
                   </View>
                   <View style={styles.statGridItem}>
-                    <Text style={styles.statGridNumber}>{statistics.userEngagement.customSelections}</Text>
+                    <Text style={styles.statGridNumber}>
+                      {statistics.userEngagement.customSelections}
+                    </Text>
                     <Text style={styles.statGridLabel}>Custom Picks</Text>
                   </View>
                 </View>
@@ -379,7 +425,7 @@ const StackItem: React.FC<StackItemProps> = ({
   const [expanded, setExpanded] = useState(false);
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
 
-  const bestPhoto = photos.find(p => p.id === stack.bestPhotoId);
+  const bestPhoto = photos.find((p) => p.id === stack.bestPhotoId);
   const bestQuality = stack.analysis.qualityScores[stack.bestPhotoId] || 0;
   const isProcessing = false; // Would track processing state
 
@@ -396,43 +442,59 @@ const StackItem: React.FC<StackItemProps> = ({
 
   const getTypeColor = useCallback(() => {
     switch (stack.type) {
-      case "duplicate": return "#FF3B30";
-      case "burst": return "#34C759";
-      case "similar": return "#FF9500";
-      case "mixed": return "#007AFF";
-      default: return "#8E8E93";
+      case "duplicate":
+        return "#FF3B30";
+      case "burst":
+        return "#34C759";
+      case "similar":
+        return "#FF9500";
+      case "mixed":
+        return "#007AFF";
+      default:
+        return "#8E8E93";
     }
   }, [stack.type]);
 
   const getTypeIcon = useCallback(() => {
     switch (stack.type) {
-      case "duplicate": return "copy";
-      case "burst": return "camera";
-      case "similar": return "images";
-      case "mixed": return "layers";
-      default: return "help";
+      case "duplicate":
+        return "copy";
+      case "burst":
+        return "camera";
+      case "similar":
+        return "images";
+      case "mixed":
+        return "layers";
+      default:
+        return "help";
     }
   }, [stack.type]);
 
   return (
     <View style={styles.stackItem}>
-      <TouchableOpacity onPress={() => onPress(stack, photos)} style={styles.stackHeader}>
+      <TouchableOpacity
+        onPress={() => onPress(stack, photos)}
+        style={styles.stackHeader}
+      >
         <View style={styles.stackInfo}>
           <View style={styles.stackTitleRow}>
             <Ionicons name={getTypeIcon()} size={20} color={getTypeColor()} />
             <Text style={styles.stackTitle}>
               {stack.type.charAt(0).toUpperCase() + stack.type.slice(1)} Group
             </Text>
-            <View style={[styles.typeBadge, { backgroundColor: getTypeColor() }]}>
+            <View
+              style={[styles.typeBadge, { backgroundColor: getTypeColor() }]}
+            >
               <Text style={styles.typeBadgeText}>{photos.length}</Text>
             </View>
           </View>
-          
+
           <Text style={styles.stackSubtitle}>
-            Best: {getQualityRating(bestQuality)} • Confidence: {(stack.confidence * 100).toFixed(0)}%
+            Best: {getQualityRating(bestQuality)} • Confidence:{" "}
+            {(stack.confidence * 100).toFixed(0)}%
           </Text>
         </View>
-        
+
         <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
       </TouchableOpacity>
 
@@ -448,7 +510,9 @@ const StackItem: React.FC<StackItemProps> = ({
                   isSelected={selectedPhotoId === photo.id}
                   quality={stack.analysis.qualityScores[photo.id] || 0}
                   onSelect={handlePhotoSelect}
-                  onPress={() => { /* Navigate to photo viewer */ }}
+                  onPress={() => {
+                    /* Navigate to photo viewer */
+                  }}
                 />
               ))}
             </View>
@@ -457,21 +521,30 @@ const StackItem: React.FC<StackItemProps> = ({
           {/* Actions */}
           <View style={styles.stackActions}>
             <TouchableOpacity
-              style={[styles.actionButton, selectedPhotoId && styles.actionButtonPrimary]}
+              style={[
+                styles.actionButton,
+                selectedPhotoId && styles.actionButtonPrimary,
+              ]}
               onPress={handleConfirmSelection}
-              disabled={!selectedPhotoId || selectedPhotoId === stack.bestPhotoId}
+              disabled={
+                !selectedPhotoId || selectedPhotoId === stack.bestPhotoId
+              }
             >
-              <Text style={[
-                styles.actionButtonText,
-                selectedPhotoId && styles.actionButtonTextPrimary
-              ]}>
+              <Text
+                style={[
+                  styles.actionButtonText,
+                  selectedPhotoId && styles.actionButtonTextPrimary,
+                ]}
+              >
                 {selectedPhotoId ? "Set as Best" : "Select Best"}
               </Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => onReviewToggle(stack.id, !stack.userPreferences.reviewed)}
+              onPress={() =>
+                onReviewToggle(stack.id, !stack.userPreferences.reviewed)
+              }
             >
               <Text style={styles.actionButtonText}>
                 {stack.userPreferences.reviewed ? "Reviewed" : "Mark Reviewed"}
@@ -485,10 +558,10 @@ const StackItem: React.FC<StackItemProps> = ({
         style={styles.expandButton}
         onPress={() => setExpanded(!expanded)}
       >
-        <Ionicons 
-          name={expanded ? "chevron-up" : "chevron-down"} 
-          size={16} 
-          color="#C7C7CC" 
+        <Ionicons
+          name={expanded ? "chevron-up" : "chevron-down"}
+          size={16}
+          color="#C7C7CC"
         />
       </TouchableOpacity>
     </View>
@@ -516,27 +589,22 @@ const PhotoItem: React.FC<PhotoItemProps> = ({
 
   return (
     <TouchableOpacity
-      style={[
-        styles.photoItem,
-        isSelected && styles.photoItemSelected
-      ]}
+      style={[styles.photoItem, isSelected && styles.photoItemSelected]}
       onPress={handlePress}
     >
       {/* Photo thumbnail would go here */}
       <View style={styles.photoThumbnail}>
         <Ionicons name="image" size={24} color="#C7C7CC" />
       </View>
-      
+
       {isSelected && (
         <View style={styles.photoSelectionOverlay}>
           <Ionicons name="checkmark-circle" size={20} color="#007AFF" />
         </View>
       )}
-      
+
       <View style={styles.photoQuality}>
-        <Text style={styles.photoQualityText}>
-          {getQualityRating(quality)}
-        </Text>
+        <Text style={styles.photoQualityText}>{getQualityRating(quality)}</Text>
       </View>
     </TouchableOpacity>
   );

@@ -11,7 +11,10 @@
 import { Platform, InteractionManager } from "react-native";
 import { loadTensorflowModel, TensorflowModel } from "react-native-fast-tflite";
 import RNMlkitOcr from "react-native-mlkit-ocr";
-import { getPerceptualHasher, generateCompositeHash } from "../photo/perceptual-hash";
+import {
+  getPerceptualHasher,
+  generateCompositeHash,
+} from "../photo/perceptual-hash";
 
 // ─────────────────────────────────────────────────────────
 // TYPES AND INTERFACES
@@ -242,7 +245,10 @@ export class PhotoAnalyzer {
     try {
       const blocks = await RNMlkitOcr.detectFromUri(imageUri);
       if (!blocks || blocks.length === 0) return { text: "" };
-      const text = blocks.map((b) => b.text).filter(Boolean).join("\n");
+      const text = blocks
+        .map((b) => b.text)
+        .filter(Boolean)
+        .join("\n");
       const resultBlocks = blocks.map((block) => ({
         text: block.text,
         boundingBox: block.bounding

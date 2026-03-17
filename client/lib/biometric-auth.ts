@@ -4,7 +4,10 @@
 import * as LocalAuthentication from "expo-local-authentication";
 import * as SecureStore from "expo-secure-store";
 import type { LocalAuthenticationResult } from "expo-local-authentication";
-import { authenticateWithBiometrics, checkBiometricAvailability } from "./key-derivation";
+import {
+  authenticateWithBiometrics,
+  checkBiometricAvailability,
+} from "./key-derivation";
 
 /**
  * Biometric authentication configuration
@@ -79,7 +82,9 @@ export class BiometricAuthManager {
 
       return {
         isEnrolled,
-        supportedTypes: supportedTypes.map(type => this.getBiometricTypeName(type)),
+        supportedTypes: supportedTypes.map((type) =>
+          this.getBiometricTypeName(type),
+        ),
         hasHardware,
         devicePasscodeSet,
       };
@@ -99,14 +104,14 @@ export class BiometricAuthManager {
    * @param options - Authentication options
    * @returns Authentication result
    */
-  async authenticate(options: {
-    reason?: string;
-    requireBiometricsOnly?: boolean;
-  } = {}): Promise<BiometricAuthResult> {
-    const {
-      reason = this.config.reason,
-      requireBiometricsOnly = false,
-    } = options;
+  async authenticate(
+    options: {
+      reason?: string;
+      requireBiometricsOnly?: boolean;
+    } = {},
+  ): Promise<BiometricAuthResult> {
+    const { reason = this.config.reason, requireBiometricsOnly = false } =
+      options;
 
     try {
       // Check rate limiting
@@ -121,7 +126,7 @@ export class BiometricAuthManager {
 
       // Check biometric availability
       const availability = await this.getEnrollmentStatus();
-      
+
       if (!availability.hasHardware) {
         return {
           success: false,
@@ -135,7 +140,8 @@ export class BiometricAuthManager {
         return {
           success: false,
           authenticated: false,
-          error: "No biometrics enrolled. Please set up Face ID, Touch ID, or fingerprint.",
+          error:
+            "No biometrics enrolled. Please set up Face ID, Touch ID, or fingerprint.",
           errorCode: "NOT_ENROLLED",
         };
       }
@@ -145,17 +151,21 @@ export class BiometricAuthManager {
         promptMessage: reason,
         cancelLabel: "Cancel",
         fallbackLabel: requireBiometricsOnly ? undefined : "Use Password",
-        disableDeviceFallback: requireBiometricsOnly && !this.config.allowDevicePasscode,
+        disableDeviceFallback:
+          requireBiometricsOnly && !this.config.allowDevicePasscode,
       });
 
       this.updateAttemptHistory(result.success);
 
       if (result.success) {
-        const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
+        const supportedTypes =
+          await LocalAuthentication.supportedAuthenticationTypesAsync();
         return {
           success: true,
           authenticated: true,
-          biometricType: supportedTypes.map(type => this.getBiometricTypeName(type)),
+          biometricType: supportedTypes.map((type) =>
+            this.getBiometricTypeName(type),
+          ),
         };
       } else {
         return {
@@ -167,8 +177,9 @@ export class BiometricAuthManager {
       }
     } catch (error) {
       this.updateAttemptHistory(false);
-      
-      const errorMessage = error instanceof Error ? error.message : "Unknown authentication error";
+
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown authentication error";
       console.error("Biometric authentication failed:", error);
 
       return {
@@ -185,7 +196,9 @@ export class BiometricAuthManager {
    * @param reason - Authentication reason
    * @returns Authentication result
    */
-  async authenticateWithBiometricsOnly(reason?: string): Promise<BiometricAuthResult> {
+  async authenticateWithBiometricsOnly(
+    reason?: string,
+  ): Promise<BiometricAuthResult> {
     return this.authenticate({
       reason,
       requireBiometricsOnly: true,
@@ -197,7 +210,9 @@ export class BiometricAuthManager {
    * @param reason - Authentication reason
    * @returns Authentication result
    */
-  async authenticateWithFallback(reason?: string): Promise<BiometricAuthResult> {
+  async authenticateWithFallback(
+    reason?: string,
+  ): Promise<BiometricAuthResult> {
     return this.authenticate({
       reason,
       requireBiometricsOnly: false,
@@ -228,7 +243,9 @@ export class BiometricAuthManager {
    * @param type - Biometric type enum value
    * @returns Human-readable biometric type name
    */
-  private getBiometricTypeName(type: LocalAuthentication.AuthenticationType): string {
+  private getBiometricTypeName(
+    type: LocalAuthentication.AuthenticationType,
+  ): string {
     switch (type) {
       case LocalAuthentication.AuthenticationType.FINGERPRINT:
         return "Fingerprint";
@@ -248,7 +265,7 @@ export class BiometricAuthManager {
   private isRateLimited(): boolean {
     const now = Date.now();
     const timeSinceLastAttempt = now - this.lastAttemptTime;
-    
+
     // Reset attempt count after 5 minutes
     if (timeSinceLastAttempt > 5 * 60 * 1000) {
       this.attemptCount = 0;
@@ -265,7 +282,7 @@ export class BiometricAuthManager {
    */
   private updateAttemptHistory(success: boolean): void {
     this.lastAttemptTime = Date.now();
-    
+
     if (success) {
       this.attemptCount = 0;
     } else {
@@ -328,7 +345,9 @@ export const biometricAuth = new BiometricAuthManager();
  * @param reason - Authentication reason
  * @returns Authentication result
  */
-export async function quickBiometricAuth(reason?: string): Promise<BiometricAuthResult> {
+export async function quickBiometricAuth(
+  reason?: string,
+): Promise<BiometricAuthResult> {
   return await biometricAuth.authenticate({ reason });
 }
 
@@ -376,7 +395,7 @@ export async function setupBiometricAuth(
 
     // Test biometric authentication
     const status = await biometricAuth.getEnrollmentStatus();
-    
+
     if (!status.hasHardware) {
       console.warn("Biometric hardware not available on this device");
       return false;
@@ -399,7 +418,9 @@ export async function setupBiometricAuth(
  * @param status - Biometric enrollment status
  * @returns Human-readable status message
  */
-export function getBiometricStatusMessage(status: BiometricEnrollmentStatus): string {
+export function getBiometricStatusMessage(
+  status: BiometricEnrollmentStatus,
+): string {
   if (!status.hasHardware) {
     return "Biometric authentication is not available on this device";
   }

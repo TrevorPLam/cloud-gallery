@@ -8,13 +8,9 @@
 // TESTS: client/lib/ml/face-embeddings.test.ts
 // AI-META-END
 
-import { Platform, InteractionManager } from 'react-native';
-import {
-  getModelManager,
-  ModelConfig,
-  GPUDelegateType,
-} from './model-manager';
-import { FaceDetection, FaceLandmark } from './face-detection';
+import { Platform, InteractionManager } from "react-native";
+import { getModelManager, ModelConfig, GPUDelegateType } from "./model-manager";
+import { FaceDetection, FaceLandmark } from "./face-detection";
 
 // ─────────────────────────────────────────────────────────
 // TYPES AND INTERFACES
@@ -61,7 +57,7 @@ export interface FaceEmbeddingStats {
 
 export class FaceEmbeddingService {
   private modelManager = getModelManager();
-  private modelName = 'facenet';
+  private modelName = "facenet";
   private config: FaceEmbeddingConfig;
   private isInitialized = false;
   private initializationPromise: Promise<void> | null = null;
@@ -80,7 +76,7 @@ export class FaceEmbeddingService {
       minAlignmentConfidence: 0.8,
       normalizeEmbeddings: true,
       faceImageSize: 160, // FaceNet standard input size
-      gpuDelegate: Platform.OS === 'ios' ? 'core-ml' : 'android-gpu',
+      gpuDelegate: Platform.OS === "ios" ? "core-ml" : "android-gpu",
       ...config,
     };
 
@@ -105,9 +101,11 @@ export class FaceEmbeddingService {
       // Load FaceNet model with optimal configuration
       let modelPath;
       try {
-        modelPath = require('../../assets/models/facenet.tflite');
+        modelPath = require("../../assets/models/facenet.tflite");
       } catch (error) {
-        console.warn('FaceEmbeddingService: Model file not found. Using mock implementation for testing.');
+        console.warn(
+          "FaceEmbeddingService: Model file not found. Using mock implementation for testing.",
+        );
         this.isInitialized = true; // Allow initialization to succeed for testing
         return;
       }
@@ -121,26 +119,26 @@ export class FaceEmbeddingService {
         delegate: this.config.gpuDelegate,
       };
 
-      await this.modelManager.loadModel(modelConfig, 'high');
-      
+      await this.modelManager.loadModel(modelConfig, "high");
+
       this.stats.modelLoadTime = Date.now() - startTime;
       this.isInitialized = true;
 
-      console.log('FaceEmbeddingService: Initialized successfully', {
+      console.log("FaceEmbeddingService: Initialized successfully", {
         modelLoadTime: this.stats.modelLoadTime,
         delegate: this.config.gpuDelegate,
         embeddingSize: 128,
       });
     } catch (error) {
-      console.error('FaceEmbeddingService: Initialization failed:', error);
-      
+      console.error("FaceEmbeddingService: Initialization failed:", error);
+
       // Fallback to CPU-only if GPU delegate failed
-      if (this.config.gpuDelegate !== 'none') {
-        console.log('FaceEmbeddingService: Retrying with CPU-only delegate');
-        this.config.gpuDelegate = 'none';
+      if (this.config.gpuDelegate !== "none") {
+        console.log("FaceEmbeddingService: Retrying with CPU-only delegate");
+        this.config.gpuDelegate = "none";
         return this._initializeInternal();
       }
-      
+
       throw error;
     }
   }
@@ -154,12 +152,12 @@ export class FaceEmbeddingService {
     imageData: Uint8Array,
     imageWidth: number,
     imageHeight: number,
-    faceDetections: FaceDetection[]
+    faceDetections: FaceDetection[],
   ): Promise<FaceEmbedding[]> {
     await this.initialize();
 
     if (!this.isInitialized) {
-      throw new Error('FaceEmbeddingService not initialized');
+      throw new Error("FaceEmbeddingService not initialized");
     }
 
     const startTime = Date.now();
@@ -167,15 +165,21 @@ export class FaceEmbeddingService {
     try {
       // Process each face detection to generate embeddings
       const embeddings = await Promise.all(
-        faceDetections.map(detection => 
-          this._generateEmbeddingForFace(imageData, imageWidth, imageHeight, detection)
-        )
+        faceDetections.map((detection) =>
+          this._generateEmbeddingForFace(
+            imageData,
+            imageWidth,
+            imageHeight,
+            detection,
+          ),
+        ),
       );
 
       // Filter by quality thresholds
-      const validEmbeddings = embeddings.filter(embedding => 
-        embedding.quality >= this.config.minQuality &&
-        embedding.alignmentConfidence >= this.config.minAlignmentConfidence
+      const validEmbeddings = embeddings.filter(
+        (embedding) =>
+          embedding.quality >= this.config.minQuality &&
+          embedding.alignmentConfidence >= this.config.minAlignmentConfidence,
       );
 
       const inferenceTime = Date.now() - startTime;
@@ -183,7 +187,10 @@ export class FaceEmbeddingService {
 
       return validEmbeddings;
     } catch (error) {
-      console.error('FaceEmbeddingService: Embedding generation failed:', error);
+      console.error(
+        "FaceEmbeddingService: Embedding generation failed:",
+        error,
+      );
       throw error;
     }
   }
@@ -195,34 +202,47 @@ export class FaceEmbeddingService {
     imageData: Uint8Array,
     imageWidth: number,
     imageHeight: number,
-    faceDetection: FaceDetection
+    faceDetection: FaceDetection,
   ): Promise<FaceEmbedding> {
     // Check if we're using mock implementation (model file not found)
     if (!this.modelManager.isModelLoaded(this.modelName)) {
-      console.warn('FaceEmbeddingService: Using mock implementation for testing');
+      console.warn(
+        "FaceEmbeddingService: Using mock implementation for testing",
+      );
       return this._getMockFaceEmbedding(faceDetection);
     }
 
     // Extract and align face image
-    const faceImage = this._extractAndAlignFace(imageData, imageWidth, imageHeight, faceDetection);
-    
+    const faceImage = this._extractAndAlignFace(
+      imageData,
+      imageWidth,
+      imageHeight,
+      faceDetection,
+    );
+
     if (!faceImage) {
       this.stats.alignmentFailures++;
-      throw new Error('Failed to extract and align face');
+      throw new Error("Failed to extract and align face");
     }
 
     // Prepare input tensor for FaceNet
     const inputTensor = this._prepareInputTensor(faceImage);
 
     // Run inference
-    const outputs = await this.modelManager.runInference(this.modelName, [inputTensor]);
+    const outputs = await this.modelManager.runInference(this.modelName, [
+      inputTensor,
+    ]);
 
     // Process FaceNet output
     const embeddingVector = this._processFaceNetOutput(outputs[0]);
 
     // Calculate quality metrics
-    const quality = this._calculateEmbeddingQuality(embeddingVector, faceDetection);
-    const alignmentConfidence = this._calculateAlignmentConfidence(faceDetection);
+    const quality = this._calculateEmbeddingQuality(
+      embeddingVector,
+      faceDetection,
+    );
+    const alignmentConfidence =
+      this._calculateAlignmentConfidence(faceDetection);
 
     // Apply L2 normalization if enabled
     const normalizedVector = this.config.normalizeEmbeddings
@@ -243,18 +263,22 @@ export class FaceEmbeddingService {
    */
   private _getMockFaceEmbedding(faceDetection: FaceDetection): FaceEmbedding {
     // Generate mock 128-dimensional embedding
-    const vector = Array(128).fill(0).map((_, i) => {
-      // Create a deterministic but varied vector based on face position
-      const seed = faceDetection.boundingBox.x + faceDetection.boundingBox.y;
-      return Math.sin(seed + i * 0.1) * 0.5 + 0.5;
-    });
+    const vector = Array(128)
+      .fill(0)
+      .map((_, i) => {
+        // Create a deterministic but varied vector based on face position
+        const seed = faceDetection.boundingBox.x + faceDetection.boundingBox.y;
+        return Math.sin(seed + i * 0.1) * 0.5 + 0.5;
+      });
 
     // Calculate mock quality metrics
     const quality = faceDetection.confidence * 0.9 + Math.random() * 0.1;
     const alignmentConfidence = Math.min(1, faceDetection.confidence + 0.1);
 
     return {
-      vector: this.config.normalizeEmbeddings ? this._l2Normalize(vector) : vector,
+      vector: this.config.normalizeEmbeddings
+        ? this._l2Normalize(vector)
+        : vector,
       quality,
       alignmentConfidence,
       timestamp: Date.now(),
@@ -269,28 +293,43 @@ export class FaceEmbeddingService {
     imageData: Uint8Array,
     imageWidth: number,
     imageHeight: number,
-    faceDetection: FaceDetection
+    faceDetection: FaceDetection,
   ): Uint8Array | null {
     try {
       // Get eye landmarks for alignment
-      const leftEye = faceDetection.landmarks.find(l => l.type === 'left_eye');
-      const rightEye = faceDetection.landmarks.find(l => l.type === 'right_eye');
+      const leftEye = faceDetection.landmarks.find(
+        (l) => l.type === "left_eye",
+      );
+      const rightEye = faceDetection.landmarks.find(
+        (l) => l.type === "right_eye",
+      );
 
       if (!leftEye || !rightEye) {
         return null;
       }
 
       // Calculate face alignment parameters
-      const alignment = this._calculateFaceAlignment(leftEye, rightEye, imageWidth, imageHeight);
-      
+      const alignment = this._calculateFaceAlignment(
+        leftEye,
+        rightEye,
+        imageWidth,
+        imageHeight,
+      );
+
       if (!alignment) {
         return null;
       }
 
       // Extract aligned face region
-      return this._extractAlignedFaceRegion(imageData, imageWidth, imageHeight, faceDetection.boundingBox, alignment);
+      return this._extractAlignedFaceRegion(
+        imageData,
+        imageWidth,
+        imageHeight,
+        faceDetection.boundingBox,
+        alignment,
+      );
     } catch (error) {
-      console.error('FaceEmbeddingService: Face alignment failed:', error);
+      console.error("FaceEmbeddingService: Face alignment failed:", error);
       return null;
     }
   }
@@ -302,7 +341,7 @@ export class FaceEmbeddingService {
     leftEye: FaceLandmark,
     rightEye: FaceLandmark,
     imageWidth: number,
-    imageHeight: number
+    imageHeight: number,
   ): { angle: number; scale: number; center: { x: number; y: number } } | null {
     // Convert normalized coordinates to pixel coordinates
     const leftEyeX = leftEye.x * imageWidth;
@@ -313,7 +352,7 @@ export class FaceEmbeddingService {
     // Calculate eye center and angle
     const eyeCenterX = (leftEyeX + rightEyeX) / 2;
     const eyeCenterY = (leftEyeY + rightEyeY) / 2;
-    
+
     const dx = rightEyeX - leftEyeX;
     const dy = rightEyeY - leftEyeY;
     const angle = Math.atan2(dy, dx);
@@ -338,7 +377,11 @@ export class FaceEmbeddingService {
     imageWidth: number,
     imageHeight: number,
     boundingBox: FaceBoundingBox,
-    alignment: { angle: number; scale: number; center: { x: number; y: number } }
+    alignment: {
+      angle: number;
+      scale: number;
+      center: { x: number; y: number };
+    },
   ): Uint8Array | null {
     const faceSize = this.config.faceImageSize;
     const faceImage = new Uint8Array(faceSize * faceSize * 3);
@@ -357,18 +400,32 @@ export class FaceEmbeddingService {
     for (let y = 0; y < faceSize; y++) {
       for (let x = 0; x < faceSize; x++) {
         // Transform coordinates to original image space
-        const sourceX = (x - faceSize / 2) / alignment.scale + alignment.center.x;
-        const sourceY = (y - faceSize / 2) / alignment.scale + alignment.center.y;
+        const sourceX =
+          (x - faceSize / 2) / alignment.scale + alignment.center.x;
+        const sourceY =
+          (y - faceSize / 2) / alignment.scale + alignment.center.y;
 
         // Apply rotation
-        const rotatedX = cosAngle * (sourceX - alignment.center.x) - sinAngle * (sourceY - alignment.center.y) + alignment.center.x;
-        const rotatedY = sinAngle * (sourceX - alignment.center.x) + cosAngle * (sourceY - alignment.center.y) + alignment.center.y;
+        const rotatedX =
+          cosAngle * (sourceX - alignment.center.x) -
+          sinAngle * (sourceY - alignment.center.y) +
+          alignment.center.x;
+        const rotatedY =
+          sinAngle * (sourceX - alignment.center.x) +
+          cosAngle * (sourceY - alignment.center.y) +
+          alignment.center.y;
 
         // Sample from original image (bilinear interpolation)
-        const pixel = this._bilinearInterpolate(imageData, imageWidth, imageHeight, rotatedX, rotatedY);
-        
+        const pixel = this._bilinearInterpolate(
+          imageData,
+          imageWidth,
+          imageHeight,
+          rotatedX,
+          rotatedY,
+        );
+
         const destIndex = (y * faceSize + x) * 3;
-        faceImage[destIndex] = pixel[0];     // R
+        faceImage[destIndex] = pixel[0]; // R
         faceImage[destIndex + 1] = pixel[1]; // G
         faceImage[destIndex + 2] = pixel[2]; // B
       }
@@ -385,7 +442,7 @@ export class FaceEmbeddingService {
     imageWidth: number,
     imageHeight: number,
     x: number,
-    y: number
+    y: number,
   ): [number, number, number] {
     // Clamp coordinates
     const clampedX = Math.max(0, Math.min(imageWidth - 1, x));
@@ -402,7 +459,11 @@ export class FaceEmbeddingService {
     // Get four neighboring pixels
     const getPixel = (px: number, py: number) => {
       const index = (py * imageWidth + px) * 3;
-      return [imageData[index] || 0, imageData[index + 1] || 0, imageData[index + 2] || 0];
+      return [
+        imageData[index] || 0,
+        imageData[index + 1] || 0,
+        imageData[index + 2] || 0,
+      ];
     };
 
     const p11 = getPixel(x1, y1);
@@ -412,7 +473,12 @@ export class FaceEmbeddingService {
 
     // Bilinear interpolation
     const interpolate = (v1: number, v2: number, v3: number, v4: number) => {
-      return v1 * (1 - dx) * (1 - dy) + v2 * dx * (1 - dy) + v3 * (1 - dx) * dy + v4 * dx * dy;
+      return (
+        v1 * (1 - dx) * (1 - dy) +
+        v2 * dx * (1 - dy) +
+        v3 * (1 - dx) * dy +
+        v4 * dx * dy
+      );
     };
 
     return [
@@ -444,11 +510,11 @@ export class FaceEmbeddingService {
   private _processFaceNetOutput(output: any): number[] {
     // FaceNet outputs a 128-dimensional embedding vector
     if (!output || !Array.isArray(output) || output.length !== 128) {
-      throw new Error('Invalid FaceNet output format');
+      throw new Error("Invalid FaceNet output format");
     }
 
     return output.map((value: any) => {
-      const num = typeof value === 'number' ? value : Number(value);
+      const num = typeof value === "number" ? value : Number(value);
       return isNaN(num) ? 0 : num;
     });
   }
@@ -456,21 +522,29 @@ export class FaceEmbeddingService {
   /**
    * Calculate embedding quality score
    */
-  private _calculateEmbeddingQuality(embedding: number[], faceDetection: FaceDetection): number {
+  private _calculateEmbeddingQuality(
+    embedding: number[],
+    faceDetection: FaceDetection,
+  ): number {
     // Quality based on multiple factors
     const confidenceScore = faceDetection.confidence;
-    
+
     // Embedding magnitude (should be consistent for good embeddings)
-    const magnitude = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
+    const magnitude = Math.sqrt(
+      embedding.reduce((sum, val) => sum + val * val, 0),
+    );
     const magnitudeScore = Math.min(magnitude / 10, 1); // Normalize to [0, 1]
 
     // Embedding variance (high variance indicates good features)
-    const mean = embedding.reduce((sum, val) => sum + val, 0) / embedding.length;
-    const variance = embedding.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / embedding.length;
+    const mean =
+      embedding.reduce((sum, val) => sum + val, 0) / embedding.length;
+    const variance =
+      embedding.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) /
+      embedding.length;
     const varianceScore = Math.min(variance / 0.1, 1); // Normalize to [0, 1]
 
     // Combined quality score
-    return (confidenceScore * 0.4 + magnitudeScore * 0.3 + varianceScore * 0.3);
+    return confidenceScore * 0.4 + magnitudeScore * 0.3 + varianceScore * 0.3;
   }
 
   /**
@@ -478,9 +552,9 @@ export class FaceEmbeddingService {
    */
   private _calculateAlignmentConfidence(faceDetection: FaceDetection): number {
     // Check if all landmarks are present and reasonable
-    const requiredLandmarks = ['left_eye', 'right_eye', 'nose'];
-    const hasAllLandmarks = requiredLandmarks.every(type =>
-      faceDetection.landmarks.some(landmark => landmark.type === type)
+    const requiredLandmarks = ["left_eye", "right_eye", "nose"];
+    const hasAllLandmarks = requiredLandmarks.every((type) =>
+      faceDetection.landmarks.some((landmark) => landmark.type === type),
     );
 
     if (!hasAllLandmarks) {
@@ -488,9 +562,11 @@ export class FaceEmbeddingService {
     }
 
     // Calculate landmark symmetry and positioning
-    const leftEye = faceDetection.landmarks.find(l => l.type === 'left_eye');
-    const rightEye = faceDetection.landmarks.find(l => l.type === 'right_eye');
-    const nose = faceDetection.landmarks.find(l => l.type === 'nose');
+    const leftEye = faceDetection.landmarks.find((l) => l.type === "left_eye");
+    const rightEye = faceDetection.landmarks.find(
+      (l) => l.type === "right_eye",
+    );
+    const nose = faceDetection.landmarks.find((l) => l.type === "nose");
 
     if (!leftEye || !rightEye || !nose) {
       return 0;
@@ -504,20 +580,22 @@ export class FaceEmbeddingService {
     const noseX = (leftEye.x + rightEye.x) / 2;
     const nosePositionScore = Math.max(0, 1 - Math.abs(nose.x - noseX) * 5);
 
-    return (eyeLevelScore * 0.6 + nosePositionScore * 0.4);
+    return eyeLevelScore * 0.6 + nosePositionScore * 0.4;
   }
 
   /**
    * Apply L2 normalization to embedding vector
    */
   private _l2Normalize(embedding: number[]): number[] {
-    const magnitude = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
-    
+    const magnitude = Math.sqrt(
+      embedding.reduce((sum, val) => sum + val * val, 0),
+    );
+
     if (magnitude === 0) {
       return embedding;
     }
 
-    return embedding.map(val => val / magnitude);
+    return embedding.map((val) => val / magnitude);
   }
 
   // ─── EMBEDDING COMPARISON ───────────────────────────────────
@@ -527,12 +605,19 @@ export class FaceEmbeddingService {
    */
   static cosineSimilarity(embedding1: number[], embedding2: number[]): number {
     if (embedding1.length !== embedding2.length) {
-      throw new Error('Embedding dimensions must match');
+      throw new Error("Embedding dimensions must match");
     }
 
-    const dotProduct = embedding1.reduce((sum, val, i) => sum + val * embedding2[i], 0);
-    const magnitude1 = Math.sqrt(embedding1.reduce((sum, val) => sum + val * val, 0));
-    const magnitude2 = Math.sqrt(embedding2.reduce((sum, val) => sum + val * val, 0));
+    const dotProduct = embedding1.reduce(
+      (sum, val, i) => sum + val * embedding2[i],
+      0,
+    );
+    const magnitude1 = Math.sqrt(
+      embedding1.reduce((sum, val) => sum + val * val, 0),
+    );
+    const magnitude2 = Math.sqrt(
+      embedding2.reduce((sum, val) => sum + val * val, 0),
+    );
 
     if (magnitude1 === 0 || magnitude2 === 0) {
       return 0;
@@ -546,7 +631,7 @@ export class FaceEmbeddingService {
    */
   static euclideanDistance(embedding1: number[], embedding2: number[]): number {
     if (embedding1.length !== embedding2.length) {
-      throw new Error('Embedding dimensions must match');
+      throw new Error("Embedding dimensions must match");
     }
 
     const squaredDistance = embedding1.reduce((sum, val, i) => {
@@ -562,18 +647,25 @@ export class FaceEmbeddingService {
   /**
    * Update embedding statistics
    */
-  private _updateStats(embeddings: FaceEmbedding[], inferenceTime: number): void {
+  private _updateStats(
+    embeddings: FaceEmbedding[],
+    inferenceTime: number,
+  ): void {
     this.stats.totalEmbeddings += embeddings.length;
-    
+
     if (embeddings.length > 0) {
-      const avgQuality = embeddings.reduce((sum, e) => sum + e.quality, 0) / embeddings.length;
-      this.stats.averageQuality = 
-        (this.stats.averageQuality * (this.stats.totalEmbeddings - embeddings.length) + avgQuality * embeddings.length) /
+      const avgQuality =
+        embeddings.reduce((sum, e) => sum + e.quality, 0) / embeddings.length;
+      this.stats.averageQuality =
+        (this.stats.averageQuality *
+          (this.stats.totalEmbeddings - embeddings.length) +
+          avgQuality * embeddings.length) /
         this.stats.totalEmbeddings;
     }
 
-    this.stats.averageInferenceTime = 
-      (this.stats.averageInferenceTime * (this.stats.totalEmbeddings - 1) + inferenceTime) /
+    this.stats.averageInferenceTime =
+      (this.stats.averageInferenceTime * (this.stats.totalEmbeddings - 1) +
+        inferenceTime) /
       this.stats.totalEmbeddings;
   }
 
@@ -634,7 +726,9 @@ let faceEmbeddingInstance: FaceEmbeddingService | null = null;
 /**
  * Get singleton instance of FaceEmbeddingService
  */
-export function getFaceEmbeddingService(config?: Partial<FaceEmbeddingConfig>): FaceEmbeddingService {
+export function getFaceEmbeddingService(
+  config?: Partial<FaceEmbeddingConfig>,
+): FaceEmbeddingService {
   if (!faceEmbeddingInstance) {
     faceEmbeddingInstance = new FaceEmbeddingService(config);
   }

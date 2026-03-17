@@ -60,7 +60,7 @@ describe("PerceptualHasher", () => {
             }
           }),
           { numRuns: 10 },
-        )
+        ),
       ).resolves.toBeUndefined();
     });
 
@@ -92,7 +92,7 @@ describe("PerceptualHasher", () => {
             }
           }),
           { numRuns: 10 },
-        )
+        ),
       ).resolves.toBeUndefined();
     });
 
@@ -103,7 +103,11 @@ describe("PerceptualHasher", () => {
             fc.webUrl(),
             fc.webUrl(),
             async (imageUri1: string, imageUri2: string) => {
-              if (!imageUri1?.startsWith("http") || !imageUri2?.startsWith("http")) return;
+              if (
+                !imageUri1?.startsWith("http") ||
+                !imageUri2?.startsWith("http")
+              )
+                return;
 
               try {
                 const [hash1, hash2] = await Promise.all([
@@ -122,7 +126,9 @@ describe("PerceptualHasher", () => {
                 expect(comparison.similarity).toBeLessThanOrEqual(1);
 
                 // Similarity should correlate with distance
-                expect(comparison.similarity).toBe((64 - comparison.distance) / 64);
+                expect(comparison.similarity).toBe(
+                  (64 - comparison.distance) / 64,
+                );
               } catch (error) {
                 // Expected for fallback implementation
                 expect(error).toBeDefined();
@@ -130,7 +136,7 @@ describe("PerceptualHasher", () => {
             },
           ),
           { numRuns: 10 },
-        )
+        ),
       ).resolves.toBeUndefined();
     });
 
@@ -144,7 +150,11 @@ describe("PerceptualHasher", () => {
               const hash1 = await hasher.generatePHash(imageUri);
               const hash2 = await hasher.generatePHash(imageUri);
 
-              const comparison = hasher.compareHashes(hash1.hash, hash2.hash, 0);
+              const comparison = hasher.compareHashes(
+                hash1.hash,
+                hash2.hash,
+                0,
+              );
 
               // Identical hashes should have distance 0 and be duplicates
               expect(comparison.distance).toBe(0);
@@ -156,7 +166,7 @@ describe("PerceptualHasher", () => {
             }
           }),
           { numRuns: 10 },
-        )
+        ),
       ).resolves.toBeUndefined();
     });
 
@@ -179,7 +189,7 @@ describe("PerceptualHasher", () => {
             }
           }),
           { numRuns: 10 },
-        )
+        ),
       ).resolves.toBeUndefined();
     });
   });
@@ -310,7 +320,10 @@ describe("PerceptualHasher", () => {
       const mockUri2 = "file:///test/image2.jpg";
 
       try {
-        const result = await hasher.computeStructuralSimilarity(mockUri1, mockUri2);
+        const result = await hasher.computeStructuralSimilarity(
+          mockUri1,
+          mockUri2,
+        );
 
         expect(result).toHaveProperty("ssim");
         expect(result).toHaveProperty("mse");
@@ -329,7 +342,10 @@ describe("PerceptualHasher", () => {
       const mockUri = "file:///test/image.jpg";
 
       try {
-        const result = await hasher.computeStructuralSimilarity(mockUri, mockUri);
+        const result = await hasher.computeStructuralSimilarity(
+          mockUri,
+          mockUri,
+        );
 
         // Identical images should have perfect similarity
         expect(result.ssim).toBeCloseTo(1, 2);
@@ -353,8 +369,8 @@ describe("PerceptualHasher", () => {
         const duplicates = await hasher.findDuplicates(imageUris, "phash", 5);
 
         expect(Array.isArray(duplicates)).toBe(true);
-        
-        duplicates.forEach(group => {
+
+        duplicates.forEach((group) => {
           expect(group).toHaveProperty("group");
           expect(group).toHaveProperty("images");
           expect(group).toHaveProperty("similarity");
@@ -418,11 +434,11 @@ describe("PerceptualHasher", () => {
 
         expect(typeof composite).toBe("string");
         expect(composite).toContain(":");
-        
+
         const parts = composite.split(":");
         expect(parts).toHaveLength(3);
-        
-        parts.forEach(part => {
+
+        parts.forEach((part) => {
           expect(part).toMatch(/^[0-9a-f]{16}$/);
         });
       } catch (error) {
@@ -465,7 +481,10 @@ describe("PerceptualHasher", () => {
       const invalidUri1 = "";
       const invalidUri2 = "";
 
-      const result = await hasher.computeStructuralSimilarity(invalidUri1, invalidUri2);
+      const result = await hasher.computeStructuralSimilarity(
+        invalidUri1,
+        invalidUri2,
+      );
 
       expect(result).toHaveProperty("ssim", 1); // Fallback returns 1 for identical fallback images
       expect(result).toHaveProperty("mse", 0); // Fallback returns 0 for identical fallback images
@@ -479,7 +498,9 @@ describe("PerceptualHasher", () => {
 
   describe("Performance", () => {
     it("should handle batch processing efficiently", async () => {
-      const imageUris = Array(10).fill(null).map((_, i) => `file:///test/image${i}.jpg`);
+      const imageUris = Array(10)
+        .fill(null)
+        .map((_, i) => `file:///test/image${i}.jpg`);
 
       const startTime = Date.now();
       const duplicates = await hasher.findDuplicates(imageUris, "phash", 5);
@@ -500,7 +521,9 @@ describe("PerceptualHasher", () => {
       }
 
       const avgTime = times.reduce((sum, time) => sum + time, 0) / times.length;
-      const variance = times.reduce((sum, time) => sum + (time - avgTime) ** 2, 0) / times.length;
+      const variance =
+        times.reduce((sum, time) => sum + (time - avgTime) ** 2, 0) /
+        times.length;
 
       // Processing times should be relatively consistent
       expect(Math.sqrt(variance)).toBeLessThan(avgTime); // Std dev < mean
@@ -523,12 +546,14 @@ describe("PerceptualHasher Integration", () => {
 
     try {
       // Generate multiple hashes concurrently
-      const promises = Array(5).fill(null).map(() => hasher.generatePHash(mockUri));
+      const promises = Array(5)
+        .fill(null)
+        .map(() => hasher.generatePHash(mockUri));
       const results = await Promise.all(promises);
 
       // All should be identical
       const firstHash = results[0].hash;
-      results.forEach(result => {
+      results.forEach((result) => {
         expect(result.hash).toBe(firstHash);
         expect(result.algorithm).toBe("phash");
       });

@@ -8,13 +8,13 @@
 // TESTS: Single/batch recovery, error scenarios, recovery limits
 // AI-META-END
 
-import { apiRequest } from '@/lib/query-client';
-import { Photo } from '@/types';
+import { apiRequest } from "@/lib/query-client";
+import { Photo } from "@/types";
 
 export interface RecoveryResult {
   success: boolean;
   recoveredPhotos: Photo[];
-  failedPhotos: Array<{ id: string; error: string }>;
+  failedPhotos: { id: string; error: string }[];
   message: string;
 }
 
@@ -28,7 +28,7 @@ export interface ExtendedRecoveryInfo {
   originalAlbums: string[];
   originalMetadata: Record<string, any>;
   canRecoverFully: boolean;
-  recoveryRisk: 'low' | 'medium' | 'high';
+  recoveryRisk: "low" | "medium" | "high";
 }
 
 /**
@@ -36,10 +36,10 @@ export interface ExtendedRecoveryInfo {
  */
 export async function recoverPhoto(
   photoId: string,
-  options: RecoveryOptions = {}
+  options: RecoveryOptions = {},
 ): Promise<RecoveryResult> {
   try {
-    const res = await apiRequest('PUT', `/api/photos/${photoId}/restore`, {
+    const res = await apiRequest("PUT", `/api/photos/${photoId}/restore`, {
       restoreToAlbums: options.restoreToAlbums ?? true,
       restoreMetadata: options.restoreMetadata ?? true,
     });
@@ -55,18 +55,20 @@ export async function recoverPhoto(
       success: true,
       recoveredPhotos: [recoveredPhoto],
       failedPhotos: [],
-      message: 'Photo recovered successfully',
+      message: "Photo recovered successfully",
     };
   } catch (error) {
-    console.error('Failed to recover photo:', error);
+    console.error("Failed to recover photo:", error);
     return {
       success: false,
       recoveredPhotos: [],
-      failedPhotos: [{
-        id: photoId,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      }],
-      message: 'Failed to recover photo',
+      failedPhotos: [
+        {
+          id: photoId,
+          error: error instanceof Error ? error.message : "Unknown error",
+        },
+      ],
+      message: "Failed to recover photo",
     };
   }
 }
@@ -76,10 +78,10 @@ export async function recoverPhoto(
  */
 export async function recoverPhotos(
   photoIds: string[],
-  options: RecoveryOptions = {}
+  options: RecoveryOptions = {},
 ): Promise<RecoveryResult> {
   try {
-    const res = await apiRequest('POST', '/api/photos/batch-restore', {
+    const res = await apiRequest("POST", "/api/photos/batch-restore", {
       photoIds,
       restoreToAlbums: options.restoreToAlbums ?? true,
       restoreMetadata: options.restoreMetadata ?? true,
@@ -95,18 +97,19 @@ export async function recoverPhotos(
       success: data.success,
       recoveredPhotos: data.recoveredPhotos || [],
       failedPhotos: data.failedPhotos || [],
-      message: data.message || `Recovered ${data.recoveredPhotos?.length || 0} photos`,
+      message:
+        data.message || `Recovered ${data.recoveredPhotos?.length || 0} photos`,
     };
   } catch (error) {
-    console.error('Failed to recover photos:', error);
+    console.error("Failed to recover photos:", error);
     return {
       success: false,
       recoveredPhotos: [],
-      failedPhotos: photoIds.map(id => ({
+      failedPhotos: photoIds.map((id) => ({
         id,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       })),
-      message: 'Failed to recover photos',
+      message: "Failed to recover photos",
     };
   }
 }
@@ -114,10 +117,12 @@ export async function recoverPhotos(
 /**
  * Get extended recovery information for a photo
  */
-export async function getExtendedRecoveryInfo(photoId: string): Promise<ExtendedRecoveryInfo> {
+export async function getExtendedRecoveryInfo(
+  photoId: string,
+): Promise<ExtendedRecoveryInfo> {
   try {
-    const res = await apiRequest('GET', `/api/photos/${photoId}/recovery-info`);
-    
+    const res = await apiRequest("GET", `/api/photos/${photoId}/recovery-info`);
+
     if (!res.ok) {
       throw new Error(`Failed to get recovery info: ${res.statusText}`);
     }
@@ -127,15 +132,15 @@ export async function getExtendedRecoveryInfo(photoId: string): Promise<Extended
       originalAlbums: data.originalAlbums || [],
       originalMetadata: data.originalMetadata || {},
       canRecoverFully: data.canRecoverFully ?? true,
-      recoveryRisk: data.recoveryRisk || 'low',
+      recoveryRisk: data.recoveryRisk || "low",
     };
   } catch (error) {
-    console.error('Failed to get recovery info:', error);
+    console.error("Failed to get recovery info:", error);
     return {
       originalAlbums: [],
       originalMetadata: {},
       canRecoverFully: false,
-      recoveryRisk: 'high',
+      recoveryRisk: "high",
     };
   }
 }
@@ -146,9 +151,9 @@ export async function getExtendedRecoveryInfo(photoId: string): Promise<Extended
 export async function canRecoverPhoto(photoId: string): Promise<boolean> {
   try {
     const info = await getExtendedRecoveryInfo(photoId);
-    return info.canRecoverFully && info.recoveryRisk !== 'high';
+    return info.canRecoverFully && info.recoveryRisk !== "high";
   } catch (error) {
-    console.error('Failed to check recovery possibility:', error);
+    console.error("Failed to check recovery possibility:", error);
     return false;
   }
 }
@@ -163,8 +168,8 @@ export async function getRecoveryStats(): Promise<{
   oldestDeletion: Date | null;
 }> {
   try {
-    const res = await apiRequest('GET', '/api/photos/recovery-stats');
-    
+    const res = await apiRequest("GET", "/api/photos/recovery-stats");
+
     if (!res.ok) {
       throw new Error(`Failed to get recovery stats: ${res.statusText}`);
     }
@@ -174,10 +179,12 @@ export async function getRecoveryStats(): Promise<{
       totalRecoverable: data.totalRecoverable || 0,
       highRiskItems: data.highRiskItems || 0,
       recentlyDeleted: data.recentlyDeleted || 0,
-      oldestDeletion: data.oldestDeletion ? new Date(data.oldestDeletion) : null,
+      oldestDeletion: data.oldestDeletion
+        ? new Date(data.oldestDeletion)
+        : null,
     };
   } catch (error) {
-    console.error('Failed to get recovery stats:', error);
+    console.error("Failed to get recovery stats:", error);
     return {
       totalRecoverable: 0,
       highRiskItems: 0,
@@ -192,7 +199,7 @@ export async function getRecoveryStats(): Promise<{
  */
 export async function performExtendedRecovery(
   photoIds: string[],
-  options: RecoveryOptions = {}
+  options: RecoveryOptions = {},
 ): Promise<RecoveryResult> {
   // First, validate recovery possibility for all photos
   const validationPromises = photoIds.map(async (photoId) => {
@@ -202,15 +209,15 @@ export async function performExtendedRecovery(
   });
 
   const validationResults = await Promise.all(validationPromises);
-  
+
   // Separate recoverable and non-recoverable photos
   const recoverablePhotos = validationResults
-    .filter(result => result.canRecover)
-    .map(result => result.photoId);
-  
+    .filter((result) => result.canRecover)
+    .map((result) => result.photoId);
+
   const nonRecoverablePhotos = validationResults
-    .filter(result => !result.canRecover)
-    .map(result => ({
+    .filter((result) => !result.canRecover)
+    .map((result) => ({
       id: result.photoId,
       error: `Recovery risk: ${result.info.recoveryRisk}`,
     }));
@@ -220,7 +227,7 @@ export async function performExtendedRecovery(
       success: false,
       recoveredPhotos: [],
       failedPhotos: nonRecoverablePhotos,
-      message: 'No photos are recoverable',
+      message: "No photos are recoverable",
     };
   }
 
@@ -249,10 +256,11 @@ export async function createRecoveryReport(photoIds: string[]): Promise<{
   let canProceed = true;
 
   // Check for high-risk items
-  const highRiskCount = photoIds.filter(id => 
-    // This would need to be implemented on the backend
-    // For now, we'll use a placeholder
-    false
+  const highRiskCount = photoIds.filter(
+    (id) =>
+      // This would need to be implemented on the backend
+      // For now, we'll use a placeholder
+      false,
   ).length;
 
   if (highRiskCount > 0) {
@@ -261,18 +269,20 @@ export async function createRecoveryReport(photoIds: string[]): Promise<{
 
   // Check if too many items are selected
   if (photoIds.length > 100) {
-    warnings.push('Recovering many items at once may take a long time');
+    warnings.push("Recovering many items at once may take a long time");
     canProceed = false;
   }
 
   // Check if any items are very old
-  const oldItems = photoIds.filter(id => {
+  const oldItems = photoIds.filter((id) => {
     // Placeholder logic - would need backend implementation
     return false;
   }).length;
 
   if (oldItems > 0) {
-    warnings.push(`${oldItems} items have been in trash for a long time and may not recover`);
+    warnings.push(
+      `${oldItems} items have been in trash for a long time and may not recover`,
+    );
   }
 
   const report = `
@@ -282,9 +292,9 @@ Recovery Analysis Report
 Items to recover: ${photoIds.length}
 Warnings: ${warnings.length}
 
-${warnings.length > 0 ? warnings.join('\n') : 'No warnings detected'}
+${warnings.length > 0 ? warnings.join("\n") : "No warnings detected"}
 
-Recommendation: ${canProceed ? 'Proceed with recovery' : 'Review warnings before proceeding'}
+Recommendation: ${canProceed ? "Proceed with recovery" : "Review warnings before proceeding"}
   `.trim();
 
   return { report, canProceed, warnings };
@@ -295,10 +305,10 @@ Recommendation: ${canProceed ? 'Proceed with recovery' : 'Review warnings before
  */
 export async function scheduleRecovery(
   photoIds: string[],
-  options: RecoveryOptions = {}
+  options: RecoveryOptions = {},
 ): Promise<{ scheduled: boolean; jobId?: string; error?: string }> {
   try {
-    const res = await apiRequest('POST', '/api/photos/schedule-recovery', {
+    const res = await apiRequest("POST", "/api/photos/schedule-recovery", {
       photoIds,
       options,
     });
@@ -313,10 +323,10 @@ export async function scheduleRecovery(
       jobId: data.jobId,
     };
   } catch (error) {
-    console.error('Failed to schedule recovery:', error);
+    console.error("Failed to schedule recovery:", error);
     return {
       scheduled: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }
@@ -325,15 +335,15 @@ export async function scheduleRecovery(
  * Get recovery job status
  */
 export async function getRecoveryJobStatus(jobId: string): Promise<{
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: "pending" | "running" | "completed" | "failed";
   progress: number;
   recoveredCount: number;
   failedCount: number;
   estimatedCompletion?: Date;
 }> {
   try {
-    const res = await apiRequest('GET', `/api/photos/recovery-job/${jobId}`);
-    
+    const res = await apiRequest("GET", `/api/photos/recovery-job/${jobId}`);
+
     if (!res.ok) {
       throw new Error(`Failed to get job status: ${res.statusText}`);
     }
@@ -344,12 +354,14 @@ export async function getRecoveryJobStatus(jobId: string): Promise<{
       progress: data.progress || 0,
       recoveredCount: data.recoveredCount || 0,
       failedCount: data.failedCount || 0,
-      estimatedCompletion: data.estimatedCompletion ? new Date(data.estimatedCompletion) : undefined,
+      estimatedCompletion: data.estimatedCompletion
+        ? new Date(data.estimatedCompletion)
+        : undefined,
     };
   } catch (error) {
-    console.error('Failed to get recovery job status:', error);
+    console.error("Failed to get recovery job status:", error);
     return {
-      status: 'failed',
+      status: "failed",
       progress: 0,
       recoveredCount: 0,
       failedCount: 0,

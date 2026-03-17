@@ -1,18 +1,18 @@
 /**
  * Visual regression stories for Button component
- * 
+ *
  * Purpose: Visual testing with Storybook/Chromatic integration
  * Usage: Run visual tests to catch UI regressions
  * Standards: Consistent appearance across themes and states
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
-import { Button } from './Button';
-import { visualTestPatterns } from '../test-utils/visual-testing';
+import type { Meta, StoryObj } from "@storybook/react";
+import { Button } from "./Button";
+import { visualTestPatterns } from "../test-utils/visual-testing";
 
 // Mock Storybook configuration for React Native
 const meta: Meta<typeof Button> = {
-  title: 'Components/Button',
+  title: "Components/Button",
   component: Button,
   parameters: {
     // Visual testing parameters
@@ -29,18 +29,18 @@ const meta: Meta<typeof Button> = {
     },
   },
   argTypes: {
-    title: { control: 'text' },
-    variant: { 
-      control: 'select',
-      options: ['primary', 'secondary', 'outline', 'ghost'],
+    title: { control: "text" },
+    variant: {
+      control: "select",
+      options: ["primary", "secondary", "outline", "ghost"],
     },
     size: {
-      control: 'select',
-      options: ['small', 'medium', 'large'],
+      control: "select",
+      options: ["small", "medium", "large"],
     },
-    disabled: { control: 'boolean' },
-    loading: { control: 'boolean' },
-    onPress: { action: 'pressed' },
+    disabled: { control: "boolean" },
+    loading: { control: "boolean" },
+    onPress: { action: "pressed" },
   },
 };
 
@@ -50,23 +50,23 @@ type Story = StoryObj<typeof Button>;
 // Basic visual tests
 export const Default: Story = {
   args: {
-    title: 'Default Button',
+    title: "Default Button",
     onPress: () => {},
   },
 };
 
 export const Secondary: Story = {
   args: {
-    title: 'Secondary Button',
-    variant: 'secondary',
+    title: "Secondary Button",
+    variant: "secondary",
     onPress: () => {},
   },
 };
 
 export const Outline: Story = {
   args: {
-    title: 'Outline Button',
-    variant: 'outline',
+    title: "Outline Button",
+    variant: "outline",
     onPress: () => {},
   },
 };
@@ -74,7 +74,7 @@ export const Outline: Story = {
 // State variations
 export const Pressed: Story = {
   args: {
-    title: 'Pressed State',
+    title: "Pressed State",
     onPress: () => {},
   },
   parameters: {
@@ -84,7 +84,7 @@ export const Pressed: Story = {
 
 export const Disabled: Story = {
   args: {
-    title: 'Disabled Button',
+    title: "Disabled Button",
     disabled: true,
     onPress: () => {},
   },
@@ -92,7 +92,7 @@ export const Disabled: Story = {
 
 export const Loading: Story = {
   args: {
-    title: 'Loading...',
+    title: "Loading...",
     loading: true,
     onPress: () => {},
   },
@@ -101,16 +101,16 @@ export const Loading: Story = {
 // Size variations
 export const Small: Story = {
   args: {
-    title: 'Small Button',
-    size: 'small',
+    title: "Small Button",
+    size: "small",
     onPress: () => {},
   },
 };
 
 export const Large: Story = {
   args: {
-    title: 'Large Button',
-    size: 'large',
+    title: "Large Button",
+    size: "large",
     onPress: () => {},
   },
 };
@@ -118,14 +118,14 @@ export const Large: Story = {
 // Content variations
 export const ShortText: Story = {
   args: {
-    title: 'OK',
+    title: "OK",
     onPress: () => {},
   },
 };
 
 export const LongText: Story = {
   args: {
-    title: 'This is a very long button title that might wrap',
+    title: "This is a very long button title that might wrap",
     onPress: () => {},
   },
 };
@@ -133,12 +133,12 @@ export const LongText: Story = {
 // Theme variations (would require theme provider)
 export const DarkTheme: Story = {
   args: {
-    title: 'Dark Theme Button',
+    title: "Dark Theme Button",
     onPress: () => {},
   },
   parameters: {
     backgrounds: {
-      default: 'dark',
+      default: "dark",
     },
   },
 };
@@ -149,12 +149,24 @@ export const VisualRegression: Story = {
     // This story combines multiple variants for comprehensive visual testing
     return (
       <>
-        {visualTestPatterns.states(Button, { title: 'Test', onPress: () => {} }).map((variant, index) => (
-          <Button key={index} {...variant.props} style={{ marginBottom: 8 }} />
-        ))}
-        {visualTestPatterns.sizes(Button, { title: 'Size Test', onPress: () => {} }).map((variant, index) => (
-          <Button key={index} {...variant.props} style={{ marginBottom: 8 }} />
-        ))}
+        {visualTestPatterns
+          .states(Button, { title: "Test", onPress: () => {} })
+          .map((variant, index) => (
+            <Button
+              key={index}
+              {...variant.props}
+              style={{ marginBottom: 8 }}
+            />
+          ))}
+        {visualTestPatterns
+          .sizes(Button, { title: "Size Test", onPress: () => {} })
+          .map((variant, index) => (
+            <Button
+              key={index}
+              {...variant.props}
+              style={{ marginBottom: 8 }}
+            />
+          ))}
       </>
     );
   },

@@ -3,15 +3,15 @@
 
 import { Buffer } from "buffer";
 import sodium from "@s77rt/react-native-sodium";
-import { 
-  EncryptedSearchTerm, 
-  SearchIndexEntry, 
+import {
+  EncryptedSearchTerm,
+  SearchIndexEntry,
   SearchTokenType,
   initializeSSE,
   encryptSearchTerm,
   decryptSearchTerm,
   generateTokenId,
-  secureWipeSSE
+  secureWipeSSE,
 } from "./encrypted-search";
 
 // Index configuration constants
@@ -98,9 +98,11 @@ export interface SearchFilter {
  * @param encryptionKeyId - Reference to encryption key
  * @returns New encrypted search index
  */
-export async function initializeSearchIndex(encryptionKeyId: string): Promise<EncryptedSearchIndex> {
+export async function initializeSearchIndex(
+  encryptionKeyId: string,
+): Promise<EncryptedSearchIndex> {
   await initializeSSE();
-  
+
   const now = Date.now();
   const metadata: IndexMetadata = {
     version: INDEX_VERSION,
@@ -110,14 +112,14 @@ export async function initializeSearchIndex(encryptionKeyId: string): Promise<En
     totalTerms: 0,
     indexSize: 0,
     compressionEnabled: false,
-    encryptionKeyId
+    encryptionKeyId,
   };
 
   return {
     metadata,
     invertedIndex: new Map(),
     documentIndex: new Map(),
-    termCache: new Map()
+    termCache: new Map(),
   };
 }
 
@@ -134,7 +136,7 @@ export async function addDocumentToIndex(
   documentId: string,
   terms: string[],
   sseKey: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, any>,
 ): Promise<void> {
   try {
     // Validate inputs
@@ -157,7 +159,11 @@ export async function addDocumentToIndex(
     for (const term of terms) {
       if (!term || term.trim().length === 0) continue;
 
-      const encryptedTerm = encryptSearchTerm(term.trim(), sseKey, SearchTokenType.EXACT);
+      const encryptedTerm = encryptSearchTerm(
+        term.trim(),
+        sseKey,
+        SearchTokenType.EXACT,
+      );
       encryptedTerms.push(encryptedTerm);
 
       // Update term frequencies
@@ -171,13 +177,13 @@ export async function addDocumentToIndex(
           documentIds: [],
           termFrequency: {},
           lastAccessed: Date.now(),
-          accessCount: 0
+          accessCount: 0,
         });
         index.metadata.totalTerms++;
       }
 
       const indexEntry = index.invertedIndex.get(termKey)!;
-      
+
       // Add document ID if not already present
       if (!indexEntry.documentIds.includes(documentId)) {
         indexEntry.documentIds.push(documentId);
@@ -202,7 +208,7 @@ export async function addDocumentToIndex(
       encryptedTerms,
       termFrequencies,
       location: metadata?.location || "",
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     index.documentIndex.set(documentId, documentEntry);
@@ -213,11 +219,13 @@ export async function addDocumentToIndex(
     index.metadata.indexSize = estimateIndexSize(index);
 
     // Check if compression is needed
-    if (index.metadata.totalEntries >= INDEX_COMPRESSION_THRESHOLD && !index.metadata.compressionEnabled) {
+    if (
+      index.metadata.totalEntries >= INDEX_COMPRESSION_THRESHOLD &&
+      !index.metadata.compressionEnabled
+    ) {
       index.metadata.compressionEnabled = true;
       console.log("Index compression enabled due to size threshold");
     }
-
   } catch (error) {
     console.error("Failed to add document to index:", error);
     throw error;
@@ -231,7 +239,7 @@ export async function addDocumentToIndex(
  */
 export async function removeDocumentFromIndex(
   index: EncryptedSearchIndex,
-  documentId: string
+  documentId: string,
 ): Promise<void> {
   try {
     const documentEntry = index.documentIndex.get(documentId);
@@ -243,10 +251,12 @@ export async function removeDocumentFromIndex(
     for (const encryptedTerm of documentEntry.encryptedTerms) {
       const termKey = encryptedTerm.encryptedTerm;
       const indexEntry = index.invertedIndex.get(termKey);
-      
+
       if (indexEntry) {
         // Remove document ID from the list
-        indexEntry.documentIds = indexEntry.documentIds.filter(id => id !== documentId);
+        indexEntry.documentIds = indexEntry.documentIds.filter(
+          (id) => id !== documentId,
+        );
         delete indexEntry.termFrequency[documentId];
 
         // Remove index entry if no documents remain
@@ -265,7 +275,6 @@ export async function removeDocumentFromIndex(
 
     // Update index size
     index.metadata.indexSize = estimateIndexSize(index);
-
   } catch (error) {
     console.error("Failed to remove document from index:", error);
     throw error;
@@ -282,7 +291,7 @@ export async function removeDocumentFromIndex(
 export async function searchEncryptedIndex(
   index: EncryptedSearchIndex,
   encryptedTerms: string[],
-  query: SearchQuery
+  query: SearchQuery,
 ): Promise<SearchResult[]> {
   try {
     const results: SearchResult[] = [];
@@ -292,7 +301,7 @@ export async function searchEncryptedIndex(
     // Process each encrypted term
     for (const encryptedTerm of encryptedTerms) {
       const indexEntry = index.invertedIndex.get(encryptedTerm);
-      
+
       if (!indexEntry) {
         continue; // Term not found in index
       }
@@ -305,13 +314,15 @@ export async function searchEncryptedIndex(
       for (const documentId of indexEntry.documentIds) {
         const termFrequency = indexEntry.termFrequency[documentId] || 0;
         const documentEntry = index.documentIndex.get(documentId);
-        
+
         if (!documentEntry) continue;
 
         // Calculate TF-IDF style relevance score
         const totalTermsInDoc = documentEntry.encryptedTerms.length;
         const tf = termFrequency / totalTermsInDoc; // Term frequency
-        const idf = Math.log(index.metadata.totalEntries / indexEntry.documentIds.length); // Inverse document frequency
+        const idf = Math.log(
+          index.metadata.totalEntries / indexEntry.documentIds.length,
+        ); // Inverse document frequency
         const relevanceScore = tf * idf;
 
         // Update document score
@@ -336,7 +347,7 @@ export async function searchEncryptedIndex(
       const result: SearchResult = {
         documentId,
         relevanceScore: normalizedScore,
-        matchedTerms: documentMatches.get(documentId) || []
+        matchedTerms: documentMatches.get(documentId) || [],
       };
 
       results.push(result);
@@ -349,7 +360,6 @@ export async function searchEncryptedIndex(
     const limit = query.limit || 20;
     const offset = query.offset || 0;
     return results.slice(offset, offset + limit);
-
   } catch (error) {
     console.error("Encrypted index search failed:", error);
     throw error;
@@ -365,11 +375,12 @@ export function getIndexStats(index: EncryptedSearchIndex): IndexStats {
   try {
     const totalDocuments = index.metadata.totalEntries;
     const totalTerms = index.metadata.totalTerms;
-    const averageTermsPerDocument = totalDocuments > 0 ? totalTerms / totalDocuments : 0;
+    const averageTermsPerDocument =
+      totalDocuments > 0 ? totalTerms / totalDocuments : 0;
 
     // Calculate cache hit rate (simplified)
-    const cacheHitRate = index.termCache.size > 0 ? 
-      (index.termCache.size / totalTerms) * 100 : 0;
+    const cacheHitRate =
+      index.termCache.size > 0 ? (index.termCache.size / totalTerms) * 100 : 0;
 
     // Find most accessed terms
     const mostAccessedTerms = Array.from(index.invertedIndex.entries())
@@ -383,9 +394,8 @@ export function getIndexStats(index: EncryptedSearchIndex): IndexStats {
       averageTermsPerDocument,
       indexSize: index.metadata.indexSize,
       cacheHitRate,
-      mostAccessedTerms
+      mostAccessedTerms,
     };
-
   } catch (error) {
     console.error("Failed to get index stats:", error);
     throw error;
@@ -421,7 +431,6 @@ function estimateIndexSize(index: EncryptedSearchIndex): number {
     size += index.termCache.size * 150; // Average cache entry size
 
     return size;
-
   } catch (error) {
     console.error("Failed to estimate index size:", error);
     return 0;
@@ -432,7 +441,9 @@ function estimateIndexSize(index: EncryptedSearchIndex): number {
  * Optimize index for better performance
  * @param index - Search index to optimize
  */
-export async function optimizeIndex(index: EncryptedSearchIndex): Promise<void> {
+export async function optimizeIndex(
+  index: EncryptedSearchIndex,
+): Promise<void> {
   try {
     console.log("Starting index optimization...");
 
@@ -452,15 +463,16 @@ export async function optimizeIndex(index: EncryptedSearchIndex): Promise<void> 
     // Clear cache if it's too large
     if (index.termCache.size > INDEX_CACHE_SIZE) {
       // Keep most recently accessed terms
-      const sortedEntries = Array.from(index.termCache.entries())
-        .sort((a, b) => {
+      const sortedEntries = Array.from(index.termCache.entries()).sort(
+        (a, b) => {
           const entryA = index.invertedIndex.get(a[0]);
           const entryB = index.invertedIndex.get(b[0]);
           return (entryB?.lastAccessed || 0) - (entryA?.lastAccessed || 0);
-        });
+        },
+      );
 
       index.termCache.clear();
-      
+
       // Keep top entries
       for (let i = 0; i < INDEX_CACHE_SIZE && i < sortedEntries.length; i++) {
         index.termCache.set(sortedEntries[i][0], sortedEntries[i][1]);
@@ -472,7 +484,6 @@ export async function optimizeIndex(index: EncryptedSearchIndex): Promise<void> 
     index.metadata.indexSize = estimateIndexSize(index);
 
     console.log("Index optimization completed");
-
   } catch (error) {
     console.error("Index optimization failed:", error);
     throw error;
@@ -490,7 +501,7 @@ export function serializeIndex(index: EncryptedSearchIndex): string {
       metadata: index.metadata,
       invertedIndex: Array.from(index.invertedIndex.entries()),
       documentIndex: Array.from(index.documentIndex.entries()),
-      termCache: Array.from(index.termCache.entries())
+      termCache: Array.from(index.termCache.entries()),
     };
 
     return JSON.stringify(serialized);
@@ -513,7 +524,7 @@ export function deserializeIndex(serializedData: string): EncryptedSearchIndex {
       metadata: parsed.metadata,
       invertedIndex: new Map(parsed.invertedIndex),
       documentIndex: new Map(parsed.documentIndex),
-      termCache: new Map(parsed.termCache)
+      termCache: new Map(parsed.termCache),
     };
   } catch (error) {
     console.error("Index deserialization failed:", error);
@@ -530,7 +541,7 @@ export function clearIndex(index: EncryptedSearchIndex): void {
     index.invertedIndex.clear();
     index.documentIndex.clear();
     index.termCache.clear();
-    
+
     index.metadata.totalEntries = 0;
     index.metadata.totalTerms = 0;
     index.metadata.indexSize = 0;

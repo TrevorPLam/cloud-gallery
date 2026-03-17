@@ -475,9 +475,16 @@ export const BackupScreen: React.FC = () => {
             onPress={() => handleRestoreBackup(backup)}
             disabled={restoreBackupMutation.isPending}
           >
-            <Ionicons name="cloud-download" size={16} color={theme.colors.primary} />
+            <Ionicons
+              name="cloud-download"
+              size={16}
+              color={theme.colors.primary}
+            />
             <Text
-              style={[styles.restoreButtonText, { color: theme.colors.primary }]}
+              style={[
+                styles.restoreButtonText,
+                { color: theme.colors.primary },
+              ]}
             >
               Restore
             </Text>

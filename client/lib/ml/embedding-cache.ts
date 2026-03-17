@@ -8,20 +8,20 @@
 // TESTS: client/lib/ml/embedding-cache.test.ts
 // AI-META-END
 
-import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { encryptData, decryptData, XCHACHA20_KEYBYTES } from '../encryption';
-import { getCLIPEmbeddingsService, Float32Array } from './clip-embeddings';
+import { Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { encryptData, decryptData, XCHACHA20_KEYBYTES } from "../encryption";
+import { getCLIPEmbeddingsService, Float32Array } from "./clip-embeddings";
 
 // ─────────────────────────────────────────────────────────
 // CACHE CONFIGURATION
 // ─────────────────────────────────────────────────────────
 
-export type CacheStrategy = 
-  | 'memory-only'        // Keep embeddings in memory only
-  | 'disk-priority'      // Prioritize disk caching with memory fallback
-  | 'progressive'        // Progressive generation with background processing
-  | 'hybrid';           // Hybrid strategy with smart eviction
+export type CacheStrategy =
+  | "memory-only" // Keep embeddings in memory only
+  | "disk-priority" // Prioritize disk caching with memory fallback
+  | "progressive" // Progressive generation with background processing
+  | "hybrid"; // Hybrid strategy with smart eviction
 
 export interface CacheConfig {
   strategy: CacheStrategy;
@@ -36,7 +36,7 @@ export interface CacheConfig {
 
 export interface CacheEntry {
   id: string;
-  type: 'text' | 'image';
+  type: "text" | "image";
   embedding: Float32Array;
   createdAt: number;
   lastAccessed: number;
@@ -60,9 +60,9 @@ export interface CacheStats {
 
 export interface GenerationProgress {
   id: string;
-  type: 'text' | 'image';
+  type: "text" | "image";
   progress: number; // 0-100
-  stage: 'queued' | 'processing' | 'completed' | 'error';
+  stage: "queued" | "processing" | "completed" | "error";
   error?: string;
   startTime: number;
   estimatedTimeRemaining?: number;
@@ -73,10 +73,10 @@ export interface GenerationProgress {
 // ─────────────────────────────────────────────────────────
 
 const STORAGE_KEYS = {
-  CACHE_METADATA: '@embedding_cache_metadata',
-  CACHE_CONFIG: '@embedding_cache_config',
-  GENERATION_QUEUE: '@embedding_generation_queue',
-  ENCRYPTION_KEY: '@embedding_cache_key',
+  CACHE_METADATA: "@embedding_cache_metadata",
+  CACHE_CONFIG: "@embedding_cache_config",
+  GENERATION_QUEUE: "@embedding_generation_queue",
+  ENCRYPTION_KEY: "@embedding_cache_key",
 } as const;
 
 // ─────────────────────────────────────────────────────────
@@ -86,14 +86,14 @@ const STORAGE_KEYS = {
 export class EmbeddingCache {
   private config: CacheConfig;
   private clipService = getCLIPEmbeddingsService();
-  
+
   // In-memory cache
   private memoryCache = new Map<string, CacheEntry>();
-  
+
   // Generation queue for progressive processing
   private generationQueue = new Map<string, GenerationProgress>();
   private isProcessingQueue = false;
-  
+
   // Cache statistics
   private stats = {
     hits: 0,
@@ -101,16 +101,16 @@ export class EmbeddingCache {
     evictions: 0,
     totalRequests: 0,
   };
-  
+
   // Encryption key for cache
   private encryptionKey: string | null = null;
-  
+
   // Background processing
   private processingTimeout: NodeJS.Timeout | null = null;
 
   constructor(config: Partial<CacheConfig> = {}) {
     this.config = {
-      strategy: 'hybrid',
+      strategy: "hybrid",
       maxMemoryEntries: 1000,
       maxDiskEntries: 10000,
       maxMemoryMB: 256, // 256MB for memory cache
@@ -130,52 +130,57 @@ export class EmbeddingCache {
     try {
       // Load configuration
       await this.loadConfig();
-      
+
       // Initialize encryption if enabled
       if (this.config.encryptionEnabled) {
         await this.initializeEncryption();
       }
-      
+
       // Load cache metadata
       await this.loadCacheMetadata();
-      
+
       // Start background processing if enabled
       if (this.config.backgroundGeneration) {
         this.startBackgroundProcessing();
       }
-      
-      console.log('EmbeddingCache: Initialized with config:', this.config);
+
+      console.log("EmbeddingCache: Initialized with config:", this.config);
     } catch (error) {
-      console.error('EmbeddingCache: Initialization failed:', error);
+      console.error("EmbeddingCache: Initialization failed:", error);
       throw error;
     }
   }
 
   private async loadConfig(): Promise<void> {
     try {
-      const storedConfig = await AsyncStorage.getItem(STORAGE_KEYS.CACHE_CONFIG);
+      const storedConfig = await AsyncStorage.getItem(
+        STORAGE_KEYS.CACHE_CONFIG,
+      );
       if (storedConfig) {
         const parsed = JSON.parse(storedConfig);
         this.config = { ...this.config, ...parsed };
       }
     } catch (error) {
-      console.warn('EmbeddingCache: Failed to load config, using defaults:', error);
+      console.warn(
+        "EmbeddingCache: Failed to load config, using defaults:",
+        error,
+      );
     }
   }
 
   private async initializeEncryption(): Promise<void> {
     try {
       let key = await AsyncStorage.getItem(STORAGE_KEYS.ENCRYPTION_KEY);
-      
+
       if (!key) {
         // Generate new encryption key
         key = this.generateEncryptionKey();
         await AsyncStorage.setItem(STORAGE_KEYS.ENCRYPTION_KEY, key);
       }
-      
+
       this.encryptionKey = key;
     } catch (error) {
-      console.error('EmbeddingCache: Failed to initialize encryption:', error);
+      console.error("EmbeddingCache: Failed to initialize encryption:", error);
       throw error;
     }
   }
@@ -184,13 +189,13 @@ export class EmbeddingCache {
     // Generate 256-bit key for XChaCha20-Poly1305
     const keyBytes = new ArrayBuffer(XCHACHA20_KEYBYTES);
     const keyView = new Uint8Array(keyBytes);
-    
+
     // Generate cryptographically secure random bytes
     for (let i = 0; i < XCHACHA20_KEYBYTES; i++) {
       keyView[i] = Math.floor(Math.random() * 256);
     }
-    
-    return Buffer.from(keyBytes).toString('hex');
+
+    return Buffer.from(keyBytes).toString("hex");
   }
 
   private async loadCacheMetadata(): Promise<void> {
@@ -200,16 +205,18 @@ export class EmbeddingCache {
         // Load cache statistics and metadata
         const parsed = JSON.parse(metadata);
         this.stats = { ...this.stats, ...parsed.stats };
-        
+
         // Load generation queue
-        const queueData = await AsyncStorage.getItem(STORAGE_KEYS.GENERATION_QUEUE);
+        const queueData = await AsyncStorage.getItem(
+          STORAGE_KEYS.GENERATION_QUEUE,
+        );
         if (queueData) {
           const queue = JSON.parse(queueData);
           this.generationQueue = new Map(queue);
         }
       }
     } catch (error) {
-      console.warn('EmbeddingCache: Failed to load cache metadata:', error);
+      console.warn("EmbeddingCache: Failed to load cache metadata:", error);
     }
   }
 
@@ -220,7 +227,7 @@ export class EmbeddingCache {
    */
   async get(id: string): Promise<Float32Array | null> {
     this.stats.totalRequests++;
-    
+
     try {
       // Check memory cache first
       const memoryEntry = this.memoryCache.get(id);
@@ -231,14 +238,14 @@ export class EmbeddingCache {
       }
 
       // Check disk cache if strategy allows
-      if (this.config.strategy !== 'memory-only') {
+      if (this.config.strategy !== "memory-only") {
         const diskEntry = await this.getFromDisk(id);
         if (diskEntry) {
           // Promote to memory cache if space allows
           if (this.canAddToMemory(diskEntry.size)) {
             this.addToMemory(diskEntry);
           }
-          
+
           this.updateAccess(diskEntry);
           this.stats.hits++;
           return diskEntry.embedding;
@@ -248,7 +255,10 @@ export class EmbeddingCache {
       this.stats.misses++;
       return null;
     } catch (error) {
-      console.error(`EmbeddingCache: Failed to get embedding for ${id}:`, error);
+      console.error(
+        `EmbeddingCache: Failed to get embedding for ${id}:`,
+        error,
+      );
       this.stats.misses++;
       return null;
     }
@@ -258,10 +268,10 @@ export class EmbeddingCache {
    * Put embedding into cache
    */
   async put(
-    id: string, 
-    type: 'text' | 'image', 
+    id: string,
+    type: "text" | "image",
     embedding: Float32Array,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
   ): Promise<void> {
     try {
       const entry: CacheEntry = {
@@ -282,14 +292,17 @@ export class EmbeddingCache {
       }
 
       // Add to disk cache if strategy allows
-      if (this.config.strategy !== 'memory-only') {
+      if (this.config.strategy !== "memory-only") {
         await this.putToDisk(entry);
       }
 
       // Update cache size and trigger cleanup if needed
       await this.ensureCacheSizeLimits();
     } catch (error) {
-      console.error(`EmbeddingCache: Failed to put embedding for ${id}:`, error);
+      console.error(
+        `EmbeddingCache: Failed to put embedding for ${id}:`,
+        error,
+      );
     }
   }
 
@@ -298,9 +311,9 @@ export class EmbeddingCache {
    */
   async generateAndCache(
     id: string,
-    type: 'text' | 'image',
+    type: "text" | "image",
     input: string | string[],
-    priority: 'high' | 'medium' | 'low' = 'medium'
+    priority: "high" | "medium" | "low" = "medium",
   ): Promise<Float32Array> {
     // Check if already in cache
     const cached = await this.get(id);
@@ -313,20 +326,20 @@ export class EmbeddingCache {
       id,
       type,
       progress: 0,
-      stage: 'queued',
+      stage: "queued",
       startTime: Date.now(),
     };
 
     this.generationQueue.set(id, progress);
     await this.saveGenerationQueue();
 
-    if (priority === 'high' || !this.config.backgroundGeneration) {
+    if (priority === "high" || !this.config.backgroundGeneration) {
       // Generate immediately for high priority
       return this.generateEmbedding(id, type, input);
     } else {
       // Queue for background processing
       this.startBackgroundProcessing();
-      
+
       // Return placeholder or wait for completion
       return this.waitForGeneration(id);
     }
@@ -334,8 +347,8 @@ export class EmbeddingCache {
 
   private async generateEmbedding(
     id: string,
-    type: 'text' | 'image',
-    input: string | string[]
+    type: "text" | "image",
+    input: string | string[],
   ): Promise<Float32Array> {
     const progress = this.generationQueue.get(id);
     if (!progress) {
@@ -343,19 +356,20 @@ export class EmbeddingCache {
     }
 
     try {
-      progress.stage = 'processing';
+      progress.stage = "processing";
       progress.progress = 10;
       await this.saveGenerationQueue();
 
       let embedding: Float32Array;
 
-      if (type === 'text') {
+      if (type === "text") {
         const texts = Array.isArray(input) ? input : [input];
         const embeddings = await this.clipService.generateTextEmbeddings(texts);
         embedding = embeddings[0];
       } else {
         const imageUris = Array.isArray(input) ? input : [input];
-        const embeddings = await this.clipService.generateImageEmbeddings(imageUris);
+        const embeddings =
+          await this.clipService.generateImageEmbeddings(imageUris);
         embedding = embeddings[0];
       }
 
@@ -365,45 +379,55 @@ export class EmbeddingCache {
       // Cache the generated embedding
       await this.put(id, type, embedding, { input });
 
-      progress.stage = 'completed';
+      progress.stage = "completed";
       progress.progress = 100;
       await this.saveGenerationQueue();
 
       return embedding;
     } catch (error) {
-      progress.stage = 'error';
-      progress.error = error instanceof Error ? error.message : 'Unknown error';
+      progress.stage = "error";
+      progress.error = error instanceof Error ? error.message : "Unknown error";
       await this.saveGenerationQueue();
-      
-      console.error(`EmbeddingCache: Failed to generate embedding for ${id}:`, error);
+
+      console.error(
+        `EmbeddingCache: Failed to generate embedding for ${id}:`,
+        error,
+      );
       throw error;
     }
   }
 
-  private async waitForGeneration(id: string, timeout: number = 30000): Promise<Float32Array> {
+  private async waitForGeneration(
+    id: string,
+    timeout: number = 30000,
+  ): Promise<Float32Array> {
     const startTime = Date.now();
-    
+
     return new Promise((resolve, reject) => {
       const checkProgress = async () => {
         const progress = this.generationQueue.get(id);
-        
+
         if (!progress) {
           reject(new Error(`Generation not found for ${id}`));
           return;
         }
 
-        if (progress.stage === 'completed') {
+        if (progress.stage === "completed") {
           const cached = await this.get(id);
           if (cached) {
             resolve(cached);
           } else {
-            reject(new Error(`Generation completed but embedding not found for ${id}`));
+            reject(
+              new Error(
+                `Generation completed but embedding not found for ${id}`,
+              ),
+            );
           }
           return;
         }
 
-        if (progress.stage === 'error') {
-          reject(new Error(progress.error || 'Generation failed'));
+        if (progress.stage === "error") {
+          reject(new Error(progress.error || "Generation failed"));
           return;
         }
 
@@ -424,8 +448,10 @@ export class EmbeddingCache {
 
   private canAddToMemory(size: number): boolean {
     const currentMemoryUsage = this.getCurrentMemoryUsage();
-    return (currentMemoryUsage + size) <= (this.config.maxMemoryMB * 1024 * 1024) &&
-           this.memoryCache.size < this.config.maxMemoryEntries;
+    return (
+      currentMemoryUsage + size <= this.config.maxMemoryMB * 1024 * 1024 &&
+      this.memoryCache.size < this.config.maxMemoryEntries
+    );
   }
 
   private getCurrentMemoryUsage(): number {
@@ -474,15 +500,15 @@ export class EmbeddingCache {
     try {
       const key = this.getDiskKey(id);
       const data = await AsyncStorage.getItem(key);
-      
+
       if (!data) {
         return null;
       }
 
       let decryptedData: any;
-      
+
       if (this.config.encryptionEnabled && this.encryptionKey) {
-        const encrypted = Buffer.from(data, 'base64');
+        const encrypted = Buffer.from(data, "base64");
         decryptedData = await decryptData(encrypted, this.encryptionKey);
       } else {
         decryptedData = JSON.parse(data);
@@ -490,13 +516,16 @@ export class EmbeddingCache {
 
       // Reconstruct Float32Array
       const embedding = new Float32Array(decryptedData.embedding);
-      
+
       return {
         ...decryptedData,
         embedding,
       } as CacheEntry;
     } catch (error) {
-      console.error(`EmbeddingCache: Failed to get from disk for ${id}:`, error);
+      console.error(
+        `EmbeddingCache: Failed to get from disk for ${id}:`,
+        error,
+      );
       return null;
     }
   }
@@ -504,7 +533,7 @@ export class EmbeddingCache {
   private async putToDisk(entry: CacheEntry): Promise<void> {
     try {
       const key = this.getDiskKey(entry.id);
-      
+
       // Convert Float32Array to regular array for serialization
       const serializableEntry = {
         ...entry,
@@ -512,21 +541,24 @@ export class EmbeddingCache {
       };
 
       let data: string;
-      
+
       if (this.config.encryptionEnabled && this.encryptionKey) {
         const serialized = JSON.stringify(serializableEntry);
         const encrypted = await encryptData(
           Buffer.from(serialized),
-          this.encryptionKey
+          this.encryptionKey,
         );
-        data = encrypted.toString('base64');
+        data = encrypted.toString("base64");
       } else {
         data = JSON.stringify(serializableEntry);
       }
 
       await AsyncStorage.setItem(key, data);
     } catch (error) {
-      console.error(`EmbeddingCache: Failed to put to disk for ${entry.id}:`, error);
+      console.error(
+        `EmbeddingCache: Failed to put to disk for ${entry.id}:`,
+        error,
+      );
     }
   }
 
@@ -538,12 +570,15 @@ export class EmbeddingCache {
 
   private async ensureCacheSizeLimits(): Promise<void> {
     // Ensure memory cache limits
-    while (this.getCurrentMemoryUsage() > this.config.maxMemoryMB * 1024 * 1024) {
+    while (
+      this.getCurrentMemoryUsage() >
+      this.config.maxMemoryMB * 1024 * 1024
+    ) {
       this.evictFromMemory();
     }
 
     // Ensure disk cache limits
-    if (this.config.strategy !== 'memory-only') {
+    if (this.config.strategy !== "memory-only") {
       await this.ensureDiskCacheLimits();
     }
   }
@@ -551,29 +586,34 @@ export class EmbeddingCache {
   private async ensureDiskCacheLimits(): Promise<void> {
     try {
       const keys = await AsyncStorage.getAllKeys();
-      const cacheKeys = keys.filter(key => key.startsWith('@embedding_cache_'));
-      
+      const cacheKeys = keys.filter((key) =>
+        key.startsWith("@embedding_cache_"),
+      );
+
       if (cacheKeys.length <= this.config.maxDiskEntries) {
         return;
       }
 
       // Get metadata for all cache entries to determine eviction candidates
-      const entries: Array<{ key: string; lastAccessed: number; size: number }> = [];
-      
+      const entries: { key: string; lastAccessed: number; size: number }[] = [];
+
       for (const key of cacheKeys) {
         try {
           const data = await AsyncStorage.getItem(key);
           if (data) {
             let entry: any;
-            
+
             if (this.config.encryptionEnabled && this.encryptionKey) {
-              const encrypted = Buffer.from(data, 'base64');
-              const decrypted = await decryptData(encrypted, this.encryptionKey);
+              const encrypted = Buffer.from(data, "base64");
+              const decrypted = await decryptData(
+                encrypted,
+                this.encryptionKey,
+              );
               entry = JSON.parse(decrypted.toString());
             } else {
               entry = JSON.parse(data);
             }
-            
+
             entries.push({
               key,
               lastAccessed: entry.lastAccessed || 0,
@@ -588,15 +628,21 @@ export class EmbeddingCache {
 
       // Sort by last accessed time and evict oldest entries
       entries.sort((a, b) => a.lastAccessed - b.lastAccessed);
-      
-      const toEvict = entries.slice(0, entries.length - this.config.maxDiskEntries);
-      
+
+      const toEvict = entries.slice(
+        0,
+        entries.length - this.config.maxDiskEntries,
+      );
+
       for (const { key } of toEvict) {
         await AsyncStorage.removeItem(key);
         this.stats.evictions++;
       }
     } catch (error) {
-      console.error('EmbeddingCache: Failed to ensure disk cache limits:', error);
+      console.error(
+        "EmbeddingCache: Failed to ensure disk cache limits:",
+        error,
+      );
     }
   }
 
@@ -608,11 +654,11 @@ export class EmbeddingCache {
     }
 
     this.isProcessingQueue = true;
-    
+
     const processQueue = async () => {
       while (this.generationQueue.size > 0) {
         const entries = Array.from(this.generationQueue.entries())
-          .filter(([_, progress]) => progress.stage === 'queued')
+          .filter(([_, progress]) => progress.stage === "queued")
           .sort((a, b) => a[1].startTime - b[1].startTime); // FIFO order
 
         if (entries.length === 0) {
@@ -620,26 +666,27 @@ export class EmbeddingCache {
         }
 
         const [id, progress] = entries[0];
-        
+
         try {
           // Get the input data (this would need to be stored or retrieved)
           // For now, we'll skip actual generation in background
-          progress.stage = 'processing';
+          progress.stage = "processing";
           progress.progress = 50;
           await this.saveGenerationQueue();
-          
+
           // Simulate processing time
-          await new Promise(resolve => setTimeout(resolve, 100));
-          
-          progress.stage = 'completed';
+          await new Promise((resolve) => setTimeout(resolve, 100));
+
+          progress.stage = "completed";
           progress.progress = 100;
           await this.saveGenerationQueue();
-          
+
           // Remove from queue after completion
           this.generationQueue.delete(id);
         } catch (error) {
-          progress.stage = 'error';
-          progress.error = error instanceof Error ? error.message : 'Unknown error';
+          progress.stage = "error";
+          progress.error =
+            error instanceof Error ? error.message : "Unknown error";
           await this.saveGenerationQueue();
         }
       }
@@ -654,9 +701,12 @@ export class EmbeddingCache {
   private async saveGenerationQueue(): Promise<void> {
     try {
       const queue = Array.from(this.generationQueue.entries());
-      await AsyncStorage.setItem(STORAGE_KEYS.GENERATION_QUEUE, JSON.stringify(queue));
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.GENERATION_QUEUE,
+        JSON.stringify(queue),
+      );
     } catch (error) {
-      console.error('EmbeddingCache: Failed to save generation queue:', error);
+      console.error("EmbeddingCache: Failed to save generation queue:", error);
     }
   }
 
@@ -675,19 +725,27 @@ export class EmbeddingCache {
 
   async getStats(): Promise<CacheStats> {
     const memoryUsage = this.getCurrentMemoryUsage();
-    const hitRate = this.stats.totalRequests > 0 ? this.stats.hits / this.stats.totalRequests : 0;
-    const missRate = this.stats.totalRequests > 0 ? this.stats.misses / this.stats.totalRequests : 0;
+    const hitRate =
+      this.stats.totalRequests > 0
+        ? this.stats.hits / this.stats.totalRequests
+        : 0;
+    const missRate =
+      this.stats.totalRequests > 0
+        ? this.stats.misses / this.stats.totalRequests
+        : 0;
 
     // Estimate disk usage
     let diskUsage = 0;
     let diskEntries = 0;
-    
-    if (this.config.strategy !== 'memory-only') {
+
+    if (this.config.strategy !== "memory-only") {
       try {
         const keys = await AsyncStorage.getAllKeys();
-        const cacheKeys = keys.filter(key => key.startsWith('@embedding_cache_'));
+        const cacheKeys = keys.filter((key) =>
+          key.startsWith("@embedding_cache_"),
+        );
         diskEntries = cacheKeys.length;
-        
+
         for (const key of cacheKeys) {
           const data = await AsyncStorage.getItem(key);
           if (data) {
@@ -695,7 +753,7 @@ export class EmbeddingCache {
           }
         }
       } catch (error) {
-        console.warn('EmbeddingCache: Failed to calculate disk usage:', error);
+        console.warn("EmbeddingCache: Failed to calculate disk usage:", error);
       }
     }
 
@@ -723,14 +781,17 @@ export class EmbeddingCache {
 
   async updateConfig(newConfig: Partial<CacheConfig>): Promise<void> {
     this.config = { ...this.config, ...newConfig };
-    
+
     try {
-      await AsyncStorage.setItem(STORAGE_KEYS.CACHE_CONFIG, JSON.stringify(this.config));
-      
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.CACHE_CONFIG,
+        JSON.stringify(this.config),
+      );
+
       // Apply new limits
       await this.ensureCacheSizeLimits();
     } catch (error) {
-      console.error('EmbeddingCache: Failed to update config:', error);
+      console.error("EmbeddingCache: Failed to update config:", error);
     }
   }
 
@@ -743,18 +804,18 @@ export class EmbeddingCache {
   async cleanup(): Promise<void> {
     // Clear memory cache
     this.memoryCache.clear();
-    
+
     // Clear generation queue
     this.generationQueue.clear();
-    
+
     // Cancel background processing
     if (this.processingTimeout) {
       clearTimeout(this.processingTimeout);
       this.processingTimeout = null;
     }
-    
+
     this.isProcessingQueue = false;
-    
+
     // Save final statistics
     await this.saveStats();
   }
@@ -765,30 +826,35 @@ export class EmbeddingCache {
         stats: this.stats,
         timestamp: Date.now(),
       };
-      await AsyncStorage.setItem(STORAGE_KEYS.CACHE_METADATA, JSON.stringify(stats));
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.CACHE_METADATA,
+        JSON.stringify(stats),
+      );
     } catch (error) {
-      console.error('EmbeddingCache: Failed to save stats:', error);
+      console.error("EmbeddingCache: Failed to save stats:", error);
     }
   }
 
   async clearCache(): Promise<void> {
     // Clear memory cache
     this.memoryCache.clear();
-    
+
     // Clear disk cache
-    if (this.config.strategy !== 'memory-only') {
+    if (this.config.strategy !== "memory-only") {
       try {
         const keys = await AsyncStorage.getAllKeys();
-        const cacheKeys = keys.filter(key => key.startsWith('@embedding_cache_'));
-        
+        const cacheKeys = keys.filter((key) =>
+          key.startsWith("@embedding_cache_"),
+        );
+
         for (const key of cacheKeys) {
           await AsyncStorage.removeItem(key);
         }
       } catch (error) {
-        console.error('EmbeddingCache: Failed to clear disk cache:', error);
+        console.error("EmbeddingCache: Failed to clear disk cache:", error);
       }
     }
-    
+
     // Reset statistics
     this.stats = {
       hits: 0,
@@ -796,7 +862,7 @@ export class EmbeddingCache {
       evictions: 0,
       totalRequests: 0,
     };
-    
+
     await this.saveStats();
   }
 }
@@ -810,7 +876,9 @@ let embeddingCacheInstance: EmbeddingCache | null = null;
 /**
  * Get singleton instance of EmbeddingCache
  */
-export function getEmbeddingCache(config?: Partial<CacheConfig>): EmbeddingCache {
+export function getEmbeddingCache(
+  config?: Partial<CacheConfig>,
+): EmbeddingCache {
   if (!embeddingCacheInstance) {
     embeddingCacheInstance = new EmbeddingCache(config);
   }

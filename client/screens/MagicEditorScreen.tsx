@@ -8,7 +8,7 @@
 // TESTS: client/screens/MagicEditorScreen.test.tsx
 // AI-META-END
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -20,10 +20,17 @@ import {
   Modal,
   Image,
   PanResponder,
-} from 'react-native';
-import { getInpaintingModelService, InpaintingRequest, InpaintingMask } from '../lib/ai/inpainting-model';
-import { getPrivacyProcessingService, DataCategory } from '../lib/ai/privacy-processing';
-import { StackNavigationProp } from '@react-navigation/stack';
+} from "react-native";
+import {
+  getInpaintingModelService,
+  InpaintingRequest,
+  InpaintingMask,
+} from "../lib/ai/inpainting-model";
+import {
+  getPrivacyProcessingService,
+  DataCategory,
+} from "../lib/ai/privacy-processing";
+import { StackNavigationProp } from "@react-navigation/stack";
 
 // ─────────────────────────────────────────────────────────
 // TYPES AND INTERFACES
@@ -37,7 +44,7 @@ export interface MagicEditorRouteParams {
   imageHeight?: number;
 }
 
-export type MagicEditorNavigationProp = StackNavigationProp<any, 'MagicEditor'>;
+export type MagicEditorNavigationProp = StackNavigationProp<any, "MagicEditor">;
 
 interface BrushStroke {
   id: string;
@@ -53,7 +60,7 @@ interface EditingState {
   strokes: BrushStroke[];
   brushSize: number;
   brushOpacity: number;
-  previewMode: 'original' | 'mask' | 'result';
+  previewMode: "original" | "mask" | "result";
   isProcessing: boolean;
   processingProgress: number;
   resultImage: Uint8Array | null;
@@ -67,12 +74,13 @@ const MagicEditorScreen: React.FC<{
   route: { params: MagicEditorRouteParams };
   navigation: MagicEditorNavigationProp;
 }> = ({ route, navigation }) => {
-  const { photoUri, photoId, imageData, imageWidth, imageHeight } = route.params;
-  
+  const { photoUri, photoId, imageData, imageWidth, imageHeight } =
+    route.params;
+
   // Canvas and image refs
   const canvasRef = useRef<View>(null);
   const imageRef = useRef<Image>(null);
-  
+
   // State management
   const [editingState, setEditingState] = useState<EditingState>({
     isDrawing: false,
@@ -80,16 +88,19 @@ const MagicEditorScreen: React.FC<{
     strokes: [],
     brushSize: 20,
     brushOpacity: 0.8,
-    previewMode: 'original',
+    previewMode: "original",
     isProcessing: false,
     processingProgress: 0,
     resultImage: null,
   });
-  
+
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
+  const [imageDimensions, setImageDimensions] = useState({
+    width: 0,
+    height: 0,
+  });
   const [showSettings, setShowSettings] = useState(false);
-  
+
   // Services
   const inpaintingService = getInpaintingModelService();
   const privacyService = getPrivacyProcessingService();
@@ -114,7 +125,8 @@ const MagicEditorScreen: React.FC<{
   // ─── INITIALIZATION ──────────────────────────────────────
 
   useEffect(() => {
-    const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+    const { width: screenWidth, height: screenHeight } =
+      Dimensions.get("window");
     setDimensions({ width: screenWidth, height: screenHeight });
 
     // Calculate image dimensions to fit screen
@@ -141,66 +153,96 @@ const MagicEditorScreen: React.FC<{
     try {
       const hasConsent = await privacyService.requestConsent(
         DataCategory.IMAGE_DATA,
-        'generative_ai_photo_editing'
+        "generative_ai_photo_editing",
       );
 
       if (!hasConsent) {
         Alert.alert(
-          'Privacy Consent Required',
-          'To use the Magic Editor, we need your consent to process images on your device. No data will leave your device.',
+          "Privacy Consent Required",
+          "To use the Magic Editor, we need your consent to process images on your device. No data will leave your device.",
           [
-            { text: 'Cancel', onPress: () => navigation.goBack() },
-            { text: 'Grant Consent', onPress: () => {} },
-          ]
+            { text: "Cancel", onPress: () => navigation.goBack() },
+            { text: "Grant Consent", onPress: () => {} },
+          ],
         );
       }
     } catch (error) {
-      console.error('Failed to check privacy consent:', error);
+      console.error("Failed to check privacy consent:", error);
     }
   };
 
   // ─── BRUSH INTERACTION HANDLERS ─────────────────────────
 
-  const handleTouchStart = useCallback((x: number, y: number) => {
-    if (editingState.isProcessing) return;
+  const handleTouchStart = useCallback(
+    (x: number, y: number) => {
+      if (editingState.isProcessing) return;
 
-    const newStroke: BrushStroke = {
-      id: `stroke_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      points: [{ x, y }],
-      size: editingState.brushSize,
-      opacity: editingState.brushOpacity,
-      timestamp: Date.now(),
-    };
+      const newStroke: BrushStroke = {
+        id: `stroke_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        points: [{ x, y }],
+        size: editingState.brushSize,
+        opacity: editingState.brushOpacity,
+        timestamp: Date.now(),
+      };
 
-    setEditingState(prev => ({
-      ...prev,
-      isDrawing: true,
-      currentStroke: newStroke,
-    }));
-  }, [editingState.brushSize, editingState.brushOpacity, editingState.isProcessing]);
+      setEditingState((prev) => ({
+        ...prev,
+        isDrawing: true,
+        currentStroke: newStroke,
+      }));
+    },
+    [
+      editingState.brushSize,
+      editingState.brushOpacity,
+      editingState.isProcessing,
+    ],
+  );
 
-  const handleTouchMove = useCallback((x: number, y: number) => {
-    if (!editingState.isDrawing || !editingState.currentStroke || editingState.isProcessing) return;
+  const handleTouchMove = useCallback(
+    (x: number, y: number) => {
+      if (
+        !editingState.isDrawing ||
+        !editingState.currentStroke ||
+        editingState.isProcessing
+      )
+        return;
 
-    setEditingState(prev => ({
-      ...prev,
-      currentStroke: prev.currentStroke ? {
-        ...prev.currentStroke,
-        points: [...prev.currentStroke.points, { x, y }],
-      } : null,
-    }));
-  }, [editingState.isDrawing, editingState.currentStroke, editingState.isProcessing]);
+      setEditingState((prev) => ({
+        ...prev,
+        currentStroke: prev.currentStroke
+          ? {
+              ...prev.currentStroke,
+              points: [...prev.currentStroke.points, { x, y }],
+            }
+          : null,
+      }));
+    },
+    [
+      editingState.isDrawing,
+      editingState.currentStroke,
+      editingState.isProcessing,
+    ],
+  );
 
   const handleTouchEnd = useCallback(() => {
-    if (!editingState.isDrawing || !editingState.currentStroke || editingState.isProcessing) return;
+    if (
+      !editingState.isDrawing ||
+      !editingState.currentStroke ||
+      editingState.isProcessing
+    )
+      return;
 
-    setEditingState(prev => ({
+    setEditingState((prev) => ({
       ...prev,
       isDrawing: false,
       currentStroke: null,
       strokes: [...prev.strokes, prev.currentStroke!],
     }));
-  }, [editingState.isDrawing, editingState.currentStroke, editingState.isProcessing]);
+  }, [
+    editingState.isDrawing,
+    editingState.currentStroke,
+    editingState.isProcessing,
+  ]);
 
   // ─── MASK GENERATION ─────────────────────────────────────
 
@@ -212,10 +254,13 @@ const MagicEditorScreen: React.FC<{
     const maskData = new Uint8Array(maskWidth * maskHeight).fill(0);
 
     // Find bounding box of all strokes
-    let minX = maskWidth, maxX = 0, minY = maskHeight, maxY = 0;
+    let minX = maskWidth,
+      maxX = 0,
+      minY = maskHeight,
+      maxY = 0;
 
-    editingState.strokes.forEach(stroke => {
-      stroke.points.forEach(point => {
+    editingState.strokes.forEach((stroke) => {
+      stroke.points.forEach((point) => {
         minX = Math.min(minX, point.x);
         maxX = Math.max(maxX, point.x);
         minY = Math.min(minY, point.y);
@@ -231,22 +276,25 @@ const MagicEditorScreen: React.FC<{
     maxY = Math.min(maskHeight, maxY + padding);
 
     // Fill mask based on brush strokes
-    editingState.strokes.forEach(stroke => {
-      stroke.points.forEach(point => {
+    editingState.strokes.forEach((stroke) => {
+      stroke.points.forEach((point) => {
         const brushRadius = stroke.size / 2;
-        
+
         // Fill circular brush area
         for (let dy = -brushRadius; dy <= brushRadius; dy++) {
           for (let dx = -brushRadius; dx <= brushRadius; dx++) {
             const px = Math.round(point.x + dx);
             const py = Math.round(point.y + dy);
-            
+
             if (px >= 0 && px < maskWidth && py >= 0 && py < maskHeight) {
               const distance = Math.sqrt(dx * dx + dy * dy);
               if (distance <= brushRadius) {
                 const maskIndex = py * maskWidth + px;
                 const opacity = stroke.opacity * (1 - distance / brushRadius);
-                maskData[maskIndex] = Math.max(maskData[maskIndex], Math.round(opacity * 255));
+                maskData[maskIndex] = Math.max(
+                  maskData[maskIndex],
+                  Math.round(opacity * 255),
+                );
               }
             }
           }
@@ -272,18 +320,25 @@ const MagicEditorScreen: React.FC<{
   const processInpainting = useCallback(async () => {
     const mask = generateMask();
     if (!mask || !imageData) {
-      Alert.alert('No Selection', 'Please paint over the objects you want to remove.');
+      Alert.alert(
+        "No Selection",
+        "Please paint over the objects you want to remove.",
+      );
       return;
     }
 
     try {
-      setEditingState(prev => ({ ...prev, isProcessing: true, processingProgress: 0 }));
+      setEditingState((prev) => ({
+        ...prev,
+        isProcessing: true,
+        processingProgress: 0,
+      }));
 
       // Protect image data with privacy service
       const { protectedData, recordId } = await privacyService.protectData(
         imageData,
         DataCategory.IMAGE_DATA,
-        `inpainting_${photoId}`
+        `inpainting_${photoId}`,
       );
 
       // Create inpainting request
@@ -292,52 +347,59 @@ const MagicEditorScreen: React.FC<{
         imageWidth: imageWidth!,
         imageHeight: imageHeight!,
         mask,
-        contextPrompt: 'remove selected objects naturally',
-        quality: 'balanced',
+        contextPrompt: "remove selected objects naturally",
+        quality: "balanced",
       };
 
-      setEditingState(prev => ({ ...prev, processingProgress: 25 }));
+      setEditingState((prev) => ({ ...prev, processingProgress: 25 }));
 
       // Process with AI model
       const result = await inpaintingService.inpaint(request);
 
-      setEditingState(prev => ({ ...prev, processingProgress: 75 }));
+      setEditingState((prev) => ({ ...prev, processingProgress: 75 }));
 
       // Unprotect result data
       const unprotectedResult = await privacyService.unprotectData(
         result.imageData,
         DataCategory.GENERATIVE_OUTPUT,
-        recordId
+        recordId,
       );
 
-      setEditingState(prev => ({
+      setEditingState((prev) => ({
         ...prev,
         resultImage: unprotectedResult,
-        previewMode: 'result',
+        previewMode: "result",
         isProcessing: false,
         processingProgress: 100,
       }));
 
       // Clean up input data
       await privacyService.deleteData(recordId);
-
     } catch (error) {
-      console.error('Inpainting failed:', error);
-      setEditingState(prev => ({ ...prev, isProcessing: false }));
-      
+      console.error("Inpainting failed:", error);
+      setEditingState((prev) => ({ ...prev, isProcessing: false }));
+
       Alert.alert(
-        'Processing Failed',
-        'Failed to process the image. Please try again.',
-        [{ text: 'OK' }]
+        "Processing Failed",
+        "Failed to process the image. Please try again.",
+        [{ text: "OK" }],
       );
     }
-  }, [generateMask, imageData, imageWidth, imageHeight, photoId, inpaintingService, privacyService]);
+  }, [
+    generateMask,
+    imageData,
+    imageWidth,
+    imageHeight,
+    photoId,
+    inpaintingService,
+    privacyService,
+  ]);
 
   // ─── UNDO/REDO FUNCTIONALITY ─────────────────────────────
 
   const undoLastStroke = useCallback(() => {
     if (editingState.strokes.length > 0 && !editingState.isProcessing) {
-      setEditingState(prev => ({
+      setEditingState((prev) => ({
         ...prev,
         strokes: prev.strokes.slice(0, -1),
       }));
@@ -346,12 +408,12 @@ const MagicEditorScreen: React.FC<{
 
   const clearAllStrokes = useCallback(() => {
     if (!editingState.isProcessing) {
-      setEditingState(prev => ({
+      setEditingState((prev) => ({
         ...prev,
         strokes: [],
         currentStroke: null,
         resultImage: null,
-        previewMode: 'original',
+        previewMode: "original",
       }));
     }
   }, [editingState.isProcessing]);
@@ -359,9 +421,9 @@ const MagicEditorScreen: React.FC<{
   // ─── RENDER HELPERS ─────────────────────────────────────
 
   const renderBrushStrokes = () => {
-    if (editingState.previewMode !== 'mask') return null;
+    if (editingState.previewMode !== "mask") return null;
 
-    return editingState.strokes.map(stroke => (
+    return editingState.strokes.map((stroke) => (
       <View key={stroke.id} style={styles.brushStrokeContainer}>
         {stroke.points.map((point, index) => (
           <View
@@ -387,8 +449,8 @@ const MagicEditorScreen: React.FC<{
     if (imageDimensions.width === 0) return null;
 
     let imageSource = photoUri;
-    
-    if (editingState.previewMode === 'result' && editingState.resultImage) {
+
+    if (editingState.previewMode === "result" && editingState.resultImage) {
       // Convert result image data to display format
       // This would require additional implementation to convert Uint8Array to displayable image
       // For now, show original image
@@ -416,9 +478,9 @@ const MagicEditorScreen: React.FC<{
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.headerButton}>Cancel</Text>
         </TouchableOpacity>
-        
+
         <Text style={styles.headerTitle}>Magic Editor</Text>
-        
+
         <TouchableOpacity onPress={() => setShowSettings(true)}>
           <Text style={styles.headerButton}>Settings</Text>
         </TouchableOpacity>
@@ -454,11 +516,11 @@ const MagicEditorScreen: React.FC<{
         <TouchableOpacity style={styles.toolButton} onPress={undoLastStroke}>
           <Text style={styles.toolButtonText}>↶ Undo</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.toolButton} onPress={clearAllStrokes}>
           <Text style={styles.toolButtonText}>Clear</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[
             styles.toolButton,
@@ -466,10 +528,12 @@ const MagicEditorScreen: React.FC<{
             editingState.strokes.length === 0 && styles.disabledButton,
           ]}
           onPress={processInpainting}
-          disabled={editingState.strokes.length === 0 || editingState.isProcessing}
+          disabled={
+            editingState.strokes.length === 0 || editingState.isProcessing
+          }
         >
           <Text style={styles.primaryButtonText}>
-            {editingState.isProcessing ? 'Processing...' : 'Magic Erase'}
+            {editingState.isProcessing ? "Processing..." : "Magic Erase"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -484,32 +548,42 @@ const MagicEditorScreen: React.FC<{
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Brush Settings</Text>
-            
+
             <View style={styles.settingRow}>
-              <Text style={styles.settingLabel}>Brush Size: {editingState.brushSize}</Text>
+              <Text style={styles.settingLabel}>
+                Brush Size: {editingState.brushSize}
+              </Text>
               <View style={styles.sliderContainer}>
                 {/* Brush size slider would go here */}
               </View>
             </View>
-            
+
             <View style={styles.settingRow}>
-              <Text style={styles.settingLabel}>Opacity: {Math.round(editingState.brushOpacity * 100)}%</Text>
+              <Text style={styles.settingLabel}>
+                Opacity: {Math.round(editingState.brushOpacity * 100)}%
+              </Text>
               <View style={styles.sliderContainer}>
                 {/* Opacity slider would go here */}
               </View>
             </View>
-            
+
             <View style={styles.settingRow}>
               <Text style={styles.settingLabel}>Preview Mode</Text>
               <View style={styles.previewModeButtons}>
-                {(['original', 'mask', 'result'] as const).map(mode => (
+                {(["original", "mask", "result"] as const).map((mode) => (
                   <TouchableOpacity
                     key={mode}
                     style={[
                       styles.previewModeButton,
-                      editingState.previewMode === mode && styles.activePreviewMode,
+                      editingState.previewMode === mode &&
+                        styles.activePreviewMode,
                     ]}
-                    onPress={() => setEditingState(prev => ({ ...prev, previewMode: mode }))}
+                    onPress={() =>
+                      setEditingState((prev) => ({
+                        ...prev,
+                        previewMode: mode,
+                      }))
+                    }
                   >
                     <Text style={styles.previewModeButtonText}>
                       {mode.charAt(0).toUpperCase() + mode.slice(1)}
@@ -518,7 +592,7 @@ const MagicEditorScreen: React.FC<{
                 ))}
               </View>
             </View>
-            
+
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => setShowSettings(false)}
@@ -539,161 +613,161 @@ const MagicEditorScreen: React.FC<{
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: "#000",
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 10,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: "#1a1a1a",
   },
   headerButton: {
-    color: '#007AFF',
+    color: "#007AFF",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   headerTitle: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   canvasContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#000',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#000",
   },
   canvas: {
-    position: 'relative',
-    backgroundColor: '#000',
+    position: "relative",
+    backgroundColor: "#000",
   },
   displayImage: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
   },
   brushStrokeContainer: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
   },
   brushPoint: {
-    position: 'absolute',
+    position: "absolute",
   },
   processingOverlay: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   processingText: {
-    color: '#fff',
+    color: "#fff",
     marginTop: 10,
     fontSize: 16,
   },
   toolbar: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: "#1a1a1a",
     borderTopWidth: 1,
-    borderTopColor: '#333',
+    borderTopColor: "#333",
   },
   toolButton: {
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 8,
-    backgroundColor: '#333',
+    backgroundColor: "#333",
   },
   toolButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   primaryButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
   },
   disabledButton: {
-    backgroundColor: '#333',
+    backgroundColor: "#333",
     opacity: 0.5,
   },
   primaryButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalContent: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: "#1a1a1a",
     borderRadius: 12,
     padding: 20,
-    width: '80%',
+    width: "80%",
     maxWidth: 300,
   },
   modalTitle: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 20,
-    textAlign: 'center',
+    textAlign: "center",
   },
   settingRow: {
     marginBottom: 20,
   },
   settingLabel: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
     marginBottom: 10,
   },
   sliderContainer: {
     height: 40,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   previewModeButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
   },
   previewModeButton: {
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 6,
-    backgroundColor: '#333',
+    backgroundColor: "#333",
   },
   activePreviewMode: {
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
   },
   previewModeButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   closeButton: {
     marginTop: 20,
     paddingVertical: 12,
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   closeButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
 

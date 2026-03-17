@@ -28,8 +28,8 @@ import { initializeAppBackgroundSync } from "@/lib/background-sync-service";
 export default function App() {
   useEffect(() => {
     // Initialize background sync when app starts
-    initializeAppBackgroundSync().catch(error => {
-      console.error('Failed to initialize background sync:', error);
+    initializeAppBackgroundSync().catch((error) => {
+      console.error("Failed to initialize background sync:", error);
     });
   }, []);
 

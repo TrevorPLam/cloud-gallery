@@ -78,7 +78,9 @@ describe("auth-client", () => {
         json: () => Promise.resolve({ message: "Invalid credentials" }),
       });
 
-      await expect(login("u@test.com", "wrong")).rejects.toThrow("Invalid credentials");
+      await expect(login("u@test.com", "wrong")).rejects.toThrow(
+        "Invalid credentials",
+      );
     });
   });
 
@@ -121,7 +123,9 @@ describe("auth-client", () => {
 
     it("calls refresh endpoint and returns tokens when refresh token is stored", async () => {
       const mod = await import("expo-secure-store");
-      (mod.getItemAsync as ReturnType<typeof vi.fn>).mockResolvedValue("stored-refresh-token");
+      (mod.getItemAsync as ReturnType<typeof vi.fn>).mockResolvedValue(
+        "stored-refresh-token",
+      );
       (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
         json: () =>
@@ -160,7 +164,8 @@ describe("auth-client", () => {
       mockGetAuthToken.mockResolvedValueOnce("token");
       (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({ user: { id: "u1", email: "u@test.com" } }),
+        json: () =>
+          Promise.resolve({ user: { id: "u1", email: "u@test.com" } }),
       });
 
       const result = await getMe();
@@ -176,7 +181,9 @@ describe("auth-client", () => {
 
     it("returns null when /me returns non-ok", async () => {
       mockGetAuthToken.mockResolvedValueOnce("token");
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: false });
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: false,
+      });
 
       const result = await getMe();
 

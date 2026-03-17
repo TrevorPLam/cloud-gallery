@@ -5,9 +5,9 @@
 // DEPENDENCIES: expo-battery, @react-native-async-storage/async-storage
 // AI-META-END
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Battery from 'expo-battery';
-import { Platform } from 'react-native';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Battery from "expo-battery";
+import { Platform } from "react-native";
 
 // Define BatteryState enum locally to avoid import issues
 export enum BatteryState {
@@ -63,9 +63,9 @@ const DEFAULT_BATTERY_PREFERENCES: BatteryPreferences = {
 };
 
 // Storage keys
-const BATTERY_PREFERENCES_KEY = '@battery_sync_preferences';
-const BATTERY_STATS_KEY = '@battery_stats';
-const LAST_BACKOFF_KEY = '@last_backoff_time';
+const BATTERY_PREFERENCES_KEY = "@battery_sync_preferences";
+const BATTERY_STATS_KEY = "@battery_stats";
+const LAST_BACKOFF_KEY = "@last_backoff_time";
 
 /**
  * Get current battery state and level
@@ -86,7 +86,7 @@ export async function getCurrentBatteryState(): Promise<{
       isLowPowerMode,
     };
   } catch (error) {
-    console.error('Error getting battery state:', error);
+    console.error("Error getting battery state:", error);
     // Return safe defaults
     return {
       level: 1.0,
@@ -107,7 +107,7 @@ export async function getBatteryPreferences(): Promise<BatteryPreferences> {
     }
     return DEFAULT_BATTERY_PREFERENCES;
   } catch (error) {
-    console.error('Error loading battery preferences:', error);
+    console.error("Error loading battery preferences:", error);
     return DEFAULT_BATTERY_PREFERENCES;
   }
 }
@@ -116,14 +116,17 @@ export async function getBatteryPreferences(): Promise<BatteryPreferences> {
  * Save battery sync preferences to storage
  */
 export async function saveBatteryPreferences(
-  preferences: Partial<BatteryPreferences>
+  preferences: Partial<BatteryPreferences>,
 ): Promise<void> {
   try {
     const current = await getBatteryPreferences();
     const updated = { ...current, ...preferences };
-    await AsyncStorage.setItem(BATTERY_PREFERENCES_KEY, JSON.stringify(updated));
+    await AsyncStorage.setItem(
+      BATTERY_PREFERENCES_KEY,
+      JSON.stringify(updated),
+    );
   } catch (error) {
-    console.error('Error saving battery preferences:', error);
+    console.error("Error saving battery preferences:", error);
   }
 }
 
@@ -133,7 +136,7 @@ export async function saveBatteryPreferences(
 export function isPeakHour(start: number, end: number): boolean {
   const now = new Date();
   const currentHour = now.getHours();
-  
+
   if (start <= end) {
     // Normal case (e.g., 9 AM to 5 PM)
     return currentHour >= start && currentHour < end;
@@ -148,35 +151,35 @@ export function isPeakHour(start: number, end: number): boolean {
  */
 export async function calculateExponentialBackoff(
   failureCount: number,
-  maxBackoffMinutes: number
+  maxBackoffMinutes: number,
 ): Promise<number> {
   try {
     const lastBackoffTime = await AsyncStorage.getItem(LAST_BACKOFF_KEY);
     const now = Date.now();
-    
+
     // If we had a recent backoff, check if it's time to retry
     if (lastBackoffTime) {
       const lastBackoff = parseInt(lastBackoffTime, 10);
       const timeSinceLastBackoff = now - lastBackoff;
-      
+
       // Calculate next backoff duration
       const exponentialBackoff = Math.min(
         Math.pow(2, failureCount) * 15, // Start at 15 minutes, double each failure
-        maxBackoffMinutes
+        maxBackoffMinutes,
       );
-      
+
       // If enough time has passed, allow sync
       if (timeSinceLastBackoff >= exponentialBackoff * 60 * 1000) {
         await AsyncStorage.removeItem(LAST_BACKOFF_KEY);
         return 0; // No backoff needed
       }
-      
+
       return exponentialBackoff;
     }
-    
+
     return 0; // No backoff needed
   } catch (error) {
-    console.error('Error calculating backoff:', error);
+    console.error("Error calculating backoff:", error);
     return 0;
   }
 }
@@ -188,7 +191,7 @@ export async function recordBackoff(): Promise<void> {
   try {
     await AsyncStorage.setItem(LAST_BACKOFF_KEY, Date.now().toString());
   } catch (error) {
-    console.error('Error recording backoff:', error);
+    console.error("Error recording backoff:", error);
   }
 }
 
@@ -196,18 +199,21 @@ export async function recordBackoff(): Promise<void> {
  * Check if battery conditions are optimal for sync
  */
 export async function isBatteryOptimal(
-  preferences?: BatteryPreferences
+  preferences?: BatteryPreferences,
 ): Promise<BatteryOptimizationResult> {
   try {
-    const prefs = preferences || await getBatteryPreferences();
+    const prefs = preferences || (await getBatteryPreferences());
     const batteryState = await getCurrentBatteryState();
     const isPeakHourTime = isPeakHour(prefs.peakHourStart, prefs.peakHourEnd);
-    
+
     // Get failure count for backoff calculation
     const stats = await getBatteryStats();
     const failureCount = stats.totalSyncsOnBattery - stats.totalSyncsOnCharging;
-    const backoffMinutes = prefs.enableExponentialBackoff 
-      ? await calculateExponentialBackoff(Math.max(0, failureCount), prefs.maxBackoffMinutes)
+    const backoffMinutes = prefs.enableExponentialBackoff
+      ? await calculateExponentialBackoff(
+          Math.max(0, failureCount),
+          prefs.maxBackoffMinutes,
+        )
       : 0;
 
     // Check if we're in backoff period
@@ -240,7 +246,7 @@ export async function isBatteryOptimal(
     if (prefs.requireLowPowerModeDisabled && batteryState.isLowPowerMode) {
       return {
         isOptimal: false,
-        reason: 'Low power mode is enabled',
+        reason: "Low power mode is enabled",
         batteryLevel: batteryState.level,
         batteryState: batteryState.state,
         isLowPowerMode: batteryState.isLowPowerMode,
@@ -250,10 +256,13 @@ export async function isBatteryOptimal(
     }
 
     // Check charging state
-    if (batteryState.state === BatteryState.UNPLUGGED && !prefs.allowOnBattery) {
+    if (
+      batteryState.state === BatteryState.UNPLUGGED &&
+      !prefs.allowOnBattery
+    ) {
       return {
         isOptimal: false,
-        reason: 'Device not charging and battery sync disabled',
+        reason: "Device not charging and battery sync disabled",
         batteryLevel: batteryState.level,
         batteryState: batteryState.state,
         isLowPowerMode: batteryState.isLowPowerMode,
@@ -262,10 +271,13 @@ export async function isBatteryOptimal(
       };
     }
 
-    if (batteryState.state === BatteryState.CHARGING && !prefs.allowOnCharging) {
+    if (
+      batteryState.state === BatteryState.CHARGING &&
+      !prefs.allowOnCharging
+    ) {
       return {
         isOptimal: false,
-        reason: 'Device charging and charging sync disabled',
+        reason: "Device charging and charging sync disabled",
         batteryLevel: batteryState.level,
         batteryState: batteryState.state,
         isLowPowerMode: batteryState.isLowPowerMode,
@@ -277,10 +289,11 @@ export async function isBatteryOptimal(
     // Check peak hours (optional optimization)
     if (isPeakHourTime && batteryState.state === BatteryState.UNPLUGGED) {
       // During peak hours on battery, be more conservative
-      if (batteryState.level < 0.5) { // 50%
+      if (batteryState.level < 0.5) {
+        // 50%
         return {
           isOptimal: false,
-          reason: 'Peak hours and battery below 50%',
+          reason: "Peak hours and battery below 50%",
           batteryLevel: batteryState.level,
           batteryState: batteryState.state,
           isLowPowerMode: batteryState.isLowPowerMode,
@@ -299,10 +312,10 @@ export async function isBatteryOptimal(
       recommendedBackoff: 0,
     };
   } catch (error) {
-    console.error('Error checking battery optimization:', error);
+    console.error("Error checking battery optimization:", error);
     return {
       isOptimal: false,
-      reason: 'Error checking battery conditions',
+      reason: "Error checking battery conditions",
       batteryLevel: 1.0,
       batteryState: BatteryState.UNKNOWN,
       isLowPowerMode: false,
@@ -330,7 +343,7 @@ export async function getBatteryStats(): Promise<BatteryStats> {
       batteryDrainEvents: 0,
     };
   } catch (error) {
-    console.error('Error loading battery stats:', error);
+    console.error("Error loading battery stats:", error);
     return {
       totalSyncsOnBattery: 0,
       totalSyncsOnCharging: 0,
@@ -352,11 +365,14 @@ export async function updateBatteryStats(batteryState: {
 }): Promise<void> {
   try {
     const stats = await getBatteryStats();
-    
+
     // Update sync counts
     if (batteryState.state === BatteryState.UNPLUGGED) {
       stats.totalSyncsOnBattery++;
-    } else if (batteryState.state === BatteryState.CHARGING || batteryState.state === BatteryState.FULL) {
+    } else if (
+      batteryState.state === BatteryState.CHARGING ||
+      batteryState.state === BatteryState.FULL
+    ) {
       stats.totalSyncsOnCharging++;
     }
 
@@ -366,8 +382,9 @@ export async function updateBatteryStats(batteryState: {
 
     // Update average battery level
     const totalSyncs = stats.totalSyncsOnBattery + stats.totalSyncsOnCharging;
-    stats.averageBatteryLevel = 
-      (stats.averageBatteryLevel * (totalSyncs - 1) + batteryState.level) / totalSyncs;
+    stats.averageBatteryLevel =
+      (stats.averageBatteryLevel * (totalSyncs - 1) + batteryState.level) /
+      totalSyncs;
 
     stats.lastBatteryCheck = Date.now();
 
@@ -378,7 +395,7 @@ export async function updateBatteryStats(batteryState: {
 
     await AsyncStorage.setItem(BATTERY_STATS_KEY, JSON.stringify(stats));
   } catch (error) {
-    console.error('Error updating battery stats:', error);
+    console.error("Error updating battery stats:", error);
   }
 }
 
@@ -390,7 +407,7 @@ export async function resetBatteryStats(): Promise<void> {
     await AsyncStorage.removeItem(BATTERY_STATS_KEY);
     await AsyncStorage.removeItem(LAST_BACKOFF_KEY);
   } catch (error) {
-    console.error('Error resetting battery stats:', error);
+    console.error("Error resetting battery stats:", error);
   }
 }
 
@@ -409,34 +426,43 @@ export async function getBatteryOptimizationRecommendations(): Promise<{
 
     // Battery level recommendations
     if (batteryState.level < 0.1) {
-      recommendations.push('Critical battery level - charge immediately');
+      recommendations.push("Critical battery level - charge immediately");
     } else if (batteryState.level < 0.2) {
-      recommendations.push('Low battery level - consider charging soon');
+      recommendations.push("Low battery level - consider charging soon");
     }
 
     // Low power mode recommendations
     if (batteryState.isLowPowerMode) {
-      recommendations.push('Low power mode enabled - sync will be limited');
+      recommendations.push("Low power mode enabled - sync will be limited");
     }
 
     // Usage pattern recommendations
     if (stats.totalSyncsOnBattery > stats.totalSyncsOnCharging * 2) {
-      recommendations.push('High battery usage - consider enabling charging-only sync');
+      recommendations.push(
+        "High battery usage - consider enabling charging-only sync",
+      );
     }
 
     // Peak hour recommendations
     const prefs = await getBatteryPreferences();
     if (isPeakHour(prefs.peakHourStart, prefs.peakHourEnd)) {
-      recommendations.push('Peak hours - sync may be throttled to conserve battery');
+      recommendations.push(
+        "Peak hours - sync may be throttled to conserve battery",
+      );
     }
 
     // Estimate time until depleted (rough calculation)
     let estimatedTimeUntilDepleted: number | null = null;
-    if (batteryState.state === BatteryState.UNPLUGGED && stats.averageBatteryLevel > 0) {
+    if (
+      batteryState.state === BatteryState.UNPLUGGED &&
+      stats.averageBatteryLevel > 0
+    ) {
       // Very rough estimation based on historical data
       const drainRate = 1 - stats.averageBatteryLevel;
       if (drainRate > 0) {
-        estimatedTimeUntilDepleted = Math.round(batteryState.level / drainRate * 60); // minutes
+        estimatedTimeUntilDepleted = Math.round(
+          (batteryState.level / drainRate) * 60,
+        ); // minutes
       }
     }
 
@@ -446,9 +472,9 @@ export async function getBatteryOptimizationRecommendations(): Promise<{
       estimatedTimeUntilDepleted,
     };
   } catch (error) {
-    console.error('Error getting battery recommendations:', error);
+    console.error("Error getting battery recommendations:", error);
     return {
-      recommendations: ['Unable to assess battery optimization'],
+      recommendations: ["Unable to assess battery optimization"],
       currentLevel: 1.0,
       estimatedTimeUntilDepleted: null,
     };
@@ -462,13 +488,13 @@ export async function isBatteryOptimizationEnabled(): Promise<boolean> {
   try {
     // On Android, check if battery optimization is enabled for the app
     // This is a simplified check - in production, you'd use native modules
-    if (Platform.OS === 'android') {
+    if (Platform.OS === "android") {
       // For now, assume battery optimization might be enabled
       return true;
     }
     return false; // iOS doesn't have the same battery optimization concept
   } catch (error) {
-    console.error('Error checking battery optimization status:', error);
+    console.error("Error checking battery optimization status:", error);
     return false;
   }
 }

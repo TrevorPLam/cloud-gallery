@@ -8,12 +8,12 @@
 // TESTS: client/lib/ai/inpainting-model.test.ts
 // AI-META-END
 
-import { Platform, InteractionManager } from 'react-native';
+import { Platform, InteractionManager } from "react-native";
 import {
   getTensorFlowLiteManager,
   ModelConfig,
   GPUDelegateType,
-} from '../ml/tflite';
+} from "../ml/tflite";
 
 // ─────────────────────────────────────────────────────────
 // TYPES AND INTERFACES
@@ -47,7 +47,7 @@ export interface InpaintingRequest {
   /** Context prompt for intelligent inpainting */
   contextPrompt?: string;
   /** Quality vs speed tradeoff */
-  quality: 'fast' | 'balanced' | 'high';
+  quality: "fast" | "balanced" | "high";
 }
 
 export interface InpaintingResult {
@@ -99,7 +99,7 @@ export interface InpaintingStats {
 
 export class InpaintingModelService {
   private modelManager = getTensorFlowLiteManager();
-  private modelName = 'inpainting';
+  private modelName = "inpainting";
   private config: InpaintingConfig;
   private isInitialized = false;
   private initializationPromise: Promise<void> | null = null;
@@ -117,7 +117,7 @@ export class InpaintingModelService {
       maxImageSize: 512, // Balance quality and performance
       minMaskSize: 16, // Minimum 16x16 region
       inferencePasses: 1,
-      gpuDelegate: Platform.OS === 'ios' ? 'core-ml' : 'android-gpu',
+      gpuDelegate: Platform.OS === "ios" ? "core-ml" : "android-gpu",
       useContextAware: true,
       ...config,
     };
@@ -143,9 +143,11 @@ export class InpaintingModelService {
       // Load inpainting model with optimal configuration
       let modelPath;
       try {
-        modelPath = require('../../assets/models/inpaint-model.tflite');
+        modelPath = require("../../assets/models/inpaint-model.tflite");
       } catch (error) {
-        console.warn('InpaintingModelService: Model file not found. Using mock implementation for testing.');
+        console.warn(
+          "InpaintingModelService: Model file not found. Using mock implementation for testing.",
+        );
         this.isInitialized = true; // Allow initialization to succeed for testing
         return;
       }
@@ -159,26 +161,26 @@ export class InpaintingModelService {
         delegate: this.config.gpuDelegate,
       };
 
-      await this.modelManager.loadModel(modelConfig, 'high');
-      
+      await this.modelManager.loadModel(modelConfig, "high");
+
       this.stats.modelLoadTime = Date.now() - startTime;
       this.isInitialized = true;
 
-      console.log('InpaintingModelService: Initialized successfully', {
+      console.log("InpaintingModelService: Initialized successfully", {
         modelLoadTime: this.stats.modelLoadTime,
         delegate: this.config.gpuDelegate,
         maxImageSize: this.config.maxImageSize,
       });
     } catch (error) {
-      console.error('InpaintingModelService: Initialization failed:', error);
-      
+      console.error("InpaintingModelService: Initialization failed:", error);
+
       // Fallback to CPU-only if GPU delegate failed
-      if (this.config.gpuDelegate !== 'none') {
-        console.log('InpaintingModelService: Retrying with CPU-only delegate');
-        this.config.gpuDelegate = 'none';
+      if (this.config.gpuDelegate !== "none") {
+        console.log("InpaintingModelService: Retrying with CPU-only delegate");
+        this.config.gpuDelegate = "none";
         return this._initializeInternal();
       }
-      
+
       throw error;
     }
   }
@@ -192,7 +194,7 @@ export class InpaintingModelService {
     await this.initialize();
 
     if (!this.isInitialized) {
-      throw new Error('InpaintingModelService not initialized');
+      throw new Error("InpaintingModelService not initialized");
     }
 
     const startTime = Date.now();
@@ -208,7 +210,10 @@ export class InpaintingModelService {
       const result = await new Promise<InpaintingResult>((resolve, reject) => {
         InteractionManager.runAfterInteractions(async () => {
           try {
-            const inpaintingResult = await this._performInpainting(preprocessedData, request);
+            const inpaintingResult = await this._performInpainting(
+              preprocessedData,
+              request,
+            );
             resolve(inpaintingResult);
           } catch (error) {
             reject(error);
@@ -223,7 +228,7 @@ export class InpaintingModelService {
 
       return result;
     } catch (error) {
-      console.error('InpaintingModelService: Inpainting failed:', error);
+      console.error("InpaintingModelService: Inpainting failed:", error);
       throw error;
     }
   }
@@ -233,31 +238,38 @@ export class InpaintingModelService {
    */
   private _validateRequest(request: InpaintingRequest): void {
     if (!request.imageData || request.imageData.length === 0) {
-      throw new Error('Invalid image data');
+      throw new Error("Invalid image data");
     }
 
     if (request.imageWidth <= 0 || request.imageHeight <= 0) {
-      throw new Error('Invalid image dimensions');
+      throw new Error("Invalid image dimensions");
     }
 
     if (!request.mask || !request.mask.mask || request.mask.mask.length === 0) {
-      throw new Error('Invalid mask data');
+      throw new Error("Invalid mask data");
     }
 
     const expectedImageSize = request.imageWidth * request.imageHeight * 3;
     if (request.imageData.length !== expectedImageSize) {
-      throw new Error(`Image data size mismatch. Expected ${expectedImageSize}, got ${request.imageData.length}`);
+      throw new Error(
+        `Image data size mismatch. Expected ${expectedImageSize}, got ${request.imageData.length}`,
+      );
     }
 
     const expectedMaskSize = request.mask.width * request.mask.height;
     if (request.mask.mask.length !== expectedMaskSize) {
-      throw new Error(`Mask data size mismatch. Expected ${expectedMaskSize}, got ${request.mask.mask.length}`);
+      throw new Error(
+        `Mask data size mismatch. Expected ${expectedMaskSize}, got ${request.mask.mask.length}`,
+      );
     }
 
     // Check minimum mask size
-    const maskArea = request.mask.boundingBox.width * request.mask.boundingBox.height;
+    const maskArea =
+      request.mask.boundingBox.width * request.mask.boundingBox.height;
     if (maskArea < this.config.minMaskSize * this.config.minMaskSize) {
-      throw new Error(`Mask too small. Minimum size: ${this.config.minMaskSize}x${this.config.minMaskSize}`);
+      throw new Error(
+        `Mask too small. Minimum size: ${this.config.minMaskSize}x${this.config.minMaskSize}`,
+      );
     }
   }
 
@@ -271,14 +283,26 @@ export class InpaintingModelService {
   }> {
     const targetSize = Math.min(
       this.config.maxImageSize,
-      Math.max(request.imageWidth, request.imageHeight)
+      Math.max(request.imageWidth, request.imageHeight),
     );
 
     // Resize image to target size
-    const resizedImage = await this._resizeImage(request.imageData, request.imageWidth, request.imageHeight, targetSize, targetSize);
-    
+    const resizedImage = await this._resizeImage(
+      request.imageData,
+      request.imageWidth,
+      request.imageHeight,
+      targetSize,
+      targetSize,
+    );
+
     // Resize mask to target size
-    const resizedMask = await this._resizeMask(request.mask.mask, request.mask.width, request.mask.height, targetSize, targetSize);
+    const resizedMask = await this._resizeMask(
+      request.mask.mask,
+      request.mask.width,
+      request.mask.height,
+      targetSize,
+      targetSize,
+    );
 
     // Normalize image to [0, 1] for model input
     const normalizedImage = new Float32Array(resizedImage.length);
@@ -304,11 +328,13 @@ export class InpaintingModelService {
    */
   private async _performInpainting(
     preprocessedData: { image: Float32Array; mask: Float32Array; size: number },
-    request: InpaintingRequest
+    request: InpaintingRequest,
   ): Promise<InpaintingResult> {
     // Check if we're using mock implementation (model file not found)
     if (!this.modelManager.isModelLoaded(this.modelName)) {
-      console.warn('InpaintingModelService: Using mock implementation for testing');
+      console.warn(
+        "InpaintingModelService: Using mock implementation for testing",
+      );
       return this._getMockInpaintingResult(request);
     }
 
@@ -319,7 +345,10 @@ export class InpaintingModelService {
     const inputTensors = [image, mask];
 
     // Run inference
-    const outputs = await this.modelManager.runInference(this.modelName, inputTensors);
+    const outputs = await this.modelManager.runInference(
+      this.modelName,
+      inputTensors,
+    );
 
     // Process model output
     const outputImage = this._processModelOutput(outputs[0], size);
@@ -341,25 +370,42 @@ export class InpaintingModelService {
   /**
    * Mock inpainting result for testing when model files are not available
    */
-  private _getMockInpaintingResult(request: InpaintingRequest): InpaintingResult {
-    const size = Math.min(this.config.maxImageSize, Math.max(request.imageWidth, request.imageHeight));
+  private _getMockInpaintingResult(
+    request: InpaintingRequest,
+  ): InpaintingResult {
+    const size = Math.min(
+      this.config.maxImageSize,
+      Math.max(request.imageWidth, request.imageHeight),
+    );
     const outputSize = size * size * 3;
 
     // Generate mock output by blending original image with noise
     const outputImage = new Uint8Array(outputSize);
-    const resizedOriginal = this._simpleResizeImage(request.imageData, request.imageWidth, request.imageHeight, size, size);
+    const resizedOriginal = this._simpleResizeImage(
+      request.imageData,
+      request.imageWidth,
+      request.imageHeight,
+      size,
+      size,
+    );
 
     for (let i = 0; i < outputSize; i++) {
       // Add some variation to simulate inpainting
       const noise = Math.random() * 20 - 10; // ±10 noise
       const maskValue = i < request.mask.mask.length ? request.mask.mask[i] : 0;
-      
+
       if (maskValue > 128) {
         // Inpainted region - add more variation
-        outputImage[i] = Math.max(0, Math.min(255, resizedOriginal[i] + noise * 2));
+        outputImage[i] = Math.max(
+          0,
+          Math.min(255, resizedOriginal[i] + noise * 2),
+        );
       } else {
         // Original region - keep mostly unchanged
-        outputImage[i] = Math.max(0, Math.min(255, resizedOriginal[i] + noise * 0.5));
+        outputImage[i] = Math.max(
+          0,
+          Math.min(255, resizedOriginal[i] + noise * 0.5),
+        );
       }
     }
 
@@ -373,7 +419,8 @@ export class InpaintingModelService {
       imageData: outputImage,
       width: size,
       height: size,
-      confidence: (quality.coherence + quality.realism + quality.seamlessness) / 3,
+      confidence:
+        (quality.coherence + quality.realism + quality.seamlessness) / 3,
       processingTime: 0, // Will be set by caller
       quality,
       timestamp: Date.now(),
@@ -384,14 +431,19 @@ export class InpaintingModelService {
    * Process model output tensor to image data
    */
   private _processModelOutput(output: any, size: number): Uint8Array {
-    if (!output || !Array.isArray(output) || output.length !== size * size * 3) {
-      throw new Error('Invalid model output format');
+    if (
+      !output ||
+      !Array.isArray(output) ||
+      output.length !== size * size * 3
+    ) {
+      throw new Error("Invalid model output format");
     }
 
     // Convert float32 output back to uint8
     const imageData = new Uint8Array(size * size * 3);
     for (let i = 0; i < output.length; i++) {
-      const value = typeof output[i] === 'number' ? output[i] : Number(output[i]);
+      const value =
+        typeof output[i] === "number" ? output[i] : Number(output[i]);
       imageData[i] = Math.max(0, Math.min(255, Math.round(value * 255)));
     }
 
@@ -401,7 +453,10 @@ export class InpaintingModelService {
   /**
    * Calculate quality metrics for the inpainting result
    */
-  private _calculateQualityMetrics(imageData: Uint8Array, request: InpaintingRequest): {
+  private _calculateQualityMetrics(
+    imageData: Uint8Array,
+    request: InpaintingRequest,
+  ): {
     confidence: number;
     coherence: number;
     realism: number;
@@ -434,21 +489,22 @@ export class InpaintingModelService {
       const r = imageData[i];
       const g = imageData[i + 1];
       const b = imageData[i + 2];
-      
+
       // Calculate local variance (simplified)
       if (i > 3 && i < imageData.length - 6) {
         const prevR = imageData[i - 3];
         const prevG = imageData[i - 2];
         const prevB = imageData[i - 1];
-        
-        const diff = Math.abs(r - prevR) + Math.abs(g - prevG) + Math.abs(b - prevB);
+
+        const diff =
+          Math.abs(r - prevR) + Math.abs(g - prevG) + Math.abs(b - prevB);
         totalVariance += diff;
       }
     }
 
     const averageVariance = totalVariance / pixelCount;
     // Lower variance = higher coherence
-    return Math.max(0, Math.min(1, 1 - (averageVariance / 255)));
+    return Math.max(0, Math.min(1, 1 - averageVariance / 255));
   }
 
   /**
@@ -457,7 +513,7 @@ export class InpaintingModelService {
   private _calculateRealism(imageData: Uint8Array): number {
     // Simplified realism based on color distribution
     const histogram = new Array(256).fill(0);
-    
+
     for (let i = 0; i < imageData.length; i++) {
       histogram[imageData[i]]++;
     }
@@ -465,7 +521,7 @@ export class InpaintingModelService {
     // Calculate distribution entropy (more natural = higher entropy)
     let entropy = 0;
     const pixelCount = imageData.length;
-    
+
     for (let count of histogram) {
       if (count > 0) {
         const probability = count / pixelCount;
@@ -480,7 +536,10 @@ export class InpaintingModelService {
   /**
    * Calculate seamlessness (smooth transitions at mask boundaries)
    */
-  private _calculateSeamlessness(imageData: Uint8Array, request: InpaintingRequest): number {
+  private _calculateSeamlessness(
+    imageData: Uint8Array,
+    request: InpaintingRequest,
+  ): number {
     // Simplified seamlessness based on edge detection at mask boundaries
     // In production would use proper edge detection algorithms
     let boundaryScore = 0;
@@ -493,7 +552,7 @@ export class InpaintingModelService {
     for (let y = 1; y < maskHeight - 1; y++) {
       for (let x = 1; x < maskWidth - 1; x++) {
         const maskIndex = y * maskWidth + x;
-        
+
         // Check if this is a boundary pixel
         const isMasked = mask[maskIndex] > 128;
         const neighbors = [
@@ -503,13 +562,19 @@ export class InpaintingModelService {
           mask[y * maskWidth + (x + 1)],
         ];
 
-        const hasDifferentNeighbor = neighbors.some(n => (n > 128) !== isMasked);
+        const hasDifferentNeighbor = neighbors.some(
+          (n) => n > 128 !== isMasked,
+        );
 
         if (hasDifferentNeighbor) {
           // Calculate edge smoothness
           const imageIndex = y * maskWidth * 3 + x * 3;
-          const centerPixel = [imageData[imageIndex], imageData[imageIndex + 1], imageData[imageIndex + 2]];
-          
+          const centerPixel = [
+            imageData[imageIndex],
+            imageData[imageIndex + 1],
+            imageData[imageIndex + 2],
+          ];
+
           let neighborDiff = 0;
           let neighborCount = 0;
 
@@ -517,18 +582,23 @@ export class InpaintingModelService {
           for (let dy = -1; dy <= 1; dy++) {
             for (let dx = -1; dx <= 1; dx++) {
               if (dx === 0 && dy === 0) continue;
-              
+
               const nx = x + dx;
               const ny = y + dy;
-              
+
               if (nx >= 0 && nx < maskWidth && ny >= 0 && ny < maskHeight) {
                 const neighborIndex = ny * maskWidth * 3 + nx * 3;
-                const neighborPixel = [imageData[neighborIndex], imageData[neighborIndex + 1], imageData[neighborIndex + 2]];
-                
-                const diff = Math.abs(centerPixel[0] - neighborPixel[0]) +
-                             Math.abs(centerPixel[1] - neighborPixel[1]) +
-                             Math.abs(centerPixel[2] - neighborPixel[2]);
-                
+                const neighborPixel = [
+                  imageData[neighborIndex],
+                  imageData[neighborIndex + 1],
+                  imageData[neighborIndex + 2],
+                ];
+
+                const diff =
+                  Math.abs(centerPixel[0] - neighborPixel[0]) +
+                  Math.abs(centerPixel[1] - neighborPixel[1]) +
+                  Math.abs(centerPixel[2] - neighborPixel[2]);
+
                 neighborDiff += diff;
                 neighborCount++;
               }
@@ -555,25 +625,31 @@ export class InpaintingModelService {
     srcWidth: number,
     srcHeight: number,
     dstWidth: number,
-    dstHeight: number
+    dstHeight: number,
   ): Promise<Uint8Array> {
     return new Promise((resolve) => {
       const resized = new Uint8Array(dstWidth * dstHeight * 3);
-      
+
       for (let y = 0; y < dstHeight; y++) {
         for (let x = 0; x < dstWidth; x++) {
           const srcX = (x / dstWidth) * srcWidth;
           const srcY = (y / dstHeight) * srcHeight;
-          
-          const pixel = this._bilinearInterpolate(imageData, srcWidth, srcHeight, srcX, srcY);
+
+          const pixel = this._bilinearInterpolate(
+            imageData,
+            srcWidth,
+            srcHeight,
+            srcX,
+            srcY,
+          );
           const destIndex = (y * dstWidth + x) * 3;
-          
+
           resized[destIndex] = pixel[0];
           resized[destIndex + 1] = pixel[1];
           resized[destIndex + 2] = pixel[2];
         }
       }
-      
+
       resolve(resized);
     });
   }
@@ -586,23 +662,23 @@ export class InpaintingModelService {
     srcWidth: number,
     srcHeight: number,
     dstWidth: number,
-    dstHeight: number
+    dstHeight: number,
   ): Promise<Uint8Array> {
     return new Promise((resolve) => {
       const resized = new Uint8Array(dstWidth * dstHeight);
-      
+
       for (let y = 0; y < dstHeight; y++) {
         for (let x = 0; x < dstWidth; x++) {
           const srcX = Math.floor((x / dstWidth) * srcWidth);
           const srcY = Math.floor((y / dstHeight) * srcHeight);
-          
+
           const srcIndex = srcY * srcWidth + srcX;
           const destIndex = y * dstWidth + x;
-          
+
           resized[destIndex] = maskData[srcIndex];
         }
       }
-      
+
       resolve(resized);
     });
   }
@@ -615,24 +691,24 @@ export class InpaintingModelService {
     srcWidth: number,
     srcHeight: number,
     dstWidth: number,
-    dstHeight: number
+    dstHeight: number,
   ): Uint8Array {
     const resized = new Uint8Array(dstWidth * dstHeight * 3);
-    
+
     for (let y = 0; y < dstHeight; y++) {
       for (let x = 0; x < dstWidth; x++) {
         const srcX = Math.floor((x / dstWidth) * srcWidth);
         const srcY = Math.floor((y / dstHeight) * srcHeight);
-        
+
         const srcIndex = (srcY * srcWidth + srcX) * 3;
         const destIndex = (y * dstWidth + x) * 3;
-        
+
         resized[destIndex] = imageData[srcIndex];
         resized[destIndex + 1] = imageData[srcIndex + 1];
         resized[destIndex + 2] = imageData[srcIndex + 2];
       }
     }
-    
+
     return resized;
   }
 
@@ -644,7 +720,7 @@ export class InpaintingModelService {
     width: number,
     height: number,
     x: number,
-    y: number
+    y: number,
   ): [number, number, number] {
     const x1 = Math.floor(x);
     const y1 = Math.floor(y);
@@ -656,7 +732,11 @@ export class InpaintingModelService {
 
     const getPixel = (px: number, py: number) => {
       const index = (py * width + px) * 3;
-      return [imageData[index] || 0, imageData[index + 1] || 0, imageData[index + 2] || 0];
+      return [
+        imageData[index] || 0,
+        imageData[index + 1] || 0,
+        imageData[index + 2] || 0,
+      ];
     };
 
     const p11 = getPixel(x1, y1);
@@ -665,7 +745,12 @@ export class InpaintingModelService {
     const p22 = getPixel(x2, y2);
 
     const interpolate = (v1: number, v2: number, v3: number, v4: number) => {
-      return v1 * (1 - dx) * (1 - dy) + v2 * dx * (1 - dy) + v3 * (1 - dx) * dy + v4 * dx * dy;
+      return (
+        v1 * (1 - dx) * (1 - dy) +
+        v2 * dx * (1 - dy) +
+        v3 * (1 - dx) * dy +
+        v4 * dx * dy
+      );
     };
 
     return [
@@ -682,14 +767,20 @@ export class InpaintingModelService {
    */
   private _updateStats(result: InpaintingResult): void {
     this.stats.totalInpaintings++;
-    
-    const avgQuality = (result.quality.coherence + result.quality.realism + result.quality.seamlessness) / 3;
-    this.stats.averageQuality = 
-      (this.stats.averageQuality * (this.stats.totalInpaintings - 1) + avgQuality) /
+
+    const avgQuality =
+      (result.quality.coherence +
+        result.quality.realism +
+        result.quality.seamlessness) /
+      3;
+    this.stats.averageQuality =
+      (this.stats.averageQuality * (this.stats.totalInpaintings - 1) +
+        avgQuality) /
       this.stats.totalInpaintings;
 
-    this.stats.averageProcessingTime = 
-      (this.stats.averageProcessingTime * (this.stats.totalInpaintings - 1) + result.processingTime) /
+    this.stats.averageProcessingTime =
+      (this.stats.averageProcessingTime * (this.stats.totalInpaintings - 1) +
+        result.processingTime) /
       this.stats.totalInpaintings;
   }
 
@@ -750,7 +841,9 @@ let inpaintingModelInstance: InpaintingModelService | null = null;
 /**
  * Get singleton instance of InpaintingModelService
  */
-export function getInpaintingModelService(config?: Partial<InpaintingConfig>): InpaintingModelService {
+export function getInpaintingModelService(
+  config?: Partial<InpaintingConfig>,
+): InpaintingModelService {
   if (!inpaintingModelInstance) {
     inpaintingModelInstance = new InpaintingModelService(config);
   }

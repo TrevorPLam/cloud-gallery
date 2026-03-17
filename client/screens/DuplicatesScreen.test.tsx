@@ -231,11 +231,7 @@ describe("DuplicatesScreen", () => {
       vi.mocked(apiRequest).mockImplementation(
         () =>
           new Promise((resolve) =>
-            setTimeout(
-              () =>
-                resolve(mockDuplicateData),
-              1000
-            )
+            setTimeout(() => resolve(mockDuplicateData), 1000),
           ),
       );
 

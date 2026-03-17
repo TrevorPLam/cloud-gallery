@@ -8,13 +8,13 @@
 // TESTS: Cleanup accuracy, edge cases
 // AI-META-END
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { apiRequest } from '@/lib/query-client';
-import { Photo } from '@/types';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { apiRequest } from "@/lib/query-client";
+import { Photo } from "@/types";
 
 // Configuration constants
 const TRASH_RETENTION_DAYS = 30;
-const LAST_CLEANUP_KEY = '@trash_last_cleanup';
+const LAST_CLEANUP_KEY = "@trash_last_cleanup";
 const CLEANUP_JITTER_MS = 60000; // 1 minute jitter to prevent server load spikes
 
 export interface CleanupResult {
@@ -36,7 +36,8 @@ export function calculateDaysUntilDeletion(deletedAt: string | Date): number {
   const deletedDate = new Date(deletedAt);
   const now = new Date();
   const retentionPeriod = TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000; // 30 days in ms
-  const timeUntilDeletion = deletedDate.getTime() + retentionPeriod - now.getTime();
+  const timeUntilDeletion =
+    deletedDate.getTime() + retentionPeriod - now.getTime();
   return Math.max(0, Math.ceil(timeUntilDeletion / (24 * 60 * 60 * 1000)));
 }
 
@@ -52,17 +53,17 @@ export function willBeDeletedSoon(deletedAt: string | Date): boolean {
  */
 export async function getTrashItemsWithCountdown(): Promise<TrashItem[]> {
   try {
-    const res = await apiRequest('GET', '/api/photos/user/trash');
+    const res = await apiRequest("GET", "/api/photos/user/trash");
     const data = await res.json();
     const photos: Photo[] = data.photos || [];
 
-    return photos.map(photo => ({
+    return photos.map((photo) => ({
       ...photo,
       daysUntilDeletion: calculateDaysUntilDeletion(photo.deletedAt!),
       willBeDeletedSoon: willBeDeletedSoon(photo.deletedAt!),
     }));
   } catch (error) {
-    console.error('Failed to fetch trash items:', error);
+    console.error("Failed to fetch trash items:", error);
     throw error;
   }
 }
@@ -74,10 +75,10 @@ export async function performAutomaticCleanup(): Promise<CleanupResult> {
   try {
     // Add jitter to prevent server load spikes
     const jitter = Math.random() * CLEANUP_JITTER_MS;
-    await new Promise(resolve => setTimeout(resolve, jitter));
+    await new Promise((resolve) => setTimeout(resolve, jitter));
 
     // Call cleanup endpoint
-    const res = await apiRequest('POST', '/api/photos/cleanup-expired');
+    const res = await apiRequest("POST", "/api/photos/cleanup-expired");
     const result = await res.json();
 
     // Update last cleanup time
@@ -89,11 +90,11 @@ export async function performAutomaticCleanup(): Promise<CleanupResult> {
       nextCleanupTime: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
     };
   } catch (error) {
-    console.error('Automatic cleanup failed:', error);
+    console.error("Automatic cleanup failed:", error);
     return {
       success: false,
       deletedCount: 0,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
       nextCleanupTime: new Date(Date.now() + 4 * 60 * 60 * 1000), // Retry in 4 hours
     };
   }
@@ -107,7 +108,7 @@ export async function getLastCleanupTime(): Promise<Date | null> {
     const lastCleanup = await AsyncStorage.getItem(LAST_CLEANUP_KEY);
     return lastCleanup ? new Date(lastCleanup) : null;
   } catch (error) {
-    console.error('Failed to get last cleanup time:', error);
+    console.error("Failed to get last cleanup time:", error);
     return null;
   }
 }
@@ -119,7 +120,8 @@ export async function isCleanupNeeded(): Promise<boolean> {
   const lastCleanup = await getLastCleanupTime();
   if (!lastCleanup) return true;
 
-  const hoursSinceLastCleanup = (Date.now() - lastCleanup.getTime()) / (1000 * 60 * 60);
+  const hoursSinceLastCleanup =
+    (Date.now() - lastCleanup.getTime()) / (1000 * 60 * 60);
   return hoursSinceLastCleanup >= 24;
 }
 
@@ -135,15 +137,16 @@ export async function getCleanupStats(): Promise<{
   try {
     const trashItems = await getTrashItemsWithCountdown();
     const lastCleanup = await getLastCleanupTime();
-    
+
     return {
       totalTrashItems: trashItems.length,
-      itemsToDeleteSoon: trashItems.filter(item => item.willBeDeletedSoon).length,
+      itemsToDeleteSoon: trashItems.filter((item) => item.willBeDeletedSoon)
+        .length,
       lastCleanup,
       nextCleanup: new Date(Date.now() + 24 * 60 * 60 * 1000),
     };
   } catch (error) {
-    console.error('Failed to get cleanup stats:', error);
+    console.error("Failed to get cleanup stats:", error);
     return {
       totalTrashItems: 0,
       itemsToDeleteSoon: 0,
@@ -158,18 +161,18 @@ export async function getCleanupStats(): Promise<{
  */
 export function formatDeletionTime(deletedAt: string | Date): string {
   const days = calculateDaysUntilDeletion(deletedAt);
-  
+
   if (days === 0) {
-    return 'Deletes today';
+    return "Deletes today";
   } else if (days === 1) {
-    return 'Deletes tomorrow';
+    return "Deletes tomorrow";
   } else if (days <= 7) {
     return `Deletes in ${days} days`;
   } else if (days <= 30) {
     const weeks = Math.ceil(days / 7);
-    return `Deletes in ${weeks} week${weeks > 1 ? 's' : ''}`;
+    return `Deletes in ${weeks} week${weeks > 1 ? "s" : ""}`;
   } else {
-    return 'Deletes in 30 days';
+    return "Deletes in 30 days";
   }
 }
 
@@ -178,10 +181,10 @@ export function formatDeletionTime(deletedAt: string | Date): string {
  */
 export async function configureBackgroundCleanup(): Promise<boolean> {
   try {
-    console.log('Background cleanup configuration (placeholder)');
+    console.log("Background cleanup configuration (placeholder)");
     return true;
   } catch (error) {
-    console.error('Failed to configure background cleanup:', error);
+    console.error("Failed to configure background cleanup:", error);
     return false;
   }
 }
@@ -191,9 +194,9 @@ export async function configureBackgroundCleanup(): Promise<boolean> {
  */
 export async function stopBackgroundCleanup(): Promise<void> {
   try {
-    console.log('Background cleanup stopped (placeholder)');
+    console.log("Background cleanup stopped (placeholder)");
   } catch (error) {
-    console.error('Failed to stop background cleanup:', error);
+    console.error("Failed to stop background cleanup:", error);
   }
 }
 

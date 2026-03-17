@@ -26,7 +26,9 @@ vi.mock("react-native-mlkit-ocr", () => ({
 }));
 
 vi.mock("react-native-fast-tflite", () => ({
-  loadTensorflowModel: vi.fn().mockRejectedValue(new Error("Model not available in test")),
+  loadTensorflowModel: vi
+    .fn()
+    .mockRejectedValue(new Error("Model not available in test")),
 }));
 
 // ─────────────────────────────────────────────────────────
@@ -47,7 +49,7 @@ describe("PhotoAnalyzer", () => {
       await analyzer.cleanup();
     } catch (error) {
       // Ignore cleanup errors to avoid test failures
-      console.warn('Cleanup error:', error);
+      console.warn("Cleanup error:", error);
     }
   });
 
@@ -94,7 +96,7 @@ describe("PhotoAnalyzer", () => {
             }
           }),
           { numRuns: 10 },
-        )
+        ),
       ).resolves.toBeUndefined();
     });
 
@@ -131,7 +133,7 @@ describe("PhotoAnalyzer", () => {
             },
           ),
           { numRuns: 10 },
-        )
+        ),
       ).resolves.toBeUndefined();
     });
 
@@ -157,7 +159,7 @@ describe("PhotoAnalyzer", () => {
             }
           }),
           { numRuns: 50 },
-        )
+        ),
       ).resolves.toBeUndefined();
     });
   });

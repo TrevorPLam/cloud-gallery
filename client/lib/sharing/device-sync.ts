@@ -18,7 +18,7 @@ export enum SyncOperationType {
   REMOVE_MEMBER = "remove_member",
   UPDATE_PERMISSIONS = "update_permissions",
   ADD_AUTO_SHARE_RULE = "add_auto_share_rule",
-  REMOVE_AUTO_SHARE_RULE = "remove_auto_share_rule"
+  REMOVE_AUTO_SHARE_RULE = "remove_auto_share_rule",
 }
 
 /**
@@ -91,7 +91,7 @@ export class SharingDeviceSync {
       conflictResolution: "latest",
       enableOfflineMode: true,
       syncInterval: 30000, // 30 seconds
-      ...config
+      ...config,
     };
 
     this.syncState = {
@@ -100,7 +100,7 @@ export class SharingDeviceSync {
       pendingOperations: [],
       conflictOperations: [],
       syncVersion: 1,
-      isOnline: true
+      isOnline: true,
     };
 
     this.initializeSyncState();
@@ -142,7 +142,7 @@ export class SharingDeviceSync {
     type: SyncOperationType,
     keyId: string,
     userId: string,
-    data: any
+    data: any,
   ): Promise<string> {
     const operation: SyncOperation = {
       id: this.generateOperationId(),
@@ -153,7 +153,7 @@ export class SharingDeviceSync {
       timestamp: Date.now(),
       data,
       version: this.syncState.syncVersion,
-      applied: false
+      applied: false,
     };
 
     // Add to pending operations
@@ -182,7 +182,7 @@ export class SharingDeviceSync {
         success: false,
         synced: 0,
         conflicts: 0,
-        errors: ["Device is offline"]
+        errors: ["Device is offline"],
       };
     }
 
@@ -204,7 +204,7 @@ export class SharingDeviceSync {
       lastSync: this.syncState.lastSyncTimestamp,
       pendingOperations: this.syncState.pendingOperations.length,
       conflictOperations: this.syncState.conflictOperations.length,
-      syncVersion: this.syncState.syncVersion
+      syncVersion: this.syncState.syncVersion,
     };
   }
 
@@ -214,9 +214,11 @@ export class SharingDeviceSync {
   async resolveConflict(
     operationId: string,
     resolution: "merge" | "override" | "manual",
-    resolvedData?: any
+    resolvedData?: any,
   ): Promise<boolean> {
-    const conflictOp = this.syncState.conflictOperations.find(op => op.id === operationId);
+    const conflictOp = this.syncState.conflictOperations.find(
+      (op) => op.id === operationId,
+    );
     if (!conflictOp) {
       return false;
     }
@@ -239,9 +241,8 @@ export class SharingDeviceSync {
     }
 
     // Remove from conflicts
-    this.syncState.conflictOperations = this.syncState.conflictOperations.filter(
-      op => op.id !== operationId
-    );
+    this.syncState.conflictOperations =
+      this.syncState.conflictOperations.filter((op) => op.id !== operationId);
 
     await this.persistSyncState();
     return true;
@@ -259,12 +260,15 @@ export class SharingDeviceSync {
       success: true,
       synced: 0,
       conflicts: 0,
-      errors: [] as string[]
+      errors: [] as string[],
     };
 
     try {
       // Get operations to sync
-      const operationsToSync = this.syncState.pendingOperations.slice(0, this.config.batchSize);
+      const operationsToSync = this.syncState.pendingOperations.slice(
+        0,
+        this.config.batchSize,
+      );
 
       if (operationsToSync.length === 0) {
         return result;
@@ -274,7 +278,7 @@ export class SharingDeviceSync {
       for (const operation of operationsToSync) {
         try {
           const syncResult = await this.syncOperation(operation);
-          
+
           if (syncResult.success) {
             operation.applied = true;
             result.synced++;
@@ -285,14 +289,15 @@ export class SharingDeviceSync {
             result.errors.push(syncResult.error || "Unknown sync error");
           }
         } catch (error) {
-          result.errors.push(error instanceof Error ? error.message : "Unknown error");
+          result.errors.push(
+            error instanceof Error ? error.message : "Unknown error",
+          );
         }
       }
 
       // Remove applied operations from pending
-      this.syncState.pendingOperations = this.syncState.pendingOperations.filter(
-        op => !op.applied
-      );
+      this.syncState.pendingOperations =
+        this.syncState.pendingOperations.filter((op) => !op.applied);
 
       // Update sync timestamp
       this.syncState.lastSyncTimestamp = Date.now();
@@ -303,7 +308,9 @@ export class SharingDeviceSync {
       return result;
     } catch (error) {
       result.success = false;
-      result.errors.push(error instanceof Error ? error.message : "Sync failed");
+      result.errors.push(
+        error instanceof Error ? error.message : "Sync failed",
+      );
       return result;
     }
   }
@@ -327,12 +334,14 @@ export class SharingDeviceSync {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   }
 
-  private async detectConflicts(operation: SyncOperation): Promise<SyncConflict[]> {
+  private async detectConflicts(
+    operation: SyncOperation,
+  ): Promise<SyncConflict[]> {
     const conflicts: SyncConflict[] = [];
 
     // Check version conflicts
@@ -341,7 +350,7 @@ export class SharingDeviceSync {
       conflicts.push({
         operationId: operation.id,
         conflictType: "version",
-        description: "Remote version is newer than local"
+        description: "Remote version is newer than local",
       });
     }
 
@@ -352,18 +361,21 @@ export class SharingDeviceSync {
         conflicts.push({
           operationId: operation.id,
           conflictType: "permission",
-          description: "Insufficient permissions for operation"
+          description: "Insufficient permissions for operation",
         });
       }
     }
 
     // Check concurrent modifications
-    const recentOps = await this.getRecentOperations(operation.keyId, operation.timestamp);
+    const recentOps = await this.getRecentOperations(
+      operation.keyId,
+      operation.timestamp,
+    );
     if (recentOps.length > 0) {
       conflicts.push({
         operationId: operation.id,
         conflictType: "concurrent",
-        description: "Concurrent modifications detected"
+        description: "Concurrent modifications detected",
       });
     }
 
@@ -409,7 +421,7 @@ export class SharingDeviceSync {
     const { name, type, ownerId, permissions, memberIds } = operation.data;
     await sharingKeyManager.createSharingKey(type, name, ownerId, {
       permissions,
-      memberIds
+      memberIds,
     });
   }
 
@@ -448,9 +460,16 @@ export class SharingDeviceSync {
     await sharingKeyManager.removeMember(keyId, memberId);
   }
 
-  private async applyUpdatePermissions(operation: SyncOperation): Promise<void> {
+  private async applyUpdatePermissions(
+    operation: SyncOperation,
+  ): Promise<void> {
     const { keyId, userId, newRole } = operation.data;
-    await permissionManager.updateUserRole(keyId, userId, newRole, operation.userId);
+    await permissionManager.updateUserRole(
+      keyId,
+      userId,
+      newRole,
+      operation.userId,
+    );
   }
 
   private async applyAddAutoShareRule(operation: SyncOperation): Promise<void> {
@@ -459,7 +478,9 @@ export class SharingDeviceSync {
     console.log("Add auto-share rule:", operation.data);
   }
 
-  private async applyRemoveAutoShareRule(operation: SyncOperation): Promise<void> {
+  private async applyRemoveAutoShareRule(
+    operation: SyncOperation,
+  ): Promise<void> {
     // This would call the family sharing service
     // For now, just log the operation
     console.log("Remove auto-share rule:", operation.data);
@@ -471,7 +492,9 @@ export class SharingDeviceSync {
     return this.syncState.syncVersion;
   }
 
-  private async checkPermissionConflict(operation: SyncOperation): Promise<boolean> {
+  private async checkPermissionConflict(
+    operation: SyncOperation,
+  ): Promise<boolean> {
     // Check if user has permissions for this operation
     const keyData = await sharingKeyManager.getSharingKey(operation.keyId);
     if (!keyData) {
@@ -481,23 +504,29 @@ export class SharingDeviceSync {
     // Check based on operation type
     switch (operation.type) {
       case SyncOperationType.UPDATE_PERMISSIONS:
-        return await permissionManager.evaluatePermission({
-          userId: operation.userId,
-          keyId: operation.keyId,
-          action: PermissionAction.EDIT_PERMISSIONS,
-          targetUserId: operation.data.userId
-        }).then(result => result.allowed);
+        return await permissionManager
+          .evaluatePermission({
+            userId: operation.userId,
+            keyId: operation.keyId,
+            action: PermissionAction.EDIT_PERMISSIONS,
+            targetUserId: operation.data.userId,
+          })
+          .then((result) => result.allowed);
       default:
         return true;
     }
   }
 
-  private async getRecentOperations(keyId: string, since: number): Promise<SyncOperation[]> {
+  private async getRecentOperations(
+    keyId: string,
+    since: number,
+  ): Promise<SyncOperation[]> {
     // Get operations from other devices since the given timestamp
-    return this.syncState.pendingOperations.filter(op => 
-      op.keyId === keyId && 
-      op.deviceId !== this.deviceId && 
-      op.timestamp > since
+    return this.syncState.pendingOperations.filter(
+      (op) =>
+        op.keyId === keyId &&
+        op.deviceId !== this.deviceId &&
+        op.timestamp > since,
     );
   }
 
@@ -507,7 +536,9 @@ export class SharingDeviceSync {
 
   private async initializeSyncState(): Promise<void> {
     try {
-      const stored = await AsyncStorage.getItem(`sharing_sync_state_${this.deviceId}`);
+      const stored = await AsyncStorage.getItem(
+        `sharing_sync_state_${this.deviceId}`,
+      );
       if (stored) {
         this.syncState = JSON.parse(stored);
       }
@@ -520,7 +551,7 @@ export class SharingDeviceSync {
     try {
       await AsyncStorage.setItem(
         `sharing_sync_state_${this.deviceId}`,
-        JSON.stringify(this.syncState)
+        JSON.stringify(this.syncState),
       );
     } catch (error) {
       console.error("Failed to persist sync state:", error);
@@ -530,14 +561,14 @@ export class SharingDeviceSync {
   private setupNetworkListeners(): void {
     // In a real implementation, this would listen to network state changes
     // For React Native, would use NetInfo or similar
-    if (typeof window !== 'undefined' && 'navigator' in window) {
-      window.addEventListener('online', () => {
+    if (typeof window !== "undefined" && "navigator" in window) {
+      window.addEventListener("online", () => {
         this.isOnline = true;
         this.syncState.isOnline = true;
         this.performSync();
       });
 
-      window.addEventListener('offline', () => {
+      window.addEventListener("offline", () => {
         this.isOnline = false;
         this.syncState.isOnline = false;
       });
@@ -553,7 +584,7 @@ let globalSyncManager: SharingDeviceSync | null = null;
  */
 export async function initializeDeviceSync(
   deviceId: string,
-  config?: Partial<SyncConfig>
+  config?: Partial<SyncConfig>,
 ): Promise<SharingDeviceSync> {
   if (globalSyncManager) {
     globalSyncManager.stopSync();
@@ -579,7 +610,7 @@ export async function queueSharingOperation(
   type: SyncOperationType,
   keyId: string,
   userId: string,
-  data: any
+  data: any,
 ): Promise<string> {
   if (!globalSyncManager) {
     throw new Error("Sync manager not initialized");
@@ -620,7 +651,7 @@ export function getSharingSyncStatus(): {
       lastSync: 0,
       pendingOperations: 0,
       conflictOperations: 0,
-      syncVersion: 0
+      syncVersion: 0,
     };
   }
 

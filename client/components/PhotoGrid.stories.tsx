@@ -1,15 +1,15 @@
 /**
  * Visual regression stories for PhotoGrid component
- * 
+ *
  * Purpose: Visual testing with Storybook/Chromatic integration
  * Usage: Run visual tests to catch UI regressions
  * Standards: Consistent appearance across different photo layouts
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
-import { PhotoGrid } from './PhotoGrid';
-import { Photo } from '@/types';
-import { chromaticConfig } from '../test-utils/visual-testing';
+import type { Meta, StoryObj } from "@storybook/react";
+import { PhotoGrid } from "./PhotoGrid";
+import { Photo } from "@/types";
+import { chromaticConfig } from "../test-utils/visual-testing";
 
 // Mock photo data for visual testing
 const mockPhotos: Photo[] = Array.from({ length: 12 }, (_, i) => ({
@@ -22,52 +22,52 @@ const mockPhotos: Photo[] = Array.from({ length: 12 }, (_, i) => ({
   isFavorite: i % 3 === 0, // Every 3rd photo is favorite
   metadata: {
     size: 1024 * 100, // 100KB
-    format: 'jpeg',
+    format: "jpeg",
   },
 }));
 
 // Mock grouped data
 const mockGroupedData = [
   {
-    title: 'Today',
+    title: "Today",
     data: mockPhotos.slice(0, 3),
   },
   {
-    title: 'Yesterday',
+    title: "Yesterday",
     data: mockPhotos.slice(3, 7),
   },
   {
-    title: 'This Week',
+    title: "This Week",
     data: mockPhotos.slice(7, 12),
   },
 ];
 
 // Mock theme and hooks
 const mockTheme = {
-  backgroundRoot: '#ffffff',
-  backgroundDefault: '#f8fafc',
-  backgroundSecondary: '#f1f5f9',
-  backgroundTertiary: '#e2e8f0',
-  text: '#1e293b',
-  textSecondary: '#64748b',
+  backgroundRoot: "#ffffff",
+  backgroundDefault: "#f8fafc",
+  backgroundSecondary: "#f1f5f9",
+  backgroundTertiary: "#e2e8f0",
+  text: "#1e293b",
+  textSecondary: "#64748b",
 };
 
 const mockUseTheme = () => ({ theme: mockTheme });
 const mockUseWindowDimensions = () => ({ width: 375, height: 667 });
 
 // Mock the hooks
-jest.mock('@/hooks/useTheme', () => ({
+jest.mock("@/hooks/useTheme", () => ({
   useTheme: mockUseTheme,
 }));
 
-jest.mock('react-native', () => ({
-  ...jest.requireActual('react-native'),
+jest.mock("react-native", () => ({
+  ...jest.requireActual("react-native"),
   useWindowDimensions: mockUseWindowDimensions,
-  Platform: { OS: 'web' },
+  Platform: { OS: "web" },
 }));
 
 const meta: Meta<typeof PhotoGrid> = {
-  title: 'Components/PhotoGrid',
+  title: "Components/PhotoGrid",
   component: PhotoGrid,
   parameters: {
     // Visual testing parameters
@@ -82,15 +82,15 @@ const meta: Meta<typeof PhotoGrid> = {
         tablet: { width: 768, height: 1024 },
         desktop: { width: 1200, height: 800 },
       },
-      defaultViewport: 'mobile',
+      defaultViewport: "mobile",
     },
   },
   argTypes: {
-    photos: { control: 'object' },
-    groupedData: { control: 'object' },
-    showSectionHeaders: { control: 'boolean' },
-    onPhotoPress: { action: 'photoPressed' },
-    onPhotoLongPress: { action: 'photoLongPressed' },
+    photos: { control: "object" },
+    groupedData: { control: "object" },
+    showSectionHeaders: { control: "boolean" },
+    onPhotoPress: { action: "photoPressed" },
+    onPhotoLongPress: { action: "photoLongPressed" },
   },
 };
 
@@ -101,7 +101,8 @@ type Story = StoryObj<typeof PhotoGrid>;
 export const Default: Story = {
   args: {
     photos: mockPhotos.slice(0, 6),
-    onPhotoPress: (photo, index) => console.log('Photo pressed:', photo.id, index),
+    onPhotoPress: (photo, index) =>
+      console.log("Photo pressed:", photo.id, index),
   },
 };
 
@@ -119,7 +120,7 @@ export const Empty: Story = {
 
 export const WithFavorites: Story = {
   args: {
-    photos: mockPhotos.filter(photo => photo.isFavorite),
+    photos: mockPhotos.filter((photo) => photo.isFavorite),
     onPhotoPress: () => {},
   },
 };
@@ -131,7 +132,7 @@ export const LargeGrid: Story = {
   },
   parameters: {
     viewport: {
-      defaultViewport: 'desktop',
+      defaultViewport: "desktop",
     },
   },
 };
@@ -161,7 +162,7 @@ export const MobileView: Story = {
   },
   parameters: {
     viewport: {
-      defaultViewport: 'mobile',
+      defaultViewport: "mobile",
     },
   },
 };
@@ -173,7 +174,7 @@ export const TabletView: Story = {
   },
   parameters: {
     viewport: {
-      defaultViewport: 'tablet',
+      defaultViewport: "tablet",
     },
   },
 };
@@ -185,7 +186,7 @@ export const DesktopView: Story = {
   },
   parameters: {
     viewport: {
-      defaultViewport: 'desktop',
+      defaultViewport: "desktop",
     },
   },
 };
@@ -211,35 +212,47 @@ export const ManyPhotos: Story = {
 export const VisualRegression: Story = {
   render: () => {
     return (
-      <div style={{ padding: '16px' }}>
+      <div style={{ padding: "16px" }}>
         <h3>Grid Layouts</h3>
-        <div style={{ marginBottom: '32px' }}>
+        <div style={{ marginBottom: "32px" }}>
           <h4>Small Grid (3 photos)</h4>
-          <div style={{ height: '200px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
-            <PhotoGrid 
-              photos={mockPhotos.slice(0, 3)} 
-              onPhotoPress={() => {}} 
+          <div
+            style={{
+              height: "200px",
+              border: "1px solid #e2e8f0",
+              marginBottom: "16px",
+            }}
+          >
+            <PhotoGrid
+              photos={mockPhotos.slice(0, 3)}
+              onPhotoPress={() => {}}
             />
           </div>
         </div>
-        
-        <div style={{ marginBottom: '32px' }}>
+
+        <div style={{ marginBottom: "32px" }}>
           <h4>Medium Grid (6 photos)</h4>
-          <div style={{ height: '300px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
-            <PhotoGrid 
-              photos={mockPhotos.slice(0, 6)} 
-              onPhotoPress={() => {}} 
+          <div
+            style={{
+              height: "300px",
+              border: "1px solid #e2e8f0",
+              marginBottom: "16px",
+            }}
+          >
+            <PhotoGrid
+              photos={mockPhotos.slice(0, 6)}
+              onPhotoPress={() => {}}
             />
           </div>
         </div>
-        
-        <div style={{ marginBottom: '32px' }}>
+
+        <div style={{ marginBottom: "32px" }}>
           <h4>Grouped with Headers</h4>
-          <div style={{ height: '400px', border: '1px solid #e2e8f0' }}>
-            <PhotoGrid 
-              groupedData={mockGroupedData} 
+          <div style={{ height: "400px", border: "1px solid #e2e8f0" }}>
+            <PhotoGrid
+              groupedData={mockGroupedData}
               showSectionHeaders={true}
-              onPhotoPress={() => {}} 
+              onPhotoPress={() => {}}
             />
           </div>
         </div>
@@ -262,7 +275,7 @@ export const DarkTheme: Story = {
   },
   parameters: {
     backgrounds: {
-      default: 'dark',
+      default: "dark",
     },
   },
 };

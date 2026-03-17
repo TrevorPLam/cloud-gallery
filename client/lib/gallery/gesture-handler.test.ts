@@ -10,7 +10,7 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { renderHook } from "@testing-library/react";
-import { 
+import {
   usePinchToZoomGesture,
   useAdvancedZoomGesture,
   GestureStateManager,
@@ -46,7 +46,12 @@ vi.mock("react-native", () => ({
 }));
 
 // Mock gesture handler
-const mockGestureEvent = (scale: number, focalX: number, focalY: number, velocity: number = 0) => ({
+const mockGestureEvent = (
+  scale: number,
+  focalX: number,
+  focalY: number,
+  velocity: number = 0,
+) => ({
   scale,
   focalX,
   focalY,
@@ -66,9 +71,9 @@ describe("Gesture Handler", () => {
     it("should return focal point within container bounds", () => {
       const event = mockGestureEvent(1.5, 100, 200);
       const containerSize = { width: 300, height: 400 };
-      
+
       const focal = calculateFocalPoint(event, containerSize);
-      
+
       expect(focal.x).toBe(100);
       expect(focal.y).toBe(200);
     });
@@ -76,9 +81,9 @@ describe("Gesture Handler", () => {
     it("should clamp focal point to container bounds", () => {
       const event = mockGestureEvent(1.5, 500, 600); // Outside bounds
       const containerSize = { width: 300, height: 400 };
-      
+
       const focal = calculateFocalPoint(event, containerSize);
-      
+
       expect(focal.x).toBe(300); // Clamped to width
       expect(focal.y).toBe(400); // Clamped to height
     });
@@ -86,9 +91,9 @@ describe("Gesture Handler", () => {
     it("should clamp negative focal point", () => {
       const event = mockGestureEvent(1.5, -50, -100);
       const containerSize = { width: 300, height: 400 };
-      
+
       const focal = calculateFocalPoint(event, containerSize);
-      
+
       expect(focal.x).toBe(0); // Clamped to 0
       expect(focal.y).toBe(0); // Clamped to 0
     });
@@ -99,33 +104,33 @@ describe("Gesture Handler", () => {
 
     it("should trigger haptic feedback when threshold is met", () => {
       const config = DEFAULT_ZOOM_CONFIG.hapticFeedback;
-      
+
       triggerHapticFeedback(1.2, 1.0, config);
-      
+
       expect(impactAsync).toHaveBeenCalledWith("light");
     });
 
     it("should not trigger haptic feedback below threshold", () => {
       const config = DEFAULT_ZOOM_CONFIG.hapticFeedback;
-      
+
       triggerHapticFeedback(1.05, 1.0, config);
-      
+
       expect(impactAsync).not.toHaveBeenCalled();
     });
 
     it("should trigger appropriate haptic level", () => {
       const config = DEFAULT_ZOOM_CONFIG.hapticFeedback;
-      
+
       triggerHapticFeedback(1.5, 1.0, config);
-      
+
       expect(impactAsync).toHaveBeenCalledWith("medium");
     });
 
     it("should not trigger haptic feedback when disabled", () => {
       const config = { ...DEFAULT_ZOOM_CONFIG.hapticFeedback, enabled: false };
-      
+
       triggerHapticFeedback(1.5, 1.0, config);
-      
+
       expect(impactAsync).not.toHaveBeenCalled();
     });
   });
@@ -133,7 +138,7 @@ describe("Gesture Handler", () => {
   describe("usePinchToZoomGesture", () => {
     it("should initialize with default values", () => {
       const { result } = renderHook(() => usePinchToZoomGesture());
-      
+
       expect(result.current.scale.value).toBe(1);
       expect(result.current.focalX.value).toBe(0);
       expect(result.current.focalY.value).toBe(0);
@@ -147,18 +152,18 @@ describe("Gesture Handler", () => {
         minScale: 0.5,
         maxScale: 3.0,
       };
-      
+
       const { result } = renderHook(() => usePinchToZoomGesture(customConfig));
-      
+
       expect(result.current.scale.value).toBe(1);
     });
 
     it("should call onZoomChange when provided", () => {
       const onZoomChange = vi.fn();
-      const { result } = renderHook(() => 
-        usePinchToZoomGesture(DEFAULT_ZOOM_CONFIG, onZoomChange)
+      const { result } = renderHook(() =>
+        usePinchToZoomGesture(DEFAULT_ZOOM_CONFIG, onZoomChange),
       );
-      
+
       // Simulate gesture handler callback
       act(() => {
         const mockContext = {
@@ -167,7 +172,7 @@ describe("Gesture Handler", () => {
           isGestureActive: true,
           velocity: 0,
         };
-        
+
         // This would normally be called by the gesture handler
         // For testing, we'll call the callback directly
         onZoomChange({
@@ -179,33 +184,33 @@ describe("Gesture Handler", () => {
           velocity: 0,
         });
       });
-      
+
       expect(onZoomChange).toHaveBeenCalled();
     });
 
     it("should reset scale to 1", () => {
       const { result } = renderHook(() => usePinchToZoomGesture());
-      
+
       act(() => {
         result.current.setScale(2.0, false);
       });
-      
+
       expect(result.current.scale.value).toBe(2.0);
-      
+
       act(() => {
         result.current.reset();
       });
-      
+
       expect(result.current.scale.value).toBe(1);
     });
 
     it("should set scale programmatically", () => {
       const { result } = renderHook(() => usePinchToZoomGesture());
-      
+
       act(() => {
         result.current.setScale(1.5);
       });
-      
+
       expect(result.current.scale.value).toBe(1.5);
     });
 
@@ -215,19 +220,19 @@ describe("Gesture Handler", () => {
         minScale: 0.5,
         maxScale: 3.0,
       };
-      
+
       const { result } = renderHook(() => usePinchToZoomGesture(customConfig));
-      
+
       act(() => {
         result.current.setScale(0.1, false); // Below min
       });
-      
+
       expect(result.current.scale.value).toBe(0.5);
-      
+
       act(() => {
         result.current.setScale(5.0, false); // Above max
       });
-      
+
       expect(result.current.scale.value).toBe(3.0);
     });
   });
@@ -235,7 +240,7 @@ describe("Gesture Handler", () => {
   describe("useAdvancedZoomGesture", () => {
     it("should include translation values", () => {
       const { result } = renderHook(() => useAdvancedZoomGesture());
-      
+
       expect(result.current.translateX.value).toBe(0);
       expect(result.current.translateY.value).toBe(0);
       expect(result.current.scale.value).toBe(1);
@@ -243,17 +248,17 @@ describe("Gesture Handler", () => {
 
     it("should reset both scale and translation", () => {
       const { result } = renderHook(() => useAdvancedZoomGesture());
-      
+
       act(() => {
         result.current.setScale(2.0, false);
         result.current.translateX.value = 50;
         result.current.translateY.value = 100;
       });
-      
+
       act(() => {
         result.current.reset();
       });
-      
+
       expect(result.current.scale.value).toBe(1);
       expect(result.current.translateX.value).toBe(0);
       expect(result.current.translateY.value).toBe(0);
@@ -269,7 +274,7 @@ describe("Gesture Handler", () => {
 
     it("should initialize with default state", () => {
       const state = manager.getState();
-      
+
       expect(state.scale).toBe(1);
       expect(state.focalX).toBe(0);
       expect(state.focalY).toBe(0);
@@ -281,9 +286,9 @@ describe("Gesture Handler", () => {
     it("should update state and notify listeners", () => {
       const listener = vi.fn();
       manager.subscribe(listener);
-      
+
       manager.updateState({ scale: 1.5 });
-      
+
       expect(manager.getState().scale).toBe(1.5);
       expect(listener).toHaveBeenCalledWith(manager.getState());
     });
@@ -292,9 +297,9 @@ describe("Gesture Handler", () => {
       manager.updateState({ scale: 1.2 });
       manager.updateState({ scale: 1.5 });
       manager.updateState({ scale: 2.0 });
-      
+
       const history = manager.getHistory();
-      
+
       expect(history).toHaveLength(3);
       expect(history[0].scale).toBe(1.2);
       expect(history[1].scale).toBe(1.5);
@@ -303,41 +308,41 @@ describe("Gesture Handler", () => {
 
     it("should limit history size", () => {
       const smallManager = new GestureStateManager();
-      
+
       // Add more states than the max history size
       for (let i = 0; i < 60; i++) {
         smallManager.updateState({ scale: 1 + i * 0.1 });
       }
-      
+
       const history = smallManager.getHistory();
-      
+
       expect(history.length).toBeLessThanOrEqual(50);
     });
 
     it("should unsubscribe listeners correctly", () => {
       const listener = vi.fn();
       const unsubscribe = manager.subscribe(listener);
-      
+
       unsubscribe();
-      
+
       manager.updateState({ scale: 1.5 });
-      
+
       expect(listener).not.toHaveBeenCalled();
     });
 
     it("should reset state", () => {
-      manager.updateState({ 
-        scale: 2.0, 
-        focalX: 100, 
-        focalY: 200, 
+      manager.updateState({
+        scale: 2.0,
+        focalX: 100,
+        focalY: 200,
         isGestureActive: true,
         velocity: 5,
       });
-      
+
       manager.reset();
-      
+
       const state = manager.getState();
-      
+
       expect(state.scale).toBe(1);
       expect(state.focalX).toBe(0);
       expect(state.focalY).toBe(0);
@@ -348,33 +353,33 @@ describe("Gesture Handler", () => {
 
     it("should check gesture active state", () => {
       expect(manager.isGestureActive()).toBe(false);
-      
+
       manager.updateState({ isGestureActive: true });
-      
+
       expect(manager.isGestureActive()).toBe(true);
     });
 
     it("should get current scale", () => {
       expect(manager.getCurrentScale()).toBe(1);
-      
+
       manager.updateState({ scale: 1.8 });
-      
+
       expect(manager.getCurrentScale()).toBe(1.8);
     });
 
     it("should get velocity", () => {
       expect(manager.getVelocity()).toBe(0);
-      
+
       manager.updateState({ velocity: 3.5 });
-      
+
       expect(manager.getVelocity()).toBe(3.5);
     });
 
     it("should get focal point", () => {
       manager.updateState({ focalX: 150, focalY: 250 });
-      
+
       const focal = manager.getFocalPoint();
-      
+
       expect(focal.x).toBe(150);
       expect(focal.y).toBe(250);
     });
@@ -384,7 +389,7 @@ describe("Gesture Handler", () => {
     describe("scaleToZoomLevel", () => {
       it("should return correct zoom level index", () => {
         const levels = [0.25, 0.5, 0.75, 1.0];
-        
+
         expect(GestureUtils.scaleToZoomLevel(0.3, levels)).toBe(0);
         expect(GestureUtils.scaleToZoomLevel(0.5, levels)).toBe(1);
         expect(GestureUtils.scaleToZoomLevel(0.8, levels)).toBe(2);
@@ -394,7 +399,7 @@ describe("Gesture Handler", () => {
 
       it("should handle edge cases", () => {
         const levels = [0.5, 1.0];
-        
+
         expect(GestureUtils.scaleToZoomLevel(0.1, levels)).toBe(0); // Below min
         expect(GestureUtils.scaleToZoomLevel(2.0, levels)).toBe(1); // Above max
       });
@@ -428,7 +433,7 @@ describe("Gesture Handler", () => {
     describe("isPointInBounds", () => {
       it("should check if point is within bounds", () => {
         const bounds = { x: 10, y: 20, width: 100, height: 80 };
-        
+
         expect(GestureUtils.isPointInBounds(50, 60, bounds)).toBe(true); // Inside
         expect(GestureUtils.isPointInBounds(10, 20, bounds)).toBe(true); // Top-left corner
         expect(GestureUtils.isPointInBounds(110, 100, bounds)).toBe(true); // Bottom-right corner
@@ -444,31 +449,31 @@ describe("Gesture Handler", () => {
       const manager = new GestureStateManager();
       const listener = vi.fn();
       manager.subscribe(listener);
-      
+
       // Start gesture
       manager.updateState({ isGestureActive: true });
       expect(manager.isGestureActive()).toBe(true);
-      
+
       // Scale change
       manager.updateState({ scale: 1.5, lastScale: 1.0 });
       expect(manager.getCurrentScale()).toBe(1.5);
-      
+
       // End gesture
       manager.updateState({ isGestureActive: false, velocity: 0 });
       expect(manager.isGestureActive()).toBe(false);
-      
+
       // Should have history of changes
       expect(manager.getHistory().length).toBeGreaterThan(0);
     });
 
     it("should handle rapid gesture changes", () => {
       const manager = new GestureStateManager();
-      
+
       // Simulate rapid scale changes
       for (let i = 0; i < 10; i++) {
         manager.updateState({ scale: 1 + i * 0.1 });
       }
-      
+
       expect(manager.getCurrentScale()).toBe(1.9);
       expect(manager.getHistory().length).toBe(10);
     });
@@ -483,13 +488,13 @@ describe("Gesture Handler", () => {
           threshold: 0.05,
         },
       };
-      
+
       const manager = new GestureStateManager(customConfig);
-      
+
       expect(manager.getCurrentScale()).toBe(1);
-      
+
       manager.updateState({ scale: 0.1, lastScale: 1.0 }); // Should trigger haptic at 0.05 threshold
-      
+
       expect(manager.getCurrentScale()).toBe(0.1);
     });
   });
@@ -500,11 +505,11 @@ describe("Gesture Handler", () => {
       vi.doMock("react-native", () => ({
         Platform: { OS: "web" },
       }));
-      
+
       const config = DEFAULT_ZOOM_CONFIG.hapticFeedback;
-      
+
       triggerHapticFeedback(1.5, 1.0, config);
-      
+
       // Should not trigger haptics on web
       const { impactAsync } = require("expo-haptics");
       expect(impactAsync).not.toHaveBeenCalled();
@@ -514,51 +519,51 @@ describe("Gesture Handler", () => {
   describe("Edge Cases", () => {
     it("should handle zero scale gracefully", () => {
       const manager = new GestureStateManager();
-      
+
       expect(() => {
         manager.updateState({ scale: 0 });
       }).not.toThrow();
-      
+
       expect(manager.getCurrentScale()).toBe(0);
     });
 
     it("should handle negative scale gracefully", () => {
       const manager = new GestureStateManager();
-      
+
       expect(() => {
         manager.updateState({ scale: -1 });
       }).not.toThrow();
-      
+
       expect(manager.getCurrentScale()).toBe(-1);
     });
 
     it("should handle very large scale values", () => {
       const manager = new GestureStateManager();
-      
+
       expect(() => {
         manager.updateState({ scale: 1000 });
       }).not.toThrow();
-      
+
       expect(manager.getCurrentScale()).toBe(1000);
     });
 
     it("should handle NaN values", () => {
       const manager = new GestureStateManager();
-      
+
       expect(() => {
         manager.updateState({ scale: NaN });
       }).not.toThrow();
-      
+
       expect(Number.isNaN(manager.getCurrentScale())).toBe(true);
     });
 
     it("should handle infinite values", () => {
       const manager = new GestureStateManager();
-      
+
       expect(() => {
         manager.updateState({ scale: Infinity });
       }).not.toThrow();
-      
+
       expect(manager.getCurrentScale()).toBe(Infinity);
     });
   });

@@ -8,7 +8,13 @@
 // TESTS: Test zoom transitions, haptic feedback, navigation performance, accessibility
 // AI-META-END
 
-import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  useEffect,
+} from "react";
 import {
   StyleSheet,
   View,
@@ -18,7 +24,10 @@ import {
   Pressable,
   Text,
 } from "react-native";
-import { GestureHandlerRootView, PinchGestureHandler } from "react-native-gesture-handler";
+import {
+  GestureHandlerRootView,
+  PinchGestureHandler,
+} from "react-native-gesture-handler";
 import { useFocusEffect } from "@react-navigation/native";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
@@ -79,7 +88,7 @@ export default function GalleryScreen({}: GalleryScreenProps) {
   const headerHeight = useHeaderHeight();
   const tabBarHeight = useBottomTabBarHeight();
   const insets = useSafeAreaInsets();
-  
+
   // Gallery state
   const [galleryState, setGalleryState] = useState<GalleryState>({
     currentZoomLevel: DEFAULT_ZOOM_LEVELS[3], // Start at photo level
@@ -121,7 +130,7 @@ export default function GalleryScreen({}: GalleryScreenProps) {
   const layoutConfig = useMemo<ListLayoutConfig>(() => {
     return calculateLayoutConfig(
       galleryState.currentZoomLevel,
-      containerSize.current.width
+      containerSize.current.width,
     );
   }, [galleryState.currentZoomLevel]);
 
@@ -129,22 +138,33 @@ export default function GalleryScreen({}: GalleryScreenProps) {
   const currentTimelineData = useMemo(() => {
     if (galleryState.currentNodeId) {
       // Find specific node and get its children at current level
-      const node = findNodeInHierarchy(timelineHierarchy, galleryState.currentNodeId);
+      const node = findNodeInHierarchy(
+        timelineHierarchy,
+        galleryState.currentNodeId,
+      );
       if (node && node.children) {
-        return node.children.filter(child => child.level === galleryState.currentZoomLevel.level);
+        return node.children.filter(
+          (child) => child.level === galleryState.currentZoomLevel.level,
+        );
       }
     }
-    
+
     // Return top-level nodes matching current zoom level
-    return timelineHierarchy.filter(node => node.level === galleryState.currentZoomLevel.level);
-  }, [timelineHierarchy, galleryState.currentNodeId, galleryState.currentZoomLevel]);
+    return timelineHierarchy.filter(
+      (node) => node.level === galleryState.currentZoomLevel.level,
+    );
+  }, [
+    timelineHierarchy,
+    galleryState.currentNodeId,
+    galleryState.currentZoomLevel,
+  ]);
 
   // Convert to FlashList data
   const flashListData = useMemo(() => {
     const listData = timelineToOptimizedListData(
       currentTimelineData,
       layoutConfig,
-      true // Show headers
+      true, // Show headers
     );
     return listData;
   }, [currentTimelineData, layoutConfig]);
@@ -153,14 +173,12 @@ export default function GalleryScreen({}: GalleryScreenProps) {
   const gestureHandler = usePinchToZoomGesture(
     DEFAULT_ZOOM_CONFIG,
     handleZoomChange,
-    containerSize.current
+    containerSize.current,
   );
 
   // Get optimized FlashList props
-  const { flashListProps, performanceMonitor, lazyLoading } = useOptimizedFlashListProps(
-    flashListData,
-    layoutConfig,
-    {
+  const { flashListProps, performanceMonitor, lazyLoading } =
+    useOptimizedFlashListProps(flashListData, layoutConfig, {
       ref: flashListRef,
       contentContainerStyle: {
         paddingTop: Spacing.lg,
@@ -177,29 +195,28 @@ export default function GalleryScreen({}: GalleryScreenProps) {
           />
         </View>
       ),
-    }
-  );
+    });
 
   // Handle zoom changes
   function handleZoomChange(gestureState: GestureState) {
     const newZoomLevel = getZoomLevelForScale(gestureState.scale);
-    
+
     if (newZoomLevel.level !== galleryState.currentZoomLevel.level) {
       // Zoom level changed - update gallery state
-      setGalleryState(prev => ({
+      setGalleryState((prev) => ({
         ...prev,
         currentZoomLevel: newZoomLevel,
         scale: gestureState.scale,
         isZooming: gestureState.isGestureActive,
       }));
-      
+
       // Trigger haptic feedback for level change
       if (Platform.OS !== "web") {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       }
     } else {
       // Just update scale within same level
-      setGalleryState(prev => ({
+      setGalleryState((prev) => ({
         ...prev,
         scale: gestureState.scale,
         isZooming: gestureState.isGestureActive,
@@ -208,44 +225,50 @@ export default function GalleryScreen({}: GalleryScreenProps) {
   }
 
   // Handle timeline navigation
-  const handleTimelinePress = useCallback((node: TimelineNode) => {
-    // Trigger haptic feedback
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-    
-    // Navigate to node
-    setGalleryState(prev => ({
-      ...prev,
-      currentNodeId: node.id,
-      timelinePath: getTimelinePath(timelineHierarchy, node.id),
-    }));
-    
-    // Animate to new zoom level
-    const targetZoomLevel = DEFAULT_ZOOM_LEVELS.find(zl => zl.level === node.level);
-    if (targetZoomLevel) {
-      gestureHandler.setScale(targetZoomLevel.threshold);
-    }
-  }, [timelineHierarchy]);
+  const handleTimelinePress = useCallback(
+    (node: TimelineNode) => {
+      // Trigger haptic feedback
+      if (Platform.OS !== "web") {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+
+      // Navigate to node
+      setGalleryState((prev) => ({
+        ...prev,
+        currentNodeId: node.id,
+        timelinePath: getTimelinePath(timelineHierarchy, node.id),
+      }));
+
+      // Animate to new zoom level
+      const targetZoomLevel = DEFAULT_ZOOM_LEVELS.find(
+        (zl) => zl.level === node.level,
+      );
+      if (targetZoomLevel) {
+        gestureHandler.setScale(targetZoomLevel.threshold);
+      }
+    },
+    [timelineHierarchy],
+  );
 
   // Handle back navigation
   const handleBackPress = useCallback(() => {
     if (galleryState.timelinePath.length > 1) {
       // Navigate to parent
       const parentPath = galleryState.timelinePath.slice(0, -1);
-      const parentNodeId = parentPath.length > 0 ? parentPath[parentPath.length - 1].nodeId : null;
-      
-      setGalleryState(prev => ({
+      const parentNodeId =
+        parentPath.length > 0 ? parentPath[parentPath.length - 1].nodeId : null;
+
+      setGalleryState((prev) => ({
         ...prev,
         currentNodeId: parentNodeId,
         timelinePath: parentPath,
       }));
-      
+
       // Trigger haptic feedback
       if (Platform.OS !== "web") {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-      
+
       return true;
     }
     return false;
@@ -257,7 +280,7 @@ export default function GalleryScreen({}: GalleryScreenProps) {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-    
+
     // Navigate to photo detail
     // This would integrate with existing navigation
     console.log("Navigate to photo:", photo.id);
@@ -266,14 +289,14 @@ export default function GalleryScreen({}: GalleryScreenProps) {
   // Reset zoom
   const handleResetZoom = useCallback(() => {
     gestureHandler.reset();
-    setGalleryState(prev => ({
+    setGalleryState((prev) => ({
       ...prev,
       scale: 1.0,
       currentZoomLevel: DEFAULT_ZOOM_LEVELS[3], // Photo level
       currentNodeId: null,
       timelinePath: [],
     }));
-    
+
     // Trigger haptic feedback
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -281,33 +304,43 @@ export default function GalleryScreen({}: GalleryScreenProps) {
   }, []);
 
   // Render functions for different item types
-  const renderItem = useCallback((info: any) => {
-    const item = info.item as ListItem;
-    
-    switch (item.type) {
-      case "header":
-        return renderHeaderItem(item.data);
-      case "year":
-        return renderYearItem(item.data, layoutConfig);
-      case "month":
-        return renderMonthItem(item.data, layoutConfig);
-      case "day":
-        return renderDayItem(item.data, layoutConfig);
-      case "photo":
-        return renderPhotoItem(item.data, layoutConfig);
-      default:
-        return null;
-    }
-  }, [layoutConfig]);
+  const renderItem = useCallback(
+    (info: any) => {
+      const item = info.item as ListItem;
+
+      switch (item.type) {
+        case "header":
+          return renderHeaderItem(item.data);
+        case "year":
+          return renderYearItem(item.data, layoutConfig);
+        case "month":
+          return renderMonthItem(item.data, layoutConfig);
+        case "day":
+          return renderDayItem(item.data, layoutConfig);
+        case "photo":
+          return renderPhotoItem(item.data, layoutConfig);
+        default:
+          return null;
+      }
+    },
+    [layoutConfig],
+  );
 
   // Render header item
   const renderHeaderItem = (data: { title: string; subtitle?: string }) => (
-    <View style={[styles.headerItem, { backgroundColor: theme.backgroundSecondary }]}>
+    <View
+      style={[
+        styles.headerItem,
+        { backgroundColor: theme.backgroundSecondary },
+      ]}
+    >
       <ThemedText type="h4" style={{ color: theme.textPrimary }}>
         {data.title}
       </ThemedText>
       {data.subtitle && (
-        <ThemedText style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
+        <ThemedText
+          style={[styles.headerSubtitle, { color: theme.textSecondary }]}
+        >
           {data.subtitle}
         </ThemedText>
       )}
@@ -317,19 +350,24 @@ export default function GalleryScreen({}: GalleryScreenProps) {
   // Render year item
   const renderYearItem = (node: TimelineNode, config: ListLayoutConfig) => (
     <Pressable
-      style={[styles.timelineItem, { 
-        width: config.itemWidth, 
-        height: config.itemHeight,
-        backgroundColor: theme.backgroundPrimary,
-        borderColor: theme.border,
-      }]}
+      style={[
+        styles.timelineItem,
+        {
+          width: config.itemWidth,
+          height: config.itemHeight,
+          backgroundColor: theme.backgroundPrimary,
+          borderColor: theme.border,
+        },
+      ]}
       onPress={() => handleTimelinePress(node)}
     >
       <View style={styles.timelineItemContent}>
         <ThemedText type="h3" style={{ color: theme.textPrimary }}>
           {node.title}
         </ThemedText>
-        <ThemedText style={[styles.timelineItemSubtitle, { color: theme.textSecondary }]}>
+        <ThemedText
+          style={[styles.timelineItemSubtitle, { color: theme.textSecondary }]}
+        >
           {node.count} photos
         </ThemedText>
       </View>
@@ -346,19 +384,24 @@ export default function GalleryScreen({}: GalleryScreenProps) {
   // Render month item
   const renderMonthItem = (node: TimelineNode, config: ListLayoutConfig) => (
     <Pressable
-      style={[styles.timelineItem, { 
-        width: config.itemWidth, 
-        height: config.itemHeight,
-        backgroundColor: theme.backgroundPrimary,
-        borderColor: theme.border,
-      }]}
+      style={[
+        styles.timelineItem,
+        {
+          width: config.itemWidth,
+          height: config.itemHeight,
+          backgroundColor: theme.backgroundPrimary,
+          borderColor: theme.border,
+        },
+      ]}
       onPress={() => handleTimelinePress(node)}
     >
       <View style={styles.timelineItemContent}>
         <ThemedText type="h4" style={{ color: theme.textPrimary }}>
           {node.title}
         </ThemedText>
-        <ThemedText style={[styles.timelineItemSubtitle, { color: theme.textSecondary }]}>
+        <ThemedText
+          style={[styles.timelineItemSubtitle, { color: theme.textSecondary }]}
+        >
           {node.count} photos
         </ThemedText>
       </View>
@@ -375,19 +418,24 @@ export default function GalleryScreen({}: GalleryScreenProps) {
   // Render day item
   const renderDayItem = (node: TimelineNode, config: ListLayoutConfig) => (
     <Pressable
-      style={[styles.timelineItem, { 
-        width: config.itemWidth, 
-        height: config.itemHeight,
-        backgroundColor: theme.backgroundPrimary,
-        borderColor: theme.border,
-      }]}
+      style={[
+        styles.timelineItem,
+        {
+          width: config.itemWidth,
+          height: config.itemHeight,
+          backgroundColor: theme.backgroundPrimary,
+          borderColor: theme.border,
+        },
+      ]}
       onPress={() => handleTimelinePress(node)}
     >
       <View style={styles.timelineItemContent}>
         <ThemedText style={{ color: theme.textPrimary }}>
           {node.title}
         </ThemedText>
-        <ThemedText style={[styles.timelineItemSubtitle, { color: theme.textSecondary }]}>
+        <ThemedText
+          style={[styles.timelineItemSubtitle, { color: theme.textSecondary }]}
+        >
           {node.subtitle}
         </ThemedText>
       </View>
@@ -404,10 +452,13 @@ export default function GalleryScreen({}: GalleryScreenProps) {
   // Render photo item
   const renderPhotoItem = (photo: Photo, config: ListLayoutConfig) => (
     <Pressable
-      style={[styles.photoItem, { 
-        width: config.itemWidth, 
-        height: config.itemHeight,
-      }]}
+      style={[
+        styles.photoItem,
+        {
+          width: config.itemWidth,
+          height: config.itemHeight,
+        },
+      ]}
       onPress={() => handlePhotoPress(photo)}
     >
       <Image
@@ -434,7 +485,10 @@ export default function GalleryScreen({}: GalleryScreenProps) {
       };
     };
 
-    const subscription = Dimensions.addEventListener("change", updateContainerSize);
+    const subscription = Dimensions.addEventListener(
+      "change",
+      updateContainerSize,
+    );
     return () => subscription?.remove();
   }, [headerHeight, tabBarHeight]);
 
@@ -449,12 +503,14 @@ export default function GalleryScreen({}: GalleryScreenProps) {
         scale: 1.0,
         isZooming: false,
       });
-    }, [])
+    }, []),
   );
 
   if (isLoading) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+      <View
+        style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
+      >
         <View style={{ paddingTop: headerHeight + Spacing.xl }}>
           <SkeletonLoader type="photos" count={15} />
         </View>
@@ -464,7 +520,9 @@ export default function GalleryScreen({}: GalleryScreenProps) {
 
   if (error) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+      <View
+        style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
+      >
         <View style={styles.errorContainer}>
           <EmptyState
             image={require("../../assets/images/empty-photos.png")}
@@ -491,7 +549,9 @@ export default function GalleryScreen({}: GalleryScreenProps) {
   }
 
   return (
-    <GestureHandlerRootView style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+    <GestureHandlerRootView
+      style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
+    >
       <View style={styles.header}>
         {/* Timeline breadcrumb */}
         {galleryState.timelinePath.length > 0 && (
@@ -505,22 +565,31 @@ export default function GalleryScreen({}: GalleryScreenProps) {
                   {item.title}
                 </ThemedText>
                 {index < galleryState.timelinePath.length - 1 && (
-                  <Feather name="chevron-right" size={16} color={theme.textSecondary} />
+                  <Feather
+                    name="chevron-right"
+                    size={16}
+                    color={theme.textSecondary}
+                  />
                 )}
               </View>
             ))}
           </View>
         )}
-        
+
         {/* Zoom controls */}
         <View style={styles.zoomControls}>
           <Pressable
-            style={[styles.zoomButton, { backgroundColor: theme.backgroundSecondary }]}
+            style={[
+              styles.zoomButton,
+              { backgroundColor: theme.backgroundSecondary },
+            ]}
             onPress={handleResetZoom}
           >
             <Feather name="maximize-2" size={16} color={theme.textPrimary} />
           </Pressable>
-          <ThemedText style={[styles.zoomLevel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.zoomLevel, { color: theme.textSecondary }]}
+          >
             {galleryState.currentZoomLevel.level.toUpperCase()}
           </ThemedText>
         </View>
@@ -546,7 +615,10 @@ export default function GalleryScreen({}: GalleryScreenProps) {
 }
 
 // Helper functions
-function findNodeInHierarchy(hierarchy: TimelineNode[], nodeId: string): TimelineNode | null {
+function findNodeInHierarchy(
+  hierarchy: TimelineNode[],
+  nodeId: string,
+): TimelineNode | null {
   for (const node of hierarchy) {
     if (node.id === nodeId) return node;
     if (node.children) {
@@ -557,25 +629,35 @@ function findNodeInHierarchy(hierarchy: TimelineNode[], nodeId: string): Timelin
   return null;
 }
 
-function getTimelinePath(hierarchy: TimelineNode[], nodeId: string): { level: TimelineLevel; nodeId: string; title: string }[] {
+function getTimelinePath(
+  hierarchy: TimelineNode[],
+  nodeId: string,
+): { level: TimelineLevel; nodeId: string; title: string }[] {
   const path: { level: TimelineLevel; nodeId: string; title: string }[] = [];
-  
-  function searchPath(nodes: TimelineNode[], targetId: string, currentPath: typeof path = []): boolean {
+
+  function searchPath(
+    nodes: TimelineNode[],
+    targetId: string,
+    currentPath: typeof path = [],
+  ): boolean {
     for (const node of nodes) {
-      const newPath = [...currentPath, { level: node.level, nodeId: node.id, title: node.title }];
-      
+      const newPath = [
+        ...currentPath,
+        { level: node.level, nodeId: node.id, title: node.title },
+      ];
+
       if (node.id === targetId) {
         path.push(...newPath);
         return true;
       }
-      
+
       if (node.children && searchPath(node.children, targetId, newPath)) {
         return true;
       }
     }
     return false;
   }
-  
+
   searchPath(hierarchy, nodeId);
   return path;
 }

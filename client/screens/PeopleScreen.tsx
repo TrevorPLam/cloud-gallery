@@ -42,10 +42,10 @@ import PersonCard from "@/components/PersonCard";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
-import { 
-  getFaceDetectionService, 
-  getFaceEmbeddingService, 
-  getFaceClusteringService 
+import {
+  getFaceDetectionService,
+  getFaceEmbeddingService,
+  getFaceClusteringService,
 } from "@/lib/ml";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -245,17 +245,17 @@ export default function PeopleScreen() {
 
       // For now, we'll simulate the process
       setProcessingProgress(25);
-      
+
       // Simulate face detection
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       setProcessingProgress(50);
 
       // Simulate embedding generation
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       setProcessingProgress(75);
 
       // Simulate clustering
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       setProcessingProgress(100);
 
       // Refresh data
@@ -411,7 +411,7 @@ export default function PeopleScreen() {
                 console.log("Delete person:", personId);
               },
             },
-          ]
+          ],
         );
       }}
       onMerge={(sourcePersonId, targetPersonId) => {
@@ -488,7 +488,11 @@ export default function PeopleScreen() {
               onPress={handleClientSideClustering}
               disabled={isProcessingFaces}
             >
-              <Feather name="smartphone" size={20} color={theme.textSecondary} />
+              <Feather
+                name="smartphone"
+                size={20}
+                color={theme.textSecondary}
+              />
               <Text
                 style={[
                   styles.headerButtonText,
@@ -793,12 +797,10 @@ export default function PeopleScreen() {
             </Text>
 
             <Text
-              style={[
-                styles.modalDescription,
-                { color: theme.textSecondary },
-              ]}
+              style={[styles.modalDescription, { color: theme.textSecondary }]}
             >
-              Processing faces on-device for better privacy. This may take a few minutes...
+              Processing faces on-device for better privacy. This may take a few
+              minutes...
             </Text>
 
             <View style={styles.progressContainer}>
@@ -814,10 +816,7 @@ export default function PeopleScreen() {
                 />
               </View>
               <Text
-                style={[
-                  styles.progressText,
-                  { color: theme.textSecondary },
-                ]}
+                style={[styles.progressText, { color: theme.textSecondary }]}
               >
                 {processingProgress}%
               </Text>
@@ -827,7 +826,12 @@ export default function PeopleScreen() {
               <Text
                 style={[
                   styles.processingStep,
-                  { color: processingProgress >= 25 ? theme.accent : theme.textSecondary },
+                  {
+                    color:
+                      processingProgress >= 25
+                        ? theme.accent
+                        : theme.textSecondary,
+                  },
                 ]}
               >
                 {processingProgress >= 25 ? "✓" : "○"} Detecting faces
@@ -835,7 +839,12 @@ export default function PeopleScreen() {
               <Text
                 style={[
                   styles.processingStep,
-                  { color: processingProgress >= 50 ? theme.accent : theme.textSecondary },
+                  {
+                    color:
+                      processingProgress >= 50
+                        ? theme.accent
+                        : theme.textSecondary,
+                  },
                 ]}
               >
                 {processingProgress >= 50 ? "✓" : "○"} Generating embeddings
@@ -843,7 +852,12 @@ export default function PeopleScreen() {
               <Text
                 style={[
                   styles.processingStep,
-                  { color: processingProgress >= 75 ? theme.accent : theme.textSecondary },
+                  {
+                    color:
+                      processingProgress >= 75
+                        ? theme.accent
+                        : theme.textSecondary,
+                  },
                 ]}
               >
                 {processingProgress >= 75 ? "✓" : "○"} Clustering faces
@@ -851,7 +865,12 @@ export default function PeopleScreen() {
               <Text
                 style={[
                   styles.processingStep,
-                  { color: processingProgress >= 100 ? theme.accent : theme.textSecondary },
+                  {
+                    color:
+                      processingProgress >= 100
+                        ? theme.accent
+                        : theme.textSecondary,
+                  },
                 ]}
               >
                 {processingProgress >= 100 ? "✓" : "○"} Completing

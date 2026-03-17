@@ -8,45 +8,45 @@
 // TESTS: client/lib/ai/context-aware.test.ts
 // AI-META-END
 
-import { Platform } from 'react-native';
+import { Platform } from "react-native";
 import {
   getTensorFlowLiteManager,
   ModelConfig,
   GPUDelegateType,
-} from '../ml/tflite';
-import { getFaceDetectionService, FaceDetection } from '../ml/face-detection';
+} from "../ml/tflite";
+import { getFaceDetectionService, FaceDetection } from "../ml/face-detection";
 
 // ─────────────────────────────────────────────────────────
 // TYPES AND INTERFACES
 // ─────────────────────────────────────────────────────────
 
 export enum SceneCategory {
-  INDOOR = 'indoor',
-  OUTDOOR = 'outdoor',
-  NATURE = 'nature',
-  URBAN = 'urban',
-  PORTRAIT = 'portrait',
-  FOOD = 'food',
-  DOCUMENT = 'document',
-  SCREENSHOT = 'screenshot',
-  UNKNOWN = 'unknown',
+  INDOOR = "indoor",
+  OUTDOOR = "outdoor",
+  NATURE = "nature",
+  URBAN = "urban",
+  PORTRAIT = "portrait",
+  FOOD = "food",
+  DOCUMENT = "document",
+  SCREENSHOT = "screenshot",
+  UNKNOWN = "unknown",
 }
 
 export enum ObjectCategory {
-  PERSON = 'person',
-  VEHICLE = 'vehicle',
-  ANIMAL = 'animal',
-  FOOD = 'food',
-  ELECTRONICS = 'electronics',
-  FURNITURE = 'furniture',
-  CLOTHING = 'clothing',
-  TEXT = 'text',
-  BUILDING = 'building',
-  PLANT = 'plant',
-  SKY = 'sky',
-  GROUND = 'ground',
-  WATER = 'water',
-  UNKNOWN = 'unknown',
+  PERSON = "person",
+  VEHICLE = "vehicle",
+  ANIMAL = "animal",
+  FOOD = "food",
+  ELECTRONICS = "electronics",
+  FURNITURE = "furniture",
+  CLOTHING = "clothing",
+  TEXT = "text",
+  BUILDING = "building",
+  PLANT = "plant",
+  SKY = "sky",
+  GROUND = "ground",
+  WATER = "water",
+  UNKNOWN = "unknown",
 }
 
 export interface SceneContext {
@@ -74,7 +74,7 @@ export interface SceneContext {
     hasSky: boolean;
     hasGround: boolean;
     hasHorizon: boolean;
-    perspective: 'eye-level' | 'high-angle' | 'low-angle' | 'flat';
+    perspective: "eye-level" | "high-angle" | "low-angle" | "flat";
   };
   /** Contextual suggestions for editing */
   suggestions: EditingSuggestion[];
@@ -96,15 +96,15 @@ export interface DetectedObject {
   mask?: Uint8Array;
   /** Object attributes */
   attributes: {
-    size: 'small' | 'medium' | 'large';
-    position: 'foreground' | 'middle-ground' | 'background';
-    importance: 'primary' | 'secondary' | 'background';
+    size: "small" | "medium" | "large";
+    position: "foreground" | "middle-ground" | "background";
+    importance: "primary" | "secondary" | "background";
   };
 }
 
 export interface EditingSuggestion {
   /** Type of suggestion */
-  type: 'remove' | 'enhance' | 'replace' | 'adjust';
+  type: "remove" | "enhance" | "replace" | "adjust";
   /** Target object or region */
   target: {
     category: ObjectCategory;
@@ -147,8 +147,8 @@ export class ContextAwareEditingService {
   private initializationPromise: Promise<void> | null = null;
 
   // Model names
-  private sceneClassifierModel = 'scene-classifier';
-  private objectDetectorModel = 'object-detector';
+  private sceneClassifierModel = "scene-classifier";
+  private objectDetectorModel = "object-detector";
 
   constructor(config: Partial<ContextAwareConfig> = {}) {
     this.config = {
@@ -160,7 +160,7 @@ export class ContextAwareEditingService {
         object: 0.3,
         scene: 0.6,
       },
-      gpuDelegate: Platform.OS === 'ios' ? 'core-ml' : 'android-gpu',
+      gpuDelegate: Platform.OS === "ios" ? "core-ml" : "android-gpu",
       ...config,
     };
 
@@ -196,9 +196,12 @@ export class ContextAwareEditingService {
       }
 
       this.isInitialized = true;
-      console.log('ContextAwareEditingService: Initialized successfully');
+      console.log("ContextAwareEditingService: Initialized successfully");
     } catch (error) {
-      console.error('ContextAwareEditingService: Initialization failed:', error);
+      console.error(
+        "ContextAwareEditingService: Initialization failed:",
+        error,
+      );
       throw error;
     }
   }
@@ -210,9 +213,11 @@ export class ContextAwareEditingService {
     try {
       let modelPath;
       try {
-        modelPath = require('../../assets/models/scene-classifier.tflite');
+        modelPath = require("../../assets/models/scene-classifier.tflite");
       } catch (error) {
-        console.warn('ContextAwareEditingService: Scene classifier model not found');
+        console.warn(
+          "ContextAwareEditingService: Scene classifier model not found",
+        );
         return;
       }
 
@@ -225,9 +230,12 @@ export class ContextAwareEditingService {
         delegate: this.config.gpuDelegate,
       };
 
-      await this.modelManager.loadModel(modelConfig, 'medium');
+      await this.modelManager.loadModel(modelConfig, "medium");
     } catch (error) {
-      console.warn('ContextAwareEditingService: Failed to load scene classifier:', error);
+      console.warn(
+        "ContextAwareEditingService: Failed to load scene classifier:",
+        error,
+      );
     }
   }
 
@@ -238,9 +246,11 @@ export class ContextAwareEditingService {
     try {
       let modelPath;
       try {
-        modelPath = require('../../assets/models/object-detector.tflite');
+        modelPath = require("../../assets/models/object-detector.tflite");
       } catch (error) {
-        console.warn('ContextAwareEditingService: Object detector model not found');
+        console.warn(
+          "ContextAwareEditingService: Object detector model not found",
+        );
         return;
       }
 
@@ -253,9 +263,12 @@ export class ContextAwareEditingService {
         delegate: this.config.gpuDelegate,
       };
 
-      await this.modelManager.loadModel(modelConfig, 'medium');
+      await this.modelManager.loadModel(modelConfig, "medium");
     } catch (error) {
-      console.warn('ContextAwareEditingService: Failed to load object detector:', error);
+      console.warn(
+        "ContextAwareEditingService: Failed to load object detector:",
+        error,
+      );
     }
   }
 
@@ -267,37 +280,53 @@ export class ContextAwareEditingService {
   async analyzeContext(
     imageData: Uint8Array,
     imageWidth: number,
-    imageHeight: number
+    imageHeight: number,
   ): Promise<SceneContext> {
     await this.initialize();
 
     if (!this.isInitialized) {
-      throw new Error('ContextAwareEditingService not initialized');
+      throw new Error("ContextAwareEditingService not initialized");
     }
 
     try {
       // Analyze image characteristics
-      const characteristics = await this.analyzeImageCharacteristics(imageData, imageWidth, imageHeight);
+      const characteristics = await this.analyzeImageCharacteristics(
+        imageData,
+        imageWidth,
+        imageHeight,
+      );
 
       // Detect faces
       let faces: FaceDetection[] = [];
       if (this.config.enableFaceDetection) {
-        faces = await this.faceDetectionService.detectFaces(imageData, imageWidth, imageHeight);
-        faces = faces.filter(face => face.confidence >= this.config.confidenceThresholds.face);
+        faces = await this.faceDetectionService.detectFaces(
+          imageData,
+          imageWidth,
+          imageHeight,
+        );
+        faces = faces.filter(
+          (face) => face.confidence >= this.config.confidenceThresholds.face,
+        );
       }
 
       // Detect objects
       let objects: DetectedObject[] = [];
       if (this.config.enableObjectDetection) {
         objects = await this.detectObjects(imageData, imageWidth, imageHeight);
-        objects = objects.filter(obj => obj.confidence >= this.config.confidenceThresholds.object);
+        objects = objects.filter(
+          (obj) => obj.confidence >= this.config.confidenceThresholds.object,
+        );
       }
 
       // Classify scene
       let sceneCategory = SceneCategory.UNKNOWN;
       let sceneConfidence = 0;
       if (this.config.enableSceneClassification) {
-        const classification = await this.classifyScene(imageData, imageWidth, imageHeight);
+        const classification = await this.classifyScene(
+          imageData,
+          imageWidth,
+          imageHeight,
+        );
         sceneCategory = classification.category;
         sceneConfidence = classification.confidence;
       }
@@ -306,7 +335,12 @@ export class ContextAwareEditingService {
       const layout = this.analyzeSpatialLayout(objects, faces, characteristics);
 
       // Generate editing suggestions
-      const suggestions = this.generateEditingSuggestions(objects, faces, sceneCategory, layout);
+      const suggestions = this.generateEditingSuggestions(
+        objects,
+        faces,
+        sceneCategory,
+        layout,
+      );
 
       return {
         category: sceneCategory,
@@ -318,7 +352,10 @@ export class ContextAwareEditingService {
         suggestions,
       };
     } catch (error) {
-      console.error('ContextAwareEditingService: Context analysis failed:', error);
+      console.error(
+        "ContextAwareEditingService: Context analysis failed:",
+        error,
+      );
       throw error;
     }
   }
@@ -329,10 +366,13 @@ export class ContextAwareEditingService {
   private async analyzeImageCharacteristics(
     imageData: Uint8Array,
     width: number,
-    height: number
-  ): Promise<SceneContext['characteristics']> {
-    let totalR = 0, totalG = 0, totalB = 0;
-    let minBrightness = 255, maxBrightness = 0;
+    height: number,
+  ): Promise<SceneContext["characteristics"]> {
+    let totalR = 0,
+      totalG = 0,
+      totalB = 0;
+    let minBrightness = 255,
+      maxBrightness = 0;
     const histogram = new Array(256).fill(0);
 
     // Calculate basic statistics
@@ -359,16 +399,16 @@ export class ContextAwareEditingService {
     // Calculate metrics
     const brightness = (avgR + avgG + avgB) / 3 / 255;
     const contrast = (maxBrightness - minBrightness) / 255;
-    
+
     // Calculate saturation (simplified)
     const saturation = this.calculateSaturation(imageData);
-    
+
     // Calculate sharpness (simplified - edge detection)
     const sharpness = this.calculateSharpness(imageData, width, height);
 
     // Extract dominant colors
     const dominantColors = this.extractDominantColors(imageData, width, height);
-    const colorPalette = dominantColors.map(dc => dc.color);
+    const colorPalette = dominantColors.map((dc) => dc.color);
 
     return {
       brightness,
@@ -386,7 +426,7 @@ export class ContextAwareEditingService {
   private async detectObjects(
     imageData: Uint8Array,
     width: number,
-    height: number
+    height: number,
   ): Promise<DetectedObject[]> {
     if (!this.modelManager.isModelLoaded(this.objectDetectorModel)) {
       return this.getMockObjectDetections(width, height);
@@ -395,16 +435,28 @@ export class ContextAwareEditingService {
     try {
       // Prepare input tensor
       const inputSize = 300;
-      const resizedImage = await this.resizeImage(imageData, width, height, inputSize, inputSize);
+      const resizedImage = await this.resizeImage(
+        imageData,
+        width,
+        height,
+        inputSize,
+        inputSize,
+      );
       const inputTensor = this.prepareImageTensor(resizedImage);
 
       // Run inference
-      const outputs = await this.modelManager.runInference(this.objectDetectorModel, [inputTensor]);
+      const outputs = await this.modelManager.runInference(
+        this.objectDetectorModel,
+        [inputTensor],
+      );
 
       // Process outputs
       return this.processObjectDetectionOutputs(outputs, width, height);
     } catch (error) {
-      console.warn('ContextAwareEditingService: Object detection failed, using mock:', error);
+      console.warn(
+        "ContextAwareEditingService: Object detection failed, using mock:",
+        error,
+      );
       return this.getMockObjectDetections(width, height);
     }
   }
@@ -415,7 +467,7 @@ export class ContextAwareEditingService {
   private async classifyScene(
     imageData: Uint8Array,
     width: number,
-    height: number
+    height: number,
   ): Promise<{ category: SceneCategory; confidence: number }> {
     if (!this.modelManager.isModelLoaded(this.sceneClassifierModel)) {
       return this.getMockSceneClassification();
@@ -424,16 +476,28 @@ export class ContextAwareEditingService {
     try {
       // Prepare input tensor
       const inputSize = 224;
-      const resizedImage = await this.resizeImage(imageData, width, height, inputSize, inputSize);
+      const resizedImage = await this.resizeImage(
+        imageData,
+        width,
+        height,
+        inputSize,
+        inputSize,
+      );
       const inputTensor = this.prepareImageTensor(resizedImage);
 
       // Run inference
-      const outputs = await this.modelManager.runInference(this.sceneClassifierModel, [inputTensor]);
+      const outputs = await this.modelManager.runInference(
+        this.sceneClassifierModel,
+        [inputTensor],
+      );
 
       // Process outputs
       return this.processSceneClassificationOutputs(outputs);
     } catch (error) {
-      console.warn('ContextAwareEditingService: Scene classification failed, using mock:', error);
+      console.warn(
+        "ContextAwareEditingService: Scene classification failed, using mock:",
+        error,
+      );
       return this.getMockSceneClassification();
     }
   }
@@ -444,12 +508,18 @@ export class ContextAwareEditingService {
   private analyzeSpatialLayout(
     objects: DetectedObject[],
     faces: FaceDetection[],
-    characteristics: SceneContext['characteristics']
-  ): SceneContext['layout'] {
-    const hasForeground = objects.some(obj => obj.attributes.position === 'foreground');
-    const hasBackground = objects.some(obj => obj.attributes.position === 'background');
-    const hasSky = objects.some(obj => obj.category === ObjectCategory.SKY);
-    const hasGround = objects.some(obj => obj.category === ObjectCategory.GROUND);
+    characteristics: SceneContext["characteristics"],
+  ): SceneContext["layout"] {
+    const hasForeground = objects.some(
+      (obj) => obj.attributes.position === "foreground",
+    );
+    const hasBackground = objects.some(
+      (obj) => obj.attributes.position === "background",
+    );
+    const hasSky = objects.some((obj) => obj.category === ObjectCategory.SKY);
+    const hasGround = objects.some(
+      (obj) => obj.category === ObjectCategory.GROUND,
+    );
 
     // Detect horizon line (simplified)
     const hasHorizon = this.detectHorizonLine(objects, characteristics);
@@ -474,22 +544,22 @@ export class ContextAwareEditingService {
     objects: DetectedObject[],
     faces: FaceDetection[],
     sceneCategory: SceneCategory,
-    layout: SceneContext['layout']
+    layout: SceneContext["layout"],
   ): EditingSuggestion[] {
     const suggestions: EditingSuggestion[] = [];
 
     // Suggest removing unwanted objects
-    objects.forEach(obj => {
-      if (obj.attributes.importance === 'background' && obj.confidence > 0.7) {
+    objects.forEach((obj) => {
+      if (obj.attributes.importance === "background" && obj.confidence > 0.7) {
         suggestions.push({
-          type: 'remove',
+          type: "remove",
           target: {
             category: obj.category,
             boundingBox: obj.boundingBox,
           },
           action: `Remove ${obj.category} from background`,
           confidence: obj.confidence * 0.8,
-          reason: 'Background object may clutter the scene',
+          reason: "Background object may clutter the scene",
         });
       }
     });
@@ -499,14 +569,14 @@ export class ContextAwareEditingService {
       faces.forEach((face, index) => {
         if (face.confidence > 0.8) {
           suggestions.push({
-            type: 'enhance',
+            type: "enhance",
             target: {
               category: ObjectCategory.PERSON,
               boundingBox: face.boundingBox,
             },
-            action: 'Enhance portrait quality',
+            action: "Enhance portrait quality",
             confidence: face.confidence * 0.9,
-            reason: 'High-quality portrait detected',
+            reason: "High-quality portrait detected",
           });
         }
       });
@@ -515,14 +585,14 @@ export class ContextAwareEditingService {
     // Suggest sky enhancement for outdoor scenes
     if (sceneCategory === SceneCategory.OUTDOOR && layout.hasSky) {
       suggestions.push({
-        type: 'enhance',
+        type: "enhance",
         target: {
           category: ObjectCategory.SKY,
           boundingBox: { x: 0, y: 0, width: 1, height: 0.3 },
         },
-        action: 'Enhance sky appearance',
+        action: "Enhance sky appearance",
         confidence: 0.7,
-        reason: 'Outdoor scene with sky detected',
+        reason: "Outdoor scene with sky detected",
       });
     }
 
@@ -558,20 +628,29 @@ export class ContextAwareEditingService {
   /**
    * Calculate image sharpness (simplified edge detection)
    */
-  private calculateSharpness(imageData: Uint8Array, width: number, height: number): number {
+  private calculateSharpness(
+    imageData: Uint8Array,
+    width: number,
+    height: number,
+  ): number {
     let edgeCount = 0;
     let totalEdges = 0;
 
     for (let y = 1; y < height - 1; y++) {
       for (let x = 1; x < width - 1; x++) {
         const idx = (y * width + x) * 3;
-        
+
         // Simple Sobel edge detection
-        const centerGray = (imageData[idx] + imageData[idx + 1] + imageData[idx + 2]) / 3;
-        
+        const centerGray =
+          (imageData[idx] + imageData[idx + 1] + imageData[idx + 2]) / 3;
+
         const leftIdx = (y * width + (x - 1)) * 3;
-        const leftGray = (imageData[leftIdx] + imageData[leftIdx + 1] + imageData[leftIdx + 2]) / 3;
-        
+        const leftGray =
+          (imageData[leftIdx] +
+            imageData[leftIdx + 1] +
+            imageData[leftIdx + 2]) /
+          3;
+
         if (Math.abs(centerGray - leftGray) > 30) {
           edgeCount++;
         }
@@ -588,7 +667,7 @@ export class ContextAwareEditingService {
   private extractDominantColors(
     imageData: Uint8Array,
     width: number,
-    height: number
+    height: number,
   ): { color: string; percentage: number }[] {
     const colorMap = new Map<string, number>();
     const step = 10; // Sample every 10th pixel for performance
@@ -631,25 +710,25 @@ export class ContextAwareEditingService {
     srcWidth: number,
     srcHeight: number,
     dstWidth: number,
-    dstHeight: number
+    dstHeight: number,
   ): Promise<Uint8Array> {
     return new Promise((resolve) => {
       const resized = new Uint8Array(dstWidth * dstHeight * 3);
-      
+
       for (let y = 0; y < dstHeight; y++) {
         for (let x = 0; x < dstWidth; x++) {
           const srcX = Math.floor((x / dstWidth) * srcWidth);
           const srcY = Math.floor((y / dstHeight) * srcHeight);
-          
+
           const srcIdx = (srcY * srcWidth + srcX) * 3;
           const dstIdx = (y * dstWidth + x) * 3;
-          
+
           resized[dstIdx] = imageData[srcIdx];
           resized[dstIdx + 1] = imageData[srcIdx + 1];
           resized[dstIdx + 2] = imageData[srcIdx + 2];
         }
       }
-      
+
       resolve(resized);
     });
   }
@@ -672,7 +751,7 @@ export class ContextAwareEditingService {
   private processObjectDetectionOutputs(
     outputs: any[],
     imageWidth: number,
-    imageHeight: number
+    imageHeight: number,
   ): DetectedObject[] {
     // Mock implementation - would process actual model outputs
     return this.getMockObjectDetections(imageWidth, imageHeight);
@@ -681,7 +760,10 @@ export class ContextAwareEditingService {
   /**
    * Process scene classification outputs
    */
-  private processSceneClassificationOutputs(outputs: any[]): { category: SceneCategory; confidence: number } {
+  private processSceneClassificationOutputs(outputs: any[]): {
+    category: SceneCategory;
+    confidence: number;
+  } {
     // Mock implementation - would process actual model outputs
     return this.getMockSceneClassification();
   }
@@ -691,26 +773,32 @@ export class ContextAwareEditingService {
    */
   private detectHorizonLine(
     objects: DetectedObject[],
-    characteristics: SceneContext['characteristics']
+    characteristics: SceneContext["characteristics"],
   ): boolean {
     // Simple heuristic: if we have sky and ground objects, likely has horizon
-    const hasSky = objects.some(obj => obj.category === ObjectCategory.SKY);
-    const hasGround = objects.some(obj => obj.category === ObjectCategory.GROUND);
+    const hasSky = objects.some((obj) => obj.category === ObjectCategory.SKY);
+    const hasGround = objects.some(
+      (obj) => obj.category === ObjectCategory.GROUND,
+    );
     return hasSky && hasGround;
   }
 
   /**
    * Determine image perspective
    */
-  private determinePerspective(objects: DetectedObject[], faces: FaceDetection[]): 'eye-level' | 'high-angle' | 'low-angle' | 'flat' {
+  private determinePerspective(
+    objects: DetectedObject[],
+    faces: FaceDetection[],
+  ): "eye-level" | "high-angle" | "low-angle" | "flat" {
     // Simplified perspective detection based on face positions
-    if (faces.length === 0) return 'eye-level';
+    if (faces.length === 0) return "eye-level";
 
-    const avgFaceY = faces.reduce((sum, face) => sum + face.boundingBox.y, 0) / faces.length;
+    const avgFaceY =
+      faces.reduce((sum, face) => sum + face.boundingBox.y, 0) / faces.length;
 
-    if (avgFaceY < 0.3) return 'low-angle';
-    if (avgFaceY > 0.7) return 'high-angle';
-    return 'eye-level';
+    if (avgFaceY < 0.3) return "low-angle";
+    if (avgFaceY > 0.7) return "high-angle";
+    return "eye-level";
   }
 
   // ─── MOCK IMPLEMENTATIONS ───────────────────────────────
@@ -718,16 +806,19 @@ export class ContextAwareEditingService {
   /**
    * Get mock object detections for testing
    */
-  private getMockObjectDetections(width: number, height: number): DetectedObject[] {
+  private getMockObjectDetections(
+    width: number,
+    height: number,
+  ): DetectedObject[] {
     return [
       {
         category: ObjectCategory.PERSON,
         confidence: 0.85,
         boundingBox: { x: 0.3, y: 0.2, width: 0.4, height: 0.6 },
         attributes: {
-          size: 'medium',
-          position: 'foreground',
-          importance: 'primary',
+          size: "medium",
+          position: "foreground",
+          importance: "primary",
         },
       },
       {
@@ -735,9 +826,9 @@ export class ContextAwareEditingService {
         confidence: 0.9,
         boundingBox: { x: 0, y: 0, width: 1, height: 0.3 },
         attributes: {
-          size: 'large',
-          position: 'background',
-          importance: 'background',
+          size: "large",
+          position: "background",
+          importance: "background",
         },
       },
       {
@@ -745,9 +836,9 @@ export class ContextAwareEditingService {
         confidence: 0.8,
         boundingBox: { x: 0, y: 0.7, width: 1, height: 0.3 },
         attributes: {
-          size: 'large',
-          position: 'background',
-          importance: 'background',
+          size: "large",
+          position: "background",
+          importance: "background",
         },
       },
     ];
@@ -756,7 +847,10 @@ export class ContextAwareEditingService {
   /**
    * Get mock scene classification
    */
-  private getMockSceneClassification(): { category: SceneCategory; confidence: number } {
+  private getMockSceneClassification(): {
+    category: SceneCategory;
+    confidence: number;
+  } {
     return {
       category: SceneCategory.OUTDOOR,
       confidence: 0.75,
@@ -797,7 +891,9 @@ let contextAwareInstance: ContextAwareEditingService | null = null;
 /**
  * Get singleton instance of ContextAwareEditingService
  */
-export function getContextAwareEditingService(config?: Partial<ContextAwareConfig>): ContextAwareEditingService {
+export function getContextAwareEditingService(
+  config?: Partial<ContextAwareConfig>,
+): ContextAwareEditingService {
   if (!contextAwareInstance) {
     contextAwareInstance = new ContextAwareEditingService(config);
   }

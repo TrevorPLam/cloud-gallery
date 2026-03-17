@@ -8,35 +8,35 @@
 // TESTS: client/lib/ai/privacy-processing.test.ts
 // AI-META-END
 
-import { Platform } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
-import CryptoJS from 'crypto-js';
+import { Platform } from "react-native";
+import * as SecureStore from "expo-secure-store";
+import CryptoJS from "crypto-js";
 
 // ─────────────────────────────────────────────────────────
 // PRIVACY CONSTANTS AND TYPES
 // ─────────────────────────────────────────────────────────
 
 export enum DataCategory {
-  IMAGE_DATA = 'image_data',
-  BIOMETRIC_DATA = 'biometric_data',
-  GENERATIVE_OUTPUT = 'generative_output',
-  USER_PREFERENCES = 'user_preferences',
-  PROCESSING_METADATA = 'processing_metadata',
+  IMAGE_DATA = "image_data",
+  BIOMETRIC_DATA = "biometric_data",
+  GENERATIVE_OUTPUT = "generative_output",
+  USER_PREFERENCES = "user_preferences",
+  PROCESSING_METADATA = "processing_metadata",
 }
 
 export enum RetentionPolicy {
-  IMMEDIATE = 'immediate', // Delete immediately after use
-  SESSION = 'session', // Keep until app session ends
-  TEMPORARY = 'temporary', // Keep for 24 hours
-  PERSISTENT = 'persistent', // Keep until user explicitly deletes
+  IMMEDIATE = "immediate", // Delete immediately after use
+  SESSION = "session", // Keep until app session ends
+  TEMPORARY = "temporary", // Keep for 24 hours
+  PERSISTENT = "persistent", // Keep until user explicitly deletes
 }
 
 export enum ConsentStatus {
-  NOT_REQUESTED = 'not_requested',
-  PENDING = 'pending',
-  GRANTED = 'granted',
-  DENIED = 'denied',
-  REVOKED = 'revoked',
+  NOT_REQUESTED = "not_requested",
+  PENDING = "pending",
+  GRANTED = "granted",
+  DENIED = "denied",
+  REVOKED = "revoked",
 }
 
 export interface PrivacyConfig {
@@ -132,16 +132,16 @@ export class PrivacyProcessingService {
     try {
       // Load or generate encryption key
       await this.loadOrCreateEncryptionKey();
-      
+
       // Load existing consent records
       await this.loadConsentRecords();
-      
+
       // Clean up expired data
       await this.cleanupExpiredData();
-      
-      console.log('PrivacyProcessingService: Initialized with GDPR compliance');
+
+      console.log("PrivacyProcessingService: Initialized with GDPR compliance");
     } catch (error) {
-      console.error('PrivacyProcessingService: Initialization failed:', error);
+      console.error("PrivacyProcessingService: Initialization failed:", error);
       throw error;
     }
   }
@@ -151,18 +151,22 @@ export class PrivacyProcessingService {
    */
   private async loadOrCreateEncryptionKey(): Promise<void> {
     try {
-      const existingKey = await SecureStore.getItemAsync('privacy_encryption_key');
-      
+      const existingKey = await SecureStore.getItemAsync(
+        "privacy_encryption_key",
+      );
+
       if (existingKey) {
         this.encryptionKey = existingKey;
       } else {
         // Generate new encryption key
         const newKey = this.generateEncryptionKey();
-        await SecureStore.setItemAsync('privacy_encryption_key', newKey);
+        await SecureStore.setItemAsync("privacy_encryption_key", newKey);
         this.encryptionKey = newKey;
       }
     } catch (error) {
-      console.warn('PrivacyProcessingService: Failed to load encryption key, using session key');
+      console.warn(
+        "PrivacyProcessingService: Failed to load encryption key, using session key",
+      );
       this.encryptionKey = this.generateEncryptionKey();
     }
   }
@@ -173,7 +177,9 @@ export class PrivacyProcessingService {
   private generateEncryptionKey(): string {
     const randomBytes = new Uint8Array(32);
     crypto.getRandomValues(randomBytes);
-    return Array.from(randomBytes, byte => byte.toString(16).padStart(2, '0')).join('');
+    return Array.from(randomBytes, (byte) =>
+      byte.toString(16).padStart(2, "0"),
+    ).join("");
   }
 
   /**
@@ -181,17 +187,19 @@ export class PrivacyProcessingService {
    */
   private async loadConsentRecords(): Promise<void> {
     try {
-      const consentData = await SecureStore.getItemAsync('privacy_consent_records');
-      
+      const consentData = await SecureStore.getItemAsync(
+        "privacy_consent_records",
+      );
+
       if (consentData) {
         const records = JSON.parse(consentData) as ConsentRecord[];
-        records.forEach(record => {
+        records.forEach((record) => {
           const key = this.getConsentKey(record.dataCategory, record.purpose);
           this.consentRecords.set(key, record);
         });
       }
     } catch (error) {
-      console.warn('PrivacyProcessingService: Failed to load consent records');
+      console.warn("PrivacyProcessingService: Failed to load consent records");
     }
   }
 
@@ -203,7 +211,7 @@ export class PrivacyProcessingService {
   async requestConsent(
     dataCategory: DataCategory,
     purpose: string,
-    policyVersion: string = '1.0'
+    policyVersion: string = "1.0",
   ): Promise<boolean> {
     const key = this.getConsentKey(dataCategory, purpose);
     const existingRecord = this.consentRecords.get(key);
@@ -220,7 +228,7 @@ export class PrivacyProcessingService {
     // For testing purposes, auto-grant consent. In production, this would
     // trigger a UI consent flow.
     const granted = await this.showConsentDialog(dataCategory, purpose);
-    
+
     const record: ConsentRecord = {
       dataCategory,
       status: granted ? ConsentStatus.GRANTED : ConsentStatus.DENIED,
@@ -249,14 +257,17 @@ export class PrivacyProcessingService {
   /**
    * Revoke user consent
    */
-  async revokeConsent(dataCategory: DataCategory, purpose: string): Promise<void> {
+  async revokeConsent(
+    dataCategory: DataCategory,
+    purpose: string,
+  ): Promise<void> {
     const key = this.getConsentKey(dataCategory, purpose);
     const record = this.consentRecords.get(key);
 
     if (record) {
       record.status = ConsentStatus.REVOKED;
       record.revokedAt = Date.now();
-      
+
       await this.saveConsentRecord(record);
       this.consentRecords.set(key, record);
 
@@ -280,7 +291,7 @@ export class PrivacyProcessingService {
   async protectData(
     data: Uint8Array,
     dataCategory: DataCategory,
-    dataId?: string
+    dataId?: string,
   ): Promise<{ protectedData: Uint8Array; recordId: string }> {
     // Check consent first
     const purpose = this.getDataPurpose(dataCategory);
@@ -325,24 +336,24 @@ export class PrivacyProcessingService {
   async unprotectData(
     protectedData: Uint8Array,
     dataCategory: DataCategory,
-    recordId: string
+    recordId: string,
   ): Promise<Uint8Array> {
     const record = this.retentionRecords.get(recordId);
-    
+
     if (!record) {
-      throw new Error('Data record not found');
+      throw new Error("Data record not found");
     }
 
     if (record.expiresAt < Date.now()) {
       await this.deleteData(recordId);
-      throw new Error('Data has expired');
+      throw new Error("Data has expired");
     }
 
     // Check if consent is still valid
     const purpose = this.getDataPurpose(dataCategory);
     if (!this.hasConsent(dataCategory, purpose)) {
       await this.deleteData(recordId);
-      throw new Error('Consent revoked, data deleted');
+      throw new Error("Consent revoked, data deleted");
     }
 
     // Decrypt if necessary
@@ -358,11 +369,11 @@ export class PrivacyProcessingService {
    */
   async deleteData(recordId: string): Promise<void> {
     const record = this.retentionRecords.get(recordId);
-    
+
     if (record) {
       // Securely delete the actual data (would be implemented by storage layer)
       await this.securelyDeleteData(record.dataId, record.dataCategory);
-      
+
       // Remove retention record
       this.retentionRecords.delete(recordId);
       await this.deleteRetentionRecord(recordId);
@@ -376,21 +387,21 @@ export class PrivacyProcessingService {
    */
   private async encryptData(data: Uint8Array): Promise<Uint8Array> {
     if (!this.encryptionKey) {
-      throw new Error('Encryption key not available');
+      throw new Error("Encryption key not available");
     }
 
     try {
       // Convert Uint8Array to WordArray for CryptoJS
       const wordArray = CryptoJS.lib.WordArray.create(data);
-      
+
       // Encrypt with AES
       const encrypted = CryptoJS.AES.encrypt(wordArray, this.encryptionKey);
-      
+
       // Convert back to Uint8Array
       const encryptedString = encrypted.toString();
       return new TextEncoder().encode(encryptedString);
     } catch (error) {
-      console.error('PrivacyProcessingService: Encryption failed:', error);
+      console.error("PrivacyProcessingService: Encryption failed:", error);
       throw error;
     }
   }
@@ -400,21 +411,24 @@ export class PrivacyProcessingService {
    */
   private async decryptData(encryptedData: Uint8Array): Promise<Uint8Array> {
     if (!this.encryptionKey) {
-      throw new Error('Encryption key not available');
+      throw new Error("Encryption key not available");
     }
 
     try {
       // Convert Uint8Array to string
       const encryptedString = new TextDecoder().decode(encryptedData);
-      
+
       // Decrypt with AES
-      const decrypted = CryptoJS.AES.decrypt(encryptedString, this.encryptionKey);
-      
+      const decrypted = CryptoJS.AES.decrypt(
+        encryptedString,
+        this.encryptionKey,
+      );
+
       // Convert to Uint8Array
       const wordArray = decrypted.toString(CryptoJS.enc.Utf8);
       return new TextEncoder().encode(wordArray);
     } catch (error) {
-      console.error('PrivacyProcessingService: Decryption failed:', error);
+      console.error("PrivacyProcessingService: Decryption failed:", error);
       throw error;
     }
   }
@@ -426,7 +440,7 @@ export class PrivacyProcessingService {
    */
   private getRetentionTime(dataCategory: DataCategory): number {
     const policy = this.config.retentionPolicies[dataCategory];
-    
+
     switch (policy) {
       case RetentionPolicy.IMMEDIATE:
         return 0; // Process and delete immediately
@@ -459,14 +473,18 @@ export class PrivacyProcessingService {
     }
 
     if (expiredRecords.length > 0) {
-      console.log(`PrivacyProcessingService: Cleaned up ${expiredRecords.length} expired data records`);
+      console.log(
+        `PrivacyProcessingService: Cleaned up ${expiredRecords.length} expired data records`,
+      );
     }
   }
 
   /**
    * Clean up data for specific category when consent is revoked
    */
-  private async cleanupDataForCategory(dataCategory: DataCategory): Promise<void> {
+  private async cleanupDataForCategory(
+    dataCategory: DataCategory,
+  ): Promise<void> {
     const recordsToDelete: string[] = [];
 
     for (const [recordId, record] of this.retentionRecords) {
@@ -479,7 +497,9 @@ export class PrivacyProcessingService {
       await this.deleteData(recordId);
     }
 
-    console.log(`PrivacyProcessingService: Cleaned up ${recordsToDelete.length} records for ${dataCategory}`);
+    console.log(
+      `PrivacyProcessingService: Cleaned up ${recordsToDelete.length} records for ${dataCategory}`,
+    );
   }
 
   // ─── GDPR COMPLIANCE ─────────────────────────────────────
@@ -501,11 +521,17 @@ export class PrivacyProcessingService {
 
     const summary = {
       totalDataRecords: retentionRecords.length,
-      totalDataSize: retentionRecords.reduce((sum, record) => sum + record.size, 0),
-      categories: retentionRecords.reduce((acc, record) => {
-        acc[record.dataCategory] = (acc[record.dataCategory] || 0) + 1;
-        return acc;
-      }, {} as Record<DataCategory, number>),
+      totalDataSize: retentionRecords.reduce(
+        (sum, record) => sum + record.size,
+        0,
+      ),
+      categories: retentionRecords.reduce(
+        (acc, record) => {
+          acc[record.dataCategory] = (acc[record.dataCategory] || 0) + 1;
+          return acc;
+        },
+        {} as Record<DataCategory, number>,
+      ),
     };
 
     return {
@@ -520,16 +546,18 @@ export class PrivacyProcessingService {
    */
   async deleteAllUserData(): Promise<void> {
     const recordIds = Array.from(this.retentionRecords.keys());
-    
+
     for (const recordId of recordIds) {
       await this.deleteData(recordId);
     }
 
     // Clear consent records
     this.consentRecords.clear();
-    await SecureStore.deleteItemAsync('privacy_consent_records');
+    await SecureStore.deleteItemAsync("privacy_consent_records");
 
-    console.log('PrivacyProcessingService: All user data deleted per GDPR request');
+    console.log(
+      "PrivacyProcessingService: All user data deleted per GDPR request",
+    );
   }
 
   // ─── UTILITY METHODS ─────────────────────────────────────
@@ -544,7 +572,10 @@ export class PrivacyProcessingService {
   /**
    * Get retention record key for storage
    */
-  private getRetentionRecordKey(dataCategory: DataCategory, dataId: string): string {
+  private getRetentionRecordKey(
+    dataCategory: DataCategory,
+    dataId: string,
+  ): string {
     return `${dataCategory}_${dataId}`;
   }
 
@@ -561,7 +592,7 @@ export class PrivacyProcessingService {
   private async getUserJurisdiction(): Promise<string> {
     // In production, this would use geolocation or user preference
     // For now, assume EU jurisdiction
-    return 'EU';
+    return "EU";
   }
 
   /**
@@ -570,17 +601,17 @@ export class PrivacyProcessingService {
   private getDataPurpose(dataCategory: DataCategory): string {
     switch (dataCategory) {
       case DataCategory.IMAGE_DATA:
-        return 'generative_ai_photo_editing';
+        return "generative_ai_photo_editing";
       case DataCategory.BIOMETRIC_DATA:
-        return 'face_detection_and_recognition';
+        return "face_detection_and_recognition";
       case DataCategory.GENERATIVE_OUTPUT:
-        return 'ai_generated_content';
+        return "ai_generated_content";
       case DataCategory.USER_PREFERENCES:
-        return 'personalization';
+        return "personalization";
       case DataCategory.PROCESSING_METADATA:
-        return 'service_improvement';
+        return "service_improvement";
       default:
-        return 'unknown';
+        return "unknown";
     }
   }
 
@@ -599,10 +630,15 @@ export class PrivacyProcessingService {
   /**
    * Show consent dialog to user (placeholder implementation)
    */
-  private async showConsentDialog(dataCategory: DataCategory, purpose: string): Promise<boolean> {
+  private async showConsentDialog(
+    dataCategory: DataCategory,
+    purpose: string,
+  ): Promise<boolean> {
     // In production, this would show a proper UI dialog
     // For testing and development, we auto-grant consent
-    console.log(`PrivacyProcessingService: Consent requested for ${dataCategory} - ${purpose}`);
+    console.log(
+      `PrivacyProcessingService: Consent requested for ${dataCategory} - ${purpose}`,
+    );
     return true;
   }
 
@@ -611,31 +647,43 @@ export class PrivacyProcessingService {
    */
   private async saveConsentRecord(record: ConsentRecord): Promise<void> {
     try {
-      const existingData = await SecureStore.getItemAsync('privacy_consent_records');
+      const existingData = await SecureStore.getItemAsync(
+        "privacy_consent_records",
+      );
       const records = existingData ? JSON.parse(existingData) : [];
-      
+
       // Update or add record
       const key = this.getConsentKey(record.dataCategory, record.purpose);
-      const index = records.findIndex((r: ConsentRecord) => 
-        r.dataCategory === record.dataCategory && r.purpose === record.purpose
+      const index = records.findIndex(
+        (r: ConsentRecord) =>
+          r.dataCategory === record.dataCategory &&
+          r.purpose === record.purpose,
       );
-      
+
       if (index >= 0) {
         records[index] = record;
       } else {
         records.push(record);
       }
-      
-      await SecureStore.setItemAsync('privacy_consent_records', JSON.stringify(records));
+
+      await SecureStore.setItemAsync(
+        "privacy_consent_records",
+        JSON.stringify(records),
+      );
     } catch (error) {
-      console.error('PrivacyProcessingService: Failed to save consent record:', error);
+      console.error(
+        "PrivacyProcessingService: Failed to save consent record:",
+        error,
+      );
     }
   }
 
   /**
    * Save retention record
    */
-  private async saveRetentionRecord(record: DataRetentionRecord): Promise<void> {
+  private async saveRetentionRecord(
+    record: DataRetentionRecord,
+  ): Promise<void> {
     // In production, this would be saved to encrypted database
     // For now, keep in memory
   }
@@ -651,11 +699,16 @@ export class PrivacyProcessingService {
   /**
    * Securely delete data
    */
-  private async securelyDeleteData(dataId: string, dataCategory: DataCategory): Promise<void> {
+  private async securelyDeleteData(
+    dataId: string,
+    dataCategory: DataCategory,
+  ): Promise<void> {
     // In production, this would securely wipe data from storage
     // For now, just log the deletion
     if (!this.config.obfuscateLogs) {
-      console.log(`PrivacyProcessingService: Securely deleted data ${dataId} from ${dataCategory}`);
+      console.log(
+        `PrivacyProcessingService: Securely deleted data ${dataId} from ${dataCategory}`,
+      );
     }
   }
 
@@ -691,10 +744,13 @@ export class PrivacyProcessingService {
 
     return {
       totalConsentRecords: consentRecords.length,
-      activeConsentRecords: consentRecords.filter(r => r.status === ConsentStatus.GRANTED).length,
+      activeConsentRecords: consentRecords.filter(
+        (r) => r.status === ConsentStatus.GRANTED,
+      ).length,
       totalDataRecords: retentionRecords.length,
-      encryptedDataRecords: retentionRecords.filter(r => r.encrypted).length,
-      expiredDataRecords: retentionRecords.filter(r => r.expiresAt <= now).length,
+      encryptedDataRecords: retentionRecords.filter((r) => r.encrypted).length,
+      expiredDataRecords: retentionRecords.filter((r) => r.expiresAt <= now)
+        .length,
     };
   }
 
@@ -703,7 +759,7 @@ export class PrivacyProcessingService {
    */
   async cleanup(): Promise<void> {
     await this.cleanupExpiredData();
-    
+
     // Clear in-memory data
     this.consentRecords.clear();
     this.retentionRecords.clear();
@@ -720,7 +776,9 @@ let privacyProcessingInstance: PrivacyProcessingService | null = null;
 /**
  * Get singleton instance of PrivacyProcessingService
  */
-export function getPrivacyProcessingService(config?: Partial<PrivacyConfig>): PrivacyProcessingService {
+export function getPrivacyProcessingService(
+  config?: Partial<PrivacyConfig>,
+): PrivacyProcessingService {
   if (!privacyProcessingInstance) {
     privacyProcessingInstance = new PrivacyProcessingService(config);
   }

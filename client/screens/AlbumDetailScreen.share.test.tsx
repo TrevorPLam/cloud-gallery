@@ -140,14 +140,14 @@ describe("AlbumDetailScreen Sharing", () => {
       render(
         <TestWrapper>
           <AlbumDetailScreen />
-        </TestWrapper>
+        </TestWrapper>,
       );
 
       await waitFor(() => {
         expect(mockSetOptions).toHaveBeenCalledWith(
           expect.objectContaining({
             headerRight: expect.any(Function),
-          })
+          }),
         );
       });
 
@@ -269,7 +269,7 @@ describe("AlbumDetailScreen Sharing", () => {
 
     it("copies share link to clipboard on success", async () => {
       const mockSetString = vi.fn();
-      
+
       // Update clipboard mock
       vi.doMock("expo-clipboard", () => ({
         setStringAsync: mockSetString,

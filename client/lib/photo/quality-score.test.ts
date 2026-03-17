@@ -54,22 +54,22 @@ describe("PhotoQualityScorer", () => {
               // All scores should be within bounds
               expect(quality.overall).toBeGreaterThanOrEqual(0);
               expect(quality.overall).toBeLessThanOrEqual(100);
-              
+
               expect(quality.sharpness).toBeGreaterThanOrEqual(0);
               expect(quality.sharpness).toBeLessThanOrEqual(100);
-              
+
               expect(quality.exposure).toBeGreaterThanOrEqual(0);
               expect(quality.exposure).toBeLessThanOrEqual(100);
-              
+
               expect(quality.composition).toBeGreaterThanOrEqual(0);
               expect(quality.composition).toBeLessThanOrEqual(100);
-              
+
               expect(quality.noise).toBeGreaterThanOrEqual(0);
               expect(quality.noise).toBeLessThanOrEqual(100);
-              
+
               expect(quality.contrast).toBeGreaterThanOrEqual(0);
               expect(quality.contrast).toBeLessThanOrEqual(100);
-              
+
               expect(quality.colorVibrancy).toBeGreaterThanOrEqual(0);
               expect(quality.colorVibrancy).toBeLessThanOrEqual(100);
             } catch (error) {
@@ -78,7 +78,7 @@ describe("PhotoQualityScorer", () => {
             }
           }),
           { numRuns: 10 },
-        )
+        ),
       ).resolves.toBeUndefined();
     });
 
@@ -103,7 +103,7 @@ describe("PhotoQualityScorer", () => {
             }
           }),
           { numRuns: 10 },
-        )
+        ),
       ).resolves.toBeUndefined();
     });
 
@@ -129,7 +129,7 @@ describe("PhotoQualityScorer", () => {
             }
           }),
           { numRuns: 10 },
-        )
+        ),
       ).resolves.toBeUndefined();
     });
 
@@ -139,17 +139,21 @@ describe("PhotoQualityScorer", () => {
           fc.asyncProperty(
             fc.array(fc.webUrl(), { minLength: 3, maxLength: 10 }),
             async (imageUris: string[]) => {
-              const validUris = imageUris.filter(uri => uri && uri.startsWith("http"));
+              const validUris = imageUris.filter(
+                (uri) => uri && uri.startsWith("http"),
+              );
               if (validUris.length < 3) return;
 
               try {
                 const ranking = await scorer.rankByQuality(validUris);
 
                 expect(ranking.rankings).toHaveLength(validUris.length);
-                
+
                 // Rankings should be in descending order
                 for (let i = 0; i < ranking.rankings.length - 1; i++) {
-                  expect(ranking.rankings[i].score).toBeGreaterThanOrEqual(ranking.rankings[i + 1].score);
+                  expect(ranking.rankings[i].score).toBeGreaterThanOrEqual(
+                    ranking.rankings[i + 1].score,
+                  );
                   expect(ranking.rankings[i].rank).toBe(i + 1);
                 }
 
@@ -157,7 +161,9 @@ describe("PhotoQualityScorer", () => {
                 expect(ranking.best).toBeDefined();
                 expect(ranking.worst).toBeDefined();
                 expect(ranking.rankings[0].uri).toBe(ranking.best);
-                expect(ranking.rankings[ranking.rankings.length - 1].uri).toBe(ranking.worst);
+                expect(ranking.rankings[ranking.rankings.length - 1].uri).toBe(
+                  ranking.worst,
+                );
               } catch (error) {
                 // Expected for fallback implementation
                 expect(error).toBeDefined();
@@ -165,7 +171,7 @@ describe("PhotoQualityScorer", () => {
             },
           ),
           { numRuns: 5 },
-        )
+        ),
       ).resolves.toBeUndefined();
     });
 
@@ -176,11 +182,16 @@ describe("PhotoQualityScorer", () => {
             fc.array(fc.webUrl(), { minLength: 3, maxLength: 10 }),
             fc.integer({ min: 30, max: 80 }),
             async (imageUris: string[], threshold: number) => {
-              const validUris = imageUris.filter(uri => uri && uri.startsWith("http"));
+              const validUris = imageUris.filter(
+                (uri) => uri && uri.startsWith("http"),
+              );
               if (validUris.length < 3) return;
 
               try {
-                const result = await scorer.filterByQuality(validUris, threshold);
+                const result = await scorer.filterByQuality(
+                  validUris,
+                  threshold,
+                );
 
                 const total = result.passed.length + result.failed.length;
                 expect(total).toBe(validUris.length);
@@ -203,7 +214,7 @@ describe("PhotoQualityScorer", () => {
             },
           ),
           { numRuns: 5 },
-        )
+        ),
       ).resolves.toBeUndefined();
     });
   });
@@ -262,7 +273,9 @@ describe("PhotoQualityScorer", () => {
         const quickEnd = Date.now();
 
         // Quick check should generally be faster
-        expect(quickEnd - quickStart).toBeLessThanOrEqual(fullEnd - fullStart + 100); // Allow some tolerance
+        expect(quickEnd - quickStart).toBeLessThanOrEqual(
+          fullEnd - fullStart + 100,
+        ); // Allow some tolerance
       } catch (error) {
         // Expected for fallback implementation
         expect(error).toBeDefined();
@@ -386,7 +399,7 @@ describe("PhotoQualityScorer", () => {
 
       try {
         const quality = await customScorer.assessQuality(mockImageUri);
-        
+
         expect(quality.overall).toBeGreaterThanOrEqual(0);
         expect(quality.overall).toBeLessThanOrEqual(100);
       } catch (error) {
@@ -409,7 +422,7 @@ describe("PhotoQualityScorer", () => {
 
       try {
         const quality = await customScorer.assessQuality(mockImageUri);
-        
+
         expect(quality.overall).toBeGreaterThanOrEqual(0);
         expect(quality.overall).toBeLessThanOrEqual(100);
       } catch (error) {
@@ -433,8 +446,26 @@ describe("PhotoQualityScorer", () => {
     });
 
     it("should create separate instances for different configs", () => {
-      const scorer1 = getPhotoQualityScorer({ weights: { sharpness: 0.5, exposure: 0.2, composition: 0.2, noise: 0.05, contrast: 0.03, colorVibrancy: 0.02 } });
-      const scorer2 = getPhotoQualityScorer({ weights: { sharpness: 0.3, exposure: 0.3, composition: 0.3, noise: 0.03, contrast: 0.02, colorVibrancy: 0.02 } });
+      const scorer1 = getPhotoQualityScorer({
+        weights: {
+          sharpness: 0.5,
+          exposure: 0.2,
+          composition: 0.2,
+          noise: 0.05,
+          contrast: 0.03,
+          colorVibrancy: 0.02,
+        },
+      });
+      const scorer2 = getPhotoQualityScorer({
+        weights: {
+          sharpness: 0.3,
+          exposure: 0.3,
+          composition: 0.3,
+          noise: 0.03,
+          contrast: 0.02,
+          colorVibrancy: 0.02,
+        },
+      });
 
       expect(scorer1).not.toBe(scorer2);
     });
@@ -534,18 +565,20 @@ describe("PhotoQualityScorer", () => {
 
   describe("Performance", () => {
     it("should handle multiple quality assessments efficiently", async () => {
-      const imageUris = Array(5).fill(null).map((_, i) => `file:///test/image${i}.jpg`);
+      const imageUris = Array(5)
+        .fill(null)
+        .map((_, i) => `file:///test/image${i}.jpg`);
 
       const startTime = Date.now();
       const assessments = await Promise.all(
-        imageUris.map(uri => scorer.assessQuality(uri))
+        imageUris.map((uri) => scorer.assessQuality(uri)),
       );
       const endTime = Date.now();
 
       expect(endTime - startTime).toBeLessThan(15000); // 15 seconds max
       expect(assessments).toHaveLength(5);
 
-      assessments.forEach(assessment => {
+      assessments.forEach((assessment) => {
         expect(assessment.overall).toBeGreaterThanOrEqual(0);
         expect(assessment.overall).toBeLessThanOrEqual(100);
       });
@@ -561,7 +594,9 @@ describe("PhotoQualityScorer", () => {
       }
 
       const avgTime = times.reduce((sum, time) => sum + time, 0) / times.length;
-      const variance = times.reduce((sum, time) => sum + (time - avgTime) ** 2, 0) / times.length;
+      const variance =
+        times.reduce((sum, time) => sum + (time - avgTime) ** 2, 0) /
+        times.length;
 
       // Performance should be consistent
       expect(Math.sqrt(variance)).toBeLessThan(avgTime);
@@ -580,14 +615,16 @@ describe("PhotoQualityScorer Integration", () => {
 
   it("should handle concurrent quality assessments", async () => {
     const scorer = getPhotoQualityScorer();
-    const imageUris = Array(3).fill(null).map((_, i) => `file:///test/image${i}.jpg`);
+    const imageUris = Array(3)
+      .fill(null)
+      .map((_, i) => `file:///test/image${i}.jpg`);
 
     // Run multiple assessments concurrently
-    const promises = imageUris.map(uri => scorer.assessQuality(uri));
+    const promises = imageUris.map((uri) => scorer.assessQuality(uri));
     const results = await Promise.all(promises);
 
     // All should complete successfully
-    results.forEach(result => {
+    results.forEach((result) => {
       expect(result.overall).toBeGreaterThanOrEqual(0);
       expect(result.overall).toBeLessThanOrEqual(100);
       expect(result.processingTime).toBeGreaterThanOrEqual(0);
@@ -596,21 +633,26 @@ describe("PhotoQualityScorer Integration", () => {
 
   it("should integrate ranking and filtering", async () => {
     const scorer = getPhotoQualityScorer();
-    const imageUris = Array(5).fill(null).map((_, i) => `file:///test/image${i}.jpg`);
+    const imageUris = Array(5)
+      .fill(null)
+      .map((_, i) => `file:///test/image${i}.jpg`);
 
     try {
       // Get rankings
       const ranking = await scorer.rankByQuality(imageUris);
-      
+
       // Filter top 50%
-      const threshold = ranking.rankings.length > 0 
-        ? ranking.rankings[Math.floor(ranking.rankings.length / 2)].score
-        : 70;
-      
+      const threshold =
+        ranking.rankings.length > 0
+          ? ranking.rankings[Math.floor(ranking.rankings.length / 2)].score
+          : 70;
+
       const filtered = await scorer.filterByQuality(imageUris, threshold);
 
       expect(ranking.rankings).toHaveLength(imageUris.length);
-      expect(filtered.passed.length + filtered.failed.length).toBe(imageUris.length);
+      expect(filtered.passed.length + filtered.failed.length).toBe(
+        imageUris.length,
+      );
     } catch (error) {
       // Expected for fallback implementation
       expect(error).toBeDefined();

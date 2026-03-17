@@ -121,13 +121,17 @@ export class BurstDetector {
     const sequenceBursts = await this.detectSequenceBursts(sortedPhotos);
 
     // Merge overlapping bursts
-    const mergedBursts = this.mergeBurstGroups([...temporalBursts, ...sequenceBursts]);
+    const mergedBursts = this.mergeBurstGroups([
+      ...temporalBursts,
+      ...sequenceBursts,
+    ]);
 
     // Filter by confidence and duration
-    return mergedBursts.filter(burst => 
-      burst.confidence >= this.config.confidenceThreshold &&
-      burst.duration <= this.config.maxBurstDuration &&
-      burst.count >= this.config.minBurstSize
+    return mergedBursts.filter(
+      (burst) =>
+        burst.confidence >= this.config.confidenceThreshold &&
+        burst.duration <= this.config.maxBurstDuration &&
+        burst.count >= this.config.minBurstSize,
     );
   }
 
@@ -137,17 +141,23 @@ export class BurstDetector {
    */
   public analyzeBurstPatterns(photos: PhotoMetadata[]): ClusterAnalysis {
     const bursts = this.detectBurstsSync(photos);
-    
+
     const photosInBursts = bursts.reduce((sum, burst) => sum + burst.count, 0);
     const totalPhotos = photos.length;
-    
+
     return {
       totalPhotos,
       burstGroups: bursts.length,
       photosInBursts,
       burstCoverage: totalPhotos > 0 ? (photosInBursts / totalPhotos) * 100 : 0,
-      avgBurstSize: bursts.length > 0 ? bursts.reduce((sum, b) => sum + b.count, 0) / bursts.length : 0,
-      avgBurstDuration: bursts.length > 0 ? bursts.reduce((sum, b) => sum + b.duration, 0) / bursts.length : 0,
+      avgBurstSize:
+        bursts.length > 0
+          ? bursts.reduce((sum, b) => sum + b.count, 0) / bursts.length
+          : 0,
+      avgBurstDuration:
+        bursts.length > 0
+          ? bursts.reduce((sum, b) => sum + b.duration, 0) / bursts.length
+          : 0,
     };
   }
 
@@ -155,10 +165,14 @@ export class BurstDetector {
    * Check if a single photo is likely part of a burst
    * Based on proximity to other photos
    */
-  public async isBurstPhoto(photo: PhotoMetadata, allPhotos: PhotoMetadata[]): Promise<boolean> {
-    const nearbyPhotos = allPhotos.filter(other => 
-      other.id !== photo.id &&
-      Math.abs(other.timestamp - photo.timestamp) <= this.config.maxTimeGap
+  public async isBurstPhoto(
+    photo: PhotoMetadata,
+    allPhotos: PhotoMetadata[],
+  ): Promise<boolean> {
+    const nearbyPhotos = allPhotos.filter(
+      (other) =>
+        other.id !== photo.id &&
+        Math.abs(other.timestamp - photo.timestamp) <= this.config.maxTimeGap,
     );
 
     return nearbyPhotos.length >= this.config.minBurstSize - 1;
@@ -173,29 +187,35 @@ export class BurstDetector {
     individuals: PhotoMetadata[];
   }> {
     const bursts = await this.detectBursts(photos);
-    const burstPhotoIds = new Set(bursts.flatMap(burst => burst.photoIds));
-    
-    const individuals = photos.filter(photo => !burstPhotoIds.has(photo.id));
+    const burstPhotoIds = new Set(bursts.flatMap((burst) => burst.photoIds));
+
+    const individuals = photos.filter((photo) => !burstPhotoIds.has(photo.id));
 
     return { bursts, individuals };
   }
 
   // ─── PRIVATE DETECTION ALGORITHMS ───────────────────────
 
-  private async detectTemporalBursts(photos: PhotoMetadata[]): Promise<BurstGroup[]> {
+  private async detectTemporalBursts(
+    photos: PhotoMetadata[],
+  ): Promise<BurstGroup[]> {
     const bursts: BurstGroup[] = [];
     let currentBurst: string[] = [];
 
     for (let i = 0; i < photos.length; i++) {
       const photo = photos[i];
-      
+
       if (currentBurst.length === 0) {
         // Start new burst
         currentBurst.push(photo.id);
       } else {
         // Check time gap from previous photo
-        const previousPhoto = photos.find(p => p.id === currentBurst[currentBurst.length - 1]);
-        const timeGap = previousPhoto ? photo.timestamp - previousPhoto.timestamp : Infinity;
+        const previousPhoto = photos.find(
+          (p) => p.id === currentBurst[currentBurst.length - 1],
+        );
+        const timeGap = previousPhoto
+          ? photo.timestamp - previousPhoto.timestamp
+          : Infinity;
 
         if (timeGap <= this.config.maxTimeGap) {
           // Continue current burst
@@ -203,7 +223,9 @@ export class BurstDetector {
         } else {
           // End current burst and start new one
           if (currentBurst.length >= this.config.minBurstSize) {
-            bursts.push(this.createBurstGroup(currentBurst, photos, "temporal"));
+            bursts.push(
+              this.createBurstGroup(currentBurst, photos, "temporal"),
+            );
           }
           currentBurst = [photo.id];
         }
@@ -218,17 +240,19 @@ export class BurstDetector {
     return bursts;
   }
 
-  private async detectSequenceBursts(photos: PhotoMetadata[]): Promise<BurstGroup[]> {
+  private async detectSequenceBursts(
+    photos: PhotoMetadata[],
+  ): Promise<BurstGroup[]> {
     if (!this.config.useSequenceNumbers) {
       return [];
     }
 
     // Group photos by sequence numbers
     const sequenceGroups = new Map<string, string[]>();
-    
-    photos.forEach(photo => {
+
+    photos.forEach((photo) => {
       if (photo.sequenceNumber) {
-        const key = `${photo.cameraInfo?.make || 'unknown'}_${photo.cameraInfo?.model || 'unknown'}_${photo.sequenceNumber}`;
+        const key = `${photo.cameraInfo?.make || "unknown"}_${photo.cameraInfo?.model || "unknown"}_${photo.sequenceNumber}`;
         if (!sequenceGroups.has(key)) {
           sequenceGroups.set(key, []);
         }
@@ -237,8 +261,8 @@ export class BurstDetector {
     });
 
     const bursts: BurstGroup[] = [];
-    
-    sequenceGroups.forEach(photoIds => {
+
+    sequenceGroups.forEach((photoIds) => {
       if (photoIds.length >= this.config.minBurstSize) {
         bursts.push(this.createBurstGroup(photoIds, photos, "sequence"));
       }
@@ -248,28 +272,36 @@ export class BurstDetector {
   }
 
   private createBurstGroup(
-    photoIds: string[], 
-    allPhotos: PhotoMetadata[], 
-    type: "temporal" | "sequence" | "mixed"
+    photoIds: string[],
+    allPhotos: PhotoMetadata[],
+    type: "temporal" | "sequence" | "mixed",
   ): BurstGroup {
-    const burstPhotos = allPhotos.filter(photo => photoIds.includes(photo.id));
+    const burstPhotos = allPhotos.filter((photo) =>
+      photoIds.includes(photo.id),
+    );
     burstPhotos.sort((a, b) => a.timestamp - b.timestamp);
 
     const startTime = burstPhotos[0].timestamp;
     const endTime = burstPhotos[burstPhotos.length - 1].timestamp;
     const duration = endTime - startTime;
-    
+
     // Calculate average interval
     const intervals: number[] = [];
     for (let i = 1; i < burstPhotos.length; i++) {
       intervals.push(burstPhotos[i].timestamp - burstPhotos[i - 1].timestamp);
     }
-    const avgInterval = intervals.length > 0 
-      ? intervals.reduce((sum, interval) => sum + interval, 0) / intervals.length 
-      : 0;
+    const avgInterval =
+      intervals.length > 0
+        ? intervals.reduce((sum, interval) => sum + interval, 0) /
+          intervals.length
+        : 0;
 
     // Calculate confidence based on consistency and duration
-    const confidence = this.calculateBurstConfidence(burstPhotos, avgInterval, duration);
+    const confidence = this.calculateBurstConfidence(
+      burstPhotos,
+      avgInterval,
+      duration,
+    );
 
     return {
       id: `burst_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -285,9 +317,9 @@ export class BurstDetector {
   }
 
   private calculateBurstConfidence(
-    photos: PhotoMetadata[], 
-    avgInterval: number, 
-    duration: number
+    photos: PhotoMetadata[],
+    avgInterval: number,
+    duration: number,
   ): number {
     let confidence = 0.5; // Base confidence
 
@@ -297,20 +329,23 @@ export class BurstDetector {
       for (let i = 1; i < photos.length; i++) {
         intervals.push(photos[i].timestamp - photos[i - 1].timestamp);
       }
-      
-      const variance = intervals.reduce((sum, interval) => {
-        const diff = interval - avgInterval;
-        return sum + diff * diff;
-      }, 0) / intervals.length;
-      
+
+      const variance =
+        intervals.reduce((sum, interval) => {
+          const diff = interval - avgInterval;
+          return sum + diff * diff;
+        }, 0) / intervals.length;
+
       const stdDev = Math.sqrt(variance);
-      const consistencyScore = Math.max(0, 1 - (stdDev / avgInterval));
+      const consistencyScore = Math.max(0, 1 - stdDev / avgInterval);
       confidence += consistencyScore * 0.3;
     }
 
     // Factor 2: Duration score (optimal duration is 1-5 seconds)
     const optimalDuration = 3000; // 3 seconds
-    const durationScore = Math.exp(-Math.pow(duration - optimalDuration, 2) / (2 * 2000 * 2000));
+    const durationScore = Math.exp(
+      -Math.pow(duration - optimalDuration, 2) / (2 * 2000 * 2000),
+    );
     confidence += durationScore * 0.2;
 
     // Factor 3: Size score (more photos = higher confidence, up to a point)
@@ -337,10 +372,16 @@ export class BurstDetector {
         merged.push(burst);
       } else {
         // Overlap detected, merge with previous burst
-        const mergedPhotoIds = [...new Set([...lastMerged.photoIds, ...burst.photoIds])];
+        const mergedPhotoIds = [
+          ...new Set([...lastMerged.photoIds, ...burst.photoIds]),
+        ];
         const allPhotos = this.getPhotoMetadataForIds(mergedPhotoIds);
-        
-        const mergedBurst = this.createBurstGroup(mergedPhotoIds, allPhotos, "mixed");
+
+        const mergedBurst = this.createBurstGroup(
+          mergedPhotoIds,
+          allPhotos,
+          "mixed",
+        );
         merged[merged.length - 1] = mergedBurst;
       }
     }
@@ -349,12 +390,14 @@ export class BurstDetector {
   }
 
   private doBurstsOverlap(burst1: BurstGroup, burst2: BurstGroup): boolean {
-    return burst1.endTime >= burst2.startTime && burst1.startTime <= burst2.endTime;
+    return (
+      burst1.endTime >= burst2.startTime && burst1.startTime <= burst2.endTime
+    );
   }
 
   private getPhotoMetadataForIds(photoIds: string[]): PhotoMetadata[] {
     // This is a placeholder - in real implementation, would fetch from storage
-    return photoIds.map(id => ({
+    return photoIds.map((id) => ({
       id,
       uri: `file:///photo/${id}`,
       timestamp: Date.now(),
@@ -372,18 +415,24 @@ export class BurstDetector {
 
     for (let i = 0; i < sortedPhotos.length; i++) {
       const photo = sortedPhotos[i];
-      
+
       if (currentBurst.length === 0) {
         currentBurst.push(photo.id);
       } else {
-        const previousPhoto = sortedPhotos.find(p => p.id === currentBurst[currentBurst.length - 1]);
-        const timeGap = previousPhoto ? photo.timestamp - previousPhoto.timestamp : Infinity;
+        const previousPhoto = sortedPhotos.find(
+          (p) => p.id === currentBurst[currentBurst.length - 1],
+        );
+        const timeGap = previousPhoto
+          ? photo.timestamp - previousPhoto.timestamp
+          : Infinity;
 
         if (timeGap <= this.config.maxTimeGap) {
           currentBurst.push(photo.id);
         } else {
           if (currentBurst.length >= this.config.minBurstSize) {
-            bursts.push(this.createBurstGroup(currentBurst, sortedPhotos, "temporal"));
+            bursts.push(
+              this.createBurstGroup(currentBurst, sortedPhotos, "temporal"),
+            );
           }
           currentBurst = [photo.id];
         }
@@ -391,7 +440,9 @@ export class BurstDetector {
     }
 
     if (currentBurst.length >= this.config.minBurstSize) {
-      bursts.push(this.createBurstGroup(currentBurst, sortedPhotos, "temporal"));
+      bursts.push(
+        this.createBurstGroup(currentBurst, sortedPhotos, "temporal"),
+      );
     }
 
     return bursts;
@@ -406,16 +457,19 @@ export class BurstDetector {
  * Extract photo metadata from image URI
  * In production, would use EXIF library to get actual metadata
  */
-export async function extractPhotoMetadata(imageUri: string, id: string): Promise<PhotoMetadata> {
+export async function extractPhotoMetadata(
+  imageUri: string,
+  id: string,
+): Promise<PhotoMetadata> {
   try {
     // This is a placeholder implementation
     // In production, would use react-native-exify or similar library
-    
+
     const now = Date.now();
-    
+
     // Simulate EXIF extraction
     const mockExifData = await simulateExifExtraction(imageUri);
-    
+
     return {
       id,
       uri: imageUri,
@@ -428,7 +482,7 @@ export async function extractPhotoMetadata(imageUri: string, id: string): Promis
     };
   } catch (error) {
     console.error("Failed to extract photo metadata:", error);
-    
+
     // Fallback to basic metadata
     const now = Date.now();
     return {
@@ -460,7 +514,7 @@ async function simulateExifExtraction(imageUri: string): Promise<{
       isBurstCandidate: true,
     };
   }
-  
+
   return {
     timestamp: Date.now() - Math.random() * 10000,
     cameraInfo: { make: "Apple", model: "iPhone 14 Pro" },
@@ -470,16 +524,18 @@ async function simulateExifExtraction(imageUri: string): Promise<{
 /**
  * Get singleton instance of BurstDetector
  */
-export function getBurstDetector(config?: Partial<BurstDetectionConfig>): BurstDetector {
+export function getBurstDetector(
+  config?: Partial<BurstDetectionConfig>,
+): BurstDetector {
   const key = JSON.stringify(config || {});
   if (!(global as any).burstDetectorInstances) {
     (global as any).burstDetectorInstances = new Map();
   }
-  
+
   if (!(global as any).burstDetectorInstances.has(key)) {
     (global as any).burstDetectorInstances.set(key, new BurstDetector(config));
   }
-  
+
   return (global as any).burstDetectorInstances.get(key);
 }
 
@@ -487,9 +543,9 @@ export function getBurstDetector(config?: Partial<BurstDetectionConfig>): BurstD
  * Quick burst detection for individual photos
  */
 export async function quickBurstCheck(
-  photo: PhotoMetadata, 
+  photo: PhotoMetadata,
   nearbyPhotos: PhotoMetadata[],
-  config?: Partial<BurstDetectionConfig>
+  config?: Partial<BurstDetectionConfig>,
 ): Promise<boolean> {
   const detector = getBurstDetector(config);
   return detector.isBurstPhoto(photo, nearbyPhotos);
@@ -500,7 +556,7 @@ export async function quickBurstCheck(
  */
 export async function analyzeCollectionBursts(
   photos: PhotoMetadata[],
-  config?: Partial<BurstDetectionConfig>
+  config?: Partial<BurstDetectionConfig>,
 ): Promise<ClusterAnalysis> {
   const detector = getBurstDetector(config);
   return detector.analyzeBurstPatterns(photos);

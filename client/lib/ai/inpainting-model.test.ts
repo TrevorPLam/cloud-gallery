@@ -8,8 +8,8 @@
 // TESTS: npm run test:watch
 // AI-META-END
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import fc from 'fast-check';
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import fc from "fast-check";
 import {
   InpaintingModelService,
   getInpaintingModelService,
@@ -18,26 +18,26 @@ import {
   InpaintingRequest,
   InpaintingMask,
   InpaintingConfig,
-} from './inpainting-model';
+} from "./inpainting-model";
 
 // Mock react-native-fast-tflite
-vi.mock('react-native-fast-tflite', () => ({
+vi.mock("react-native-fast-tflite", () => ({
   loadTensorflowModel: vi.fn(),
   TensorflowModel: vi.fn(),
 }));
 
 // Mock Platform
-vi.mock('react-native', () => ({
+vi.mock("react-native", () => ({
   Platform: {
-    OS: 'ios',
-    Version: '15.0',
+    OS: "ios",
+    Version: "15.0",
   },
   InteractionManager: {
     runAfterInteractions: vi.fn((callback) => callback()),
   },
 }));
 
-describe('InpaintingModelService', () => {
+describe("InpaintingModelService", () => {
   let service: InpaintingModelService;
 
   beforeEach(() => {
@@ -49,12 +49,12 @@ describe('InpaintingModelService', () => {
     await cleanupInpaintingModelService();
   });
 
-  describe('Initialization', () => {
-    it('should create service instance', () => {
+  describe("Initialization", () => {
+    it("should create service instance", () => {
       expect(service).toBeDefined();
     });
 
-    it('should initialize with default configuration', () => {
+    it("should initialize with default configuration", () => {
       const config = service.getConfig();
       expect(config.maxImageSize).toBe(512);
       expect(config.minMaskSize).toBe(16);
@@ -62,7 +62,7 @@ describe('InpaintingModelService', () => {
       expect(config.useContextAware).toBe(true);
     });
 
-    it('should accept custom configuration', () => {
+    it("should accept custom configuration", () => {
       resetInpaintingModelServiceForTesting();
       const customService = getInpaintingModelService({
         maxImageSize: 256,
@@ -76,17 +76,17 @@ describe('InpaintingModelService', () => {
       expect(config.inferencePasses).toBe(2);
     });
 
-    it('should get performance statistics', () => {
+    it("should get performance statistics", () => {
       const stats = service.getStats();
-      expect(stats).toHaveProperty('totalInpaintings');
-      expect(stats).toHaveProperty('averageProcessingTime');
-      expect(stats).toHaveProperty('averageQuality');
-      expect(stats).toHaveProperty('modelLoadTime');
-      expect(stats).toHaveProperty('memoryUsageMB');
+      expect(stats).toHaveProperty("totalInpaintings");
+      expect(stats).toHaveProperty("averageProcessingTime");
+      expect(stats).toHaveProperty("averageQuality");
+      expect(stats).toHaveProperty("modelLoadTime");
+      expect(stats).toHaveProperty("memoryUsageMB");
     });
   });
 
-  describe('Request Validation', () => {
+  describe("Request Validation", () => {
     const createValidRequest = (): InpaintingRequest => ({
       imageData: new Uint8Array(100 * 100 * 3),
       imageWidth: 100,
@@ -97,39 +97,44 @@ describe('InpaintingModelService', () => {
         height: 100,
         boundingBox: { x: 10, y: 10, width: 20, height: 20 },
       },
-      quality: 'balanced',
+      quality: "balanced",
     });
 
-    it('should accept valid inpainting request', async () => {
+    it("should accept valid inpainting request", async () => {
       const request = createValidRequest();
-      
+
       // Mock successful model loading
-      vi.mocked(require('react-native-fast-tflite').loadTensorflowModel)
-        .mockResolvedValue({} as any);
+      vi.mocked(
+        require("react-native-fast-tflite").loadTensorflowModel,
+      ).mockResolvedValue({} as any);
 
       await expect(service.inpaint(request)).resolves.toBeDefined();
     });
 
-    it('should reject request with invalid image data', async () => {
+    it("should reject request with invalid image data", async () => {
       const request = {
         ...createValidRequest(),
         imageData: new Uint8Array(0),
       };
 
-      await expect(service.inpaint(request)).rejects.toThrow('Invalid image data');
+      await expect(service.inpaint(request)).rejects.toThrow(
+        "Invalid image data",
+      );
     });
 
-    it('should reject request with invalid image dimensions', async () => {
+    it("should reject request with invalid image dimensions", async () => {
       const request = {
         ...createValidRequest(),
         imageWidth: 0,
         imageHeight: 100,
       };
 
-      await expect(service.inpaint(request)).rejects.toThrow('Invalid image dimensions');
+      await expect(service.inpaint(request)).rejects.toThrow(
+        "Invalid image dimensions",
+      );
     });
 
-    it('should reject request with invalid mask data', async () => {
+    it("should reject request with invalid mask data", async () => {
       const request = {
         ...createValidRequest(),
         mask: {
@@ -140,19 +145,23 @@ describe('InpaintingModelService', () => {
         },
       };
 
-      await expect(service.inpaint(request)).rejects.toThrow('Invalid mask data');
+      await expect(service.inpaint(request)).rejects.toThrow(
+        "Invalid mask data",
+      );
     });
 
-    it('should reject request with mismatched image data size', async () => {
+    it("should reject request with mismatched image data size", async () => {
       const request = {
         ...createValidRequest(),
         imageData: new Uint8Array(50 * 100 * 3), // Wrong size
       };
 
-      await expect(service.inpaint(request)).rejects.toThrow('Image data size mismatch');
+      await expect(service.inpaint(request)).rejects.toThrow(
+        "Image data size mismatch",
+      );
     });
 
-    it('should reject request with mismatched mask data size', async () => {
+    it("should reject request with mismatched mask data size", async () => {
       const request = {
         ...createValidRequest(),
         mask: {
@@ -163,10 +172,12 @@ describe('InpaintingModelService', () => {
         },
       };
 
-      await expect(service.inpaint(request)).rejects.toThrow('Mask data size mismatch');
+      await expect(service.inpaint(request)).rejects.toThrow(
+        "Mask data size mismatch",
+      );
     });
 
-    it('should reject request with mask too small', async () => {
+    it("should reject request with mask too small", async () => {
       const request = {
         ...createValidRequest(),
         mask: {
@@ -177,11 +188,11 @@ describe('InpaintingModelService', () => {
         },
       };
 
-      await expect(service.inpaint(request)).rejects.toThrow('Mask too small');
+      await expect(service.inpaint(request)).rejects.toThrow("Mask too small");
     });
   });
 
-  describe('Inpainting Processing', () => {
+  describe("Inpainting Processing", () => {
     const createValidRequest = (): InpaintingRequest => ({
       imageData: new Uint8Array(100 * 100 * 3).fill(128),
       imageWidth: 100,
@@ -192,7 +203,7 @@ describe('InpaintingModelService', () => {
         height: 100,
         boundingBox: { x: 10, y: 10, width: 20, height: 20 },
       },
-      quality: 'balanced',
+      quality: "balanced",
     });
 
     beforeEach(() => {
@@ -205,9 +216,9 @@ describe('InpaintingModelService', () => {
       }
     });
 
-    it('should perform inpainting with mock model', async () => {
+    it("should perform inpainting with mock model", async () => {
       const request = createValidRequest();
-      
+
       // Set some mask pixels
       for (let y = 10; y < 30; y++) {
         for (let x = 10; x < 30; x++) {
@@ -230,9 +241,9 @@ describe('InpaintingModelService', () => {
       expect(result.quality.seamlessness).toBeGreaterThanOrEqual(0);
     });
 
-    it('should handle different quality settings', async () => {
+    it("should handle different quality settings", async () => {
       const request = createValidRequest();
-      
+
       // Set some mask pixels
       for (let y = 10; y < 30; y++) {
         for (let x = 10; x < 30; x++) {
@@ -240,21 +251,22 @@ describe('InpaintingModelService', () => {
         }
       }
 
-      const qualities: Array<'fast' | 'balanced' | 'high'> = ['fast', 'balanced', 'high'];
-      
+      const qualities: ('fast' | 'balanced' | 'high')[] = ['fast', 'balanced', 'high'];
+      ];
+
       for (const quality of qualities) {
         const qualityRequest = { ...request, quality };
         const result = await service.inpaint(qualityRequest);
-        
+
         expect(result).toBeDefined();
         expect(result.confidence).toBeGreaterThanOrEqual(0);
       }
     });
 
-    it('should handle context prompts', async () => {
+    it("should handle context prompts", async () => {
       const request = {
         ...createValidRequest(),
-        contextPrompt: 'remove person from background',
+        contextPrompt: "remove person from background",
       };
 
       // Set some mask pixels
@@ -270,11 +282,11 @@ describe('InpaintingModelService', () => {
       expect(result.confidence).toBeGreaterThanOrEqual(0);
     });
 
-    it('should update statistics after processing', async () => {
+    it("should update statistics after processing", async () => {
       const initialStats = service.getStats();
-      
+
       const request = createValidRequest();
-      
+
       // Set some mask pixels
       for (let y = 10; y < 30; y++) {
         for (let x = 10; x < 30; x++) {
@@ -285,14 +297,16 @@ describe('InpaintingModelService', () => {
       await service.inpaint(request);
 
       const finalStats = service.getStats();
-      expect(finalStats.totalInpaintings).toBe(initialStats.totalInpaintings + 1);
+      expect(finalStats.totalInpaintings).toBe(
+        initialStats.totalInpaintings + 1,
+      );
       expect(finalStats.averageProcessingTime).toBeGreaterThanOrEqual(0);
       expect(finalStats.averageQuality).toBeGreaterThanOrEqual(0);
     });
   });
 
-  describe('Quality Metrics', () => {
-    it('should calculate coherence metrics correctly', async () => {
+  describe("Quality Metrics", () => {
+    it("should calculate coherence metrics correctly", async () => {
       const request: InpaintingRequest = {
         imageData: new Uint8Array(50 * 50 * 3).fill(128), // Uniform image
         imageWidth: 50,
@@ -303,7 +317,7 @@ describe('InpaintingModelService', () => {
           height: 50,
           boundingBox: { x: 0, y: 0, width: 50, height: 50 },
         },
-        quality: 'high',
+        quality: "high",
       };
 
       const result = await service.inpaint(request);
@@ -312,7 +326,7 @@ describe('InpaintingModelService', () => {
       expect(result.quality.coherence).toBeLessThanOrEqual(1);
     });
 
-    it('should calculate realism metrics correctly', async () => {
+    it("should calculate realism metrics correctly", async () => {
       const request: InpaintingRequest = {
         imageData: new Uint8Array(50 * 50 * 3).fill(128),
         imageWidth: 50,
@@ -323,7 +337,7 @@ describe('InpaintingModelService', () => {
           height: 50,
           boundingBox: { x: 0, y: 0, width: 50, height: 50 },
         },
-        quality: 'high',
+        quality: "high",
       };
 
       const result = await service.inpaint(request);
@@ -332,7 +346,7 @@ describe('InpaintingModelService', () => {
       expect(result.quality.realism).toBeLessThanOrEqual(1);
     });
 
-    it('should calculate seamlessness metrics correctly', async () => {
+    it("should calculate seamlessness metrics correctly", async () => {
       const request: InpaintingRequest = {
         imageData: new Uint8Array(50 * 50 * 3).fill(128),
         imageWidth: 50,
@@ -343,7 +357,7 @@ describe('InpaintingModelService', () => {
           height: 50,
           boundingBox: { x: 10, y: 10, width: 10, height: 10 },
         },
-        quality: 'high',
+        quality: "high",
       };
 
       // Create a mask with clear boundaries
@@ -360,8 +374,8 @@ describe('InpaintingModelService', () => {
     });
   });
 
-  describe('Image Processing', () => {
-    it('should handle image resizing correctly', async () => {
+  describe("Image Processing", () => {
+    it("should handle image resizing correctly", async () => {
       const request: InpaintingRequest = {
         imageData: new Uint8Array(200 * 200 * 3).fill(128),
         imageWidth: 200,
@@ -372,7 +386,7 @@ describe('InpaintingModelService', () => {
           height: 200,
           boundingBox: { x: 0, y: 0, width: 200, height: 200 },
         },
-        quality: 'balanced',
+        quality: "balanced",
       };
 
       const result = await service.inpaint(request);
@@ -383,7 +397,7 @@ describe('InpaintingModelService', () => {
       expect(result.imageData.length).toBe(result.width * result.height * 3);
     });
 
-    it('should handle different aspect ratios', async () => {
+    it("should handle different aspect ratios", async () => {
       const requests: InpaintingRequest[] = [
         {
           imageData: new Uint8Array(100 * 50 * 3).fill(128),
@@ -395,7 +409,7 @@ describe('InpaintingModelService', () => {
             height: 50,
             boundingBox: { x: 0, y: 0, width: 100, height: 50 },
           },
-          quality: 'balanced',
+          quality: "balanced",
         },
         {
           imageData: new Uint8Array(50 * 100 * 3).fill(128),
@@ -407,7 +421,7 @@ describe('InpaintingModelService', () => {
             height: 100,
             boundingBox: { x: 0, y: 0, width: 50, height: 100 },
           },
-          quality: 'balanced',
+          quality: "balanced",
         },
       ];
 
@@ -420,8 +434,8 @@ describe('InpaintingModelService', () => {
     });
   });
 
-  describe('Configuration Management', () => {
-    it('should update configuration', () => {
+  describe("Configuration Management", () => {
+    it("should update configuration", () => {
       const newConfig: Partial<InpaintingConfig> = {
         maxImageSize: 256,
         minMaskSize: 8,
@@ -438,9 +452,9 @@ describe('InpaintingModelService', () => {
       expect(config.useContextAware).toBe(false);
     });
 
-    it('should preserve unspecified configuration values', () => {
+    it("should preserve unspecified configuration values", () => {
       const originalConfig = service.getConfig();
-      
+
       service.updateConfig({ maxImageSize: 256 });
 
       const newConfig = service.getConfig();
@@ -451,8 +465,8 @@ describe('InpaintingModelService', () => {
     });
   });
 
-  describe('Property Tests', () => {
-    it('Property 1: Configuration consistency - updated config should be reflected in getter', async () => {
+  describe("Property Tests", () => {
+    it("Property 1: Configuration consistency - updated config should be reflected in getter", async () => {
       await expect(
         fc.assert(
           fc.asyncProperty(
@@ -465,23 +479,25 @@ describe('InpaintingModelService', () => {
             async (configUpdate) => {
               service.updateConfig(configUpdate);
               const currentConfig = service.getConfig();
-              
+
               Object.entries(configUpdate).forEach(([key, value]) => {
-                expect(currentConfig[key as keyof InpaintingConfig]).toBe(value);
+                expect(currentConfig[key as keyof InpaintingConfig]).toBe(
+                  value,
+                );
               });
-            }
+            },
           ),
-          { numRuns: 10 }
-        )
+          { numRuns: 10 },
+        ),
       ).resolves.toBeUndefined();
     });
 
-    it('Property 2: Statistics bounds - all statistics should remain within valid ranges', async () => {
+    it("Property 2: Statistics bounds - all statistics should remain within valid ranges", async () => {
       await expect(
         fc.assert(
           fc.asyncProperty(fc.constant(null), async () => {
             const stats = service.getStats();
-            
+
             expect(stats.totalInpaintings).toBeGreaterThanOrEqual(0);
             expect(stats.averageProcessingTime).toBeGreaterThanOrEqual(0);
             expect(stats.averageQuality).toBeGreaterThanOrEqual(0);
@@ -490,43 +506,46 @@ describe('InpaintingModelService', () => {
             expect(stats.memoryUsageMB).toBeGreaterThanOrEqual(0);
             expect(stats.contextAwareUsage).toBeGreaterThanOrEqual(0);
           }),
-          { numRuns: 5 }
-        )
+          { numRuns: 5 },
+        ),
       ).resolves.toBeUndefined();
     });
 
-    it('Property 3: Result format consistency - all results should have valid structure', async () => {
-      const validRequestGenerator = fc.record({
-        imageData: fc.uint8Array({ minLength: 100, maxLength: 1000 }),
-        imageWidth: fc.integer({ min: 10, max: 100 }),
-        imageHeight: fc.integer({ min: 10, max: 100 }),
-        quality: fc.constantFrom('fast', 'balanced', 'high'),
-      }).chain(({ imageData, imageWidth, imageHeight, quality }) => {
-        // Ensure image data size matches dimensions
-        const expectedSize = imageWidth * imageHeight * 3;
-        const sizedImageData = imageData.length >= expectedSize 
-          ? imageData.slice(0, expectedSize)
-          : new Uint8Array(expectedSize).fill(128);
+    it("Property 3: Result format consistency - all results should have valid structure", async () => {
+      const validRequestGenerator = fc
+        .record({
+          imageData: fc.uint8Array({ minLength: 100, maxLength: 1000 }),
+          imageWidth: fc.integer({ min: 10, max: 100 }),
+          imageHeight: fc.integer({ min: 10, max: 100 }),
+          quality: fc.constantFrom("fast", "balanced", "high"),
+        })
+        .chain(({ imageData, imageWidth, imageHeight, quality }) => {
+          // Ensure image data size matches dimensions
+          const expectedSize = imageWidth * imageHeight * 3;
+          const sizedImageData =
+            imageData.length >= expectedSize
+              ? imageData.slice(0, expectedSize)
+              : new Uint8Array(expectedSize).fill(128);
 
-        return fc.constant({
-          imageData: sizedImageData,
-          imageWidth,
-          imageHeight,
-          quality,
-          mask: {
-            mask: new Uint8Array(imageWidth * imageHeight).fill(0),
-            width: imageWidth,
-            height: imageHeight,
-            boundingBox: { x: 5, y: 5, width: 10, height: 10 },
-          },
+          return fc.constant({
+            imageData: sizedImageData,
+            imageWidth,
+            imageHeight,
+            quality,
+            mask: {
+              mask: new Uint8Array(imageWidth * imageHeight).fill(0),
+              width: imageWidth,
+              height: imageHeight,
+              boundingBox: { x: 5, y: 5, width: 10, height: 10 },
+            },
+          });
         });
-      });
 
       await expect(
         fc.assert(
           fc.asyncProperty(validRequestGenerator, async (request) => {
             const result = await service.inpaint(request);
-            
+
             expect(result.imageData).toBeInstanceOf(Uint8Array);
             expect(result.width).toBeGreaterThan(0);
             expect(result.height).toBeGreaterThan(0);
@@ -534,7 +553,7 @@ describe('InpaintingModelService', () => {
             expect(result.confidence).toBeLessThanOrEqual(1);
             expect(result.processingTime).toBeGreaterThanOrEqual(0);
             expect(result.timestamp).toBeGreaterThan(0);
-            
+
             expect(result.quality.coherence).toBeGreaterThanOrEqual(0);
             expect(result.quality.coherence).toBeLessThanOrEqual(1);
             expect(result.quality.realism).toBeGreaterThanOrEqual(0);
@@ -542,14 +561,14 @@ describe('InpaintingModelService', () => {
             expect(result.quality.seamlessness).toBeGreaterThanOrEqual(0);
             expect(result.quality.seamlessness).toBeLessThanOrEqual(1);
           }),
-          { numRuns: 5 }
-        )
+          { numRuns: 5 },
+        ),
       ).resolves.toBeUndefined();
     });
   });
 });
 
-describe('InpaintingModelService Edge Cases', () => {
+describe("InpaintingModelService Edge Cases", () => {
   let service: InpaintingModelService;
 
   beforeEach(() => {
@@ -561,7 +580,7 @@ describe('InpaintingModelService Edge Cases', () => {
     await cleanupInpaintingModelService();
   });
 
-  it('should handle concurrent inpainting requests', async () => {
+  it("should handle concurrent inpainting requests", async () => {
     const requests: InpaintingRequest[] = [
       {
         imageData: new Uint8Array(50 * 50 * 3).fill(128),
@@ -573,7 +592,7 @@ describe('InpaintingModelService Edge Cases', () => {
           height: 50,
           boundingBox: { x: 0, y: 0, width: 50, height: 50 },
         },
-        quality: 'fast',
+        quality: "fast",
       },
       {
         imageData: new Uint8Array(60 * 60 * 3).fill(100),
@@ -585,7 +604,7 @@ describe('InpaintingModelService Edge Cases', () => {
           height: 60,
           boundingBox: { x: 0, y: 0, width: 60, height: 60 },
         },
-        quality: 'balanced',
+        quality: "balanced",
       },
       {
         imageData: new Uint8Array(40 * 40 * 3).fill(150),
@@ -597,22 +616,22 @@ describe('InpaintingModelService Edge Cases', () => {
           height: 40,
           boundingBox: { x: 0, y: 0, width: 40, height: 40 },
         },
-        quality: 'high',
+        quality: "high",
       },
     ];
 
     // Process requests concurrently
-    const promises = requests.map(request => service.inpaint(request));
+    const promises = requests.map((request) => service.inpaint(request));
     const results = await Promise.all(promises);
 
     expect(results).toHaveLength(3);
-    results.forEach(result => {
+    results.forEach((result) => {
       expect(result).toBeDefined();
       expect(result.confidence).toBeGreaterThanOrEqual(0);
     });
   });
 
-  it('should handle cleanup during processing', async () => {
+  it("should handle cleanup during processing", async () => {
     const request: InpaintingRequest = {
       imageData: new Uint8Array(100 * 100 * 3).fill(128),
       imageWidth: 100,
@@ -623,7 +642,7 @@ describe('InpaintingModelService Edge Cases', () => {
         height: 100,
         boundingBox: { x: 0, y: 0, width: 100, height: 100 },
       },
-      quality: 'high',
+      quality: "high",
     };
 
     // Start processing
@@ -636,7 +655,7 @@ describe('InpaintingModelService Edge Cases', () => {
     await expect(processingPromise).resolves.toBeDefined();
   });
 
-  it('should handle very large images gracefully', async () => {
+  it("should handle very large images gracefully", async () => {
     const request: InpaintingRequest = {
       imageData: new Uint8Array(1000 * 1000 * 3).fill(128),
       imageWidth: 1000,
@@ -647,7 +666,7 @@ describe('InpaintingModelService Edge Cases', () => {
         height: 1000,
         boundingBox: { x: 0, y: 0, width: 1000, height: 1000 },
       },
-      quality: 'fast',
+      quality: "fast",
     };
 
     const result = await service.inpaint(request);
@@ -658,7 +677,7 @@ describe('InpaintingModelService Edge Cases', () => {
     expect(result.height).toBeLessThanOrEqual(512);
   });
 
-  it('should handle very small images gracefully', async () => {
+  it("should handle very small images gracefully", async () => {
     const request: InpaintingRequest = {
       imageData: new Uint8Array(20 * 20 * 3).fill(128),
       imageWidth: 20,
@@ -669,7 +688,7 @@ describe('InpaintingModelService Edge Cases', () => {
         height: 20,
         boundingBox: { x: 0, y: 0, width: 20, height: 20 },
       },
-      quality: 'high',
+      quality: "high",
     };
 
     const result = await service.inpaint(request);

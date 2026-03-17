@@ -2,8 +2,8 @@
 // Tests that don't require expo module imports
 
 import { describe, it, expect } from "vitest";
-import { 
-  ARGON2ID_CONFIG, 
+import {
+  ARGON2ID_CONFIG,
   KEY_DERIVATION_SALT_BYTES,
   KEY_DERIVATION_INFO_BYTES,
   MASTER_KEY_SALT,
@@ -46,7 +46,7 @@ describe("Key Derivation Constants", () => {
 describe("Key Type Enum", () => {
   it("should have correct key type values", async () => {
     const { KeyType } = await import("./key-derivation");
-    
+
     expect(KeyType.MASTER).toBe("master");
     expect(KeyType.FILE).toBe("file");
     expect(KeyType.SHARING).toBe("sharing");
@@ -57,19 +57,21 @@ describe("Key Type Enum", () => {
 describe("Key Validation", () => {
   it("should validate key format correctly", async () => {
     const { isValidKey } = await import("./key-derivation");
-    
+
     // Valid 32-byte hex key
-    const validKey = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
+    const validKey =
+      "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
     expect(isValidKey(validKey)).toBe(true);
-    
+
     // Invalid length
     const shortKey = "abcdef1234567890";
     expect(isValidKey(shortKey)).toBe(false);
-    
+
     // Invalid characters
-    const invalidKey = "ghijklmnopqrstuvwxyz1234567890abcdef1234567890abcdef1234567890";
+    const invalidKey =
+      "ghijklmnopqrstuvwxyz1234567890abcdef1234567890abcdef1234567890";
     expect(isValidKey(invalidKey)).toBe(false);
-    
+
     // Empty key
     expect(isValidKey("")).toBe(false);
   });
@@ -78,7 +80,7 @@ describe("Key Validation", () => {
 describe("Salt Generation", () => {
   it("should generate salt with correct format", async () => {
     const { generateDerivationSalt } = await import("./key-derivation");
-    
+
     // Mock crypto for testing
     const mockCrypto = {
       getRandomValues: vi.fn((array) => {
@@ -88,12 +90,12 @@ describe("Salt Generation", () => {
         return array;
       }),
     };
-    
+
     Object.defineProperty(global, "crypto", {
       value: mockCrypto,
       writable: true,
     });
-    
+
     const salt = generateDerivationSalt();
     expect(salt).toMatch(/^[0-9a-fA-F]{32}$/); // 16 bytes = 32 hex chars
     expect(salt.length).toBe(32);
@@ -103,7 +105,7 @@ describe("Salt Generation", () => {
 describe("Key Hierarchy Constants", () => {
   it("should have correct hierarchy structure", async () => {
     const { KeyType } = await import("./key-derivation");
-    
+
     // Verify all key types are defined
     const keyTypes = Object.values(KeyType);
     expect(keyTypes).toContain("master");
@@ -129,7 +131,7 @@ describe("Security Properties", () => {
     expect(FILE_KEY_CONTEXT).not.toBe(SHARING_KEY_CONTEXT);
     expect(SHARING_KEY_CONTEXT).not.toBe(DEVICE_KEY_CONTEXT);
     expect(DEVICE_KEY_CONTEXT).not.toBe(MASTER_KEY_SALT);
-    
+
     // Verify context strings are descriptive
     expect(MASTER_KEY_SALT).toContain("master");
     expect(FILE_KEY_CONTEXT).toContain("file");

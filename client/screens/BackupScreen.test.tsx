@@ -22,7 +22,7 @@ vi.mock("@/lib/query-client", () => ({
 vi.mock("react-native", () => {
   const ReactNative = vi.importActual("react-native");
   return {
-    ...ReactNative as any,
+    ...(ReactNative as any),
     Alert: {
       alert: vi.fn(),
     },

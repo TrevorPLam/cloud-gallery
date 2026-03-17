@@ -8,7 +8,13 @@
 // TESTS: Component tests for user interactions, accessibility tests
 // AI-META-END
 
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from "react";
 import {
   StyleSheet,
   View,
@@ -17,7 +23,7 @@ import {
   Alert,
   Dimensions,
   Platform,
-} from 'react-native';
+} from "react-native";
 import MapView, {
   Marker,
   Callout,
@@ -26,13 +32,13 @@ import MapView, {
   PROVIDER_DEFAULT,
   Region,
   Marker as MapMarker,
-} from 'react-native-maps';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Image } from 'expo-image';
-import { useQuery } from '@tanstack/react-query';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { PanGestureHandler, State } from 'react-native-gesture-handler';
+} from "react-native-maps";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { Image } from "expo-image";
+import { useQuery } from "@tanstack/react-query";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { PanGestureHandler, State } from "react-native-gesture-handler";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -41,16 +47,16 @@ import Animated, {
   interpolate,
   Extrapolation,
   runOnJS,
-} from 'react-native-reanimated';
+} from "react-native-reanimated";
 
-import { useTheme } from '@/hooks/useTheme';
-import { apiRequest } from '@/lib/query-client';
-import { Photo } from '@/types';
-import { RootStackParamList } from '@/navigation/RootStackNavigator';
-import { Spacing, BorderRadius, Typography } from '@/constants/theme';
-import { ThemedText } from '@/components/ThemedText';
-import { Button } from '@/components/Button';
-import { Icon } from '@/components/Icon';
+import { useTheme } from "@/hooks/useTheme";
+import { apiRequest } from "@/lib/query-client";
+import { Photo } from "@/types";
+import { RootStackParamList } from "@/navigation/RootStackNavigator";
+import { Spacing, BorderRadius, Typography } from "@/constants/theme";
+import { ThemedText } from "@/components/ThemedText";
+import { Button } from "@/components/Button";
+import { Icon } from "@/components/Icon";
 
 // Import map services
 import {
@@ -60,7 +66,7 @@ import {
   getClusterSizeText,
   getClusterPhotos,
   type ClusterPoint,
-} from '@/lib/map/photo-clustering';
+} from "@/lib/map/photo-clustering";
 import {
   HeatmapRenderer,
   heatmapRenderer,
@@ -68,7 +74,7 @@ import {
   createDensityBasedGradient,
   type HeatmapPoint,
   type HeatmapRegion,
-} from '@/lib/map/heatmap-renderer';
+} from "@/lib/map/heatmap-renderer";
 import {
   useTemporalLayers,
   TimeUtils,
@@ -76,12 +82,12 @@ import {
   getTemporalStatistics,
   type TemporalLayer,
   type TimelineConfig,
-} from '@/lib/map/temporal-layers';
+} from "@/lib/map/temporal-layers";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 interface MapMode {
-  type: 'markers' | 'clusters' | 'heatmap' | 'temporal';
+  type: "markers" | "clusters" | "heatmap" | "temporal";
   label: string;
 }
 
@@ -91,11 +97,11 @@ interface ViewState {
   isMoving: boolean;
 }
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 /**
  * Interactive Photo Map Screen
- * 
+ *
  * Features:
  * - Photo clustering with SuperCluster
  * - Heatmap visualization for photo density
@@ -109,7 +115,7 @@ export default function PhotoMapScreen() {
   const insets = useSafeAreaInsets();
 
   // Map state
-  const [currentMode, setCurrentMode] = useState<MapMode['type']>('clusters');
+  const [currentMode, setCurrentMode] = useState<MapMode["type"]>("clusters");
   const [viewState, setViewState] = useState<ViewState>({
     region: {
       latitude: 37.78825,
@@ -127,14 +133,20 @@ export default function PhotoMapScreen() {
   const panelHeight = useSharedValue(screenHeight * 0.3);
 
   // Services
-  const clusteringService = useRef<PhotoClusteringService>(photoClusteringService);
+  const clusteringService = useRef<PhotoClusteringService>(
+    photoClusteringService,
+  );
   const heatmapService = useRef<HeatmapRenderer>(heatmapRenderer);
 
   // Data fetching
-  const { data: photos = [], isLoading, error } = useQuery<Photo[]>({
-    queryKey: ['photos'],
+  const {
+    data: photos = [],
+    isLoading,
+    error,
+  } = useQuery<Photo[]>({
+    queryKey: ["photos"],
     queryFn: async () => {
-      const res = await apiRequest('GET', '/api/photos');
+      const res = await apiRequest("GET", "/api/photos");
       const data = await res.json();
       return data.photos;
     },
@@ -155,21 +167,22 @@ export default function PhotoMapScreen() {
     seekToTime,
     setSpeed,
   } = useTemporalLayers(photos, {
-    bucketSize: 'week',
+    bucketSize: "week",
     animationDuration: 300,
     paddingDays: 7,
   });
 
   // Filter photos with valid locations
   const photosWithLocation = useMemo(() => {
-    return photos.filter(photo => 
-      photo.location &&
-      typeof photo.location.latitude === 'number' &&
-      typeof photo.location.longitude === 'number' &&
-      photo.location.latitude >= -90 &&
-      photo.location.latitude <= 90 &&
-      photo.location.longitude >= -180 &&
-      photo.location.longitude <= 180
+    return photos.filter(
+      (photo) =>
+        photo.location &&
+        typeof photo.location.latitude === "number" &&
+        typeof photo.location.longitude === "number" &&
+        photo.location.latitude >= -90 &&
+        photo.location.latitude <= 90 &&
+        photo.location.longitude >= -180 &&
+        photo.location.longitude <= 180,
     );
   }, [photos]);
 
@@ -183,10 +196,10 @@ export default function PhotoMapScreen() {
 
   // Map modes configuration
   const mapModes: MapMode[] = [
-    { type: 'markers', label: 'Markers' },
-    { type: 'clusters', label: 'Clusters' },
-    { type: 'heatmap', label: 'Heatmap' },
-    { type: 'temporal', label: 'Timeline' },
+    { type: "markers", label: "Markers" },
+    { type: "clusters", label: "Clusters" },
+    { type: "heatmap", label: "Heatmap" },
+    { type: "temporal", label: "Timeline" },
   ];
 
   // Calculate optimal clustering radius based on zoom
@@ -196,16 +209,21 @@ export default function PhotoMapScreen() {
 
   // Get clusters for current viewport
   const clusters = useMemo(() => {
-    if (currentMode !== 'clusters' || photosWithLocation.length === 0) return [];
+    if (currentMode !== "clusters" || photosWithLocation.length === 0)
+      return [];
 
     const bounds = {
       northeast: {
-        latitude: viewState.region.latitude + viewState.region.latitudeDelta / 2,
-        longitude: viewState.region.longitude + viewState.region.longitudeDelta / 2,
+        latitude:
+          viewState.region.latitude + viewState.region.latitudeDelta / 2,
+        longitude:
+          viewState.region.longitude + viewState.region.longitudeDelta / 2,
       },
       southwest: {
-        latitude: viewState.region.latitude - viewState.region.latitudeDelta / 2,
-        longitude: viewState.region.longitude - viewState.region.longitudeDelta / 2,
+        latitude:
+          viewState.region.latitude - viewState.region.latitudeDelta / 2,
+        longitude:
+          viewState.region.longitude - viewState.region.longitudeDelta / 2,
       },
     };
 
@@ -215,7 +233,7 @@ export default function PhotoMapScreen() {
 
   // Get heatmap data for current viewport
   const heatmapData = useMemo(() => {
-    if (currentMode !== 'heatmap' || photosWithLocation.length === 0) return [];
+    if (currentMode !== "heatmap" || photosWithLocation.length === 0) return [];
 
     const region: HeatmapRegion = {
       longitude: viewState.region.longitude,
@@ -224,12 +242,15 @@ export default function PhotoMapScreen() {
       latitudeDelta: viewState.region.latitudeDelta,
     };
 
-    return heatmapService.current.generateHeatmapData(photosWithLocation, region);
+    return heatmapService.current.generateHeatmapData(
+      photosWithLocation,
+      region,
+    );
   }, [currentMode, viewState, photosWithLocation]);
 
   // Get temporal photos for current time
   const temporalPhotos = useMemo(() => {
-    if (currentMode !== 'temporal') return [];
+    if (currentMode !== "temporal") return [];
     return visiblePhotos.value || [];
   }, [currentMode, visiblePhotos]);
 
@@ -241,26 +262,31 @@ export default function PhotoMapScreen() {
     },
     onActive: (event, context) => {
       gestureY.value = context.startY + event.translationY;
-      
+
       // Limit panel movement
       const maxHeight = screenHeight * 0.7;
       const minHeight = screenHeight * 0.1;
-      gestureY.value = Math.max(-maxHeight, Math.min(minHeight, gestureY.value));
+      gestureY.value = Math.max(
+        -maxHeight,
+        Math.min(minHeight, gestureY.value),
+      );
     },
     onEnd: () => {
       gestureState.value = State.END;
-      
+
       // Snap to nearest position
       const snapPoints = [
         0, // Closed
         -screenHeight * 0.3, // Half open
         -screenHeight * 0.6, // Fully open
       ];
-      
-      const closestSnap = snapPoints.reduce((prev, curr) => 
-        Math.abs(curr - gestureY.value) < Math.abs(prev - gestureY.value) ? curr : prev
+
+      const closestSnap = snapPoints.reduce((prev, curr) =>
+        Math.abs(curr - gestureY.value) < Math.abs(prev - gestureY.value)
+          ? curr
+          : prev,
       );
-      
+
       gestureY.value = withSpring(closestSnap, {
         damping: 20,
         stiffness: 300,
@@ -276,14 +302,14 @@ export default function PhotoMapScreen() {
         gestureY.value,
         [0, -screenHeight * 0.3, -screenHeight * 0.6],
         [screenHeight * 0.1, screenHeight * 0.4, screenHeight * 0.7],
-        Extrapolation.CLAMP
+        Extrapolation.CLAMP,
       ),
     };
   });
 
   // Handle map region change
   const handleRegionChange = useCallback((region: Region) => {
-    setViewState(prev => ({
+    setViewState((prev) => ({
       ...prev,
       region,
       zoom: Math.log2(360 / region.longitudeDelta),
@@ -291,23 +317,26 @@ export default function PhotoMapScreen() {
   }, []);
 
   // Handle marker press
-  const handleMarkerPress = useCallback((photo: Photo) => {
-    const originalIndex = photos.findIndex(p => p.id === photo.id);
-    navigation.navigate('PhotoDetail', {
-      photoId: photo.id,
-      initialIndex: originalIndex !== -1 ? originalIndex : 0,
-    });
-  }, [navigation, photos]);
+  const handleMarkerPress = useCallback(
+    (photo: Photo) => {
+      const originalIndex = photos.findIndex((p) => p.id === photo.id);
+      navigation.navigate("PhotoDetail", {
+        photoId: photo.id,
+        initialIndex: originalIndex !== -1 ? originalIndex : 0,
+      });
+    },
+    [navigation, photos],
+  );
 
   // Handle cluster press
   const handleClusterPress = useCallback((cluster: ClusterPoint) => {
     if (!isCluster(cluster)) return;
 
     const expansionZoom = clusteringService.current.getClusterExpansionZoom(
-      cluster.properties.cluster_id!
+      cluster.properties.cluster_id!,
     );
 
-    setViewState(prev => ({
+    setViewState((prev) => ({
       ...prev,
       region: {
         latitude: cluster.geometry.coordinates[1],
@@ -320,94 +349,135 @@ export default function PhotoMapScreen() {
   }, []);
 
   // Render individual marker
-  const renderMarker = useCallback((photo: Photo) => (
-    <Marker
-      key={photo.id}
-      coordinate={{
-        latitude: photo.location!.latitude,
-        longitude: photo.location!.longitude,
-      }}
-      title={photo.location?.city || 'Photo'}
-      onPress={() => handleMarkerPress(photo)}
-    >
-      <View style={[styles.markerContainer, { borderColor: theme.colors.background }]}>
-        <Image
-          source={{ uri: photo.uri }}
-          style={styles.markerImage}
-          contentFit="cover"
-        />
-      </View>
-      <Callout tooltip>
-        <View style={[styles.calloutContainer, { backgroundColor: theme.colors.background }]}>
+  const renderMarker = useCallback(
+    (photo: Photo) => (
+      <Marker
+        key={photo.id}
+        coordinate={{
+          latitude: photo.location!.latitude,
+          longitude: photo.location!.longitude,
+        }}
+        title={photo.location?.city || "Photo"}
+        onPress={() => handleMarkerPress(photo)}
+      >
+        <View
+          style={[
+            styles.markerContainer,
+            { borderColor: theme.colors.background },
+          ]}
+        >
           <Image
             source={{ uri: photo.uri }}
-            style={styles.calloutImage}
+            style={styles.markerImage}
+            contentFit="cover"
           />
-          <ThemedText style={styles.calloutText}>
-            {photo.location?.city || 'View Photo'}
-          </ThemedText>
         </View>
-      </Callout>
-    </Marker>
-  ), [theme.colors.background, handleMarkerPress]);
+        <Callout tooltip>
+          <View
+            style={[
+              styles.calloutContainer,
+              { backgroundColor: theme.colors.background },
+            ]}
+          >
+            <Image source={{ uri: photo.uri }} style={styles.calloutImage} />
+            <ThemedText style={styles.calloutText}>
+              {photo.location?.city || "View Photo"}
+            </ThemedText>
+          </View>
+        </Callout>
+      </Marker>
+    ),
+    [theme.colors.background, handleMarkerPress],
+  );
 
   // Render cluster marker
-  const renderCluster = useCallback((cluster: ClusterPoint) => (
-    <Marker
-      key={cluster.properties.cluster_id}
-      coordinate={{
-        latitude: cluster.geometry.coordinates[1],
-        longitude: cluster.geometry.coordinates[0],
-      }}
-      onPress={() => handleClusterPress(cluster)}
-    >
-      <View style={[styles.clusterContainer, { backgroundColor: theme.colors.primary }]}>
-        <ThemedText style={styles.clusterText}>
-          {getClusterSizeText(cluster)}
-        </ThemedText>
-      </View>
-      <Callout tooltip>
-        <View style={[styles.calloutContainer, { backgroundColor: theme.colors.background }]}>
-          <ThemedText style={styles.calloutText}>
-            {getClusterSizeText(cluster)} photos
+  const renderCluster = useCallback(
+    (cluster: ClusterPoint) => (
+      <Marker
+        key={cluster.properties.cluster_id}
+        coordinate={{
+          latitude: cluster.geometry.coordinates[1],
+          longitude: cluster.geometry.coordinates[0],
+        }}
+        onPress={() => handleClusterPress(cluster)}
+      >
+        <View
+          style={[
+            styles.clusterContainer,
+            { backgroundColor: theme.colors.primary },
+          ]}
+        >
+          <ThemedText style={styles.clusterText}>
+            {getClusterSizeText(cluster)}
           </ThemedText>
-          <Button
-            variant="ghost"
-            size="sm"
-            onPress={() => handleClusterPress(cluster)}
-          >
-            Zoom to cluster
-          </Button>
         </View>
-      </Callout>
-    </Marker>
-  ), [theme.colors.primary, theme.colors.background, handleClusterPress]);
+        <Callout tooltip>
+          <View
+            style={[
+              styles.calloutContainer,
+              { backgroundColor: theme.colors.background },
+            ]}
+          >
+            <ThemedText style={styles.calloutText}>
+              {getClusterSizeText(cluster)} photos
+            </ThemedText>
+            <Button
+              variant="ghost"
+              size="sm"
+              onPress={() => handleClusterPress(cluster)}
+            >
+              Zoom to cluster
+            </Button>
+          </View>
+        </Callout>
+      </Marker>
+    ),
+    [theme.colors.primary, theme.colors.background, handleClusterPress],
+  );
 
   // Render temporal marker
-  const renderTemporalMarker = useCallback((photo: Photo) => (
-    <Marker
-      key={`temporal-${photo.id}`}
-      coordinate={{
-        latitude: photo.location!.latitude,
-        longitude: photo.location!.longitude,
-      }}
-      title={TimeUtils.formatTimestamp(photo.createdAt)}
-      onPress={() => handleMarkerPress(photo)}
-    >
-      <View style={[styles.temporalMarkerContainer, { borderColor: theme.colors.accent }]}>
-        <Image
-          source={{ uri: photo.uri }}
-          style={styles.temporalMarkerImage}
-          contentFit="cover"
-        />
-        <View style={[styles.temporalIndicator, { backgroundColor: theme.colors.accent }]} />
-      </View>
-    </Marker>
-  ), [theme.colors.accent, handleMarkerPress]);
+  const renderTemporalMarker = useCallback(
+    (photo: Photo) => (
+      <Marker
+        key={`temporal-${photo.id}`}
+        coordinate={{
+          latitude: photo.location!.latitude,
+          longitude: photo.location!.longitude,
+        }}
+        title={TimeUtils.formatTimestamp(photo.createdAt)}
+        onPress={() => handleMarkerPress(photo)}
+      >
+        <View
+          style={[
+            styles.temporalMarkerContainer,
+            { borderColor: theme.colors.accent },
+          ]}
+        >
+          <Image
+            source={{ uri: photo.uri }}
+            style={styles.temporalMarkerImage}
+            contentFit="cover"
+          />
+          <View
+            style={[
+              styles.temporalIndicator,
+              { backgroundColor: theme.colors.accent },
+            ]}
+          />
+        </View>
+      </Marker>
+    ),
+    [theme.colors.accent, handleMarkerPress],
+  );
 
   // Render mode selector
   const renderModeSelector = () => (
-    <View style={[styles.modeSelector, { backgroundColor: theme.colors.background }]}>
+    <View
+      style={[
+        styles.modeSelector,
+        { backgroundColor: theme.colors.background },
+      ]}
+    >
       {mapModes.map((mode) => (
         <TouchableOpacity
           key={mode.type}
@@ -439,13 +509,18 @@ export default function PhotoMapScreen() {
 
   // render timeline controls
   const renderTimelineControls = () => {
-    if (currentMode !== 'temporal') return null;
+    if (currentMode !== "temporal") return null;
 
     const timeRange = temporalService.getOverallTimeRange();
     const stats = getTemporalStatistics(temporalService.getLayers());
 
     return (
-      <View style={[styles.timelineControls, { backgroundColor: theme.colors.background }]}>
+      <View
+        style={[
+          styles.timelineControls,
+          { backgroundColor: theme.colors.background },
+        ]}
+      >
         <View style={styles.timelineHeader}>
           <ThemedText type="h4">Timeline</ThemedText>
           <ThemedText type="small">
@@ -455,7 +530,10 @@ export default function PhotoMapScreen() {
 
         <View style={styles.timelineInfo}>
           <ThemedText type="small">
-            {TimeUtils.formatTimestamp(currentTime.value || Date.now(), 'medium')}
+            {TimeUtils.formatTimestamp(
+              currentTime.value || Date.now(),
+              "medium",
+            )}
           </ThemedText>
           <ThemedText type="small">
             {temporalPhotos.length} photos visible
@@ -467,11 +545,13 @@ export default function PhotoMapScreen() {
             variant="ghost"
             size="sm"
             onPress={isPlayingValue.value ? pause : play}
-            accessibilityLabel={isPlayingValue.value ? 'Pause timeline' : 'Play timeline'}
+            accessibilityLabel={
+              isPlayingValue.value ? "Pause timeline" : "Play timeline"
+            }
           >
-            <Icon name={isPlayingValue.value ? 'pause' : 'play'} size={16} />
+            <Icon name={isPlayingValue.value ? "pause" : "play"} size={16} />
           </Button>
-          
+
           <Button
             variant="ghost"
             size="sm"
@@ -480,7 +560,7 @@ export default function PhotoMapScreen() {
           >
             <Icon name="skip-back" size={16} />
           </Button>
-          
+
           <Button
             variant="ghost"
             size="sm"
@@ -500,47 +580,62 @@ export default function PhotoMapScreen() {
     const heatmapStats = heatmapService.current.getStats();
 
     return (
-      <View style={[styles.statsPanel, { backgroundColor: theme.colors.background }]}>
+      <View
+        style={[
+          styles.statsPanel,
+          { backgroundColor: theme.colors.background },
+        ]}
+      >
         <ThemedText type="h4" style={styles.statsTitle}>
           Map Statistics
         </ThemedText>
-        
+
         <View style={styles.statsRow}>
           <ThemedText type="small">Total Photos:</ThemedText>
           <ThemedText type="small">{photosWithLocation.length}</ThemedText>
         </View>
 
-        {currentMode === 'clusters' && (
+        {currentMode === "clusters" && (
           <>
             <View style={styles.statsRow}>
               <ThemedText type="small">Clusters:</ThemedText>
-              <ThemedText type="small">{clusteringStats.clusterCount}</ThemedText>
+              <ThemedText type="small">
+                {clusteringStats.clusterCount}
+              </ThemedText>
             </View>
             <View style={styles.statsRow}>
               <ThemedText type="small">Avg Points/Cluster:</ThemedText>
-              <ThemedText type="small">{clusteringStats.averagePointsPerCluster.toFixed(1)}</ThemedText>
+              <ThemedText type="small">
+                {clusteringStats.averagePointsPerCluster.toFixed(1)}
+              </ThemedText>
             </View>
           </>
         )}
 
-        {currentMode === 'heatmap' && heatmapStats && (
+        {currentMode === "heatmap" && heatmapStats && (
           <>
             <View style={styles.statsRow}>
               <ThemedText type="small">Max Intensity:</ThemedText>
-              <ThemedText type="small">{heatmapStats.maxIntensity.toFixed(1)}</ThemedText>
+              <ThemedText type="small">
+                {heatmapStats.maxIntensity.toFixed(1)}
+              </ThemedText>
             </View>
             <View style={styles.statsRow}>
               <ThemedText type="small">Density:</ThemedText>
-              <ThemedText type="small">{heatmapStats.density.toFixed(2)}/km²</ThemedText>
+              <ThemedText type="small">
+                {heatmapStats.density.toFixed(2)}/km²
+              </ThemedText>
             </View>
           </>
         )}
 
-        {currentMode === 'temporal' && (
+        {currentMode === "temporal" && (
           <>
             <View style={styles.statsRow}>
               <ThemedText type="small">Time Layers:</ThemedText>
-              <ThemedText type="small">{temporalService.getLayers().length}</ThemedText>
+              <ThemedText type="small">
+                {temporalService.getLayers().length}
+              </ThemedText>
             </View>
             <View style={styles.statsRow}>
               <ThemedText type="small">Visible Photos:</ThemedText>
@@ -566,15 +661,13 @@ export default function PhotoMapScreen() {
     return (
       <View style={[styles.container, styles.errorContainer]}>
         <ThemedText>Error loading photos</ThemedText>
-        <Button onPress={() => window.location.reload()}>
-          Retry
-        </Button>
+        <Button onPress={() => window.location.reload()}>Retry</Button>
       </View>
     );
   }
 
   // Web platform fallback
-  if (Platform.OS === 'web') {
+  if (Platform.OS === "web") {
     return (
       <View style={[styles.container, styles.webFallback]}>
         <ThemedText>
@@ -585,31 +678,35 @@ export default function PhotoMapScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       {/* Map View */}
       <MapView
         style={styles.map}
         initialRegion={viewState.region}
         onRegionChangeComplete={handleRegionChange}
-        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
+        provider={
+          Platform.OS === "android" ? PROVIDER_GOOGLE : PROVIDER_DEFAULT
+        }
         showsUserLocation
         showsMyLocationButton
       >
         {/* Render based on current mode */}
-        {currentMode === 'markers' && photosWithLocation.map(renderMarker)}
-        {currentMode === 'clusters' && clusters.map(renderCluster)}
-        {currentMode === 'temporal' && temporalPhotos.map(renderTemporalMarker)}
+        {currentMode === "markers" && photosWithLocation.map(renderMarker)}
+        {currentMode === "clusters" && clusters.map(renderCluster)}
+        {currentMode === "temporal" && temporalPhotos.map(renderTemporalMarker)}
 
         {/* Heatmap overlay */}
-        {currentMode === 'heatmap' && heatmapData.length > 0 && (
+        {currentMode === "heatmap" && heatmapData.length > 0 && (
           <View
             style={{
-              position: 'absolute',
+              position: "absolute",
               top: 0,
               left: 0,
               right: 0,
               bottom: 0,
-              pointerEvents: 'none',
+              pointerEvents: "none",
             }}
           >
             {/* Heatmap component would be rendered here */}
@@ -620,7 +717,9 @@ export default function PhotoMapScreen() {
       </MapView>
 
       {/* Mode Selector */}
-      <View style={[styles.modeSelectorContainer, { top: insets.top + Spacing.md }]}>
+      <View
+        style={[styles.modeSelectorContainer, { top: insets.top + Spacing.md }]}
+      >
         {renderModeSelector()}
       </View>
 
@@ -644,35 +743,35 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   errorContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: Spacing.lg,
   },
   webFallback: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: Spacing.lg,
   },
   map: {
     flex: 1,
   },
   modeSelectorContainer: {
-    position: 'absolute',
+    position: "absolute",
     left: Spacing.lg,
     right: Spacing.lg,
   },
   modeSelector: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    flexDirection: "row",
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
     borderRadius: BorderRadius.md,
     padding: Spacing.xs,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -683,7 +782,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.sm,
     borderRadius: BorderRadius.sm,
-    alignItems: 'center',
+    alignItems: "center",
   },
   modeButtonText: {
     fontSize: Typography.sizes.sm,
@@ -694,27 +793,27 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     borderWidth: 2,
-    overflow: 'hidden',
-    backgroundColor: '#ccc',
+    overflow: "hidden",
+    backgroundColor: "#ccc",
   },
   markerImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   clusterContainer: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 5,
   },
   clusterText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: Typography.sizes.sm,
     fontWeight: Typography.weights.bold,
   },
@@ -723,16 +822,16 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     borderWidth: 3,
-    overflow: 'hidden',
-    backgroundColor: '#ccc',
-    position: 'relative',
+    overflow: "hidden",
+    backgroundColor: "#ccc",
+    position: "relative",
   },
   temporalMarkerImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   temporalIndicator: {
-    position: 'absolute',
+    position: "absolute",
     top: -2,
     right: -2,
     width: 12,
@@ -743,8 +842,8 @@ const styles = StyleSheet.create({
     width: 150,
     borderRadius: BorderRadius.md,
     padding: Spacing.xs,
-    alignItems: 'center',
-    shadowColor: '#000',
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -759,46 +858,46 @@ const styles = StyleSheet.create({
   calloutText: {
     fontSize: Typography.sizes.sm,
     fontWeight: Typography.weights.medium,
-    textAlign: 'center',
+    textAlign: "center",
   },
   timelineControls: {
-    position: 'absolute',
+    position: "absolute",
     top: 100,
     left: Spacing.lg,
     right: Spacing.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
   timelineHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: Spacing.sm,
   },
   timelineInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: Spacing.md,
   },
   timelineButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
   },
   bottomPanel: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
     borderTopLeftRadius: BorderRadius.lg,
     borderTopRightRadius: BorderRadius.lg,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -811,8 +910,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: Spacing.xs,
   },
 });

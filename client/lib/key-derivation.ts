@@ -82,7 +82,7 @@ export async function deriveKeyWithContext(
 
     // Create context-specific info for HKDF-like domain separation
     const infoBuffer = Buffer.from(context, "utf8");
-    
+
     // Use Argon2id with OWASP parameters and context info
     const hash = await argon2.hash(password, {
       ...ARGON2ID_CONFIG,
@@ -95,7 +95,9 @@ export async function deriveKeyWithContext(
     return Buffer.from(hash).toString("hex");
   } catch (error) {
     console.error("Key derivation failed:", error);
-    throw new Error(`Key derivation failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+    throw new Error(
+      `Key derivation failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 }
 
@@ -132,7 +134,7 @@ export async function deriveMasterKey(
   salt?: string,
 ): Promise<DerivedKey> {
   const masterSalt = salt || generateDerivationSalt();
-  
+
   const key = await deriveKeyWithContext(
     password,
     masterSalt,
@@ -167,17 +169,17 @@ export async function deriveSpecializedKey(
   let context: string;
   switch (keyType) {
     case KeyType.FILE:
-      context = identifier 
+      context = identifier
         ? `${FILE_KEY_CONTEXT}:${identifier}`
         : FILE_KEY_CONTEXT;
       break;
     case KeyType.SHARING:
-      context = identifier 
+      context = identifier
         ? `${SHARING_KEY_CONTEXT}:${identifier}`
         : SHARING_KEY_CONTEXT;
       break;
     case KeyType.DEVICE:
-      context = identifier 
+      context = identifier
         ? `${DEVICE_KEY_CONTEXT}:${identifier}`
         : DEVICE_KEY_CONTEXT;
       break;
@@ -216,7 +218,7 @@ export async function checkBiometricAvailability(): Promise<{
     return {
       available: hasHardware,
       enrolled: isEnrolled,
-      types: supportedTypes.map(type => type.toString()),
+      types: supportedTypes.map((type) => type.toString()),
     };
   } catch (error) {
     console.error("Biometric availability check failed:", error);
@@ -240,10 +242,11 @@ export async function authenticateWithBiometrics(
     });
 
     if (result.success) {
-      const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
+      const supportedTypes =
+        await LocalAuthentication.supportedAuthenticationTypesAsync();
       return {
         success: true,
-        biometricType: supportedTypes.map(type => type.toString()),
+        biometricType: supportedTypes.map((type) => type.toString()),
       };
     } else {
       return {
@@ -283,7 +286,7 @@ export async function storeMasterKey(
     };
 
     await SecureStore.setItemAsync(MASTER_KEY_ENCRYPTED, masterKey, options);
-    
+
     // Store biometric enrollment status
     await SecureStore.setItemAsync(
       BIOMETRIC_ENROLLMENT_KEY,
@@ -307,8 +310,11 @@ export async function retrieveMasterKey(
 ): Promise<string | null> {
   try {
     // Check if biometrics are required
-    const biometricEnrolled = await SecureStore.getItemAsync(BIOMETRIC_ENROLLMENT_KEY);
-    const shouldUseBiometrics = requireBiometrics || biometricEnrolled === "true";
+    const biometricEnrolled = await SecureStore.getItemAsync(
+      BIOMETRIC_ENROLLMENT_KEY,
+    );
+    const shouldUseBiometrics =
+      requireBiometrics || biometricEnrolled === "true";
 
     if (shouldUseBiometrics) {
       // Authenticate with biometrics first
@@ -371,10 +377,10 @@ export async function createAndStoreMasterKey(
   try {
     // Derive master key from password
     const masterKeyResult = await deriveMasterKey(password);
-    
+
     // Store the derived master key
     const stored = await storeMasterKey(masterKeyResult.key, useBiometrics);
-    
+
     if (stored) {
       // Store the derivation salt for future verification
       await SecureStore.setItemAsync(
@@ -383,7 +389,7 @@ export async function createAndStoreMasterKey(
       );
       return masterKeyResult.key;
     }
-    
+
     return null;
   } catch (error) {
     console.error("Failed to create and store master key:", error);
@@ -399,14 +405,16 @@ export async function createAndStoreMasterKey(
 export async function verifyMasterKey(password: string): Promise<boolean> {
   try {
     // Get stored salt
-    const storedSalt = await SecureStore.getItemAsync(MASTER_KEY_DERIVATION_SALT);
+    const storedSalt = await SecureStore.getItemAsync(
+      MASTER_KEY_DERIVATION_SALT,
+    );
     if (!storedSalt) {
       return false;
     }
 
     // Derive key with stored salt
     const derivedResult = await deriveMasterKey(password, storedSalt);
-    
+
     // Get stored master key
     const storedKey = await SecureStore.getItemAsync(MASTER_KEY_ENCRYPTED);
     if (!storedKey) {

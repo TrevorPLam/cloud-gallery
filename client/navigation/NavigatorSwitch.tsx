@@ -11,9 +11,7 @@ export default function NavigatorSwitch() {
 
   if (isLoading) {
     return (
-      <View
-        style={[styles.loading, { backgroundColor: theme.backgroundRoot }]}
-      >
+      <View style={[styles.loading, { backgroundColor: theme.backgroundRoot }]}>
         <ActivityIndicator size="large" />
       </View>
     );

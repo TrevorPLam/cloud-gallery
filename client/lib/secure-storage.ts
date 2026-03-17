@@ -76,7 +76,9 @@ async function getEncryptionKey(): Promise<string> {
   }
 }
 
-function extractSensitiveMetadata(photo: Partial<Photo>): SensitivePhotoMetadata {
+function extractSensitiveMetadata(
+  photo: Partial<Photo>,
+): SensitivePhotoMetadata {
   const metadata: SensitivePhotoMetadata = {};
   if (photo.location) metadata.location = photo.location;
   if (photo.camera) metadata.camera = photo.camera;
@@ -391,7 +393,12 @@ export function groupPhotosByDate(
 }
 
 export async function clearAllData(): Promise<void> {
-  await AsyncStorage.multiRemove([PHOTOS_KEY, ALBUMS_KEY, METADATA_KEY, USER_KEY]);
+  await AsyncStorage.multiRemove([
+    PHOTOS_KEY,
+    ALBUMS_KEY,
+    METADATA_KEY,
+    USER_KEY,
+  ]);
 }
 
 export async function resetEncryption(): Promise<void> {

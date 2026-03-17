@@ -57,9 +57,7 @@ async function plainSaveAlbums(albums: Album[]): Promise<void> {
 // ─── Public API (delegates to secure or plain) ─────────────────────────────
 
 export async function getPhotos(): Promise<Photo[]> {
-  return USE_ENCRYPTED_STORAGE
-    ? secureStorage.getPhotos()
-    : plainGetPhotos();
+  return USE_ENCRYPTED_STORAGE ? secureStorage.getPhotos() : plainGetPhotos();
 }
 
 export async function savePhotos(photos: Photo[]): Promise<void> {
@@ -111,9 +109,7 @@ export async function toggleFavorite(photoId: string): Promise<Photo | null> {
 }
 
 export async function getAlbums(): Promise<Album[]> {
-  return USE_ENCRYPTED_STORAGE
-    ? secureStorage.getAlbums()
-    : plainGetAlbums();
+  return USE_ENCRYPTED_STORAGE ? secureStorage.getAlbums() : plainGetAlbums();
 }
 
 export async function saveAlbums(albums: Album[]): Promise<void> {

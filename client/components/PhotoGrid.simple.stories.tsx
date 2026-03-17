@@ -1,14 +1,14 @@
 /**
  * Visual regression stories for PhotoGrid component
- * 
+ *
  * Purpose: Visual testing with Storybook/Chromatic integration
  * Usage: Run visual tests to catch UI regressions
  * Standards: Consistent appearance across different photo layouts
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
-import { PhotoGrid } from './PhotoGrid';
-import { Photo } from '@/types';
+import type { Meta, StoryObj } from "@storybook/react";
+import { PhotoGrid } from "./PhotoGrid";
+import { Photo } from "@/types";
 
 // Mock photo data for visual testing
 const mockPhotos: Photo[] = Array.from({ length: 6 }, (_, i) => ({
@@ -21,12 +21,12 @@ const mockPhotos: Photo[] = Array.from({ length: 6 }, (_, i) => ({
   isFavorite: i % 3 === 0,
   metadata: {
     size: 1024 * 100,
-    format: 'jpeg',
+    format: "jpeg",
   },
 }));
 
 const meta: Meta<typeof PhotoGrid> = {
-  title: 'Components/PhotoGrid',
+  title: "Components/PhotoGrid",
   component: PhotoGrid,
   parameters: {
     chromatic: {
@@ -39,13 +39,13 @@ const meta: Meta<typeof PhotoGrid> = {
         tablet: { width: 768, height: 1024 },
         desktop: { width: 1200, height: 800 },
       },
-      defaultViewport: 'mobile',
+      defaultViewport: "mobile",
     },
   },
   argTypes: {
-    photos: { control: 'object' },
-    onPhotoPress: { action: 'photoPressed' },
-    onPhotoLongPress: { action: 'photoLongPressed' },
+    photos: { control: "object" },
+    onPhotoPress: { action: "photoPressed" },
+    onPhotoLongPress: { action: "photoLongPressed" },
   },
 };
 
@@ -55,7 +55,8 @@ type Story = StoryObj<typeof PhotoGrid>;
 export const Default: Story = {
   args: {
     photos: mockPhotos,
-    onPhotoPress: (photo, index) => console.log('Photo pressed:', photo.id, index),
+    onPhotoPress: (photo, index) =>
+      console.log("Photo pressed:", photo.id, index),
   },
 };
 
@@ -73,7 +74,7 @@ export const Empty: Story = {
 
 export const WithFavorites: Story = {
   args: {
-    photos: mockPhotos.filter(photo => photo.isFavorite),
+    photos: mockPhotos.filter((photo) => photo.isFavorite),
     onPhotoPress: () => {},
   },
 };
@@ -85,7 +86,7 @@ export const MobileView: Story = {
   },
   parameters: {
     viewport: {
-      defaultViewport: 'mobile',
+      defaultViewport: "mobile",
     },
   },
 };
@@ -97,7 +98,7 @@ export const TabletView: Story = {
   },
   parameters: {
     viewport: {
-      defaultViewport: 'tablet',
+      defaultViewport: "tablet",
     },
   },
 };
@@ -109,7 +110,7 @@ export const DesktopView: Story = {
   },
   parameters: {
     viewport: {
-      defaultViewport: 'desktop',
+      defaultViewport: "desktop",
     },
   },
 };

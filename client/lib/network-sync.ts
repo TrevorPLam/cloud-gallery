@@ -5,26 +5,26 @@
 // DEPENDENCIES: @react-native-async-storage/async-storage, react-native NetInfo
 // AI-META-END
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 
 // Network types and states
 export enum NetworkType {
-  NONE = 'none',
-  CELLULAR = 'cellular',
-  WIFI = 'wifi',
-  ETHERNET = 'ethernet',
-  BLUETOOTH = 'bluetooth',
-  WIMAX = 'wimax',
-  VPN = 'vpn',
-  OTHER = 'other',
+  NONE = "none",
+  CELLULAR = "cellular",
+  WIFI = "wifi",
+  ETHERNET = "ethernet",
+  BLUETOOTH = "bluetooth",
+  WIMAX = "wimax",
+  VPN = "vpn",
+  OTHER = "other",
 }
 
 export enum NetworkQuality {
-  POOR = 'poor',      // < 1 Mbps
-  FAIR = 'fair',      // 1-5 Mbps
-  GOOD = 'good',      // 5-20 Mbps
-  EXCELLENT = 'excellent' // > 20 Mbps
+  POOR = "poor", // < 1 Mbps
+  FAIR = "fair", // 1-5 Mbps
+  GOOD = "good", // 5-20 Mbps
+  EXCELLENT = "excellent", // > 20 Mbps
 }
 
 // Sync preferences for network conditions
@@ -60,8 +60,8 @@ const DEFAULT_NETWORK_PREFERENCES: NetworkSyncPreferences = {
 };
 
 // Storage keys
-const NETWORK_PREFERENCES_KEY = '@network_sync_preferences';
-const NETWORK_STATS_KEY = '@network_stats';
+const NETWORK_PREFERENCES_KEY = "@network_sync_preferences";
+const NETWORK_STATS_KEY = "@network_stats";
 
 // Network statistics
 export interface NetworkStats {
@@ -83,14 +83,14 @@ export async function getCurrentNetworkState(): Promise<NetworkState> {
     // In production, install and configure @react-native-community/netinfo
     let NetInfo;
     try {
-      NetInfo = require('@react-native-community/netinfo').default;
+      NetInfo = require("@react-native-community/netinfo").default;
     } catch (error) {
-      console.warn('NetInfo not available, using fallback network detection');
+      console.warn("NetInfo not available, using fallback network detection");
       return getFallbackNetworkState();
     }
-    
+
     const state = await NetInfo.fetch();
-    
+
     let quality = NetworkQuality.POOR;
     let downlinkSpeed = 0;
     let uplinkSpeed = 0;
@@ -99,7 +99,7 @@ export async function getCurrentNetworkState(): Promise<NetworkState> {
     // Estimate quality based on connection type and effective type
     if (state.details) {
       const { effectiveType, downlink } = state.details;
-      
+
       if (downlink) {
         downlinkSpeed = downlink;
         // Estimate uplink as 1/3 of downlink (typical ratio)
@@ -108,20 +108,20 @@ export async function getCurrentNetworkState(): Promise<NetworkState> {
 
       // Estimate RTT based on effective type
       switch (effectiveType) {
-        case '2g':
+        case "2g":
           rtt = 1200;
           quality = NetworkQuality.POOR;
           break;
-        case '3g':
+        case "3g":
           rtt = 400;
           quality = NetworkQuality.FAIR;
           break;
-        case '4g':
+        case "4g":
           rtt = 100;
           quality = NetworkQuality.GOOD;
           break;
         default:
-          if (state.type === 'wifi') {
+          if (state.type === "wifi") {
             rtt = 50;
             quality = NetworkQuality.EXCELLENT;
           }
@@ -134,13 +134,13 @@ export async function getCurrentNetworkState(): Promise<NetworkState> {
       type: mapNetInfoType(state.type),
       quality,
       isConnectionExpensive: state.isConnectionExpensive ?? false,
-      effectiveType: state.details?.effectiveType || 'unknown',
+      effectiveType: state.details?.effectiveType || "unknown",
       downlinkSpeed,
       uplinkSpeed,
       rtt,
     };
   } catch (error) {
-    console.warn('NetInfo not available, using fallback network detection');
+    console.warn("NetInfo not available, using fallback network detection");
     return getFallbackNetworkState();
   }
 }
@@ -155,7 +155,7 @@ function getFallbackNetworkState(): NetworkState {
     type: NetworkType.WIFI, // Assume WiFi for fallback
     quality: NetworkQuality.GOOD,
     isConnectionExpensive: false,
-    effectiveType: 'wifi',
+    effectiveType: "wifi",
     downlinkSpeed: 10,
     uplinkSpeed: 3,
     rtt: 50,
@@ -167,15 +167,15 @@ function getFallbackNetworkState(): NetworkState {
  */
 function mapNetInfoType(netInfoType: string): NetworkType {
   switch (netInfoType) {
-    case 'none':
+    case "none":
       return NetworkType.NONE;
-    case 'cellular':
+    case "cellular":
       return NetworkType.CELLULAR;
-    case 'wifi':
+    case "wifi":
       return NetworkType.WIFI;
-    case 'ethernet':
+    case "ethernet":
       return NetworkType.ETHERNET;
-    case 'bluetooth':
+    case "bluetooth":
       return NetworkType.BLUETOOTH;
     default:
       return NetworkType.OTHER;
@@ -193,7 +193,7 @@ export async function getNetworkSyncPreferences(): Promise<NetworkSyncPreference
     }
     return DEFAULT_NETWORK_PREFERENCES;
   } catch (error) {
-    console.error('Error loading network preferences:', error);
+    console.error("Error loading network preferences:", error);
     return DEFAULT_NETWORK_PREFERENCES;
   }
 }
@@ -202,14 +202,17 @@ export async function getNetworkSyncPreferences(): Promise<NetworkSyncPreference
  * Save network sync preferences to storage
  */
 export async function saveNetworkSyncPreferences(
-  preferences: Partial<NetworkSyncPreferences>
+  preferences: Partial<NetworkSyncPreferences>,
 ): Promise<void> {
   try {
     const current = await getNetworkSyncPreferences();
     const updated = { ...current, ...preferences };
-    await AsyncStorage.setItem(NETWORK_PREFERENCES_KEY, JSON.stringify(updated));
+    await AsyncStorage.setItem(
+      NETWORK_PREFERENCES_KEY,
+      JSON.stringify(updated),
+    );
   } catch (error) {
-    console.error('Error saving network preferences:', error);
+    console.error("Error saving network preferences:", error);
   }
 }
 
@@ -217,21 +220,21 @@ export async function saveNetworkSyncPreferences(
  * Check if network conditions are optimal for sync
  */
 export async function isNetworkOptimal(
-  preferences?: NetworkSyncPreferences
+  preferences?: NetworkSyncPreferences,
 ): Promise<{
   isOptimal: boolean;
   reason?: string;
   networkState: NetworkState;
 }> {
   try {
-    const prefs = preferences || await getNetworkSyncPreferences();
+    const prefs = preferences || (await getNetworkSyncPreferences());
     const networkState = await getCurrentNetworkState();
 
     // Check if connected
     if (!networkState.isConnected) {
       return {
         isOptimal: false,
-        reason: 'No network connection',
+        reason: "No network connection",
         networkState,
       };
     }
@@ -240,7 +243,7 @@ export async function isNetworkOptimal(
     if (networkState.type === NetworkType.CELLULAR && !prefs.allowOnCellular) {
       return {
         isOptimal: false,
-        reason: 'Cellular sync disabled in preferences',
+        reason: "Cellular sync disabled in preferences",
         networkState,
       };
     }
@@ -248,14 +251,16 @@ export async function isNetworkOptimal(
     if (networkState.type === NetworkType.WIFI && !prefs.allowOnWiFi) {
       return {
         isOptimal: false,
-        reason: 'WiFi sync disabled in preferences',
+        reason: "WiFi sync disabled in preferences",
         networkState,
       };
     }
 
     // Check minimum quality requirements
     if (networkState.type === NetworkType.CELLULAR) {
-      if (!isQualitySufficient(networkState.quality, prefs.minimumCellularQuality)) {
+      if (
+        !isQualitySufficient(networkState.quality, prefs.minimumCellularQuality)
+      ) {
         return {
           isOptimal: false,
           reason: `Cellular quality ${networkState.quality} below minimum ${prefs.minimumCellularQuality}`,
@@ -265,7 +270,9 @@ export async function isNetworkOptimal(
     }
 
     if (networkState.type === NetworkType.WIFI) {
-      if (!isQualitySufficient(networkState.quality, prefs.minimumWiFiQuality)) {
+      if (
+        !isQualitySufficient(networkState.quality, prefs.minimumWiFiQuality)
+      ) {
         return {
           isOptimal: false,
           reason: `WiFi quality ${networkState.quality} below minimum ${prefs.minimumWiFiQuality}`,
@@ -275,7 +282,10 @@ export async function isNetworkOptimal(
     }
 
     // Check data usage limits for cellular
-    if (networkState.type === NetworkType.CELLULAR && networkState.isConnectionExpensive) {
+    if (
+      networkState.type === NetworkType.CELLULAR &&
+      networkState.isConnectionExpensive
+    ) {
       const stats = await getNetworkStats();
       if (stats.totalDataUsed >= prefs.maxCellularDataUsage) {
         return {
@@ -288,10 +298,10 @@ export async function isNetworkOptimal(
 
     return { isOptimal: true, networkState };
   } catch (error) {
-    console.error('Error checking network optimization:', error);
+    console.error("Error checking network optimization:", error);
     return {
       isOptimal: false,
-      reason: 'Error checking network conditions',
+      reason: "Error checking network conditions",
       networkState: getFallbackNetworkState(),
     };
   }
@@ -302,7 +312,7 @@ export async function isNetworkOptimal(
  */
 function isQualitySufficient(
   current: NetworkQuality,
-  minimum: NetworkQuality
+  minimum: NetworkQuality,
 ): boolean {
   const qualityLevels = {
     [NetworkQuality.POOR]: 1,
@@ -332,7 +342,7 @@ export async function getNetworkStats(): Promise<NetworkStats> {
       lastNetworkTest: null,
     };
   } catch (error) {
-    console.error('Error loading network stats:', error);
+    console.error("Error loading network stats:", error);
     return {
       totalSyncsOnWiFi: 0,
       totalSyncsOnCellular: 0,
@@ -349,11 +359,11 @@ export async function getNetworkStats(): Promise<NetworkStats> {
  */
 export async function updateNetworkStats(
   networkState: NetworkState,
-  dataUsed: number // MB
+  dataUsed: number, // MB
 ): Promise<void> {
   try {
     const stats = await getNetworkStats();
-    
+
     // Update sync counts
     if (networkState.type === NetworkType.WIFI) {
       stats.totalSyncsOnWiFi++;
@@ -367,17 +377,21 @@ export async function updateNetworkStats(
     // Update speed averages
     if (networkState.downlinkSpeed && networkState.uplinkSpeed) {
       const totalSyncs = stats.totalSyncsOnWiFi + stats.totalSyncsOnCellular;
-      stats.averageDownloadSpeed = 
-        (stats.averageDownloadSpeed * (totalSyncs - 1) + networkState.downlinkSpeed) / totalSyncs;
-      stats.averageUploadSpeed = 
-        (stats.averageUploadSpeed * (totalSyncs - 1) + networkState.uplinkSpeed) / totalSyncs;
+      stats.averageDownloadSpeed =
+        (stats.averageDownloadSpeed * (totalSyncs - 1) +
+          networkState.downlinkSpeed) /
+        totalSyncs;
+      stats.averageUploadSpeed =
+        (stats.averageUploadSpeed * (totalSyncs - 1) +
+          networkState.uplinkSpeed) /
+        totalSyncs;
     }
 
     stats.lastNetworkTest = Date.now();
 
     await AsyncStorage.setItem(NETWORK_STATS_KEY, JSON.stringify(stats));
   } catch (error) {
-    console.error('Error updating network stats:', error);
+    console.error("Error updating network stats:", error);
   }
 }
 
@@ -388,7 +402,7 @@ export async function resetNetworkStats(): Promise<void> {
   try {
     await AsyncStorage.removeItem(NETWORK_STATS_KEY);
   } catch (error) {
-    console.error('Error resetting network stats:', error);
+    console.error("Error resetting network stats:", error);
   }
 }
 
@@ -409,7 +423,7 @@ export function getBandwidthAdaptation(networkState: NetworkState): {
         timeout: 30000, // 30 seconds
         retryAttempts: 3,
       };
-    
+
     case NetworkQuality.GOOD:
       return {
         maxConcurrentUploads: 3,
@@ -417,7 +431,7 @@ export function getBandwidthAdaptation(networkState: NetworkState): {
         timeout: 45000, // 45 seconds
         retryAttempts: 5,
       };
-    
+
     case NetworkQuality.FAIR:
       return {
         maxConcurrentUploads: 2,
@@ -425,7 +439,7 @@ export function getBandwidthAdaptation(networkState: NetworkState): {
         timeout: 60000, // 60 seconds
         retryAttempts: 7,
       };
-    
+
     case NetworkQuality.POOR:
       return {
         maxConcurrentUploads: 1,
@@ -433,7 +447,7 @@ export function getBandwidthAdaptation(networkState: NetworkState): {
         timeout: 90000, // 90 seconds
         retryAttempts: 10,
       };
-    
+
     default:
       return {
         maxConcurrentUploads: 1,
@@ -449,9 +463,11 @@ export function getBandwidthAdaptation(networkState: NetworkState): {
  */
 export function supportsResume(networkState: NetworkState): boolean {
   // Resume is supported on stable connections (WiFi and good cellular)
-  return networkState.type === NetworkType.WIFI || 
-         (networkState.type === NetworkType.CELLULAR && 
-          networkState.quality >= NetworkQuality.GOOD);
+  return (
+    networkState.type === NetworkType.WIFI ||
+    (networkState.type === NetworkType.CELLULAR &&
+      networkState.quality >= NetworkQuality.GOOD)
+  );
 }
 
 // Export types for use in other modules

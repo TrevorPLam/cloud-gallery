@@ -1,84 +1,84 @@
 /**
  * Visual regression stories for AlbumCard component
- * 
+ *
  * Purpose: Visual testing with Storybook/Chromatic integration
  * Usage: Run visual tests to catch UI regressions
  * Standards: Consistent appearance across different album states
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
-import { AlbumCard } from './AlbumCard';
-import { Album } from '@/types';
-import { chromaticConfig } from '../test-utils/visual-testing';
+import type { Meta, StoryObj } from "@storybook/react";
+import { AlbumCard } from "./AlbumCard";
+import { Album } from "@/types";
+import { chromaticConfig } from "../test-utils/visual-testing";
 
 // Mock album data for visual testing
 const mockAlbums: Album[] = [
   {
-    id: 'album-1',
-    title: 'Summer Vacation 2023',
-    photoIds: ['photo-1', 'photo-2', 'photo-3'],
-    coverPhotoUri: 'https://picsum.photos/400/225?random=1',
-    createdAt: new Date('2023-07-15').toISOString(),
-    updatedAt: new Date('2023-07-15').toISOString(),
+    id: "album-1",
+    title: "Summer Vacation 2023",
+    photoIds: ["photo-1", "photo-2", "photo-3"],
+    coverPhotoUri: "https://picsum.photos/400/225?random=1",
+    createdAt: new Date("2023-07-15").toISOString(),
+    updatedAt: new Date("2023-07-15").toISOString(),
   },
   {
-    id: 'album-2',
-    title: 'Family Photos',
-    photoIds: ['photo-4', 'photo-5'],
-    coverPhotoUri: 'https://picsum.photos/400/225?random=2',
-    createdAt: new Date('2023-06-20').toISOString(),
-    updatedAt: new Date('2023-06-20').toISOString(),
+    id: "album-2",
+    title: "Family Photos",
+    photoIds: ["photo-4", "photo-5"],
+    coverPhotoUri: "https://picsum.photos/400/225?random=2",
+    createdAt: new Date("2023-06-20").toISOString(),
+    updatedAt: new Date("2023-06-20").toISOString(),
   },
   {
-    id: 'album-3',
-    title: 'Nature Photography',
-    photoIds: ['photo-6', 'photo-7', 'photo-8', 'photo-9', 'photo-10'],
-    coverPhotoUri: 'https://picsum.photos/400/225?random=3',
-    createdAt: new Date('2023-05-10').toISOString(),
-    updatedAt: new Date('2023-05-10').toISOString(),
+    id: "album-3",
+    title: "Nature Photography",
+    photoIds: ["photo-6", "photo-7", "photo-8", "photo-9", "photo-10"],
+    coverPhotoUri: "https://picsum.photos/400/225?random=3",
+    createdAt: new Date("2023-05-10").toISOString(),
+    updatedAt: new Date("2023-05-10").toISOString(),
   },
   {
-    id: 'album-4',
-    title: 'Empty Album',
+    id: "album-4",
+    title: "Empty Album",
     photoIds: [],
     coverPhotoUri: undefined,
-    createdAt: new Date('2023-08-01').toISOString(),
-    updatedAt: new Date('2023-08-01').toISOString(),
+    createdAt: new Date("2023-08-01").toISOString(),
+    updatedAt: new Date("2023-08-01").toISOString(),
   },
   {
-    id: 'album-5',
-    title: 'Very Long Album Title That Should Wrap Properly',
+    id: "album-5",
+    title: "Very Long Album Title That Should Wrap Properly",
     photoIds: Array.from({ length: 100 }, (_, i) => `photo-long-${i}`),
-    coverPhotoUri: 'https://picsum.photos/400/225?random=4',
-    createdAt: new Date('2023-04-15').toISOString(),
-    updatedAt: new Date('2023-04-15').toISOString(),
+    coverPhotoUri: "https://picsum.photos/400/225?random=4",
+    createdAt: new Date("2023-04-15").toISOString(),
+    updatedAt: new Date("2023-04-15").toISOString(),
   },
 ];
 
 // Mock theme hook
 const mockTheme = {
-  backgroundRoot: '#ffffff',
-  backgroundDefault: '#f8fafc',
-  backgroundSecondary: '#f1f5f9',
-  backgroundTertiary: '#e2e8f0',
-  text: '#1e293b',
-  textSecondary: '#64748b',
+  backgroundRoot: "#ffffff",
+  backgroundDefault: "#f8fafc",
+  backgroundSecondary: "#f1f5f9",
+  backgroundTertiary: "#e2e8f0",
+  text: "#1e293b",
+  textSecondary: "#64748b",
 };
 
 const mockUseTheme = () => ({ theme: mockTheme });
 
 // Mock the useTheme hook and Platform
-jest.mock('@/hooks/useTheme', () => ({
+jest.mock("@/hooks/useTheme", () => ({
   useTheme: mockUseTheme,
 }));
 
-jest.mock('react-native', () => ({
-  ...jest.requireActual('react-native'),
-  Platform: { OS: 'web' },
+jest.mock("react-native", () => ({
+  ...jest.requireActual("react-native"),
+  Platform: { OS: "web" },
 }));
 
 const meta: Meta<typeof AlbumCard> = {
-  title: 'Components/AlbumCard',
+  title: "Components/AlbumCard",
   component: AlbumCard,
   parameters: {
     // Visual testing parameters
@@ -92,13 +92,13 @@ const meta: Meta<typeof AlbumCard> = {
         mobile: { width: 375, height: 667 },
         tablet: { width: 768, height: 1024 },
       },
-      defaultViewport: 'mobile',
+      defaultViewport: "mobile",
     },
   },
   argTypes: {
-    album: { control: 'object' },
-    onPress: { action: 'albumPressed' },
-    onLongPress: { action: 'albumLongPressed' },
+    album: { control: "object" },
+    onPress: { action: "albumPressed" },
+    onLongPress: { action: "albumLongPressed" },
   },
 };
 
@@ -109,7 +109,7 @@ type Story = StoryObj<typeof AlbumCard>;
 export const Default: Story = {
   args: {
     album: mockAlbums[0],
-    onPress: (album) => console.log('Album pressed:', album.title),
+    onPress: (album) => console.log("Album pressed:", album.title),
   },
 };
 
@@ -160,7 +160,7 @@ export const ShortTitle: Story = {
   args: {
     album: {
       ...mockAlbums[0],
-      title: 'Trip',
+      title: "Trip",
     },
     onPress: () => {},
   },
@@ -171,7 +171,7 @@ export const WithLongPress: Story = {
   args: {
     album: mockAlbums[0],
     onPress: () => {},
-    onLongPress: (album) => console.log('Album long pressed:', album.title),
+    onLongPress: (album) => console.log("Album long pressed:", album.title),
   },
 };
 
@@ -186,16 +186,16 @@ export const WithoutLongPress: Story = {
 export const VisualRegression: Story = {
   render: () => {
     return (
-      <div style={{ padding: '16px' }}>
+      <div style={{ padding: "16px" }}>
         <h3>Album Card Variations</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           {mockAlbums.map((album, index) => (
-            <div key={album.id} style={{ maxWidth: '300px' }}>
+            <div key={album.id} style={{ maxWidth: "300px" }}>
               <h4>{album.title}</h4>
-              <AlbumCard 
-                album={album} 
-                onPress={() => {}} 
-                onLongPress={() => {}} 
+              <AlbumCard
+                album={album}
+                onPress={() => {}}
+                onLongPress={() => {}}
               />
             </div>
           ))}
@@ -219,7 +219,7 @@ export const MobileView: Story = {
   },
   parameters: {
     viewport: {
-      defaultViewport: 'mobile',
+      defaultViewport: "mobile",
     },
   },
 };
@@ -231,7 +231,7 @@ export const TabletView: Story = {
   },
   parameters: {
     viewport: {
-      defaultViewport: 'tablet',
+      defaultViewport: "tablet",
     },
   },
 };
@@ -244,7 +244,7 @@ export const DarkTheme: Story = {
   },
   parameters: {
     backgrounds: {
-      default: 'dark',
+      default: "dark",
     },
   },
 };
@@ -253,15 +253,17 @@ export const DarkTheme: Story = {
 export const MultipleCards: Story = {
   render: () => {
     return (
-      <div style={{ padding: '16px' }}>
+      <div style={{ padding: "16px" }}>
         <h3>Multiple Album Cards</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+            gap: "16px",
+          }}
+        >
           {mockAlbums.slice(0, 3).map((album) => (
-            <AlbumCard 
-              key={album.id}
-              album={album} 
-              onPress={() => {}} 
-            />
+            <AlbumCard key={album.id} album={album} onPress={() => {}} />
           ))}
         </div>
       </div>

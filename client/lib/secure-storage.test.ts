@@ -46,7 +46,9 @@ const mockAsyncStorage = AsyncStorage as ReturnType<typeof vi.fn> & {
 
 async function setupSecureStoreKey() {
   const SecureStore = await import("expo-secure-store");
-  (SecureStore.getItemAsync as ReturnType<typeof vi.fn>).mockResolvedValue(TEST_KEY_HEX);
+  (SecureStore.getItemAsync as ReturnType<typeof vi.fn>).mockResolvedValue(
+    TEST_KEY_HEX,
+  );
 }
 
 describe("Secure Storage", () => {

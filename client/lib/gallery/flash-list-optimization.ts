@@ -11,9 +11,17 @@
 import { useMemo, useCallback, useRef, useEffect } from "react";
 import { FlashList, FlashListProps } from "@shopify/flash-list";
 import { useWindowDimensions } from "react-native";
-import { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
+import {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from "react-native-reanimated";
 import { Photo } from "@/types";
-import { TimelineNode, ZoomLevel, DEFAULT_ZOOM_LEVELS } from "./timeline-navigation";
+import {
+  TimelineNode,
+  ZoomLevel,
+  DEFAULT_ZOOM_LEVELS,
+} from "./timeline-navigation";
 
 export interface ListItem {
   id: string;
@@ -58,12 +66,12 @@ export const DEFAULT_LAZY_LOADING: LazyLoadingConfig = {
 export function calculateLayoutConfig(
   zoomLevel: ZoomLevel,
   containerWidth: number,
-  gap: number = 4
+  gap: number = 4,
 ): ListLayoutConfig {
   const columns = zoomLevel.columns;
   const itemWidth = (containerWidth - gap * (columns - 1)) / columns;
   const itemHeight = zoomLevel.itemHeight;
-  
+
   return {
     itemHeight,
     columns,
@@ -80,11 +88,11 @@ export function calculateLayoutConfig(
 export function timelineToOptimizedListData(
   nodes: TimelineNode[],
   config: ListLayoutConfig,
-  showHeaders: boolean = true
+  showHeaders: boolean = true,
 ): ListItem[] {
   const items: ListItem[] = [];
-  
-  nodes.forEach(node => {
+
+  nodes.forEach((node) => {
     // Add header if needed
     if (showHeaders && node.level !== "photo") {
       items.push({
@@ -95,12 +103,11 @@ export function timelineToOptimizedListData(
         estimatedHeight: 48,
       });
     }
-    
+
     // Add node item
-    const itemHeight = node.level === "photo" 
-      ? config.itemHeight 
-      : config.itemHeight;
-      
+    const itemHeight =
+      node.level === "photo" ? config.itemHeight : config.itemHeight;
+
     items.push({
       id: node.id,
       type: node.level,
@@ -109,7 +116,7 @@ export function timelineToOptimizedListData(
       estimatedHeight: itemHeight,
     });
   });
-  
+
   return items;
 }
 
@@ -124,41 +131,41 @@ export function usePerformanceMonitor() {
     visibleItems: 0,
     totalItems: 0,
   });
-  
+
   const frameCount = useRef(0);
   const lastFrameTime = useRef(Date.now());
-  
+
   const startRenderTiming = useCallback(() => {
     return performance.now();
   }, []);
-  
+
   const endRenderTiming = useCallback((startTime: number) => {
     const renderTime = performance.now() - startTime;
     metrics.current.renderTime = renderTime;
     return renderTime;
   }, []);
-  
+
   const updateScrollMetrics = useCallback(() => {
     const now = Date.now();
     frameCount.current++;
-    
+
     if (now - lastFrameTime.current >= 1000) {
       metrics.current.scrollFPS = frameCount.current;
       frameCount.current = 0;
       lastFrameTime.current = now;
     }
   }, []);
-  
+
   const updateMemoryUsage = useCallback(() => {
     if (performance.memory) {
       metrics.current.memoryUsage = performance.memory.usedJSHeapSize;
     }
   }, []);
-  
+
   const getMetrics = useCallback(() => {
     return { ...metrics.current };
   }, []);
-  
+
   return {
     startRenderTiming,
     endRenderTiming,
@@ -173,41 +180,47 @@ export function usePerformanceMonitor() {
  */
 export function useLazyLoading(
   data: ListItem[],
-  config: LazyLoadingConfig = DEFAULT_LAZY_LOADING
+  config: LazyLoadingConfig = DEFAULT_LAZY_LOADING,
 ) {
   const loadedCount = useRef(config.batchSize);
   const isLoading = useRef(false);
-  
+
   const visibleData = useMemo(() => {
     if (!config.enabled) return data;
     return data.slice(0, loadedCount.current);
   }, [data, config.enabled]);
-  
+
   const loadMore = useCallback(() => {
     if (isLoading.current || loadedCount.current >= data.length) {
       return false;
     }
-    
+
     isLoading.current = true;
-    const newCount = Math.min(loadedCount.current + config.batchSize, data.length);
+    const newCount = Math.min(
+      loadedCount.current + config.batchSize,
+      data.length,
+    );
     loadedCount.current = newCount;
     isLoading.current = false;
-    
+
     return true;
   }, [data, config.batchSize]);
-  
-  const shouldLoadMore = useCallback((scrollOffset: number, contentHeight: number, containerHeight: number) => {
-    if (!config.enabled || isLoading.current) return false;
-    
-    const scrollRatio = (scrollOffset + containerHeight) / contentHeight;
-    return scrollRatio >= config.threshold;
-  }, [config.enabled, config.threshold]);
-  
+
+  const shouldLoadMore = useCallback(
+    (scrollOffset: number, contentHeight: number, containerHeight: number) => {
+      if (!config.enabled || isLoading.current) return false;
+
+      const scrollRatio = (scrollOffset + containerHeight) / contentHeight;
+      return scrollRatio >= config.threshold;
+    },
+    [config.enabled, config.threshold],
+  );
+
   const reset = useCallback(() => {
     loadedCount.current = config.batchSize;
     isLoading.current = false;
   }, [config.batchSize]);
-  
+
   return {
     visibleData,
     loadMore,
@@ -222,42 +235,48 @@ export function useLazyLoading(
  */
 export function useDynamicItemHeights(
   data: ListItem[],
-  config: ListLayoutConfig
+  config: ListLayoutConfig,
 ) {
   const heightCache = useRef<Map<string, number>>(new Map());
   const measuredHeights = useRef<Map<string, number>>(new Map());
-  
+
   // Initialize height cache with estimated heights
   useEffect(() => {
     heightCache.current.clear();
-    data.forEach(item => {
+    data.forEach((item) => {
       heightCache.current.set(item.id, item.estimatedHeight || item.height);
     });
   }, [data]);
-  
+
   const updateItemHeight = useCallback((itemId: string, height: number) => {
     measuredHeights.current.set(itemId, height);
     heightCache.current.set(itemId, height);
   }, []);
-  
-  const getItemHeight = useCallback((itemId: string): number => {
-    return heightCache.current.get(itemId) || config.estimatedItemSize;
-  }, [config.estimatedItemSize]);
-  
-  const overrideItemLayout = useCallback((layout: any, item: any) => {
-    const height = getItemHeight(item.id);
-    layout.size = height;
-    
-    // Set span for headers
-    if (item.type === "header") {
-      layout.span = config.columns;
-    }
-  }, [config.columns, getItemHeight]);
-  
+
+  const getItemHeight = useCallback(
+    (itemId: string): number => {
+      return heightCache.current.get(itemId) || config.estimatedItemSize;
+    },
+    [config.estimatedItemSize],
+  );
+
+  const overrideItemLayout = useCallback(
+    (layout: any, item: any) => {
+      const height = getItemHeight(item.id);
+      layout.size = height;
+
+      // Set span for headers
+      if (item.type === "header") {
+        layout.span = config.columns;
+      }
+    },
+    [config.columns, getItemHeight],
+  );
+
   const getItemType = useCallback((item: any): string => {
     return item.type;
   }, []);
-  
+
   return {
     updateItemHeight,
     getItemHeight,
@@ -274,13 +293,13 @@ export function useDynamicItemHeights(
 export function useOptimizedFlashListProps(
   data: ListItem[],
   config: ListLayoutConfig,
-  additionalProps: Partial<FlashListProps<any>> = {}
+  additionalProps: Partial<FlashListProps<any>> = {},
 ) {
   const { width: containerWidth } = useWindowDimensions();
   const performanceMonitor = usePerformanceMonitor();
   const lazyLoading = useLazyLoading(data);
   const dynamicHeights = useDynamicItemHeights(data, config);
-  
+
   // Recalculate layout when container size changes
   useEffect(() => {
     if (containerWidth !== config.containerWidth) {
@@ -288,87 +307,98 @@ export function useOptimizedFlashListProps(
       performanceMonitor.updateMemoryUsage();
     }
   }, [containerWidth, config.containerWidth, performanceMonitor]);
-  
-  const renderItem = useCallback((info: any) => {
-    const startTime = performanceMonitor.startRenderTiming();
-    
-    const item = info.item as ListItem;
-    
-    // Render based on item type
-    let content;
-    switch (item.type) {
-      case "header":
-        content = renderHeaderItem(item.data);
-        break;
-      case "year":
-        content = renderYearItem(item.data, config);
-        break;
-      case "month":
-        content = renderMonthItem(item.data, config);
-        break;
-      case "day":
-        content = renderDayItem(item.data, config);
-        break;
-      case "photo":
-        content = renderPhotoItem(item.data, config);
-        break;
-      default:
-        content = null;
-    }
-    
-    performanceMonitor.endRenderTiming(startTime);
-    
-    return content;
-  }, [config, performanceMonitor]);
-  
+
+  const renderItem = useCallback(
+    (info: any) => {
+      const startTime = performanceMonitor.startRenderTiming();
+
+      const item = info.item as ListItem;
+
+      // Render based on item type
+      let content;
+      switch (item.type) {
+        case "header":
+          content = renderHeaderItem(item.data);
+          break;
+        case "year":
+          content = renderYearItem(item.data, config);
+          break;
+        case "month":
+          content = renderMonthItem(item.data, config);
+          break;
+        case "day":
+          content = renderDayItem(item.data, config);
+          break;
+        case "photo":
+          content = renderPhotoItem(item.data, config);
+          break;
+        default:
+          content = null;
+      }
+
+      performanceMonitor.endRenderTiming(startTime);
+
+      return content;
+    },
+    [config, performanceMonitor],
+  );
+
   const onEndReached = useCallback(() => {
     if (lazyLoading.shouldLoadMore(0, 0, 0)) {
       lazyLoading.loadMore();
     }
   }, [lazyLoading]);
-  
-  const onScroll = useCallback((event: any) => {
-    const scrollOffset = event.nativeEvent.contentOffset.y;
-    const contentHeight = event.nativeEvent.contentSize.height;
-    const containerHeight = event.nativeEvent.layoutMeasurement.height;
-    
-    performanceMonitor.updateScrollMetrics();
-    
-    if (lazyLoading.shouldLoadMore(scrollOffset, contentHeight, containerHeight)) {
-      lazyLoading.loadMore();
-    }
-  }, [lazyLoading, performanceMonitor]);
-  
+
+  const onScroll = useCallback(
+    (event: any) => {
+      const scrollOffset = event.nativeEvent.contentOffset.y;
+      const contentHeight = event.nativeEvent.contentSize.height;
+      const containerHeight = event.nativeEvent.layoutMeasurement.height;
+
+      performanceMonitor.updateScrollMetrics();
+
+      if (
+        lazyLoading.shouldLoadMore(scrollOffset, contentHeight, containerHeight)
+      ) {
+        lazyLoading.loadMore();
+      }
+    },
+    [lazyLoading, performanceMonitor],
+  );
+
   const keyExtractor = useCallback((item: ListItem) => item.id, []);
-  
-  const flashListProps: FlashListProps<ListItem> = useMemo(() => ({
-    data: lazyLoading.visibleData,
-    numColumns: config.columns,
-    estimatedItemSize: config.estimatedItemSize,
-    renderItem,
-    keyExtractor,
-    getItemType: dynamicHeights.getItemType,
-    overrideItemLayout: dynamicHeights.overrideItemLayout,
-    onEndReached,
-    onScroll,
-    // Performance optimizations
-    removeClippedSubviews: true,
-    maxToRenderPerBatch: 10,
-    updateCellsBatchingPeriod: 50,
-    initialNumToRender: 15,
-    windowSize: 10,
-    ...additionalProps,
-  }), [
-    lazyLoading.visibleData,
-    config,
-    renderItem,
-    keyExtractor,
-    dynamicHeights,
-    onEndReached,
-    onScroll,
-    additionalProps,
-  ]);
-  
+
+  const flashListProps: FlashListProps<ListItem> = useMemo(
+    () => ({
+      data: lazyLoading.visibleData,
+      numColumns: config.columns,
+      estimatedItemSize: config.estimatedItemSize,
+      renderItem,
+      keyExtractor,
+      getItemType: dynamicHeights.getItemType,
+      overrideItemLayout: dynamicHeights.overrideItemLayout,
+      onEndReached,
+      onScroll,
+      // Performance optimizations
+      removeClippedSubviews: true,
+      maxToRenderPerBatch: 10,
+      updateCellsBatchingPeriod: 50,
+      initialNumToRender: 15,
+      windowSize: 10,
+      ...additionalProps,
+    }),
+    [
+      lazyLoading.visibleData,
+      config,
+      renderItem,
+      keyExtractor,
+      dynamicHeights,
+      onEndReached,
+      onScroll,
+      additionalProps,
+    ],
+  );
+
   return {
     flashListProps,
     performanceMonitor,
@@ -435,48 +465,48 @@ export class MemoryManager {
   private static instance: MemoryManager;
   private memoryPools = new Map<string, any[]>();
   private maxPoolSize = 100;
-  
+
   static getInstance(): MemoryManager {
     if (!MemoryManager.instance) {
       MemoryManager.instance = new MemoryManager();
     }
     return MemoryManager.instance;
   }
-  
+
   // Get item from pool or create new
   getFromPool<T>(poolName: string, factory: () => T): T {
     const pool = this.memoryPools.get(poolName) || [];
-    
+
     if (pool.length > 0) {
       return pool.pop()!;
     }
-    
+
     return factory();
   }
-  
+
   // Return item to pool
   returnToPool<T>(poolName: string, item: T): void {
     const pool = this.memoryPools.get(poolName) || [];
-    
+
     if (pool.length < this.maxPoolSize) {
       pool.push(item);
       this.memoryPools.set(poolName, pool);
     }
   }
-  
+
   // Clear all pools
   clearPools(): void {
     this.memoryPools.clear();
   }
-  
+
   // Get pool statistics
   getPoolStats(): Record<string, number> {
     const stats: Record<string, number> = {};
-    
+
     for (const [name, pool] of this.memoryPools.entries()) {
       stats[name] = pool.length;
     }
-    
+
     return stats;
   }
 }
@@ -490,25 +520,25 @@ export const PerformanceUtils = {
    */
   debounce<T extends (...args: any[]) => any>(
     func: T,
-    wait: number
+    wait: number,
   ): (...args: Parameters<T>) => void {
     let timeout: NodeJS.Timeout;
-    
+
     return (...args: Parameters<T>) => {
       clearTimeout(timeout);
       timeout = setTimeout(() => func(...args), wait);
     };
   },
-  
+
   /**
    * Throttles function calls
    */
   throttle<T extends (...args: any[]) => any>(
     func: T,
-    limit: number
+    limit: number,
   ): (...args: Parameters<T>) => void {
     let inThrottle: boolean;
-    
+
     return (...args: Parameters<T>) => {
       if (!inThrottle) {
         func(...args);
@@ -517,27 +547,27 @@ export const PerformanceUtils = {
       }
     };
   },
-  
+
   /**
    * Measures function execution time
    */
   measure<T extends (...args: any[]) => any>(
     func: T,
-    label?: string
+    label?: string,
   ): (...args: Parameters<T>) => ReturnType<T> {
     return (...args: Parameters<T>) => {
       const start = performance.now();
       const result = func(...args);
       const end = performance.now();
-      
+
       if (label) {
         console.log(`${label}: ${end - start}ms`);
       }
-      
+
       return result;
     };
   },
-  
+
   /**
    * Checks if device is low-end
    */
@@ -545,16 +575,16 @@ export const PerformanceUtils = {
     // Simple heuristic based on memory and cores
     const memory = (navigator as any).deviceMemory;
     const cores = (navigator as any).hardwareConcurrency;
-    
+
     return (memory && memory < 4) || (cores && cores < 4);
   },
-  
+
   /**
    * Gets performance settings based on device capabilities
    */
   getPerformanceSettings() {
     const isLowEnd = this.isLowEndDevice();
-    
+
     return {
       batchSize: isLowEnd ? 25 : 50,
       maxToRenderPerBatch: isLowEnd ? 5 : 10,

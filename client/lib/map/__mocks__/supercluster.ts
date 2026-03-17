@@ -10,36 +10,36 @@ export default class Supercluster {
 
   getClusters(bbox: number[], zoom: number) {
     // If bounds are all zeros, return empty array
-    if (bbox.every(coord => coord === 0)) {
+    if (bbox.every((coord) => coord === 0)) {
       return [];
     }
-    
+
     // Mock clusters - return some test data
     return [
       {
-        type: 'Feature',
+        type: "Feature",
         geometry: {
-          type: 'Point',
+          type: "Point",
           coordinates: [bbox[0] || 0, bbox[1] || 0],
         },
         properties: {
-          photoId: 'test-photo-1',
-          photoUri: 'test://photo1.jpg',
+          photoId: "test-photo-1",
+          photoUri: "test://photo1.jpg",
           createdAt: Date.now(),
           cluster: false,
         },
       },
       {
-        type: 'Feature',
+        type: "Feature",
         geometry: {
-          type: 'Point',
+          type: "Point",
           coordinates: [bbox[2] || 0, bbox[3] || 0],
         },
         properties: {
           cluster: true,
           cluster_id: 1,
           point_count: 5,
-          point_count_abbreviated: '5',
+          point_count_abbreviated: "5",
         },
       },
     ];
@@ -49,14 +49,14 @@ export default class Supercluster {
     // Mock getLeaves method
     return [
       {
-        type: 'Feature',
+        type: "Feature",
         geometry: {
-          type: 'Point',
+          type: "Point",
           coordinates: [0, 0],
         },
         properties: {
-          photoId: 'test-photo-1',
-          photoUri: 'test://photo1.jpg',
+          photoId: "test-photo-1",
+          photoUri: "test://photo1.jpg",
           createdAt: Date.now(),
         },
       },

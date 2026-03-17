@@ -8,28 +8,34 @@
 // TESTS: Component tests, accessibility tests, user interaction tests
 // AI-META-END
 
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react-native';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from "@testing-library/react-native";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import React from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
-import PhotoMapScreen from './PhotoMapScreen';
-import { Photo } from '@/types';
+import PhotoMapScreen from "./PhotoMapScreen";
+import { Photo } from "@/types";
 
 // Mock react-native-maps
-vi.mock('react-native-maps', () => ({
-  MapView: 'MapView',
-  Marker: 'Marker',
-  Callout: 'Callout',
-  Circle: 'Circle',
-  PROVIDER_GOOGLE: 'google',
-  PROVIDER_DEFAULT: 'default',
+vi.mock("react-native-maps", () => ({
+  MapView: "MapView",
+  Marker: "Marker",
+  Callout: "Callout",
+  Circle: "Circle",
+  PROVIDER_GOOGLE: "google",
+  PROVIDER_DEFAULT: "default",
 }));
 
 // Mock expo-image
-vi.mock('expo-image', () => ({
-  Image: 'Image',
+vi.mock("expo-image", () => ({
+  Image: "Image",
 }));
 
 // Mock navigation
@@ -40,21 +46,21 @@ const mockNavigation = {
 };
 
 // Mock theme hook
-vi.mock('@/hooks/useTheme', () => ({
+vi.mock("@/hooks/useTheme", () => ({
   useTheme: () => ({
     theme: {
       colors: {
-        background: '#ffffff',
-        primary: '#007AFF',
-        accent: '#FF3B30',
-        text: '#000000',
+        background: "#ffffff",
+        primary: "#007AFF",
+        accent: "#FF3B30",
+        text: "#000000",
       },
     },
   }),
 }));
 
 // Mock safe area insets
-vi.mock('react-native-safe-area-context', () => ({
+vi.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({
     top: 44,
     bottom: 34,
@@ -64,12 +70,12 @@ vi.mock('react-native-safe-area-context', () => ({
 }));
 
 // Mock api request
-vi.mock('@/lib/query-client', () => ({
+vi.mock("@/lib/query-client", () => ({
   apiRequest: vi.fn(),
 }));
 
 // Mock map services
-vi.mock('@/lib/map/photo-clustering', () => ({
+vi.mock("@/lib/map/photo-clustering", () => ({
   PhotoClusteringService: vi.fn().mockImplementation(() => ({
     loadPhotos: vi.fn(),
     getClusters: vi.fn(() => []),
@@ -93,11 +99,11 @@ vi.mock('@/lib/map/photo-clustering', () => ({
     })),
   },
   isCluster: vi.fn(() => false),
-  getClusterSizeText: vi.fn(() => '1'),
+  getClusterSizeText: vi.fn(() => "1"),
   getClusterPhotos: vi.fn(() => []),
 }));
 
-vi.mock('@/lib/map/heatmap-renderer', () => ({
+vi.mock("@/lib/map/heatmap-renderer", () => ({
   HeatmapRenderer: vi.fn().mockImplementation(() => ({
     processPhotos: vi.fn(() => []),
     generateHeatmapData: vi.fn(() => []),
@@ -115,7 +121,7 @@ vi.mock('@/lib/map/heatmap-renderer', () => ({
   })),
 }));
 
-vi.mock('@/lib/map/temporal-layers', () => ({
+vi.mock("@/lib/map/temporal-layers", () => ({
   useTemporalLayers: vi.fn(() => ({
     service: {
       getOverallTimeRange: vi.fn(() => ({ start: 0, end: Date.now() })),
@@ -134,7 +140,7 @@ vi.mock('@/lib/map/temporal-layers', () => ({
     setSpeed: vi.fn(),
   })),
   TimeUtils: {
-    formatTimestamp: vi.fn(() => 'Jan 1, 2024'),
+    formatTimestamp: vi.fn(() => "Jan 1, 2024"),
     getTimeRange: vi.fn(() => ({ start: 0, end: Date.now() })),
   },
   createTimelineMarkers: vi.fn(() => []),
@@ -147,9 +153,9 @@ vi.mock('@/lib/map/temporal-layers', () => ({
 }));
 
 // Mock Platform
-vi.mock('react-native', () => ({
+vi.mock("react-native", () => ({
   Platform: {
-    OS: 'ios',
+    OS: "ios",
     select: vi.fn((obj) => obj.ios),
   },
   StyleSheet: {
@@ -161,13 +167,13 @@ vi.mock('react-native', () => ({
       height: 667,
     })),
   },
-  View: 'View',
-  Text: 'Text',
-  TouchableOpacity: 'TouchableOpacity',
+  View: "View",
+  Text: "Text",
+  TouchableOpacity: "TouchableOpacity",
   Alert: {
     alert: vi.fn(),
   },
-  PanGestureHandler: 'PanGestureHandler',
+  PanGestureHandler: "PanGestureHandler",
   State: {
     UNDETERMINED: 0,
     ACTIVE: 1,
@@ -176,38 +182,38 @@ vi.mock('react-native', () => ({
 }));
 
 // Mock react-native-reanimated
-vi.mock('react-native-reanimated', () => ({
+vi.mock("react-native-reanimated", () => ({
   useSharedValue: vi.fn((value) => ({ value })),
   useAnimatedStyle: vi.fn(() => ({})),
   useAnimatedGestureHandler: vi.fn(() => ({})),
   withSpring: vi.fn((value, config) => value),
   interpolate: vi.fn(() => 0),
   Extrapolation: {
-    CLAMP: 'clamp',
+    CLAMP: "clamp",
   },
   runOnJS: vi.fn((fn) => fn),
   useDerivedValue: vi.fn((fn) => ({ value: fn() })),
   Animated: {
-    View: 'Animated.View',
+    View: "Animated.View",
   },
 }));
 
 // Mock components
-vi.mock('@/components/ThemedText', () => ({
-  ThemedText: 'ThemedText',
+vi.mock("@/components/ThemedText", () => ({
+  ThemedText: "ThemedText",
 }));
 
-vi.mock('@/components/Button', () => ({
-  Button: 'Button',
+vi.mock("@/components/Button", () => ({
+  Button: "Button",
 }));
 
-vi.mock('@/components/Icon', () => ({
-  Icon: 'Icon',
+vi.mock("@/components/Icon", () => ({
+  Icon: "Icon",
 }));
 
 // Mock react-native-gesture-handler
-vi.mock('react-native-gesture-handler', () => ({
-  PanGestureHandler: 'PanGestureHandler',
+vi.mock("react-native-gesture-handler", () => ({
+  PanGestureHandler: "PanGestureHandler",
   State: {
     UNDETERMINED: 0,
     ACTIVE: 1,
@@ -231,22 +237,22 @@ function createMockPhoto(overrides: Partial<Photo> = {}): Photo {
     location: {
       latitude: 37.78825,
       longitude: -122.4324,
-      city: 'San Francisco',
+      city: "San Francisco",
     },
     ...overrides,
   };
 }
 
 function createMockPhotosWithLocation(count: number): Photo[] {
-  return Array.from({ length: count }, (_, i) => 
+  return Array.from({ length: count }, (_, i) =>
     createMockPhoto({
       id: `photo-${i}`,
       location: {
         latitude: 37.78825 + (Math.random() - 0.5) * 0.1,
         longitude: -122.4324 + (Math.random() - 0.5) * 0.1,
-        city: 'San Francisco',
+        city: "San Francisco",
       },
-    })
+    }),
   );
 }
 
@@ -264,11 +270,11 @@ function renderWithProviders(component: React.ReactElement) {
       <QueryClientProvider client={queryClient}>
         {component}
       </QueryClientProvider>
-    </GestureHandlerRootView>
+    </GestureHandlerRootView>,
   );
 }
 
-describe('PhotoMapScreen', () => {
+describe("PhotoMapScreen", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -277,23 +283,23 @@ describe('PhotoMapScreen', () => {
     vi.restoreAllMocks();
   });
 
-  describe('Basic Rendering', () => {
-    it('should render without crashing', () => {
+  describe("Basic Rendering", () => {
+    it("should render without crashing", () => {
       renderWithProviders(<PhotoMapScreen />);
       // Should not throw
     });
 
-    it('should render loading state initially', () => {
+    it("should render loading state initially", () => {
       renderWithProviders(<PhotoMapScreen />);
       // Loading state would be handled by the query
-      expect(screen.queryByText('Loading photos...')).toBeTruthy();
+      expect(screen.queryByText("Loading photos...")).toBeTruthy();
     });
 
-    it('should render map view when data is loaded', async () => {
+    it("should render map view when data is loaded", async () => {
       const mockPhotos = createMockPhotosWithLocation(5);
-      
+
       // Mock the API response
-      const { apiRequest } = require('@/lib/query-client');
+      const { apiRequest } = require("@/lib/query-client");
       apiRequest.mockResolvedValue({
         json: () => Promise.resolve({ photos: mockPhotos }),
       });
@@ -301,15 +307,15 @@ describe('PhotoMapScreen', () => {
       renderWithProviders(<PhotoMapScreen />);
 
       await waitFor(() => {
-        expect(screen.queryByText('Loading photos...')).toBeFalsy();
+        expect(screen.queryByText("Loading photos...")).toBeFalsy();
       });
     });
   });
 
-  describe('Mode Selection', () => {
-    it('should render mode selector buttons', async () => {
+  describe("Mode Selection", () => {
+    it("should render mode selector buttons", async () => {
       const mockPhotos = createMockPhotosWithLocation(5);
-      const { apiRequest } = require('@/lib/query-client');
+      const { apiRequest } = require("@/lib/query-client");
       apiRequest.mockResolvedValue({
         json: () => Promise.resolve({ photos: mockPhotos }),
       });
@@ -317,16 +323,16 @@ describe('PhotoMapScreen', () => {
       renderWithProviders(<PhotoMapScreen />);
 
       await waitFor(() => {
-        expect(screen.getByText('Markers')).toBeTruthy();
-        expect(screen.getByText('Clusters')).toBeTruthy();
-        expect(screen.getByText('Heatmap')).toBeTruthy();
-        expect(screen.getByText('Timeline')).toBeTruthy();
+        expect(screen.getByText("Markers")).toBeTruthy();
+        expect(screen.getByText("Clusters")).toBeTruthy();
+        expect(screen.getByText("Heatmap")).toBeTruthy();
+        expect(screen.getByText("Timeline")).toBeTruthy();
       });
     });
 
-    it('should switch between modes', async () => {
+    it("should switch between modes", async () => {
       const mockPhotos = createMockPhotosWithLocation(5);
-      const { apiRequest } = require('@/lib/query-client');
+      const { apiRequest } = require("@/lib/query-client");
       apiRequest.mockResolvedValue({
         json: () => Promise.resolve({ photos: mockPhotos }),
       });
@@ -334,21 +340,21 @@ describe('PhotoMapScreen', () => {
       renderWithProviders(<PhotoMapScreen />);
 
       await waitFor(() => {
-        expect(screen.getByText('Markers')).toBeTruthy();
+        expect(screen.getByText("Markers")).toBeTruthy();
       });
 
       // Test switching to heatmap mode
-      fireEvent.press(screen.getByText('Heatmap'));
-      
+      fireEvent.press(screen.getByText("Heatmap"));
+
       // Should update the mode (would need to check internal state)
-      expect(screen.getByText('Heatmap')).toBeTruthy();
+      expect(screen.getByText("Heatmap")).toBeTruthy();
     });
   });
 
-  describe('Timeline Controls', () => {
-    it('should render timeline controls in temporal mode', async () => {
+  describe("Timeline Controls", () => {
+    it("should render timeline controls in temporal mode", async () => {
       const mockPhotos = createMockPhotosWithLocation(5);
-      const { apiRequest } = require('@/lib/query-client');
+      const { apiRequest } = require("@/lib/query-client");
       apiRequest.mockResolvedValue({
         json: () => Promise.resolve({ photos: mockPhotos }),
       });
@@ -356,20 +362,20 @@ describe('PhotoMapScreen', () => {
       renderWithProviders(<PhotoMapScreen />);
 
       await waitFor(() => {
-        expect(screen.getByText('Timeline')).toBeTruthy();
+        expect(screen.getByText("Timeline")).toBeTruthy();
       });
 
       // Switch to temporal mode
-      fireEvent.press(screen.getByText('Timeline'));
+      fireEvent.press(screen.getByText("Timeline"));
 
       await waitFor(() => {
-        expect(screen.getByText('Timeline')).toBeTruthy();
+        expect(screen.getByText("Timeline")).toBeTruthy();
       });
     });
 
-    it('should have timeline control buttons', async () => {
+    it("should have timeline control buttons", async () => {
       const mockPhotos = createMockPhotosWithLocation(5);
-      const { apiRequest } = require('@/lib/query-client');
+      const { apiRequest } = require("@/lib/query-client");
       apiRequest.mockResolvedValue({
         json: () => Promise.resolve({ photos: mockPhotos }),
       });
@@ -377,10 +383,10 @@ describe('PhotoMapScreen', () => {
       renderWithProviders(<PhotoMapScreen />);
 
       await waitFor(() => {
-        expect(screen.getByText('Timeline')).toBeTruthy();
+        expect(screen.getByText("Timeline")).toBeTruthy();
       });
 
-      fireEvent.press(screen.getByText('Timeline'));
+      fireEvent.press(screen.getByText("Timeline"));
 
       // Timeline controls should be visible
       // Note: Since we're mocking the components, we can't test the actual buttons
@@ -388,10 +394,10 @@ describe('PhotoMapScreen', () => {
     });
   });
 
-  describe('Statistics Panel', () => {
-    it('should display statistics for different modes', async () => {
+  describe("Statistics Panel", () => {
+    it("should display statistics for different modes", async () => {
       const mockPhotos = createMockPhotosWithLocation(10);
-      const { apiRequest } = require('@/lib/query-client');
+      const { apiRequest } = require("@/lib/query-client");
       apiRequest.mockResolvedValue({
         json: () => Promise.resolve({ photos: mockPhotos }),
       });
@@ -399,30 +405,30 @@ describe('PhotoMapScreen', () => {
       renderWithProviders(<PhotoMapScreen />);
 
       await waitFor(() => {
-        expect(screen.getByText('Map Statistics')).toBeTruthy();
+        expect(screen.getByText("Map Statistics")).toBeTruthy();
       });
 
       // Should show total photos
-      expect(screen.getByText('Total Photos:')).toBeTruthy();
+      expect(screen.getByText("Total Photos:")).toBeTruthy();
     });
   });
 
-  describe('Photo Filtering', () => {
-    it('should filter photos with valid locations', async () => {
+  describe("Photo Filtering", () => {
+    it("should filter photos with valid locations", async () => {
       const photos = [
         createMockPhoto({
-          location: { latitude: 37.78825, longitude: -122.4324, city: 'SF' },
+          location: { latitude: 37.78825, longitude: -122.4324, city: "SF" },
         }),
         createMockPhoto({ location: undefined }),
         createMockPhoto({
-          location: { latitude: 'invalid' as any, longitude: -122.4324 },
+          location: { latitude: "invalid" as any, longitude: -122.4324 },
         }),
         createMockPhoto({
           location: { latitude: 91, longitude: -122.4324 }, // Invalid latitude
         }),
       ];
-      
-      const { apiRequest } = require('@/lib/query-client');
+
+      const { apiRequest } = require("@/lib/query-client");
       apiRequest.mockResolvedValue({
         json: () => Promise.resolve({ photos }),
       });
@@ -431,91 +437,93 @@ describe('PhotoMapScreen', () => {
 
       await waitFor(() => {
         // Should only process photos with valid locations
-        expect(screen.queryByText('Loading photos...')).toBeFalsy();
+        expect(screen.queryByText("Loading photos...")).toBeFalsy();
       });
 
       // Verify that clustering service was called with filtered photos
-      const { photoClusteringService } = require('@/lib/map/photo-clustering');
+      const { photoClusteringService } = require("@/lib/map/photo-clustering");
       expect(photoClusteringService.loadPhotos).toHaveBeenCalled();
     });
   });
 
-  describe('Error Handling', () => {
-    it('should display error state when API fails', async () => {
-      const { apiRequest } = require('@/lib/query-client');
-      apiRequest.mockRejectedValue(new Error('Network error'));
+  describe("Error Handling", () => {
+    it("should display error state when API fails", async () => {
+      const { apiRequest } = require("@/lib/query-client");
+      apiRequest.mockRejectedValue(new Error("Network error"));
 
       renderWithProviders(<PhotoMapScreen />);
 
       await waitFor(() => {
-        expect(screen.getByText('Error loading photos')).toBeTruthy();
-        expect(screen.getByText('Retry')).toBeTruthy();
+        expect(screen.getByText("Error loading photos")).toBeTruthy();
+        expect(screen.getByText("Retry")).toBeTruthy();
       });
     });
 
-    it('should allow retry on error', async () => {
-      const { apiRequest } = require('@/lib/query-client');
-      apiRequest.mockRejectedValue(new Error('Network error'));
+    it("should allow retry on error", async () => {
+      const { apiRequest } = require("@/lib/query-client");
+      apiRequest.mockRejectedValue(new Error("Network error"));
 
       renderWithProviders(<PhotoMapScreen />);
 
       await waitFor(() => {
-        expect(screen.getByText('Retry')).toBeTruthy();
+        expect(screen.getByText("Retry")).toBeTruthy();
       });
 
       // Test retry functionality
-      fireEvent.press(screen.getByText('Retry'));
-      
+      fireEvent.press(screen.getByText("Retry"));
+
       // Should attempt to fetch again
       expect(apiRequest).toHaveBeenCalledTimes(2);
     });
   });
 
-  describe('Platform Differences', () => {
-    it('should show web fallback on web platform', async () => {
+  describe("Platform Differences", () => {
+    it("should show web fallback on web platform", async () => {
       // Mock Platform.OS to be 'web'
-      const { Platform } = require('react-native');
-      Platform.OS = 'web';
+      const { Platform } = require("react-native");
+      Platform.OS = "web";
 
       renderWithProviders(<PhotoMapScreen />);
 
       await waitFor(() => {
-        expect(screen.getByText(/Map view is not fully supported on web/)).toBeTruthy();
+        expect(
+          screen.getByText(/Map view is not fully supported on web/),
+        ).toBeTruthy();
       });
     });
 
-    it('should use correct map provider based on platform', async () => {
+    it("should use correct map provider based on platform", async () => {
       const mockPhotos = createMockPhotosWithLocation(5);
-      const { apiRequest } = require('@/lib/query-client');
+      const { apiRequest } = require("@/lib/query-client");
       apiRequest.mockResolvedValue({
         json: () => Promise.resolve({ photos: mockPhotos }),
       });
 
       // Test iOS
-      let { Platform } = require('react-native');
-      Platform.OS = 'ios';
+      let { Platform } = require("react-native");
+      Platform.OS = "ios";
 
       renderWithProviders(<PhotoMapScreen />);
 
       await waitFor(() => {
-        expect(screen.queryByText('Loading photos...')).toBeFalsy();
+        expect(screen.queryByText("Loading photos...")).toBeFalsy();
       });
 
       // Test Android
-      Platform.OS = 'android';
+      Platform.OS = "android";
 
       renderWithProviders(<PhotoMapScreen />);
 
       await waitFor(() => {
-        expect(screen.queryByText('Loading photos...')).toBeFalsy();
+        expect(screen.queryByText("Loading photos...")).toBeFalsy();
       });
     });
   });
 
-  describe('Accessibility', () => {
-    it('should have accessible mode buttons', async () => {
+  describe("Accessibility", () => {
+    it("should have accessible mode buttons", async () => {
       const mockPhotos = createMockPhotosWithLocation(5);
-      const { apiRequest } = require('@/lib/query-client');
+      const { apiRequest } = require("@/lib/query-client");
       apiRequest.mockResolvedValue({
         json: () => Promise.resolve({ photos: mockPhotos }),
       });
@@ -523,15 +531,17 @@ describe('PhotoMapScreen', () => {
       renderWithProviders(<PhotoMapScreen />);
 
       await waitFor(() => {
-        const markersButton = screen.getByText('Markers');
-        expect(markersButton.props.accessibilityRole).toBe('button');
-        expect(markersButton.props.accessibilityLabel).toBe('Switch to Markers view');
+        const markersButton = screen.getByText("Markers");
+        expect(markersButton.props.accessibilityRole).toBe("button");
+        expect(markersButton.props.accessibilityLabel).toBe(
+          "Switch to Markers view",
+        );
       });
     });
 
-    it('should indicate selected mode', async () => {
+    it("should indicate selected mode", async () => {
       const mockPhotos = createMockPhotosWithLocation(5);
-      const { apiRequest } = require('@/lib/query-client');
+      const { apiRequest } = require("@/lib/query-client");
       apiRequest.mockResolvedValue({
         json: () => Promise.resolve({ photos: mockPhotos }),
       });
@@ -539,16 +549,18 @@ describe('PhotoMapScreen', () => {
       renderWithProviders(<PhotoMapScreen />);
 
       await waitFor(() => {
-        const markersButton = screen.getByText('Markers');
-        expect(markersButton.props.accessibilityState).toEqual({ selected: true });
+        const markersButton = screen.getByText("Markers");
+        expect(markersButton.props.accessibilityState).toEqual({
+          selected: true,
+        });
       });
     });
   });
 
-  describe('Service Integration', () => {
-    it('should initialize clustering service with photos', async () => {
+  describe("Service Integration", () => {
+    it("should initialize clustering service with photos", async () => {
       const mockPhotos = createMockPhotosWithLocation(5);
-      const { apiRequest } = require('@/lib/query-client');
+      const { apiRequest } = require("@/lib/query-client");
       apiRequest.mockResolvedValue({
         json: () => Promise.resolve({ photos: mockPhotos }),
       });
@@ -556,14 +568,16 @@ describe('PhotoMapScreen', () => {
       renderWithProviders(<PhotoMapScreen />);
 
       await waitFor(() => {
-        const { photoClusteringService } = require('@/lib/map/photo-clustering');
+        const {
+          photoClusteringService,
+        } = require("@/lib/map/photo-clustering");
         expect(photoClusteringService.loadPhotos).toHaveBeenCalled();
       });
     });
 
-    it('should initialize heatmap service with photos', async () => {
+    it("should initialize heatmap service with photos", async () => {
       const mockPhotos = createMockPhotosWithLocation(5);
-      const { apiRequest } = require('@/lib/query-client');
+      const { apiRequest } = require("@/lib/query-client");
       apiRequest.mockResolvedValue({
         json: () => Promise.resolve({ photos: mockPhotos }),
       });
@@ -571,14 +585,14 @@ describe('PhotoMapScreen', () => {
       renderWithProviders(<PhotoMapScreen />);
 
       await waitFor(() => {
-        const { heatmapRenderer } = require('@/lib/map/heatmap-renderer');
+        const { heatmapRenderer } = require("@/lib/map/heatmap-renderer");
         expect(heatmapRenderer.processPhotos).toHaveBeenCalled();
       });
     });
 
-    it('should initialize temporal layers with photos', async () => {
+    it("should initialize temporal layers with photos", async () => {
       const mockPhotos = createMockPhotosWithLocation(5);
-      const { apiRequest } = require('@/lib/query-client');
+      const { apiRequest } = require("@/lib/query-client");
       apiRequest.mockResolvedValue({
         json: () => Promise.resolve({ photos: mockPhotos }),
       });
@@ -586,49 +600,49 @@ describe('PhotoMapScreen', () => {
       renderWithProviders(<PhotoMapScreen />);
 
       await waitFor(() => {
-        const { useTemporalLayers } = require('@/lib/map/temporal-layers');
+        const { useTemporalLayers } = require("@/lib/map/temporal-layers");
         expect(useTemporalLayers).toHaveBeenCalled();
       });
     });
   });
 
-  describe('Performance Considerations', () => {
-    it('should handle large photo collections efficiently', async () => {
+  describe("Performance Considerations", () => {
+    it("should handle large photo collections efficiently", async () => {
       const mockPhotos = createMockPhotosWithLocation(1000);
-      const { apiRequest } = require('@/lib/query-client');
+      const { apiRequest } = require("@/lib/query-client");
       apiRequest.mockResolvedValue({
         json: () => Promise.resolve({ photos: mockPhotos }),
       });
 
       const startTime = Date.now();
-      
+
       renderWithProviders(<PhotoMapScreen />);
 
       await waitFor(() => {
-        expect(screen.queryByText('Loading photos...')).toBeFalsy();
+        expect(screen.queryByText("Loading photos...")).toBeFalsy();
       });
 
       const endTime = Date.now();
       const renderTime = endTime - startTime;
-      
+
       // Should render within reasonable time (less than 1 second for tests)
       expect(renderTime).toBeLessThan(1000);
     });
 
-    it('should not reinitialize services unnecessarily', async () => {
+    it("should not reinitialize services unnecessarily", async () => {
       const mockPhotos = createMockPhotosWithLocation(5);
-      const { apiRequest } = require('@/lib/query-client');
+      const { apiRequest } = require("@/lib/query-client");
       apiRequest.mockResolvedValue({
         json: () => Promise.resolve({ photos: mockPhotos }),
       });
 
-      const { photoClusteringService } = require('@/lib/map/photo-clustering');
-      const { heatmapRenderer } = require('@/lib/map/heatmap-renderer');
+      const { photoClusteringService } = require("@/lib/map/photo-clustering");
+      const { heatmapRenderer } = require("@/lib/map/heatmap-renderer");
 
       renderWithProviders(<PhotoMapScreen />);
 
       await waitFor(() => {
-        expect(screen.queryByText('Loading photos...')).toBeFalsy();
+        expect(screen.queryByText("Loading photos...")).toBeFalsy();
       });
 
       // Services should be initialized once
@@ -637,10 +651,10 @@ describe('PhotoMapScreen', () => {
     });
   });
 
-  describe('User Interactions', () => {
-    it('should handle mode switching', async () => {
+  describe("User Interactions", () => {
+    it("should handle mode switching", async () => {
       const mockPhotos = createMockPhotosWithLocation(5);
-      const { apiRequest } = require('@/lib/query-client');
+      const { apiRequest } = require("@/lib/query-client");
       apiRequest.mockResolvedValue({
         json: () => Promise.resolve({ photos: mockPhotos }),
       });
@@ -648,27 +662,27 @@ describe('PhotoMapScreen', () => {
       renderWithProviders(<PhotoMapScreen />);
 
       await waitFor(() => {
-        expect(screen.getByText('Markers')).toBeTruthy();
+        expect(screen.getByText("Markers")).toBeTruthy();
       });
 
       // Switch through all modes
-      fireEvent.press(screen.getByText('Clusters'));
-      fireEvent.press(screen.getByText('Heatmap'));
-      fireEvent.press(screen.getByText('Timeline'));
-      fireEvent.press(screen.getByText('Markers'));
+      fireEvent.press(screen.getByText("Clusters"));
+      fireEvent.press(screen.getByText("Heatmap"));
+      fireEvent.press(screen.getByText("Timeline"));
+      fireEvent.press(screen.getByText("Markers"));
 
       // Should complete without errors
-      expect(screen.getByText('Markers')).toBeTruthy();
+      expect(screen.getByText("Markers")).toBeTruthy();
     });
 
-    it('should handle timeline controls', async () => {
+    it("should handle timeline controls", async () => {
       const mockPhotos = createMockPhotosWithLocation(5);
-      const { apiRequest } = require('@/lib/query-client');
+      const { apiRequest } = require("@/lib/query-client");
       apiRequest.mockResolvedValue({
         json: () => Promise.resolve({ photos: mockPhotos }),
       });
 
-      const { useTemporalLayers } = require('@/lib/map/temporal-layers');
+      const { useTemporalLayers } = require("@/lib/map/temporal-layers");
       const mockTemporalLayers = {
         play: vi.fn(),
         pause: vi.fn(),
@@ -681,10 +695,10 @@ describe('PhotoMapScreen', () => {
       renderWithProviders(<PhotoMapScreen />);
 
       await waitFor(() => {
-        expect(screen.getByText('Timeline')).toBeTruthy();
+        expect(screen.getByText("Timeline")).toBeTruthy();
       });
 
-      fireEvent.press(screen.getByText('Timeline'));
+      fireEvent.press(screen.getByText("Timeline"));
 
       // Timeline controls should be available
       // Note: Since we're mocking, we can't test actual button presses

@@ -8,8 +8,20 @@
 // TESTS: Test gesture accuracy, focal point calculation, haptic timing, edge cases
 // AI-META-END
 
-import { GestureHandlerRootView, PinchGestureHandler, PinchGestureHandlerGestureChangeEvent } from "react-native-gesture-handler";
-import { runOnJS, runOnUI, useAnimatedGestureHandler, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import {
+  GestureHandlerRootView,
+  PinchGestureHandler,
+  PinchGestureHandlerGestureChangeEvent,
+} from "react-native-gesture-handler";
+import {
+  runOnJS,
+  runOnUI,
+  useAnimatedGestureHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
 
@@ -51,9 +63,21 @@ export const DEFAULT_ZOOM_CONFIG: ZoomGestureConfig = {
     enabled: true,
     threshold: 0.1,
     levels: [
-      { threshold: 0.5, type: "impact", style: Haptics.ImpactFeedbackStyle.Light },
-      { threshold: 1.0, type: "impact", style: Haptics.ImpactFeedbackStyle.Medium },
-      { threshold: 2.0, type: "impact", style: Haptics.ImpactFeedbackStyle.Heavy },
+      {
+        threshold: 0.5,
+        type: "impact",
+        style: Haptics.ImpactFeedbackStyle.Light,
+      },
+      {
+        threshold: 1.0,
+        type: "impact",
+        style: Haptics.ImpactFeedbackStyle.Medium,
+      },
+      {
+        threshold: 2.0,
+        type: "impact",
+        style: Haptics.ImpactFeedbackStyle.Heavy,
+      },
     ],
   },
 };
@@ -63,14 +87,14 @@ export const DEFAULT_ZOOM_CONFIG: ZoomGestureConfig = {
  */
 export function calculateFocalPoint(
   event: PinchGestureHandlerGestureChangeEvent,
-  containerSize: { width: number; height: number }
+  containerSize: { width: number; height: number },
 ): { x: number; y: number } {
   const { focalX, focalY } = event;
-  
+
   // Ensure focal point is within container bounds
   const x = Math.max(0, Math.min(containerSize.width, focalX));
   const y = Math.max(0, Math.min(containerSize.height, focalY));
-  
+
   return { x, y };
 }
 
@@ -80,14 +104,14 @@ export function calculateFocalPoint(
 export function triggerHapticFeedback(
   currentScale: number,
   lastScale: number,
-  config: ZoomGestureConfig["hapticFeedback"]
+  config: ZoomGestureConfig["hapticFeedback"],
 ): void {
   if (!config.enabled || Platform.OS === "web") return;
-  
+
   const scaleChange = Math.abs(currentScale - lastScale);
-  
+
   if (scaleChange < config.threshold) return;
-  
+
   // Find appropriate haptic level
   for (let i = config.levels.length - 1; i >= 0; i--) {
     const level = config.levels[i];
@@ -111,7 +135,7 @@ export function triggerHapticFeedback(
 export function usePinchToZoomGesture(
   config: ZoomGestureConfig = DEFAULT_ZOOM_CONFIG,
   onZoomChange?: (state: GestureState) => void,
-  containerSize?: { width: number; height: number }
+  containerSize?: { width: number; height: number },
 ) {
   // Shared values for gesture state
   const scale = useSharedValue(1);
@@ -123,7 +147,11 @@ export function usePinchToZoomGesture(
 
   // Haptic feedback trigger (run on JS thread)
   const triggerHaptic = (currentScale: number, lastScaleValue: number) => {
-    runOnJS(triggerHapticFeedback)(currentScale, lastScaleValue, config.hapticFeedback);
+    runOnJS(triggerHapticFeedback)(
+      currentScale,
+      lastScaleValue,
+      config.hapticFeedback,
+    );
   };
 
   // Gesture handler
@@ -136,42 +164,42 @@ export function usePinchToZoomGesture(
       context.lastScale = scale.value;
       context.isGestureActive = true;
       context.velocity = 0;
-      
+
       isGestureActive.value = true;
-      
+
       // Light haptic on gesture start
       if (config.hapticFeedback.enabled && Platform.OS !== "web") {
         runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Light);
       }
     },
-    
+
     onActive: (event, context) => {
       const newScale = Math.max(
         config.minScale,
-        Math.min(config.maxScale, context.scale * event.scale)
+        Math.min(config.maxScale, context.scale * event.scale),
       );
-      
+
       // Calculate focal point if container size is provided
       if (containerSize) {
         const focal = calculateFocalPoint(event, containerSize);
         focalX.value = focal.x;
         focalY.value = focal.y;
       }
-      
+
       // Update velocity
       context.velocity = event.velocity;
       velocity.value = event.velocity;
-      
+
       // Update scale
       scale.value = newScale;
-      
+
       // Trigger haptic feedback on significant scale change
       const scaleChange = Math.abs(newScale - context.lastScale);
       if (scaleChange >= config.hapticFeedback.threshold) {
         triggerHaptic(newScale, context.lastScale);
         context.lastScale = newScale;
       }
-      
+
       // Notify parent of zoom change
       if (onZoomChange) {
         const state: GestureState = {
@@ -185,28 +213,28 @@ export function usePinchToZoomGesture(
         runOnJS(onZoomChange)(state);
       }
     },
-    
+
     onEnd: (event, context) => {
       context.isGestureActive = false;
       isGestureActive.value = false;
-      
+
       // Apply spring animation for smooth settling
       const finalScale = Math.max(
         config.minScale,
-        Math.min(config.maxScale, context.scale * event.scale)
+        Math.min(config.maxScale, context.scale * event.scale),
       );
-      
+
       scale.value = withSpring(finalScale, {
         tension: config.tension,
         friction: config.friction,
         damping: config.damping,
       });
-      
+
       // Final haptic feedback
       if (config.hapticFeedback.enabled && Platform.OS !== "web") {
         runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Medium);
       }
-      
+
       // Notify parent of zoom completion
       if (onZoomChange) {
         const state: GestureState = {
@@ -248,8 +276,11 @@ export function usePinchToZoomGesture(
 
   // Set scale programmatically
   const setScale = (newScale: number, animated: boolean = true) => {
-    const clampedScale = Math.max(config.minScale, Math.min(config.maxScale, newScale));
-    
+    const clampedScale = Math.max(
+      config.minScale,
+      Math.min(config.maxScale, newScale),
+    );
+
     if (animated) {
       scale.value = withSpring(clampedScale, {
         tension: config.tension,
@@ -280,10 +311,14 @@ export function usePinchToZoomGesture(
 export function useAdvancedZoomGesture(
   config: ZoomGestureConfig = DEFAULT_ZOOM_CONFIG,
   onZoomChange?: (state: GestureState) => void,
-  containerSize?: { width: number; height: number }
+  containerSize?: { width: number; height: number },
 ) {
-  const pinchGesture = usePinchToZoomGesture(config, onZoomChange, containerSize);
-  
+  const pinchGesture = usePinchToZoomGesture(
+    config,
+    onZoomChange,
+    containerSize,
+  );
+
   // Additional shared values for panning
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -294,8 +329,16 @@ export function useAdvancedZoomGesture(
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
-        { translateX: translateX.value + pinchGesture.focalX.value * (1 - pinchGesture.scale.value) },
-        { translateY: translateY.value + pinchGesture.focalY.value * (1 - pinchGesture.scale.value) },
+        {
+          translateX:
+            translateX.value +
+            pinchGesture.focalX.value * (1 - pinchGesture.scale.value),
+        },
+        {
+          translateY:
+            translateY.value +
+            pinchGesture.focalY.value * (1 - pinchGesture.scale.value),
+        },
         { scale: pinchGesture.scale.value },
       ],
     };
@@ -331,7 +374,7 @@ export class GestureStateManager {
     lastScale: 1,
     velocity: 0,
   };
-  
+
   private listeners: Set<(state: GestureState) => void> = new Set();
   private history: GestureState[] = [];
   private maxHistorySize = 50;
@@ -342,20 +385,27 @@ export class GestureStateManager {
   updateState(newState: Partial<GestureState>): void {
     const previousState = { ...this.currentState };
     this.currentState = { ...this.currentState, ...newState };
-    
+
     // Add to history
     this.history.push({ ...this.currentState });
     if (this.history.length > this.maxHistorySize) {
       this.history.shift();
     }
-    
+
     // Trigger haptic feedback if scale changed significantly
-    if (Math.abs(newState.scale! - previousState.scale) >= this.config.hapticFeedback.threshold) {
-      triggerHapticFeedback(newState.scale!, previousState.scale, this.config.hapticFeedback);
+    if (
+      Math.abs(newState.scale! - previousState.scale) >=
+      this.config.hapticFeedback.threshold
+    ) {
+      triggerHapticFeedback(
+        newState.scale!,
+        previousState.scale,
+        this.config.hapticFeedback,
+      );
     }
-    
+
     // Notify listeners
-    this.listeners.forEach(listener => listener(this.currentState));
+    this.listeners.forEach((listener) => listener(this.currentState));
   }
 
   // Get current state
@@ -366,7 +416,7 @@ export class GestureStateManager {
   // Subscribe to state changes
   subscribe(listener: (state: GestureState) => void): () => void {
     this.listeners.add(listener);
-    
+
     // Return unsubscribe function
     return () => {
       this.listeners.delete(listener);
@@ -455,13 +505,15 @@ export const GestureUtils = {
    * Checks if a point is within bounds
    */
   isPointInBounds(
-    x: number, 
-    y: number, 
-    bounds: { x: number; y: number; width: number; height: number }
+    x: number,
+    y: number,
+    bounds: { x: number; y: number; width: number; height: number },
   ): boolean {
-    return x >= bounds.x && 
-           x <= bounds.x + bounds.width && 
-           y >= bounds.y && 
-           y <= bounds.y + bounds.height;
+    return (
+      x >= bounds.x &&
+      x <= bounds.x + bounds.width &&
+      y >= bounds.y &&
+      y <= bounds.y + bounds.height
+    );
   },
 };

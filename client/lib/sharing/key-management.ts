@@ -4,13 +4,13 @@
 import { Buffer } from "buffer";
 import { getSharingEncryptionKey, keyHierarchy } from "../key-hierarchy";
 import { KeyType } from "../key-derivation";
-import { 
-  encryptData, 
-  decryptData, 
-  encryptMessage, 
+import {
+  encryptData,
+  decryptData,
+  encryptMessage,
   decryptMessage,
   generateEncryptionKey,
-  isValidKey 
+  isValidKey,
 } from "../encryption";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -19,9 +19,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
  */
 export enum SharingKeyType {
   FAMILY_LIBRARY = "family_library",
-  PARTNER_ALBUM = "partner_album", 
+  PARTNER_ALBUM = "partner_album",
   SHARED_ALBUM = "shared_album",
-  COLLABORATIVE = "collaborative"
+  COLLABORATIVE = "collaborative",
 }
 
 /**
@@ -29,9 +29,9 @@ export enum SharingKeyType {
  */
 export enum SharingPermission {
   VIEW = "view",
-  EDIT = "edit", 
+  EDIT = "edit",
   ADMIN = "admin",
-  OWNER = "owner"
+  OWNER = "owner",
 }
 
 /**
@@ -95,7 +95,10 @@ export interface EncryptedKeyPackage {
  * Sharing key manager for encrypted family libraries
  */
 export class SharingKeyManager {
-  private keyCache = new Map<string, { key: string; metadata: SharingKeyMetadata }>();
+  private keyCache = new Map<
+    string,
+    { key: string; metadata: SharingKeyMetadata }
+  >();
   private readonly cacheTimeout = 10 * 60 * 1000; // 10 minutes
 
   /**
@@ -111,7 +114,7 @@ export class SharingKeyManager {
       expiresAt?: number;
       memberIds?: string[];
       autoShareRules?: AutoShareRule[];
-    } = {}
+    } = {},
   ): Promise<{ keyId: string; metadata: SharingKeyMetadata }> {
     const keyId = this.generateKeyId(type, ownerId);
     const sharingId = `${type}:${keyId}`;
@@ -130,7 +133,7 @@ export class SharingKeyManager {
       expiresAt: options.expiresAt,
       isActive: true,
       memberIds: options.memberIds || [],
-      autoShareRules: options.autoShareRules || []
+      autoShareRules: options.autoShareRules || [],
     };
 
     // Cache the key and metadata
@@ -145,7 +148,9 @@ export class SharingKeyManager {
   /**
    * Get sharing key and metadata
    */
-  async getSharingKey(keyId: string): Promise<{ key: string; metadata: SharingKeyMetadata } | null> {
+  async getSharingKey(
+    keyId: string,
+  ): Promise<{ key: string; metadata: SharingKeyMetadata } | null> {
     // Check cache first
     const cached = this.keyCache.get(keyId);
     if (cached) {
@@ -184,7 +189,7 @@ export class SharingKeyManager {
   async createEncryptedKeyPackage(
     keyId: string,
     recipientUserId: string,
-    permissions: SharingPermission
+    permissions: SharingPermission,
   ): Promise<EncryptedKeyPackage> {
     const keyData = await this.getSharingKey(keyId);
     if (!keyData) {
@@ -194,26 +199,32 @@ export class SharingKeyManager {
     const { key, metadata } = keyData;
 
     // Verify permissions (only owner/admin can share)
-    if (metadata.permissions !== SharingPermission.OWNER && 
-        metadata.permissions !== SharingPermission.ADMIN) {
+    if (
+      metadata.permissions !== SharingPermission.OWNER &&
+      metadata.permissions !== SharingPermission.ADMIN
+    ) {
       throw new Error("Insufficient permissions to share this key");
     }
 
     // Derive recipient's public key for encryption
-    const recipientPublicKey = await this.getRecipientPublicKey(recipientUserId);
+    const recipientPublicKey =
+      await this.getRecipientPublicKey(recipientUserId);
     if (!recipientPublicKey) {
       throw new Error("Recipient public key not found");
     }
 
     // Encrypt the sharing key for the recipient
-    const encryptedKey = await this.encryptKeyForRecipient(key, recipientPublicKey);
+    const encryptedKey = await this.encryptKeyForRecipient(
+      key,
+      recipientPublicKey,
+    );
 
     return {
       keyId,
       encryptedKey,
       keyNonce: this.generateNonce(),
       permissions,
-      expiresAt: metadata.expiresAt
+      expiresAt: metadata.expiresAt,
     };
   }
 
@@ -222,7 +233,7 @@ export class SharingKeyManager {
    */
   async importEncryptedKeyPackage(
     packageData: EncryptedKeyPackage,
-    senderUserId: string
+    senderUserId: string,
   ): Promise<{ keyId: string; metadata: SharingKeyMetadata }> {
     // Verify sender is trusted
     const senderPublicKey = await this.getRecipientPublicKey(senderUserId);
@@ -234,7 +245,7 @@ export class SharingKeyManager {
     const sharingKey = await this.decryptKeyFromRecipient(
       packageData.encryptedKey,
       packageData.keyNonce,
-      senderPublicKey
+      senderPublicKey,
     );
 
     // Load or create metadata
@@ -251,7 +262,7 @@ export class SharingKeyManager {
         expiresAt: packageData.expiresAt,
         isActive: true,
         memberIds: [],
-        autoShareRules: []
+        autoShareRules: [],
       };
     }
 
@@ -294,7 +305,11 @@ export class SharingKeyManager {
   /**
    * Add member to sharing key
    */
-  async addMember(keyId: string, memberId: string, permissions: SharingPermission): Promise<boolean> {
+  async addMember(
+    keyId: string,
+    memberId: string,
+    permissions: SharingPermission,
+  ): Promise<boolean> {
     const keyData = await this.getSharingKey(keyId);
     if (!keyData) {
       throw new Error("Sharing key not found");
@@ -303,8 +318,10 @@ export class SharingKeyManager {
     const { metadata } = keyData;
 
     // Verify permissions
-    if (metadata.permissions !== SharingPermission.OWNER && 
-        metadata.permissions !== SharingPermission.ADMIN) {
+    if (
+      metadata.permissions !== SharingPermission.OWNER &&
+      metadata.permissions !== SharingPermission.ADMIN
+    ) {
       throw new Error("Insufficient permissions to add members");
     }
 
@@ -330,8 +347,10 @@ export class SharingKeyManager {
     const { metadata } = keyData;
 
     // Verify permissions
-    if (metadata.permissions !== SharingPermission.OWNER && 
-        metadata.permissions !== SharingPermission.ADMIN) {
+    if (
+      metadata.permissions !== SharingPermission.OWNER &&
+      metadata.permissions !== SharingPermission.ADMIN
+    ) {
       throw new Error("Insufficient permissions to remove members");
     }
 
@@ -349,7 +368,10 @@ export class SharingKeyManager {
   /**
    * Add auto-share rule
    */
-  async addAutoShareRule(keyId: string, rule: Omit<AutoShareRule, "id" | "createdAt">): Promise<string> {
+  async addAutoShareRule(
+    keyId: string,
+    rule: Omit<AutoShareRule, "id" | "createdAt">,
+  ): Promise<string> {
     const keyData = await this.getSharingKey(keyId);
     if (!keyData) {
       throw new Error("Sharing key not found");
@@ -358,15 +380,17 @@ export class SharingKeyManager {
     const { metadata } = keyData;
 
     // Verify permissions
-    if (metadata.permissions !== SharingPermission.OWNER && 
-        metadata.permissions !== SharingPermission.ADMIN) {
+    if (
+      metadata.permissions !== SharingPermission.OWNER &&
+      metadata.permissions !== SharingPermission.ADMIN
+    ) {
       throw new Error("Insufficient permissions to add auto-share rules");
     }
 
     const newRule: AutoShareRule = {
       ...rule,
       id: this.generateRuleId(),
-      createdAt: Date.now()
+      createdAt: Date.now(),
     };
 
     metadata.autoShareRules.push(newRule);
@@ -385,8 +409,10 @@ export class SharingKeyManager {
 
     for (const keyId of allKeyIds) {
       const metadata = await this.loadKeyMetadata(keyId);
-      if (metadata && 
-          (metadata.ownerId === userId || metadata.memberIds.includes(userId))) {
+      if (
+        metadata &&
+        (metadata.ownerId === userId || metadata.memberIds.includes(userId))
+      ) {
         userKeys.push(metadata);
       }
     }
@@ -398,9 +424,9 @@ export class SharingKeyManager {
    * Encrypt data using sharing key
    */
   async encryptWithSharingKey(
-    keyId: string, 
-    data: Uint8Array, 
-    additionalData?: Uint8Array
+    keyId: string,
+    data: Uint8Array,
+    additionalData?: Uint8Array,
   ): Promise<Uint8Array> {
     const keyData = await this.getSharingKey(keyId);
     if (!keyData) {
@@ -414,9 +440,9 @@ export class SharingKeyManager {
    * Decrypt data using sharing key
    */
   async decryptWithSharingKey(
-    keyId: string, 
-    encryptedData: Uint8Array, 
-    additionalData?: Uint8Array
+    keyId: string,
+    encryptedData: Uint8Array,
+    additionalData?: Uint8Array,
   ): Promise<Uint8Array> {
     const keyData = await this.getSharingKey(keyId);
     if (!keyData) {
@@ -442,12 +468,17 @@ export class SharingKeyManager {
     return Buffer.from(Date.now().toString()).toString("hex");
   }
 
-  private async persistKeyMetadata(keyId: string, metadata: SharingKeyMetadata): Promise<void> {
+  private async persistKeyMetadata(
+    keyId: string,
+    metadata: SharingKeyMetadata,
+  ): Promise<void> {
     const storageKey = `sharing_key_metadata_${keyId}`;
     await AsyncStorage.setItem(storageKey, JSON.stringify(metadata));
   }
 
-  private async loadKeyMetadata(keyId: string): Promise<SharingKeyMetadata | null> {
+  private async loadKeyMetadata(
+    keyId: string,
+  ): Promise<SharingKeyMetadata | null> {
     const storageKey = `sharing_key_metadata_${keyId}`;
     const data = await AsyncStorage.getItem(storageKey);
     return data ? JSON.parse(data) : null;
@@ -465,16 +496,19 @@ export class SharingKeyManager {
     return null;
   }
 
-  private async encryptKeyForRecipient(key: string, publicKey: string): Promise<string> {
+  private async encryptKeyForRecipient(
+    key: string,
+    publicKey: string,
+  ): Promise<string> {
     // This would implement asymmetric encryption using recipient's public key
     // For now, return simple base64 encoding as placeholder
     return Buffer.from(key).toString("base64");
   }
 
   private async decryptKeyFromRecipient(
-    encryptedKey: string, 
-    nonce: string, 
-    senderPublicKey: string
+    encryptedKey: string,
+    nonce: string,
+    senderPublicKey: string,
   ): Promise<string> {
     // This would implement asymmetric decryption using private key
     // For now, return simple base64 decoding as placeholder
@@ -493,7 +527,7 @@ export const sharingKeyManager = new SharingKeyManager();
 export async function createFamilyLibraryKey(
   name: string,
   ownerId: string,
-  memberIds?: string[]
+  memberIds?: string[],
 ): Promise<{ keyId: string; metadata: SharingKeyMetadata }> {
   return await sharingKeyManager.createSharingKey(
     SharingKeyType.FAMILY_LIBRARY,
@@ -502,15 +536,17 @@ export async function createFamilyLibraryKey(
     {
       description: "Family photo library with encrypted sharing",
       permissions: SharingPermission.OWNER,
-      memberIds
-    }
+      memberIds,
+    },
   );
 }
 
 /**
  * Get sharing key for encryption/decryption
  */
-export async function getSharingKeyForEncryption(keyId: string): Promise<string> {
+export async function getSharingKeyForEncryption(
+  keyId: string,
+): Promise<string> {
   const keyData = await sharingKeyManager.getSharingKey(keyId);
   if (!keyData) {
     throw new Error("Sharing key not found");
@@ -522,9 +558,9 @@ export async function getSharingKeyForEncryption(keyId: string): Promise<string>
  * Check if user has permission for sharing key
  */
 export async function hasSharingPermission(
-  keyId: string, 
-  userId: string, 
-  requiredPermission: SharingPermission
+  keyId: string,
+  userId: string,
+  requiredPermission: SharingPermission,
 ): Promise<boolean> {
   const keyData = await sharingKeyManager.getSharingKey(keyId);
   if (!keyData) {
@@ -548,7 +584,7 @@ export async function hasSharingPermission(
     [SharingPermission.VIEW]: 1,
     [SharingPermission.EDIT]: 2,
     [SharingPermission.ADMIN]: 3,
-    [SharingPermission.OWNER]: 4
+    [SharingPermission.OWNER]: 4,
   };
 
   const userLevel = permissionHierarchy[metadata.permissions] || 0;

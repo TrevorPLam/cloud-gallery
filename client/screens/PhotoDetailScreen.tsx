@@ -43,6 +43,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, Colors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { PhotoMetadataEditor } from "@/components/PhotoMetadataEditor";
+import LivePhotoViewer from "@/components/LivePhotoViewer";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -557,7 +558,9 @@ export default function PhotoDetailScreen() {
       navigation.goBack();
     } else {
       const newIndex =
-        currentIndex === effectivePhotos.length - 1 ? currentIndex - 1 : currentIndex;
+        currentIndex === effectivePhotos.length - 1
+          ? currentIndex - 1
+          : currentIndex;
       setCurrentIndex(newIndex);
     }
   };
@@ -627,12 +630,32 @@ export default function PhotoDetailScreen() {
         }
         style={styles.photoContainer}
       >
-        <Image
-          source={{ uri: item.uri }}
-          style={styles.fullImage}
-          contentFit="contain"
-          transition={200}
-        />
+        {item.isLivePhoto ? (
+          <LivePhotoViewer
+            photo={item}
+            style={styles.fullImage}
+            onPlaybackStart={() => {
+              // Optional: Handle Live Photo playback start
+              console.log('Live Photo playback started');
+            }}
+            onPlaybackEnd={() => {
+              // Optional: Handle Live Photo playback end
+              console.log('Live Photo playback ended');
+            }}
+            onError={(error) => {
+              console.error('Live Photo error:', error);
+            }}
+            showControls={!isSelectionMode}
+            autoPlay={false}
+          />
+        ) : (
+          <Image
+            source={{ uri: item.uri }}
+            style={styles.fullImage}
+            contentFit="contain"
+            transition={200}
+          />
+        )}
 
         {/* Selection overlay */}
         {isSelectionMode && (

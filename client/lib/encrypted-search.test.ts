@@ -2,7 +2,7 @@
 // Tests deterministic encryption, frequency protection, and security properties
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { 
+import {
   initializeSSE,
   generateSSEKey,
   encryptSearchTerm,
@@ -12,7 +12,7 @@ import {
   SearchTokenType,
   SSE_KEYBYTES,
   MIN_QUERY_LENGTH,
-  MAX_QUERY_LENGTH
+  MAX_QUERY_LENGTH,
 } from "./encrypted-search";
 
 describe("Encrypted Search", () => {
@@ -76,7 +76,7 @@ describe("Encrypted Search", () => {
       const term1 = "Beach Vacation";
       const term2 = "beach vacation";
       const term3 = "BEACH VACATION";
-      
+
       const encrypted1 = encryptSearchTerm(term1, sseKey);
       const encrypted2 = encryptSearchTerm(term2, sseKey);
       const encrypted3 = encryptSearchTerm(term3, sseKey);
@@ -89,7 +89,7 @@ describe("Encrypted Search", () => {
       const term1 = "beach vacation";
       const term2 = "  beach vacation  ";
       const term3 = "\tbeach vacation\n";
-      
+
       const encrypted1 = encryptSearchTerm(term1, sseKey);
       const encrypted2 = encryptSearchTerm(term2, sseKey);
       const encrypted3 = encryptSearchTerm(term3, sseKey);
@@ -121,11 +121,11 @@ describe("Encrypted Search", () => {
     it("should verify term integrity during decryption", () => {
       const originalTerm = "birthday party";
       const encrypted = encryptSearchTerm(originalTerm, sseKey);
-      
+
       // Tamper with the encrypted data
       const tamperedEncrypted = {
         ...encrypted,
-        termHash: "invalidhash1234567890abcdef"
+        termHash: "invalidhash1234567890abcdef",
       };
 
       expect(() => {
@@ -195,7 +195,7 @@ describe("Encrypted Search", () => {
 
     it("should reject invalid SSE keys", () => {
       const term = "test";
-      
+
       expect(() => {
         encryptSearchTerm(term, "");
       }).toThrow("Invalid SSE key");
@@ -213,11 +213,19 @@ describe("Encrypted Search", () => {
   describe("Token Types", () => {
     it("should support different token types", () => {
       const term = "test";
-      
+
       const exactToken = encryptSearchTerm(term, sseKey, SearchTokenType.EXACT);
-      const prefixToken = encryptSearchTerm(term, sseKey, SearchTokenType.PREFIX);
+      const prefixToken = encryptSearchTerm(
+        term,
+        sseKey,
+        SearchTokenType.PREFIX,
+      );
       const rangeToken = encryptSearchTerm(term, sseKey, SearchTokenType.RANGE);
-      const booleanToken = encryptSearchTerm(term, sseKey, SearchTokenType.BOOLEAN);
+      const booleanToken = encryptSearchTerm(
+        term,
+        sseKey,
+        SearchTokenType.BOOLEAN,
+      );
 
       expect(exactToken.tokenType).toBe(SearchTokenType.EXACT);
       expect(prefixToken.tokenType).toBe(SearchTokenType.PREFIX);
@@ -259,7 +267,7 @@ describe("Encrypted Search", () => {
         "photo_2024-01-15",
         "beach@sunset!",
         "mountain#hiking",
-        "family&friends"
+        "family&friends",
       ];
 
       for (const term of specialTerms) {
@@ -277,7 +285,7 @@ describe("Encrypted Search", () => {
         "familia feliz",
         "写真アルバム",
         "семейные фото",
-        "🌅 sunset"
+        "🌅 sunset",
       ];
 
       for (const term of unicodeTerms) {
@@ -294,14 +302,14 @@ describe("Encrypted Search", () => {
     it("should encrypt terms efficiently", () => {
       const term = "performance test";
       const startTime = Date.now();
-      
+
       for (let i = 0; i < 100; i++) {
         encryptSearchTerm(term, sseKey);
       }
-      
+
       const endTime = Date.now();
       const duration = endTime - startTime;
-      
+
       // Should complete 100 encryptions in reasonable time (adjust threshold as needed)
       expect(duration).toBeLessThan(5000); // 5 seconds
     });
@@ -310,14 +318,14 @@ describe("Encrypted Search", () => {
       const term = "decryption test";
       const encrypted = encryptSearchTerm(term, sseKey);
       const startTime = Date.now();
-      
+
       for (let i = 0; i < 100; i++) {
         decryptSearchTerm(encrypted, sseKey);
       }
-      
+
       const endTime = Date.now();
       const duration = endTime - startTime;
-      
+
       // Should complete 100 decryptions in reasonable time
       expect(duration).toBeLessThan(5000); // 5 seconds
     });
@@ -326,7 +334,7 @@ describe("Encrypted Search", () => {
   describe("Edge Cases", () => {
     it("should handle maximum length terms", () => {
       const maxTerm = "a".repeat(MAX_QUERY_LENGTH);
-      
+
       expect(() => {
         const encrypted = encryptSearchTerm(maxTerm, sseKey);
         const decrypted = decryptSearchTerm(encrypted, sseKey);
@@ -336,7 +344,7 @@ describe("Encrypted Search", () => {
 
     it("should handle minimum length terms", () => {
       const minTerm = "a".repeat(MIN_QUERY_LENGTH);
-      
+
       expect(() => {
         const encrypted = encryptSearchTerm(minTerm, sseKey);
         const decrypted = decryptSearchTerm(encrypted, sseKey);
@@ -367,11 +375,11 @@ describe("Encrypted Search", () => {
       const buffer = new ArrayBuffer(100);
       const view = new Uint8Array(buffer);
       view.fill(65); // Fill with 'A'
-      
+
       expect(view[0]).toBe(65);
-      
+
       secureWipeSSE(view);
-      
+
       expect(view[0]).toBe(0);
     });
 
@@ -388,10 +396,10 @@ describe("Encrypted Search", () => {
     it("should produce encrypted terms of expected length", () => {
       const term = "length test";
       const encrypted = encryptSearchTerm(term, sseKey);
-      
+
       // Encrypted term should be base64 encoded
       expect(encrypted.encryptedTerm).toMatch(/^[A-Za-z0-9+/]+={0,2}$/);
-      
+
       // Should be reasonably long (nonce + ciphertext + padding)
       expect(encrypted.encryptedTerm.length).toBeGreaterThan(20);
     });
@@ -400,17 +408,17 @@ describe("Encrypted Search", () => {
       const term = "deterministic test";
       const key1 = generateSSEKey();
       const key2 = generateSSEKey();
-      
+
       const encrypted1 = encryptSearchTerm(term, key1);
       const encrypted2 = encryptSearchTerm(term, key1);
       const encrypted3 = encryptSearchTerm(term, key2);
-      
+
       // Same key = same encrypted value
       expect(encrypted1.encryptedTerm).toBe(encrypted2.encryptedTerm);
-      
+
       // Different keys = different encrypted values
       expect(encrypted1.encryptedTerm).not.toBe(encrypted3.encryptedTerm);
-      
+
       // Clean up
       secureWipeSSE(key1);
       secureWipeSSE(key2);

@@ -12,7 +12,11 @@ import { Platform } from "react-native";
 import { Photo } from "@/types";
 import { getPhotos, savePhotos } from "../storage";
 import { getPerceptualHasher, generateCompositeHash } from "./perceptual-hash";
-import { getBurstDetector, extractPhotoMetadata, type BurstGroup } from "./burst-detection";
+import {
+  getBurstDetector,
+  extractPhotoMetadata,
+  type BurstGroup,
+} from "./burst-detection";
 import { getPhotoQualityScorer, getQualityRating } from "./quality-score";
 
 // ─────────────────────────────────────────────────────────
@@ -141,14 +145,14 @@ export class PhotoStackingService {
     try {
       // Get all photos
       const photos = await getPhotos();
-      
+
       // Extract metadata for all photos
       const photoMetadata = await Promise.all(
-        photos.map(photo => extractPhotoMetadata(photo.uri, photo.id))
+        photos.map((photo) => extractPhotoMetadata(photo.uri, photo.id)),
       );
 
       // Detect bursts
-      const burstGroups = this.config.includeBursts 
+      const burstGroups = this.config.includeBursts
         ? await this.burstDetector.detectBursts(photoMetadata)
         : [];
 
@@ -157,25 +161,25 @@ export class PhotoStackingService {
         const hash = await generateCompositeHash(photo.uri);
         return { photoId: photo.id, hash };
       });
-      
+
       const hashes = await Promise.all(hashPromises);
-      const hashMap = new Map(hashes.map(h => [h.photoId, h.hash]));
+      const hashMap = new Map(hashes.map((h) => [h.photoId, h.hash]));
 
       // Generate quality scores for all photos
       const qualityPromises = photos.map(async (photo) => {
         const quality = await this.qualityScorer.quickQualityCheck(photo.uri);
         return { photoId: photo.id, score: quality.score };
       });
-      
+
       const qualities = await Promise.all(qualityPromises);
-      const qualityMap = new Map(qualities.map(q => [q.photoId, q.score]));
+      const qualityMap = new Map(qualities.map((q) => [q.photoId, q.score]));
 
       // Create stacks
       const stacks = await this.createStacks(
         photos,
         hashMap,
         qualityMap,
-        burstGroups
+        burstGroups,
       );
 
       // Update photos with stack information
@@ -186,7 +190,10 @@ export class PhotoStackingService {
       return {
         totalPhotos: photos.length,
         stacksCreated: stacks.length,
-        photosInStacks: stacks.reduce((sum, stack) => sum + stack.photoIds.length, 0),
+        photosInStacks: stacks.reduce(
+          (sum, stack) => sum + stack.photoIds.length,
+          0,
+        ),
         processingTime,
         stacks,
       };
@@ -204,7 +211,7 @@ export class PhotoStackingService {
     const stackMap = new Map<string, PhotoStack>();
 
     // Extract stack information from photos
-    photos.forEach(photo => {
+    photos.forEach((photo) => {
       if (photo.duplicateGroupId) {
         if (!stackMap.has(photo.duplicateGroupId)) {
           stackMap.set(photo.duplicateGroupId, {
@@ -225,7 +232,7 @@ export class PhotoStackingService {
             },
           });
         }
-        
+
         const stack = stackMap.get(photo.duplicateGroupId)!;
         stack.photoIds.push(photo.id);
       }
@@ -239,10 +246,10 @@ export class PhotoStackingService {
    */
   public async updateStackPreferences(
     stackId: string,
-    preferences: Partial<PhotoStack["userPreferences"]>
+    preferences: Partial<PhotoStack["userPreferences"]>,
   ): Promise<void> {
     const photos = await getPhotos();
-    const updatedPhotos = photos.map(photo => {
+    const updatedPhotos = photos.map((photo) => {
       if (photo.duplicateGroupId === stackId) {
         // In a real implementation, would store user preferences separately
         // For now, we'll simulate by updating photo metadata
@@ -260,11 +267,14 @@ export class PhotoStackingService {
   /**
    * Select best photo for a stack
    */
-  public async selectBestPhoto(stackId: string, photoId: string): Promise<void> {
+  public async selectBestPhoto(
+    stackId: string,
+    photoId: string,
+  ): Promise<void> {
     const photos = await getPhotos();
-    const stackPhotos = photos.filter(p => p.duplicateGroupId === stackId);
-    
-    if (!stackPhotos.find(p => p.id === photoId)) {
+    const stackPhotos = photos.filter((p) => p.duplicateGroupId === stackId);
+
+    if (!stackPhotos.find((p) => p.id === photoId)) {
       throw new Error("Photo not found in stack");
     }
 
@@ -280,7 +290,7 @@ export class PhotoStackingService {
    */
   public async getStackingStatistics(): Promise<StackingStatistics> {
     const stacks = await this.getStacks();
-    
+
     const stackTypes = {
       duplicate: 0,
       burst: 0,
@@ -293,10 +303,10 @@ export class PhotoStackingService {
     let customSelections = 0;
     let userNotes = 0;
 
-    stacks.forEach(stack => {
+    stacks.forEach((stack) => {
       stackTypes[stack.type]++;
       totalPhotos += stack.photoIds.length;
-      
+
       if (stack.userPreferences.reviewed) reviewedStacks++;
       if (stack.userPreferences.preferredPhotoId) customSelections++;
       if (stack.userPreferences.notes) userNotes++;
@@ -324,7 +334,7 @@ export class PhotoStackingService {
     photos: Photo[],
     hashMap: Map<string, string>,
     qualityMap: Map<string, number>,
-    burstGroups: BurstGroup[]
+    burstGroups: BurstGroup[],
   ): Promise<PhotoStack[]> {
     const stacks: PhotoStack[] = [];
     const processedPhotos = new Set<string>();
@@ -332,33 +342,40 @@ export class PhotoStackingService {
     // Create burst-based stacks
     if (this.config.includeBursts) {
       for (const burstGroup of burstGroups) {
-        const burstPhotos = photos.filter(p => burstGroup.photoIds.includes(p.id));
+        const burstPhotos = photos.filter((p) =>
+          burstGroup.photoIds.includes(p.id),
+        );
         if (burstPhotos.length >= 2) {
-          const stack = await this.createBurstStack(burstPhotos, burstGroup, qualityMap);
+          const stack = await this.createBurstStack(
+            burstPhotos,
+            burstGroup,
+            qualityMap,
+          );
           stacks.push(stack);
-          burstPhotos.forEach(photo => processedPhotos.add(photo.id));
+          burstPhotos.forEach((photo) => processedPhotos.add(photo.id));
         }
       }
     }
 
     // Create duplicate stacks
     const duplicateStacks = await this.createDuplicateStacks(
-      photos.filter(p => !processedPhotos.has(p.id)),
+      photos.filter((p) => !processedPhotos.has(p.id)),
       hashMap,
-      qualityMap
+      qualityMap,
     );
     stacks.push(...duplicateStacks);
 
     // Create similar photo stacks
-    const remainingPhotos = photos.filter(p => 
-      !processedPhotos.has(p.id) && 
-      !duplicateStacks.some(stack => stack.photoIds.includes(p.id))
+    const remainingPhotos = photos.filter(
+      (p) =>
+        !processedPhotos.has(p.id) &&
+        !duplicateStacks.some((stack) => stack.photoIds.includes(p.id)),
     );
-    
+
     const similarStacks = await this.createSimilarStacks(
       remainingPhotos,
       hashMap,
-      qualityMap
+      qualityMap,
     );
     stacks.push(...similarStacks);
 
@@ -368,7 +385,7 @@ export class PhotoStackingService {
   private async createBurstStack(
     photos: Photo[],
     burstGroup: BurstGroup,
-    qualityMap: Map<string, number>
+    qualityMap: Map<string, number>,
   ): Promise<PhotoStack> {
     // Select best photo based on quality
     const bestPhoto = photos.reduce((best, photo) => {
@@ -379,18 +396,18 @@ export class PhotoStackingService {
 
     const stackId = `burst_${burstGroup.id}`;
     const qualityScores: Record<string, number> = {};
-    photos.forEach(photo => {
+    photos.forEach((photo) => {
       qualityScores[photo.id] = qualityMap.get(photo.id) || 0;
     });
 
     return {
       id: stackId,
-      photoIds: photos.map(p => p.id),
+      photoIds: photos.map((p) => p.id),
       type: "burst",
       confidence: burstGroup.confidence,
       bestPhotoId: bestPhoto.id,
-      createdAt: Math.min(...photos.map(p => p.createdAt)),
-      modifiedAt: Math.max(...photos.map(p => p.modifiedAt)),
+      createdAt: Math.min(...photos.map((p) => p.createdAt)),
+      modifiedAt: Math.max(...photos.map((p) => p.modifiedAt)),
       userPreferences: {
         reviewed: false,
         keepStrategy: "all",
@@ -406,7 +423,7 @@ export class PhotoStackingService {
   private async createDuplicateStacks(
     photos: Photo[],
     hashMap: Map<string, string>,
-    qualityMap: Map<string, number>
+    qualityMap: Map<string, number>,
   ): Promise<PhotoStack[]> {
     const stacks: PhotoStack[] = [];
     const processed = new Set<string>();
@@ -429,7 +446,11 @@ export class PhotoStackingService {
         const hash2 = hashMap.get(photo2.id);
         if (!hash2) continue;
 
-        const similarity = this.hasher.compareHashes(hash1, hash2, this.config.duplicateThreshold);
+        const similarity = this.hasher.compareHashes(
+          hash1,
+          hash2,
+          this.config.duplicateThreshold,
+        );
         if (similarity.isDuplicate) {
           duplicatePhotos.push(photo2);
           processed.add(photo2.id);
@@ -439,7 +460,11 @@ export class PhotoStackingService {
 
     // Create stack if we found duplicates
     if (duplicatePhotos.length > 1) {
-      const stack = await this.createDuplicateStack(duplicatePhotos, hashMap, qualityMap);
+      const stack = await this.createDuplicateStack(
+        duplicatePhotos,
+        hashMap,
+        qualityMap,
+      );
       stacks.push(stack);
     }
 
@@ -449,7 +474,7 @@ export class PhotoStackingService {
   private async createDuplicateStack(
     photos: Photo[],
     hashMap: Map<string, string>,
-    qualityMap: Map<string, number>
+    qualityMap: Map<string, number>,
   ): Promise<PhotoStack> {
     // Select best photo based on quality
     const bestPhoto = photos.reduce((best, photo) => {
@@ -464,7 +489,7 @@ export class PhotoStackingService {
 
     // Calculate similarity scores
     const baseHash = hashMap.get(photos[0].id) || "";
-    photos.forEach(photo => {
+    photos.forEach((photo) => {
       const photoHash = hashMap.get(photo.id) || "";
       const similarity = this.hasher.compareHashes(baseHash, photoHash);
       hashSimilarities[photo.id] = similarity.similarity;
@@ -473,12 +498,12 @@ export class PhotoStackingService {
 
     return {
       id: stackId,
-      photoIds: photos.map(p => p.id),
+      photoIds: photos.map((p) => p.id),
       type: "duplicate",
       confidence: 0.9, // High confidence for duplicates
       bestPhotoId: bestPhoto.id,
-      createdAt: Math.min(...photos.map(p => p.createdAt)),
-      modifiedAt: Math.max(...photos.map(p => p.modifiedAt)),
+      createdAt: Math.min(...photos.map((p) => p.createdAt)),
+      modifiedAt: Math.max(...photos.map((p) => p.modifiedAt)),
       userPreferences: {
         reviewed: false,
         keepStrategy: "all",
@@ -493,7 +518,7 @@ export class PhotoStackingService {
   private async createSimilarStacks(
     photos: Photo[],
     hashMap: Map<string, string>,
-    qualityMap: Map<string, number>
+    qualityMap: Map<string, number>,
   ): Promise<PhotoStack[]> {
     const stacks: PhotoStack[] = [];
     const processed = new Set<string>();
@@ -516,8 +541,15 @@ export class PhotoStackingService {
         const hash2 = hashMap.get(photo2.id);
         if (!hash2) continue;
 
-        const similarity = this.hasher.compareHashes(hash1, hash2, this.config.similarThreshold);
-        if (similarity.isDuplicate && similarity.distance > this.config.duplicateThreshold) {
+        const similarity = this.hasher.compareHashes(
+          hash1,
+          hash2,
+          this.config.similarThreshold,
+        );
+        if (
+          similarity.isDuplicate &&
+          similarity.distance > this.config.duplicateThreshold
+        ) {
           similarPhotos.push(photo2);
           processed.add(photo2.id);
         }
@@ -525,7 +557,11 @@ export class PhotoStackingService {
 
       // Create stack if we found similar photos
       if (similarPhotos.length > 1) {
-        const stack = await this.createSimilarStack(similarPhotos, hashMap, qualityMap);
+        const stack = await this.createSimilarStack(
+          similarPhotos,
+          hashMap,
+          qualityMap,
+        );
         stacks.push(stack);
       }
     }
@@ -536,7 +572,7 @@ export class PhotoStackingService {
   private async createSimilarStack(
     photos: Photo[],
     hashMap: Map<string, string>,
-    qualityMap: Map<string, number>
+    qualityMap: Map<string, number>,
   ): Promise<PhotoStack> {
     // Select best photo based on quality
     const bestPhoto = photos.reduce((best, photo) => {
@@ -551,7 +587,7 @@ export class PhotoStackingService {
 
     // Calculate similarity scores
     const baseHash = hashMap.get(photos[0].id) || "";
-    photos.forEach(photo => {
+    photos.forEach((photo) => {
       const photoHash = hashMap.get(photo.id) || "";
       const similarity = this.hasher.compareHashes(baseHash, photoHash);
       hashSimilarities[photo.id] = similarity.similarity;
@@ -560,12 +596,12 @@ export class PhotoStackingService {
 
     return {
       id: stackId,
-      photoIds: photos.map(p => p.id),
+      photoIds: photos.map((p) => p.id),
       type: "similar",
       confidence: 0.7, // Medium confidence for similar photos
       bestPhotoId: bestPhoto.id,
-      createdAt: Math.min(...photos.map(p => p.createdAt)),
-      modifiedAt: Math.max(...photos.map(p => p.modifiedAt)),
+      createdAt: Math.min(...photos.map((p) => p.createdAt)),
+      modifiedAt: Math.max(...photos.map((p) => p.modifiedAt)),
       userPreferences: {
         reviewed: false,
         keepStrategy: "all",
@@ -577,14 +613,19 @@ export class PhotoStackingService {
     };
   }
 
-  private async updatePhotosWithStacks(photos: Photo[], stacks: PhotoStack[]): Promise<void> {
-    const updatedPhotos = photos.map(photo => {
-      const stack = stacks.find(s => s.photoIds.includes(photo.id));
+  private async updatePhotosWithStacks(
+    photos: Photo[],
+    stacks: PhotoStack[],
+  ): Promise<void> {
+    const updatedPhotos = photos.map((photo) => {
+      const stack = stacks.find((s) => s.photoIds.includes(photo.id));
       if (stack) {
         return {
           ...photo,
           duplicateGroupId: stack.id,
-          perceptualHash: stack.analysis.hashSimilarities[photo.id] ? "computed" : photo.perceptualHash,
+          perceptualHash: stack.analysis.hashSimilarities[photo.id]
+            ? "computed"
+            : photo.perceptualHash,
         };
       }
       return photo;
@@ -595,10 +636,13 @@ export class PhotoStackingService {
 
   private estimateStorageSavings(stacks: PhotoStack[]): number {
     // Estimate storage savings by assuming we could keep only the best photo from each stack
-    const totalPhotos = stacks.reduce((sum, stack) => sum + stack.photoIds.length, 0);
+    const totalPhotos = stacks.reduce(
+      (sum, stack) => sum + stack.photoIds.length,
+      0,
+    );
     const bestPhotosOnly = stacks.length;
     const redundantPhotos = totalPhotos - bestPhotosOnly;
-    
+
     // Assume average photo size of 3MB
     return redundantPhotos * 3 * 1024 * 1024; // in bytes
   }
@@ -611,16 +655,21 @@ export class PhotoStackingService {
 /**
  * Get singleton instance of PhotoStackingService
  */
-export function getPhotoStackingService(config?: Partial<StackingConfig>): PhotoStackingService {
+export function getPhotoStackingService(
+  config?: Partial<StackingConfig>,
+): PhotoStackingService {
   const key = JSON.stringify(config || {});
   if (!(global as any).photoStackingServiceInstances) {
     (global as any).photoStackingServiceInstances = new Map();
   }
-  
+
   if (!(global as any).photoStackingServiceInstances.has(key)) {
-    (global as any).photoStackingServiceInstances.set(key, new PhotoStackingService(config));
+    (global as any).photoStackingServiceInstances.set(
+      key,
+      new PhotoStackingService(config),
+    );
   }
-  
+
   return (global as any).photoStackingServiceInstances.get(key);
 }
 
@@ -634,22 +683,22 @@ export async function detectPhotoStacks(photoId: string): Promise<{
 }> {
   const service = getPhotoStackingService();
   const stacks = await service.getStacks();
-  
+
   const duplicates: string[] = [];
   const similar: string[] = [];
   let bursts: string[] = [];
 
-  stacks.forEach(stack => {
+  stacks.forEach((stack) => {
     if (stack.photoIds.includes(photoId)) {
       switch (stack.type) {
         case "duplicate":
-          duplicates.push(...stack.photoIds.filter(id => id !== photoId));
+          duplicates.push(...stack.photoIds.filter((id) => id !== photoId));
           break;
         case "similar":
-          similar.push(...stack.photoIds.filter(id => id !== photoId));
+          similar.push(...stack.photoIds.filter((id) => id !== photoId));
           break;
         case "burst":
-          bursts = stack.photoIds.filter(id => id !== photoId);
+          bursts = stack.photoIds.filter((id) => id !== photoId);
           break;
       }
     }
@@ -669,14 +718,14 @@ export async function getStackSummary(stackId: string): Promise<{
 }> {
   const service = getPhotoStackingService();
   const stacks = await service.getStacks();
-  const stack = stacks.find(s => s.id === stackId) || null;
-  
+  const stack = stacks.find((s) => s.id === stackId) || null;
+
   if (!stack) {
     return { stack: null, photos: [], summary: "", recommendations: [] };
   }
 
   const allPhotos = await getPhotos();
-  const photos = allPhotos.filter(p => stack.photoIds.includes(p.id));
+  const photos = allPhotos.filter((p) => stack.photoIds.includes(p.id));
 
   const summary = generateStackSummary(stack, photos);
   const recommendations = generateStackRecommendations(stack, photos);
@@ -686,20 +735,31 @@ export async function getStackSummary(stackId: string): Promise<{
 
 function generateStackSummary(stack: PhotoStack, photos: Photo[]): string {
   const typeText = stack.type.charAt(0).toUpperCase() + stack.type.slice(1);
-  const qualityRating = getQualityRating(stack.analysis.qualityScores[stack.bestPhotoId] || 0);
-  
+  const qualityRating = getQualityRating(
+    stack.analysis.qualityScores[stack.bestPhotoId] || 0,
+  );
+
   return `${typeText} group of ${photos.length} photos. Best photo quality: ${qualityRating}.`;
 }
 
-function generateStackRecommendations(stack: PhotoStack, photos: Photo[]): string[] {
+function generateStackRecommendations(
+  stack: PhotoStack,
+  photos: Photo[],
+): string[] {
   const recommendations: string[] = [];
-  
+
   if (stack.type === "duplicate") {
-    recommendations.push("Consider keeping only the best photo to save storage space.");
+    recommendations.push(
+      "Consider keeping only the best photo to save storage space.",
+    );
   } else if (stack.type === "burst") {
-    recommendations.push("Review the burst sequence and keep the sharpest photo.");
+    recommendations.push(
+      "Review the burst sequence and keep the sharpest photo.",
+    );
   } else if (stack.type === "similar") {
-    recommendations.push("These photos are visually similar but not identical.");
+    recommendations.push(
+      "These photos are visually similar but not identical.",
+    );
   }
 
   if (stack.userPreferences.reviewed) {

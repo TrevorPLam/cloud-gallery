@@ -20,13 +20,21 @@ import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 
 // Import sharing services
-import { sharingKeyManager, SharingKeyType, SharingPermission } from "../../lib/sharing/key-management";
-import { permissionManager, PermissionAction, getAvailableRoles } from "../../lib/sharing/permissions";
-import { 
-  initializeDeviceSync, 
-  getSharingSyncStatus, 
+import {
+  sharingKeyManager,
+  SharingKeyType,
+  SharingPermission,
+} from "../../lib/sharing/key-management";
+import {
+  permissionManager,
+  PermissionAction,
+  getAvailableRoles,
+} from "../../lib/sharing/permissions";
+import {
+  initializeDeviceSync,
+  getSharingSyncStatus,
   queueSharingOperation,
-  SyncOperationType 
+  SyncOperationType,
 } from "../../lib/sharing/device-sync";
 
 // Types
@@ -52,7 +60,12 @@ interface SharingKey {
 
 interface ActivityItem {
   id: string;
-  type: "member_added" | "member_removed" | "permission_changed" | "key_rotated" | "photo_shared";
+  type:
+    | "member_added"
+    | "member_removed"
+    | "permission_changed"
+    | "key_rotated"
+    | "photo_shared";
   description: string;
   userId: string;
   userName: string;
@@ -80,7 +93,9 @@ export const SharingScreen: React.FC<SharingScreenProps> = ({
   userId,
 }) => {
   // State
-  const [activeTab, setActiveTab] = useState<"partners" | "libraries" | "activity" | "settings">("partners");
+  const [activeTab, setActiveTab] = useState<
+    "partners" | "libraries" | "activity" | "settings"
+  >("partners");
   const [partners, setPartners] = useState<Partner[]>([]);
   const [sharingKeys, setSharingKeys] = useState<SharingKey[]>([]);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
@@ -100,8 +115,11 @@ export const SharingScreen: React.FC<SharingScreenProps> = ({
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteMessage, setInviteMessage] = useState("");
   const [libraryName, setLibraryName] = useState("");
-  const [libraryType, setLibraryType] = useState<SharingKeyType>(SharingKeyType.FAMILY_LIBRARY);
-  const [libraryPermissions, setLibraryPermissions] = useState<SharingPermission>(SharingPermission.VIEW);
+  const [libraryType, setLibraryType] = useState<SharingKeyType>(
+    SharingKeyType.FAMILY_LIBRARY,
+  );
+  const [libraryPermissions, setLibraryPermissions] =
+    useState<SharingPermission>(SharingPermission.VIEW);
 
   // Initialize sync on mount
   useEffect(() => {
@@ -112,7 +130,7 @@ export const SharingScreen: React.FC<SharingScreenProps> = ({
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [])
+    }, []),
   );
 
   // Update sync status periodically
@@ -169,7 +187,7 @@ export const SharingScreen: React.FC<SharingScreenProps> = ({
 
   const loadSharingKeys = async () => {
     const userKeys = await sharingKeyManager.getUserSharingKeys(userId);
-    const keys: SharingKey[] = userKeys.map(metadata => ({
+    const keys: SharingKey[] = userKeys.map((metadata) => ({
       id: metadata.id,
       name: metadata.name,
       type: metadata.type,
@@ -231,20 +249,23 @@ export const SharingScreen: React.FC<SharingScreenProps> = ({
 
     try {
       // This would call the family sharing API
-      console.log("Inviting partner:", { email: inviteEmail, message: inviteMessage });
-      
+      console.log("Inviting partner:", {
+        email: inviteEmail,
+        message: inviteMessage,
+      });
+
       // Queue sync operation
       await queueSharingOperation(
         SyncOperationType.ADD_MEMBER,
         "family_library_main",
         userId,
-        { email: inviteEmail, message: inviteMessage }
+        { email: inviteEmail, message: inviteMessage },
       );
 
       setShowInviteModal(false);
       setInviteEmail("");
       setInviteMessage("");
-      
+
       Alert.alert("Success", "Invitation sent successfully");
       await loadPartners();
     } catch (error) {
@@ -267,7 +288,7 @@ export const SharingScreen: React.FC<SharingScreenProps> = ({
         {
           permissions: libraryPermissions,
           description: `Family library: ${libraryName}`,
-        }
+        },
       );
 
       // Queue sync operation
@@ -275,7 +296,11 @@ export const SharingScreen: React.FC<SharingScreenProps> = ({
         SyncOperationType.CREATE,
         result.keyId,
         userId,
-        { name: libraryName, type: libraryType, permissions: libraryPermissions }
+        {
+          name: libraryName,
+          type: libraryType,
+          permissions: libraryPermissions,
+        },
       );
 
       setShowCreateLibraryModal(false);
@@ -304,13 +329,13 @@ export const SharingScreen: React.FC<SharingScreenProps> = ({
             try {
               // This would call the family sharing API
               console.log("Removing partner:", partner.id);
-              
+
               // Queue sync operation
               await queueSharingOperation(
                 SyncOperationType.REMOVE_MEMBER,
                 "family_library_main",
                 userId,
-                { memberId: partner.id }
+                { memberId: partner.id },
               );
 
               Alert.alert("Success", "Partner removed successfully");
@@ -321,7 +346,7 @@ export const SharingScreen: React.FC<SharingScreenProps> = ({
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -329,13 +354,13 @@ export const SharingScreen: React.FC<SharingScreenProps> = ({
     try {
       // This would call the permission management API
       console.log("Updating permissions:", { partnerId: partner.id, newRole });
-      
+
       // Queue sync operation
       await queueSharingOperation(
         SyncOperationType.UPDATE_PERMISSIONS,
         "family_library_main",
         userId,
-        { userId: partner.id, newRole }
+        { userId: partner.id, newRole },
       );
 
       Alert.alert("Success", "Permissions updated successfully");
@@ -351,7 +376,11 @@ export const SharingScreen: React.FC<SharingScreenProps> = ({
       <View style={styles.partnerInfo}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
-            {item.name.split(" ").map(n => n[0]).join("").toUpperCase()}
+            {item.name
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .toUpperCase()}
           </Text>
         </View>
         <View style={styles.partnerDetails}>
@@ -368,7 +397,11 @@ export const SharingScreen: React.FC<SharingScreenProps> = ({
             setShowMemberDetailsModal(true);
           }}
         >
-          <Ionicons name="information-circle-outline" size={24} color="#007AFF" />
+          <Ionicons
+            name="information-circle-outline"
+            size={24}
+            color="#007AFF"
+          />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionButton}
@@ -383,10 +416,12 @@ export const SharingScreen: React.FC<SharingScreenProps> = ({
   const renderLibraryItem = ({ item }: { item: SharingKey }) => (
     <View style={styles.libraryItem}>
       <View style={styles.libraryInfo}>
-        <Ionicons 
-          name={item.type === SharingKeyType.FAMILY_LIBRARY ? "people" : "folder"} 
-          size={32} 
-          color="#007AFF" 
+        <Ionicons
+          name={
+            item.type === SharingKeyType.FAMILY_LIBRARY ? "people" : "folder"
+          }
+          size={32}
+          color="#007AFF"
         />
         <View style={styles.libraryDetails}>
           <Text style={styles.libraryName}>{item.name}</Text>
@@ -416,12 +451,12 @@ export const SharingScreen: React.FC<SharingScreenProps> = ({
             item.type === "member_added"
               ? "person-add"
               : item.type === "member_removed"
-              ? "person-remove"
-              : item.type === "permission_changed"
-              ? "key"
-              : item.type === "key_rotated"
-              ? "refresh"
-              : "image"
+                ? "person-remove"
+                : item.type === "permission_changed"
+                  ? "key"
+                  : item.type === "key_rotated"
+                    ? "refresh"
+                    : "image"
           }
           size={20}
           color="#007AFF"
@@ -489,10 +524,7 @@ export const SharingScreen: React.FC<SharingScreenProps> = ({
         {["partners", "libraries", "activity", "settings"].map((tab) => (
           <TouchableOpacity
             key={tab}
-            style={[
-              styles.tab,
-              activeTab === tab && styles.activeTab,
-            ]}
+            style={[styles.tab, activeTab === tab && styles.activeTab]}
             onPress={() => setActiveTab(tab as any)}
           >
             <Text
@@ -600,7 +632,10 @@ export const SharingScreen: React.FC<SharingScreenProps> = ({
               multiline
               numberOfLines={3}
             />
-            <TouchableOpacity style={styles.primaryButton} onPress={handleInvitePartner}>
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={handleInvitePartner}
+            >
               <Text style={styles.primaryButtonText}>Send Invitation</Text>
             </TouchableOpacity>
           </View>
@@ -651,7 +686,10 @@ export const SharingScreen: React.FC<SharingScreenProps> = ({
                 </TouchableOpacity>
               ))}
             </View>
-            <TouchableOpacity style={styles.primaryButton} onPress={handleCreateLibrary}>
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={handleCreateLibrary}
+            >
               <Text style={styles.primaryButtonText}>Create Library</Text>
             </TouchableOpacity>
           </View>

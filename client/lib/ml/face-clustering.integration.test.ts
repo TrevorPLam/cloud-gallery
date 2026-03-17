@@ -8,29 +8,29 @@
 // TESTS: This file
 // AI-META-END
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   FaceDetectionService,
   getFaceDetectionService,
   resetFaceDetectionServiceForTesting,
-} from './face-detection';
+} from "./face-detection";
 import {
   FaceEmbeddingService,
   getFaceEmbeddingService,
   resetFaceEmbeddingServiceForTesting,
-} from './face-embeddings';
+} from "./face-embeddings";
 import {
   FaceClusteringService,
   getFaceClusteringService,
   resetFaceClusteringServiceForTesting,
-} from './face-clustering';
-import { getModelManager, resetModelManagerForTesting } from './model-manager';
+} from "./face-clustering";
+import { getModelManager, resetModelManagerForTesting } from "./model-manager";
 
 // Mock React Native
-vi.mock('react-native', () => ({
+vi.mock("react-native", () => ({
   Platform: {
-    OS: 'ios',
-    Version: '15.0',
+    OS: "ios",
+    Version: "15.0",
   },
   InteractionManager: {
     runAfterInteractions: vi.fn((callback) => {
@@ -46,12 +46,12 @@ vi.mock('react-native', () => ({
 }));
 
 // Mock the model manager
-vi.mock('./model-manager', () => ({
+vi.mock("./model-manager", () => ({
   getModelManager: vi.fn(),
   resetModelManagerForTesting: vi.fn(),
 }));
 
-describe('Face Recognition Integration', () => {
+describe("Face Recognition Integration", () => {
   let faceDetectionService: FaceDetectionService;
   let faceEmbeddingService: FaceEmbeddingService;
   let faceClusteringService: FaceClusteringService;
@@ -67,14 +67,14 @@ describe('Face Recognition Integration', () => {
     // Create mock model manager
     mockModelManager = {
       loadModel: vi.fn().mockResolvedValue({
-        name: 'blazeface',
-        delegate: 'core-ml',
+        name: "blazeface",
+        delegate: "core-ml",
         loadTime: 100,
         memoryUsage: 1024,
       }),
       runInference: vi.fn(),
       isModelLoaded: vi.fn().mockReturnValue(true),
-      getLoadedModels: vi.fn().mockReturnValue(['blazeface', 'facenet']),
+      getLoadedModels: vi.fn().mockReturnValue(["blazeface", "facenet"]),
     };
 
     vi.mocked(getModelManager).mockReturnValue(mockModelManager);
@@ -85,7 +85,7 @@ describe('Face Recognition Integration', () => {
       maxFaces: 10,
       minFaceSize: 0.1,
       enableTemporalSmoothing: false,
-      gpuDelegate: 'none',
+      gpuDelegate: "none",
     });
 
     faceEmbeddingService = getFaceEmbeddingService({
@@ -93,7 +93,7 @@ describe('Face Recognition Integration', () => {
       minAlignmentConfidence: 0.8,
       normalizeEmbeddings: true,
       faceImageSize: 160,
-      gpuDelegate: 'none',
+      gpuDelegate: "none",
     });
 
     faceClusteringService = getFaceClusteringService({
@@ -115,30 +115,43 @@ describe('Face Recognition Integration', () => {
     vi.clearAllMocks();
   });
 
-  describe('Complete Face Processing Workflow', () => {
-    it('should process faces from image to person clusters', async () => {
+  describe("Complete Face Processing Workflow", () => {
+    it("should process faces from image to person clusters", async () => {
       // Mock BlazeFace output for face detection
       const mockFaceDetectionOutputs = [
         // Bounding boxes: [[x, y, w, h], ...]
-        [[0.1, 0.1, 0.3, 0.3], [0.6, 0.2, 0.25, 0.35], [0.3, 0.5, 0.2, 0.25]],
+        [
+          [0.1, 0.1, 0.3, 0.3],
+          [0.6, 0.2, 0.25, 0.35],
+          [0.3, 0.5, 0.2, 0.25],
+        ],
         // Confidence scores: [0.9, 0.8, 0.7]
         [0.9, 0.8, 0.7],
         // Landmarks: [[[x1, y1], [x2, y2], ...], ...]
         [
           [
-            [0.15, 0.15], [0.25, 0.15], // left_eye, right_eye
-            [0.12, 0.3], [0.28, 0.3],  // left_ear, right_ear
-            [0.2, 0.35], [0.2, 0.25],   // mouth, nose
+            [0.15, 0.15],
+            [0.25, 0.15], // left_eye, right_eye
+            [0.12, 0.3],
+            [0.28, 0.3], // left_ear, right_ear
+            [0.2, 0.35],
+            [0.2, 0.25], // mouth, nose
           ],
           [
-            [0.65, 0.25], [0.75, 0.25],
-            [0.62, 0.4], [0.78, 0.4],
-            [0.7, 0.45], [0.7, 0.35],
+            [0.65, 0.25],
+            [0.75, 0.25],
+            [0.62, 0.4],
+            [0.78, 0.4],
+            [0.7, 0.45],
+            [0.7, 0.35],
           ],
           [
-            [0.35, 0.55], [0.45, 0.55],
-            [0.32, 0.7], [0.48, 0.7],
-            [0.4, 0.75], [0.4, 0.65],
+            [0.35, 0.55],
+            [0.45, 0.55],
+            [0.32, 0.7],
+            [0.48, 0.7],
+            [0.4, 0.75],
+            [0.4, 0.65],
           ],
         ],
       ];
@@ -146,9 +159,15 @@ describe('Face Recognition Integration', () => {
       // Mock FaceNet output for embeddings
       const mockFaceEmbeddingOutputs = [
         // 128-dimensional embeddings for 3 faces
-        Array(128).fill(0).map((_, i) => (i % 2 === 0 ? 0.5 : -0.5) + Math.random() * 0.1),
-        Array(128).fill(0).map((_, i) => (i % 2 === 0 ? 0.6 : -0.4) + Math.random() * 0.1),
-        Array(128).fill(0).map((_, i) => (i % 2 === 0 ? 0.4 : -0.6) + Math.random() * 0.1),
+        Array(128)
+          .fill(0)
+          .map((_, i) => (i % 2 === 0 ? 0.5 : -0.5) + Math.random() * 0.1),
+        Array(128)
+          .fill(0)
+          .map((_, i) => (i % 2 === 0 ? 0.6 : -0.4) + Math.random() * 0.1),
+        Array(128)
+          .fill(0)
+          .map((_, i) => (i % 2 === 0 ? 0.4 : -0.6) + Math.random() * 0.1),
       ];
 
       // Setup mock responses
@@ -162,7 +181,11 @@ describe('Face Recognition Integration', () => {
       const imageHeight = 128;
 
       // Step 1: Detect faces
-      const faceDetections = await faceDetectionService.detectFaces(imageData, imageWidth, imageHeight);
+      const faceDetections = await faceDetectionService.detectFaces(
+        imageData,
+        imageWidth,
+        imageHeight,
+      );
       expect(faceDetections).toHaveLength(3);
       expect(faceDetections[0].confidence).toBe(0.9);
       expect(faceDetections[1].confidence).toBe(0.8);
@@ -173,7 +196,7 @@ describe('Face Recognition Integration', () => {
         imageData,
         imageWidth,
         imageHeight,
-        faceDetections
+        faceDetections,
       );
       expect(embeddings).toHaveLength(3);
       expect(embeddings[0].vector).toHaveLength(128);
@@ -181,7 +204,8 @@ describe('Face Recognition Integration', () => {
       expect(embeddings[0].alignmentConfidence).toBeGreaterThan(0);
 
       // Step 3: Cluster faces
-      const clusterResult = await faceClusteringService.clusterFaces(embeddings);
+      const clusterResult =
+        await faceClusteringService.clusterFaces(embeddings);
       expect(clusterResult.people).toBeDefined();
       expect(clusterResult.unclusteredCount).toBeGreaterThanOrEqual(0);
       expect(clusterResult.metadata.totalFaces).toBe(3);
@@ -212,21 +236,30 @@ describe('Face Recognition Integration', () => {
       expect(clusteringStats.clusteringTime).toBeGreaterThan(0);
     });
 
-    it('should handle low-quality faces appropriately', async () => {
+    it("should handle low-quality faces appropriately", async () => {
       // Mock low-confidence face detection
       const mockFaceDetectionOutputs = [
-        [[0.1, 0.1, 0.3, 0.3], [0.6, 0.2, 0.25, 0.35]],
+        [
+          [0.1, 0.1, 0.3, 0.3],
+          [0.6, 0.2, 0.25, 0.35],
+        ],
         [0.3, 0.4], // Both below confidence threshold
         [
           [
-            [0.15, 0.15], [0.25, 0.15],
-            [0.12, 0.3], [0.28, 0.3],
-            [0.2, 0.35], [0.2, 0.25],
+            [0.15, 0.15],
+            [0.25, 0.15],
+            [0.12, 0.3],
+            [0.28, 0.3],
+            [0.2, 0.35],
+            [0.2, 0.25],
           ],
           [
-            [0.65, 0.25], [0.75, 0.25],
-            [0.62, 0.4], [0.78, 0.4],
-            [0.7, 0.45], [0.7, 0.35],
+            [0.65, 0.25],
+            [0.75, 0.25],
+            [0.62, 0.4],
+            [0.78, 0.4],
+            [0.7, 0.45],
+            [0.7, 0.35],
           ],
         ],
       ];
@@ -234,44 +267,67 @@ describe('Face Recognition Integration', () => {
       mockModelManager.runInference.mockResolvedValue(mockFaceDetectionOutputs);
 
       const imageData = new Uint8Array(128 * 128 * 3);
-      const faceDetections = await faceDetectionService.detectFaces(imageData, 128, 128);
+      const faceDetections = await faceDetectionService.detectFaces(
+        imageData,
+        128,
+        128,
+      );
 
       // Should filter out low-confidence faces
       expect(faceDetections).toHaveLength(0);
 
       // Embedding generation should return empty array
-      const embeddings = await faceEmbeddingService.generateEmbeddings(imageData, 128, 128, faceDetections);
+      const embeddings = await faceEmbeddingService.generateEmbeddings(
+        imageData,
+        128,
+        128,
+        faceDetections,
+      );
       expect(embeddings).toHaveLength(0);
 
       // Clustering should handle empty input gracefully
-      const clusterResult = await faceClusteringService.clusterFaces(embeddings);
+      const clusterResult =
+        await faceClusteringService.clusterFaces(embeddings);
       expect(clusterResult.people).toHaveLength(0);
       expect(clusterResult.unclusteredCount).toBe(0);
     });
 
-    it('should handle embedding quality filtering', async () => {
+    it("should handle embedding quality filtering", async () => {
       // Mock face detection
       const mockFaceDetectionOutputs = [
-        [[0.1, 0.1, 0.3, 0.3], [0.6, 0.2, 0.25, 0.35]],
+        [
+          [0.1, 0.1, 0.3, 0.3],
+          [0.6, 0.2, 0.25, 0.35],
+        ],
         [0.9, 0.8],
         [
           [
-            [0.15, 0.15], [0.25, 0.15],
-            [0.12, 0.3], [0.28, 0.3],
-            [0.2, 0.35], [0.2, 0.25],
+            [0.15, 0.15],
+            [0.25, 0.15],
+            [0.12, 0.3],
+            [0.28, 0.3],
+            [0.2, 0.35],
+            [0.2, 0.25],
           ],
           [
-            [0.65, 0.25], [0.75, 0.25],
-            [0.62, 0.4], [0.78, 0.4],
-            [0.7, 0.45], [0.7, 0.35],
+            [0.65, 0.25],
+            [0.75, 0.25],
+            [0.62, 0.4],
+            [0.78, 0.4],
+            [0.7, 0.45],
+            [0.7, 0.35],
           ],
         ],
       ];
 
       // Mock embeddings with different quality scores
       const mockFaceEmbeddingOutputs = [
-        Array(128).fill(0).map((_, i) => 0.1), // Low quality
-        Array(128).fill(0).map((_, i) => 0.8), // High quality
+        Array(128)
+          .fill(0)
+          .map((_, i) => 0.1), // Low quality
+        Array(128)
+          .fill(0)
+          .map((_, i) => 0.8), // High quality
       ];
 
       mockModelManager.runInference
@@ -279,32 +335,46 @@ describe('Face Recognition Integration', () => {
         .mockResolvedValueOnce(mockFaceEmbeddingOutputs);
 
       const imageData = new Uint8Array(128 * 128 * 3);
-      const faceDetections = await faceDetectionService.detectFaces(imageData, 128, 128);
+      const faceDetections = await faceDetectionService.detectFaces(
+        imageData,
+        128,
+        128,
+      );
       expect(faceDetections).toHaveLength(2);
 
       // Mock embedding quality calculation
-      const originalCalculateQuality = faceEmbeddingService['_calculateEmbeddingQuality'];
-      faceEmbeddingService['_calculateEmbeddingQuality'] = vi.fn()
+      const originalCalculateQuality =
+        faceEmbeddingService["_calculateEmbeddingQuality"];
+      faceEmbeddingService["_calculateEmbeddingQuality"] = vi
+        .fn()
         .mockReturnValueOnce(0.5) // Below threshold
         .mockReturnValueOnce(0.9); // Above threshold
 
-      const embeddings = await faceEmbeddingService.generateEmbeddings(imageData, 128, 128, faceDetections);
-      
+      const embeddings = await faceEmbeddingService.generateEmbeddings(
+        imageData,
+        128,
+        128,
+        faceDetections,
+      );
+
       // Should filter out low-quality embeddings
       expect(embeddings).toHaveLength(1);
       expect(embeddings[0].quality).toBe(0.9);
 
       // Restore original method
-      faceEmbeddingService['_calculateEmbeddingQuality'] = originalCalculateQuality;
+      faceEmbeddingService["_calculateEmbeddingQuality"] =
+        originalCalculateQuality;
     });
   });
 
-  describe('Person Management Integration', () => {
-    it('should manage person lifecycle correctly', async () => {
+  describe("Person Management Integration", () => {
+    it("should manage person lifecycle correctly", async () => {
       // Create test embeddings
       const embeddings = [
         {
-          vector: Array(128).fill(0).map((_, i) => 0.5 + Math.random() * 0.1),
+          vector: Array(128)
+            .fill(0)
+            .map((_, i) => 0.5 + Math.random() * 0.1),
           quality: 0.9,
           alignmentConfidence: 0.8,
           timestamp: Date.now(),
@@ -316,7 +386,9 @@ describe('Face Recognition Integration', () => {
           },
         },
         {
-          vector: Array(128).fill(0).map((_, i) => 0.6 + Math.random() * 0.1),
+          vector: Array(128)
+            .fill(0)
+            .map((_, i) => 0.6 + Math.random() * 0.1),
           quality: 0.85,
           alignmentConfidence: 0.8,
           timestamp: Date.now(),
@@ -330,7 +402,8 @@ describe('Face Recognition Integration', () => {
       ];
 
       // Cluster faces
-      const clusterResult = await faceClusteringService.clusterFaces(embeddings);
+      const clusterResult =
+        await faceClusteringService.clusterFaces(embeddings);
       expect(clusterResult.people.length).toBeGreaterThan(0);
 
       const person = clusterResult.people[0];
@@ -339,11 +412,14 @@ describe('Face Recognition Integration', () => {
       expect(person.isHidden).toBe(false);
 
       // Update person name
-      const updatedPerson = await faceClusteringService.updatePerson(person.id, {
-        name: 'John Doe',
-      });
+      const updatedPerson = await faceClusteringService.updatePerson(
+        person.id,
+        {
+          name: "John Doe",
+        },
+      );
       expect(updatedPerson).toBeTruthy();
-      expect(updatedPerson?.name).toBe('John Doe');
+      expect(updatedPerson?.name).toBe("John Doe");
       expect(updatedPerson?.updatedAt).toBeGreaterThan(person.updatedAt);
 
       // Pin person
@@ -360,18 +436,20 @@ describe('Face Recognition Integration', () => {
 
       // Load clusters and verify persistence
       const loadedClusters = await faceClusteringService.loadClusters();
-      const loadedPerson = loadedClusters.find(p => p.id === person.id);
+      const loadedPerson = loadedClusters.find((p) => p.id === person.id);
       expect(loadedPerson).toBeTruthy();
-      expect(loadedPerson?.name).toBe('John Doe');
+      expect(loadedPerson?.name).toBe("John Doe");
       expect(loadedPerson?.isPinned).toBe(true);
       expect(loadedPerson?.isHidden).toBe(true);
     });
 
-    it('should handle person merging correctly', async () => {
+    it("should handle person merging correctly", async () => {
       // Create test embeddings for two different people
       const embeddings = [
         {
-          vector: Array(128).fill(0).map((_, i) => 0.5 + Math.random() * 0.1),
+          vector: Array(128)
+            .fill(0)
+            .map((_, i) => 0.5 + Math.random() * 0.1),
           quality: 0.9,
           alignmentConfidence: 0.8,
           timestamp: Date.now(),
@@ -383,7 +461,9 @@ describe('Face Recognition Integration', () => {
           },
         },
         {
-          vector: Array(128).fill(0).map((_, i) => 0.8 + Math.random() * 0.1),
+          vector: Array(128)
+            .fill(0)
+            .map((_, i) => 0.8 + Math.random() * 0.1),
           quality: 0.85,
           alignmentConfidence: 0.8,
           timestamp: Date.now(),
@@ -397,8 +477,12 @@ describe('Face Recognition Integration', () => {
       ];
 
       // Cluster to create two separate people
-      const clusterResult1 = await faceClusteringService.clusterFaces([embeddings[0]]);
-      const clusterResult2 = await faceClusteringService.clusterFaces([embeddings[1]]);
+      const clusterResult1 = await faceClusteringService.clusterFaces([
+        embeddings[0],
+      ]);
+      const clusterResult2 = await faceClusteringService.clusterFaces([
+        embeddings[1],
+      ]);
 
       expect(clusterResult1.people).toHaveLength(1);
       expect(clusterResult2.people).toHaveLength(1);
@@ -407,21 +491,26 @@ describe('Face Recognition Integration', () => {
       const person2 = clusterResult2.people[0];
 
       // Merge person2 into person1
-      const mergedPerson = await faceClusteringService.mergePeople(person2.id, person1.id);
+      const mergedPerson = await faceClusteringService.mergePeople(
+        person2.id,
+        person1.id,
+      );
       expect(mergedPerson).toBeTruthy();
       expect(mergedPerson?.faceCount).toBe(2); // Combined face count
 
       // Verify person2 was deleted
       const clusters = await faceClusteringService.loadClusters();
-      expect(clusters.find(p => p.id === person2.id)).toBeFalsy();
-      expect(clusters.find(p => p.id === person1.id)).toBeTruthy();
+      expect(clusters.find((p) => p.id === person2.id)).toBeFalsy();
+      expect(clusters.find((p) => p.id === person1.id)).toBeTruthy();
     });
 
-    it('should find similar faces correctly', async () => {
+    it("should find similar faces correctly", async () => {
       // Create test embeddings
       const embeddings = [
         {
-          vector: Array(128).fill(0).map((_, i) => 0.5 + Math.random() * 0.1),
+          vector: Array(128)
+            .fill(0)
+            .map((_, i) => 0.5 + Math.random() * 0.1),
           quality: 0.9,
           alignmentConfidence: 0.8,
           timestamp: Date.now(),
@@ -435,67 +524,92 @@ describe('Face Recognition Integration', () => {
       ];
 
       // Cluster faces
-      const clusterResult = await faceClusteringService.clusterFaces(embeddings);
+      const clusterResult =
+        await faceClusteringService.clusterFaces(embeddings);
       const person = clusterResult.people[0];
 
       // Create similar query embedding
-      const queryEmbedding = person.sampleEmbeddings[0].map((val: number) => val + 0.01);
+      const queryEmbedding = person.sampleEmbeddings[0].map(
+        (val: number) => val + 0.01,
+      );
 
       // Find similar faces
-      const similarPeople = await faceClusteringService.findSimilarFaces(queryEmbedding, 0.7);
+      const similarPeople = await faceClusteringService.findSimilarFaces(
+        queryEmbedding,
+        0.7,
+      );
       expect(similarPeople).toHaveLength(1);
       expect(similarPeople[0].id).toBe(person.id);
 
       // Test with dissimilar embedding
-      const dissimilarEmbedding = Array(128).fill(0).map((_, i) => Math.random());
-      const dissimilarPeople = await faceClusteringService.findSimilarFaces(dissimilarEmbedding, 0.7);
+      const dissimilarEmbedding = Array(128)
+        .fill(0)
+        .map((_, i) => Math.random());
+      const dissimilarPeople = await faceClusteringService.findSimilarFaces(
+        dissimilarEmbedding,
+        0.7,
+      );
       expect(dissimilarPeople).toHaveLength(0);
     });
   });
 
-  describe('Error Handling and Edge Cases', () => {
-    it('should handle model loading failures gracefully', async () => {
+  describe("Error Handling and Edge Cases", () => {
+    it("should handle model loading failures gracefully", async () => {
       // Mock model loading failure
-      mockModelManager.loadModel.mockRejectedValue(new Error('Model loading failed'));
+      mockModelManager.loadModel.mockRejectedValue(
+        new Error("Model loading failed"),
+      );
 
       const service = new FaceDetectionService();
-      await expect(service.initialize()).rejects.toThrow('Model loading failed');
+      await expect(service.initialize()).rejects.toThrow(
+        "Model loading failed",
+      );
 
       // Should fallback to CPU and retry
       expect(mockModelManager.loadModel).toHaveBeenCalledTimes(2);
     });
 
-    it('should handle inference failures gracefully', async () => {
+    it("should handle inference failures gracefully", async () => {
       // Mock inference failure
-      mockModelManager.runInference.mockRejectedValue(new Error('Inference failed'));
+      mockModelManager.runInference.mockRejectedValue(
+        new Error("Inference failed"),
+      );
 
       const imageData = new Uint8Array(128 * 128 * 3);
-      
+
       await expect(
-        faceDetectionService.detectFaces(imageData, 128, 128)
-      ).rejects.toThrow('Inference failed');
+        faceDetectionService.detectFaces(imageData, 128, 128),
+      ).rejects.toThrow("Inference failed");
     });
 
-    it('should handle empty image data', async () => {
+    it("should handle empty image data", async () => {
       const emptyImageData = new Uint8Array(0);
-      
-      const detections = await faceDetectionService.detectFaces(emptyImageData, 0, 0);
+
+      const detections = await faceDetectionService.detectFaces(
+        emptyImageData,
+        0,
+        0,
+      );
       expect(detections).toHaveLength(0);
     });
 
-    it('should handle malformed model outputs', async () => {
+    it("should handle malformed model outputs", async () => {
       // Mock malformed outputs
       mockModelManager.runInference.mockResolvedValue([null, undefined, []]);
 
       const imageData = new Uint8Array(128 * 128 * 3);
-      
-      const detections = await faceDetectionService.detectFaces(imageData, 128, 128);
+
+      const detections = await faceDetectionService.detectFaces(
+        imageData,
+        128,
+        128,
+      );
       expect(detections).toHaveLength(0);
     });
   });
 
-  describe('Performance and Memory Management', () => {
-    it('should handle large numbers of faces efficiently', async () => {
+  describe("Performance and Memory Management", () => {
+    it("should handle large numbers of faces efficiently", async () => {
       // Mock many faces
       const numFaces = 50;
       const mockFaceDetectionOutputs = [
@@ -507,13 +621,17 @@ describe('Face Recognition Integration', () => {
       mockModelManager.runInference.mockResolvedValue(mockFaceDetectionOutputs);
 
       const imageData = new Uint8Array(128 * 128 * 3);
-      const detections = await faceDetectionService.detectFaces(imageData, 128, 128);
+      const detections = await faceDetectionService.detectFaces(
+        imageData,
+        128,
+        128,
+      );
 
       // Should limit to maxFaces
       expect(detections.length).toBeLessThanOrEqual(10);
     });
 
-    it('should cleanup resources properly', async () => {
+    it("should cleanup resources properly", async () => {
       await faceDetectionService.cleanup();
       await faceEmbeddingService.cleanup();
       await faceClusteringService.cleanup();

@@ -8,9 +8,9 @@
 // TESTS: Cryptographic proof generation, audit trail integrity, secure deletion
 // AI-META-END
 
-import { Platform } from 'react-native';
-import CryptoJS from 'crypto-js';
-import { apiRequest } from '@/lib/query-client';
+import { Platform } from "react-native";
+import CryptoJS from "crypto-js";
+import { apiRequest } from "@/lib/query-client";
 
 export interface DeletionProof {
   photoId: string;
@@ -18,19 +18,19 @@ export interface DeletionProof {
   timestamp: string;
   userId: string;
   proofSignature: string;
-  verificationMethod: 'cryptographic' | 'audit-trail' | 'hybrid';
+  verificationMethod: "cryptographic" | "audit-trail" | "hybrid";
 }
 
 export interface AuditTrailEntry {
   id: string;
   photoId: string;
   userId: string;
-  action: 'marked_for_deletion' | 'permanently_deleted' | 'cleanup_executed';
+  action: "marked_for_deletion" | "permanently_deleted" | "cleanup_executed";
   timestamp: string;
   metadata: {
     originalSize: number;
     originalPath: string;
-    deletionReason: 'user_action' | 'automatic_cleanup' | 'storage_cleanup';
+    deletionReason: "user_action" | "automatic_cleanup" | "storage_cleanup";
     retentionPeriod: number;
     verified: boolean;
   };
@@ -59,18 +59,18 @@ export interface DeletionVerificationResult {
 export async function generateDeletionProof(
   photoId: string,
   userId: string,
-  timestamp: string = new Date().toISOString()
+  timestamp: string = new Date().toISOString(),
 ): Promise<DeletionProof> {
   try {
     // Create deletion hash using photo ID, user ID, and timestamp
     const deletionData = `${photoId}:${userId}:${timestamp}:DELETED`;
     const deletionHash = CryptoJS.SHA256(deletionData).toString();
-    
+
     // Generate signature using a combination of deletion hash and secret
     const signatureData = `${deletionHash}:${timestamp}`;
     const proofSignature = CryptoJS.HmacSHA256(
-      signatureData, 
-      'CLOUD_GALLERY_DELETION_PROOF_KEY'
+      signatureData,
+      "CLOUD_GALLERY_DELETION_PROOF_KEY",
     ).toString();
 
     return {
@@ -79,11 +79,11 @@ export async function generateDeletionProof(
       timestamp,
       userId,
       proofSignature,
-      verificationMethod: 'cryptographic',
+      verificationMethod: "cryptographic",
     };
   } catch (error) {
-    console.error('Failed to generate deletion proof:', error);
-    throw new Error('Failed to generate cryptographic deletion proof');
+    console.error("Failed to generate deletion proof:", error);
+    throw new Error("Failed to generate cryptographic deletion proof");
   }
 }
 
@@ -93,8 +93,8 @@ export async function generateDeletionProof(
 export async function createAuditTrailEntry(
   photoId: string,
   userId: string,
-  action: DeletionTrailEntry['action'],
-  metadata: Partial<AuditTrailEntry['metadata']>
+  action: DeletionTrailEntry["action"],
+  metadata: Partial<AuditTrailEntry["metadata"]>,
 ): Promise<AuditTrailEntry> {
   try {
     const entry: AuditTrailEntry = {
@@ -105,8 +105,8 @@ export async function createAuditTrailEntry(
       timestamp: new Date().toISOString(),
       metadata: {
         originalSize: 0,
-        originalPath: '',
-        deletionReason: 'user_action',
+        originalPath: "",
+        deletionReason: "user_action",
         retentionPeriod: 30,
         verified: false,
         ...metadata,
@@ -114,15 +114,19 @@ export async function createAuditTrailEntry(
     };
 
     // Add cryptographic proof for permanent deletions
-    if (action === 'permanently_deleted') {
-      const proof = await generateDeletionProof(photoId, userId, entry.timestamp);
+    if (action === "permanently_deleted") {
+      const proof = await generateDeletionProof(
+        photoId,
+        userId,
+        entry.timestamp,
+      );
       entry.cryptographicProof = proof.deletionHash;
     }
 
     return entry;
   } catch (error) {
-    console.error('Failed to create audit trail entry:', error);
-    throw new Error('Failed to create audit trail entry');
+    console.error("Failed to create audit trail entry:", error);
+    throw new Error("Failed to create audit trail entry");
   }
 }
 
@@ -132,22 +136,34 @@ export async function createAuditTrailEntry(
 export async function performSecureDeletion(
   photoId: string,
   userId: string,
-  deletionReason: 'user_action' | 'automatic_cleanup' | 'storage_cleanup' = 'user_action'
+  deletionReason:
+    | "user_action"
+    | "automatic_cleanup"
+    | "storage_cleanup" = "user_action",
 ): Promise<SecureDeletionResult> {
   try {
     // Step 1: Generate cryptographic proof
     const deletionProof = await generateDeletionProof(photoId, userId);
 
     // Step 2: Create audit trail entry
-    const auditEntry = await createAuditTrailEntry(photoId, userId, 'permanently_deleted', {
-      deletionReason,
-    });
+    const auditEntry = await createAuditTrailEntry(
+      photoId,
+      userId,
+      "permanently_deleted",
+      {
+        deletionReason,
+      },
+    );
 
     // Step 3: Call secure deletion endpoint
-    const res = await apiRequest('DELETE', `/api/photos/${photoId}/secure-delete`, {
-      deletionProof,
-      auditTrail: auditEntry,
-    });
+    const res = await apiRequest(
+      "DELETE",
+      `/api/photos/${photoId}/secure-delete`,
+      {
+        deletionProof,
+        auditTrail: auditEntry,
+      },
+    );
 
     if (!res.ok) {
       throw new Error(`Secure deletion failed: ${res.statusText}`);
@@ -162,12 +178,12 @@ export async function performSecureDeletion(
       verificationUrl: data.verificationUrl,
     };
   } catch (error) {
-    console.error('Secure deletion failed:', error);
+    console.error("Secure deletion failed:", error);
     return {
       success: false,
       deletionProof: await generateDeletionProof(photoId, userId), // Still generate proof for audit
-      auditTrailId: '',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      auditTrailId: "",
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }
@@ -177,12 +193,12 @@ export async function performSecureDeletion(
  */
 export async function verifyDeletionProof(
   photoId: string,
-  deletionProof: DeletionProof
+  deletionProof: DeletionProof,
 ): Promise<DeletionVerificationResult> {
   try {
     // Step 1: Verify cryptographic proof
     const expectedHash = CryptoJS.SHA256(
-      `${photoId}:${deletionProof.userId}:${deletionProof.timestamp}:DELETED`
+      `${photoId}:${deletionProof.userId}:${deletionProof.timestamp}:DELETED`,
     ).toString();
 
     const hashValid = expectedHash === deletionProof.deletionHash;
@@ -190,16 +206,19 @@ export async function verifyDeletionProof(
     // Step 2: Verify signature
     const expectedSignature = CryptoJS.HmacSHA256(
       `${deletionProof.deletionHash}:${deletionProof.timestamp}`,
-      'CLOUD_GALLERY_DELETION_PROOF_KEY'
+      "CLOUD_GALLERY_DELETION_PROOF_KEY",
     ).toString();
 
     const signatureValid = expectedSignature === deletionProof.proofSignature;
 
     // Step 3: Check audit trail
-    const auditTrailValid = await verifyAuditTrail(photoId, deletionProof.userId);
+    const auditTrailValid = await verifyAuditTrail(
+      photoId,
+      deletionProof.userId,
+    );
 
     // Step 4: Check with server for final confirmation
-    const res = await apiRequest('POST', '/api/photos/verify-deletion', {
+    const res = await apiRequest("POST", "/api/photos/verify-deletion", {
       photoId,
       deletionProof,
     });
@@ -210,13 +229,14 @@ export async function verifyDeletionProof(
       serverConfirmed = data.verified;
     }
 
-    const isValid = hashValid && signatureValid && auditTrailValid && serverConfirmed;
+    const isValid =
+      hashValid && signatureValid && auditTrailValid && serverConfirmed;
     const discrepancies: string[] = [];
 
-    if (!hashValid) discrepancies.push('Hash mismatch');
-    if (!signatureValid) discrepancies.push('Signature invalid');
-    if (!auditTrailValid) discrepancies.push('Audit trail incomplete');
-    if (!serverConfirmed) discrepancies.push('Server verification failed');
+    if (!hashValid) discrepancies.push("Hash mismatch");
+    if (!signatureValid) discrepancies.push("Signature invalid");
+    if (!auditTrailValid) discrepancies.push("Audit trail incomplete");
+    if (!serverConfirmed) discrepancies.push("Server verification failed");
 
     return {
       isValid,
@@ -226,13 +246,13 @@ export async function verifyDeletionProof(
       discrepancies,
     };
   } catch (error) {
-    console.error('Deletion proof verification failed:', error);
+    console.error("Deletion proof verification failed:", error);
     return {
       isValid: false,
       deletionConfirmed: false,
       auditTrailComplete: false,
       verificationTimestamp: new Date().toISOString(),
-      discrepancies: ['Verification process failed'],
+      discrepancies: ["Verification process failed"],
     };
   }
 }
@@ -240,28 +260,33 @@ export async function verifyDeletionProof(
 /**
  * Verify audit trail completeness
  */
-export async function verifyAuditTrail(photoId: string, userId: string): Promise<boolean> {
+export async function verifyAuditTrail(
+  photoId: string,
+  userId: string,
+): Promise<boolean> {
   try {
-    const res = await apiRequest('GET', `/api/photos/${photoId}/audit-trail`);
-    
+    const res = await apiRequest("GET", `/api/photos/${photoId}/audit-trail`);
+
     if (!res.ok) {
       return false;
     }
 
     const auditTrail: AuditTrailEntry[] = await res.json();
-    
+
     // Check for required entries
-    const hasMarkedForDeletion = auditTrail.some(entry => 
-      entry.action === 'marked_for_deletion' && entry.userId === userId
+    const hasMarkedForDeletion = auditTrail.some(
+      (entry) =>
+        entry.action === "marked_for_deletion" && entry.userId === userId,
     );
-    
-    const hasPermanentDeletion = auditTrail.some(entry => 
-      entry.action === 'permanently_deleted' && entry.userId === userId
+
+    const hasPermanentDeletion = auditTrail.some(
+      (entry) =>
+        entry.action === "permanently_deleted" && entry.userId === userId,
     );
 
     return hasMarkedForDeletion && hasPermanentDeletion;
   } catch (error) {
-    console.error('Audit trail verification failed:', error);
+    console.error("Audit trail verification failed:", error);
     return false;
   }
 }
@@ -269,17 +294,19 @@ export async function verifyAuditTrail(photoId: string, userId: string): Promise
 /**
  * Get audit trail for a photo
  */
-export async function getAuditTrail(photoId: string): Promise<AuditTrailEntry[]> {
+export async function getAuditTrail(
+  photoId: string,
+): Promise<AuditTrailEntry[]> {
   try {
-    const res = await apiRequest('GET', `/api/photos/${photoId}/audit-trail`);
-    
+    const res = await apiRequest("GET", `/api/photos/${photoId}/audit-trail`);
+
     if (!res.ok) {
       throw new Error(`Failed to get audit trail: ${res.statusText}`);
     }
 
     return await res.json();
   } catch (error) {
-    console.error('Failed to get audit trail:', error);
+    console.error("Failed to get audit trail:", error);
     return [];
   }
 }
@@ -289,17 +316,17 @@ export async function getAuditTrail(photoId: string): Promise<AuditTrailEntry[]>
  */
 export async function generateDeletionReport(
   photoIds: string[],
-  userId: string
+  userId: string,
 ): Promise<{
   reportId: string;
   generatedAt: string;
   totalPhotos: number;
   verifiedDeletions: number;
-  failedVerifications: Array<{
+  failedVerifications: {
     photoId: string;
     reason: string;
-  }>;
-  complianceStatus: 'compliant' | 'partial' | 'non-compliant';
+  }[];
+  complianceStatus: "compliant" | "partial" | "non-compliant";
 }> {
   try {
     const verificationResults = await Promise.all(
@@ -307,14 +334,18 @@ export async function generateDeletionReport(
         try {
           // Get audit trail
           const auditTrail = await getAuditTrail(photoId);
-          
+
           // Find permanent deletion entry
-          const deletionEntry = auditTrail.find(entry => 
-            entry.action === 'permanently_deleted'
+          const deletionEntry = auditTrail.find(
+            (entry) => entry.action === "permanently_deleted",
           );
 
           if (!deletionEntry) {
-            return { photoId, success: false, reason: 'No permanent deletion record' };
+            return {
+              photoId,
+              success: false,
+              reason: "No permanent deletion record",
+            };
           }
 
           // Verify deletion proof if available
@@ -324,34 +355,45 @@ export async function generateDeletionReport(
               deletionHash: deletionEntry.cryptographicProof,
               timestamp: deletionEntry.timestamp,
               userId,
-              proofSignature: '', // Would need to be stored separately
-              verificationMethod: 'cryptographic',
+              proofSignature: "", // Would need to be stored separately
+              verificationMethod: "cryptographic",
             };
 
-            const verification = await verifyDeletionProof(photoId, deletionProof);
-            return { 
-              photoId, 
-              success: verification.isValid, 
-              reason: verification.isValid ? 'Verified' : 'Proof verification failed'
+            const verification = await verifyDeletionProof(
+              photoId,
+              deletionProof,
+            );
+            return {
+              photoId,
+              success: verification.isValid,
+              reason: verification.isValid
+                ? "Verified"
+                : "Proof verification failed",
             };
           }
 
-          return { photoId, success: true, reason: 'Audit trail only' };
+          return { photoId, success: true, reason: "Audit trail only" };
         } catch (error) {
-          return { 
-            photoId, 
-            success: false, 
-            reason: error instanceof Error ? error.message : 'Unknown error'
+          return {
+            photoId,
+            success: false,
+            reason: error instanceof Error ? error.message : "Unknown error",
           };
         }
-      })
+      }),
     );
 
-    const verifiedDeletions = verificationResults.filter(r => r.success).length;
-    const failedVerifications = verificationResults.filter(r => !r.success);
+    const verifiedDeletions = verificationResults.filter(
+      (r) => r.success,
+    ).length;
+    const failedVerifications = verificationResults.filter((r) => !r.success);
 
-    const complianceStatus = verifiedDeletions === photoIds.length ? 'compliant' :
-                           verifiedDeletions > 0 ? 'partial' : 'non-compliant';
+    const complianceStatus =
+      verifiedDeletions === photoIds.length
+        ? "compliant"
+        : verifiedDeletions > 0
+          ? "partial"
+          : "non-compliant";
 
     return {
       reportId: CryptoJS.UUID().toString(),
@@ -362,8 +404,8 @@ export async function generateDeletionReport(
       complianceStatus,
     };
   } catch (error) {
-    console.error('Failed to generate deletion report:', error);
-    throw new Error('Failed to generate deletion report');
+    console.error("Failed to generate deletion report:", error);
+    throw new Error("Failed to generate deletion report");
   }
 }
 
@@ -373,7 +415,7 @@ export async function generateDeletionReport(
 export async function performSecureBatchDeletion(
   photoIds: string[],
   userId: string,
-  deletionReason: 'automatic_cleanup' | 'storage_cleanup' = 'automatic_cleanup'
+  deletionReason: "automatic_cleanup" | "storage_cleanup" = "automatic_cleanup",
 ): Promise<{
   success: boolean;
   results: SecureDeletionResult[];
@@ -382,26 +424,28 @@ export async function performSecureBatchDeletion(
 }> {
   try {
     // Generate batch proof
-    const batchData = `${photoIds.join(',')}:${userId}:${new Date().toISOString()}:BATCH_DELETE`;
+    const batchData = `${photoIds.join(",")}:${userId}:${new Date().toISOString()}:BATCH_DELETE`;
     const batchProof = CryptoJS.SHA256(batchData).toString();
 
     const results = await Promise.all(
-      photoIds.map(photoId => performSecureDeletion(photoId, userId, deletionReason))
+      photoIds.map((photoId) =>
+        performSecureDeletion(photoId, userId, deletionReason),
+      ),
     );
 
     const auditTrailIds = results
-      .filter(result => result.success)
-      .map(result => result.auditTrailId);
+      .filter((result) => result.success)
+      .map((result) => result.auditTrailId);
 
     return {
-      success: results.some(result => result.success),
+      success: results.some((result) => result.success),
       results,
       batchProof,
       auditTrailIds,
     };
   } catch (error) {
-    console.error('Secure batch deletion failed:', error);
-    throw new Error('Failed to perform secure batch deletion');
+    console.error("Secure batch deletion failed:", error);
+    throw new Error("Failed to perform secure batch deletion");
   }
 }
 
@@ -417,15 +461,15 @@ export async function getDeletionStats(userId: string): Promise<{
   complianceScore: number; // 0-100
 }> {
   try {
-    const res = await apiRequest('GET', `/api/users/${userId}/deletion-stats`);
-    
+    const res = await apiRequest("GET", `/api/users/${userId}/deletion-stats`);
+
     if (!res.ok) {
       throw new Error(`Failed to get deletion stats: ${res.statusText}`);
     }
 
     return await res.json();
   } catch (error) {
-    console.error('Failed to get deletion stats:', error);
+    console.error("Failed to get deletion stats:", error);
     return {
       totalDeletions: 0,
       verifiedDeletions: 0,

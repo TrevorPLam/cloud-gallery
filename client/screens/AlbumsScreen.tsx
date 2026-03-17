@@ -289,7 +289,10 @@ export default function AlbumsScreen() {
               </ThemedText>
               <ThemedText
                 type="small"
-                style={[styles.hiddenAlbumSubtitle, { color: theme.textSecondary }]}
+                style={[
+                  styles.hiddenAlbumSubtitle,
+                  { color: theme.textSecondary },
+                ]}
               >
                 Unlock to view
               </ThemedText>

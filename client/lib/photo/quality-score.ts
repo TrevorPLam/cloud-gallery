@@ -138,16 +138,17 @@ export class PhotoQualityScorer {
     try {
       // Load image data
       const imageData = await this.loadImageData(imageUri);
-      
+
       // Run all quality analyses
-      const [sharpness, exposure, composition, noise, contrast, colorVibrancy] = await Promise.all([
-        this.analyzeSharpness(imageData),
-        this.analyzeExposure(imageData),
-        this.analyzeComposition(imageData),
-        this.analyzeNoise(imageData),
-        this.analyzeContrast(imageData),
-        this.analyzeColorVibrancy(imageData),
-      ]);
+      const [sharpness, exposure, composition, noise, contrast, colorVibrancy] =
+        await Promise.all([
+          this.analyzeSharpness(imageData),
+          this.analyzeExposure(imageData),
+          this.analyzeComposition(imageData),
+          this.analyzeNoise(imageData),
+          this.analyzeContrast(imageData),
+          this.analyzeColorVibrancy(imageData),
+        ]);
 
       // Calculate weighted overall score
       const overall = this.calculateOverallScore({
@@ -189,7 +190,7 @@ export class PhotoQualityScorer {
 
     try {
       const imageData = await this.loadImageData(imageUri);
-      
+
       const [sharpness, exposure] = await Promise.all([
         this.analyzeSharpness(imageData),
         this.analyzeExposure(imageData),
@@ -220,7 +221,7 @@ export class PhotoQualityScorer {
    * Returns ranking from best to worst
    */
   public async rankByQuality(imageUris: string[]): Promise<{
-    rankings: Array<{ uri: string; score: number; rank: number }>;
+    rankings: { uri: string; score: number; rank: number }[];
     best: string;
     worst: string;
   }> {
@@ -228,12 +229,12 @@ export class PhotoQualityScorer {
       imageUris.map(async (uri) => {
         const quality = await this.assessQuality(uri);
         return { uri, score: quality.overall };
-      })
+      }),
     );
 
     // Sort by score (descending)
     const sorted = assessments.sort((a, b) => b.score - a.score);
-    
+
     const rankings = sorted.map((item, index) => ({
       ...item,
       rank: index + 1,
@@ -250,46 +251,48 @@ export class PhotoQualityScorer {
    * Filter images by quality threshold
    */
   public async filterByQuality(
-    imageUris: string[], 
-    threshold: number
+    imageUris: string[],
+    threshold: number,
   ): Promise<{ passed: string[]; failed: string[] }> {
     const assessments = await Promise.all(
       imageUris.map(async (uri) => {
         const quality = await this.quickQualityCheck(uri);
         return { uri, score: quality.score };
-      })
+      }),
     );
 
     const passed = assessments
-      .filter(item => item.score >= threshold)
-      .map(item => item.uri);
-    
+      .filter((item) => item.score >= threshold)
+      .map((item) => item.uri);
+
     const failed = assessments
-      .filter(item => item.score < threshold)
-      .map(item => item.uri);
+      .filter((item) => item.score < threshold)
+      .map((item) => item.uri);
 
     return { passed, failed };
   }
 
   // ─── PRIVATE ANALYSIS METHODS ─────────────────────────────
 
-  private async analyzeSharpness(imageData: ImageData): Promise<SharpnessAnalysis> {
+  private async analyzeSharpness(
+    imageData: ImageData,
+  ): Promise<SharpnessAnalysis> {
     try {
       // Convert to grayscale
       const grayscale = await this.convertToGrayscale(imageData);
-      
+
       // Calculate Laplacian variance (sharpness metric)
       const laplacianVariance = this.calculateLaplacianVariance(grayscale);
-      
+
       // Edge detection
       const edgeDensity = this.calculateEdgeDensity(grayscale);
-      
+
       // Determine blur type
       const blurType = this.classifyBlurType(laplacianVariance, edgeDensity);
-      
+
       // Calculate sharpness score (0-100)
       const score = this.sharpnessToScore(laplacianVariance);
-      
+
       return {
         score,
         blurType,
@@ -307,24 +310,26 @@ export class PhotoQualityScorer {
     }
   }
 
-  private async analyzeExposure(imageData: ImageData): Promise<ExposureAnalysis> {
+  private async analyzeExposure(
+    imageData: ImageData,
+  ): Promise<ExposureAnalysis> {
     try {
       // Calculate histogram
       const histogram = this.calculateHistogram(imageData);
-      
+
       // Calculate brightness
       const brightness = this.calculateBrightness(histogram);
-      
+
       // Determine exposure issues
       const isUnderexposed = brightness < 50;
       const isOverexposed = brightness > 200;
-      
+
       // Calculate dynamic range
       const dynamicRange = this.calculateDynamicRange(histogram);
-      
+
       // Calculate exposure score
       const score = this.exposureToScore(brightness, dynamicRange);
-      
+
       return {
         score,
         brightness,
@@ -346,20 +351,24 @@ export class PhotoQualityScorer {
     }
   }
 
-  private async analyzeComposition(imageData: ImageData): Promise<CompositionAnalysis> {
+  private async analyzeComposition(
+    imageData: ImageData,
+  ): Promise<CompositionAnalysis> {
     try {
       // Simplified composition analysis
       // In production, would use more sophisticated algorithms
-      
+
       const ruleOfThirds = this.analyzeRuleOfThirds(imageData);
       const symmetry = this.analyzeSymmetry(imageData);
       const balance = this.analyzeBalance(imageData);
       const leadingLines = this.detectLeadingLines(imageData);
       const subjectPosition = this.analyzeSubjectPosition(imageData);
-      
+
       // Calculate overall composition score
-      const score = (ruleOfThirds + symmetry + balance + leadingLines + subjectPosition) / 5;
-      
+      const score =
+        (ruleOfThirds + symmetry + balance + leadingLines + subjectPosition) /
+        5;
+
       return {
         score,
         ruleOfThirds,
@@ -385,10 +394,10 @@ export class PhotoQualityScorer {
     try {
       // Simplified noise estimation
       // In production, would use more sophisticated noise analysis
-      
+
       const grayscale = await this.convertToGrayscale(imageData);
       const noiseLevel = this.estimateNoiseLevel(grayscale);
-      
+
       // Convert to score (higher = less noise)
       return Math.max(0, Math.min(100, 100 - noiseLevel * 10));
     } catch (error) {
@@ -401,7 +410,7 @@ export class PhotoQualityScorer {
     try {
       const histogram = this.calculateHistogram(imageData);
       const contrast = this.calculateContrast(histogram);
-      
+
       return Math.max(0, Math.min(100, contrast * 100));
     } catch (error) {
       console.error("Contrast analysis failed:", error);
@@ -424,7 +433,7 @@ export class PhotoQualityScorer {
   private async loadImageData(imageUri: string): Promise<ImageData> {
     // Placeholder implementation
     // In production, would use proper image loading
-    
+
     return {
       data: new Uint8ClampedArray(1920 * 1080 * 4),
       width: 1920,
@@ -435,57 +444,60 @@ export class PhotoQualityScorer {
   private async convertToGrayscale(imageData: ImageData): Promise<number[]> {
     const { data, width, height } = imageData;
     const grayscale = new Array(width * height);
-    
+
     for (let i = 0; i < width * height; i++) {
       const pixelIndex = i * 4; // RGBA
       const r = data[pixelIndex];
       const g = data[pixelIndex + 1];
       const b = data[pixelIndex + 2];
-      
+
       grayscale[i] = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
     }
-    
+
     return grayscale;
   }
 
   private calculateLaplacianVariance(grayscale: number[]): number {
     // Simplified Laplacian variance calculation
     // In production, would use proper convolution
-    
+
     let sum = 0;
     let sumSquares = 0;
-    
+
     for (let i = 0; i < grayscale.length; i++) {
       sum += grayscale[i];
       sumSquares += grayscale[i] * grayscale[i];
     }
-    
+
     const mean = sum / grayscale.length;
-    const variance = (sumSquares / grayscale.length) - (mean * mean);
-    
+    const variance = sumSquares / grayscale.length - mean * mean;
+
     return Math.max(0, variance);
   }
 
   private calculateEdgeDensity(grayscale: number[]): number {
     // Simplified edge detection
     // In production, would use Sobel or Canny edge detection
-    
+
     let edgeCount = 0;
     const width = Math.sqrt(grayscale.length);
-    
+
     for (let i = 1; i < grayscale.length - 1; i++) {
       const current = grayscale[i];
       const next = grayscale[i + 1];
-      
+
       if (Math.abs(current - next) > 30) {
         edgeCount++;
       }
     }
-    
+
     return (edgeCount / grayscale.length) * 100;
   }
 
-  private classifyBlurType(laplacianVariance: number, edgeDensity: number): "none" | "motion" | "gaussian" | "out_of_focus" {
+  private classifyBlurType(
+    laplacianVariance: number,
+    edgeDensity: number,
+  ): "none" | "motion" | "gaussian" | "out_of_focus" {
     if (laplacianVariance > 100 && edgeDensity > 5) {
       return "none";
     } else if (edgeDensity > 3) {
@@ -511,69 +523,69 @@ export class PhotoQualityScorer {
   private calculateHistogram(imageData: ImageData): number[] {
     const histogram = new Array(256).fill(0);
     const { data } = imageData;
-    
+
     for (let i = 0; i < data.length; i += 4) {
       const r = data[i];
       const g = data[i + 1];
       const b = data[i + 2];
-      
+
       // Convert to grayscale for histogram
       const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
       histogram[gray]++;
     }
-    
+
     return histogram;
   }
 
   private calculateBrightness(histogram: number[]): number {
     let weightedSum = 0;
     let totalPixels = 0;
-    
+
     histogram.forEach((count, value) => {
       weightedSum += value * value;
       totalPixels += count;
     });
-    
+
     return totalPixels > 0 ? weightedSum / totalPixels : 128;
   }
 
   private calculateDynamicRange(histogram: number[]): number {
     // Find the range of significant pixel values
     const threshold = Math.max(...histogram) * 0.01; // 1% of max
-    
+
     let minValue = 255;
     let maxValue = 0;
-    
+
     for (let i = 0; i < histogram.length; i++) {
       if (histogram[i] > threshold) {
         minValue = Math.min(minValue, i);
         maxValue = Math.max(maxValue, i);
       }
     }
-    
+
     return (maxValue - minValue) / 255;
   }
 
   private exposureToScore(brightness: number, dynamicRange: number): number {
     let score = 50;
-    
+
     // Penalize under/over exposure
     if (brightness < 50) {
       score -= (50 - brightness) * 0.5;
     } else if (brightness > 200) {
       score -= (brightness - 200) * 0.5;
     }
-    
+
     // Reward good dynamic range
     score += dynamicRange * 30;
-    
+
     return Math.max(0, Math.min(100, score));
   }
 
   private analyzeRuleOfThirds(imageData: ImageData): number {
     // Simplified rule of thirds analysis
     // In production, would analyze actual content positioning
-    
+
     return Math.random() * 40 + 30; // 30-70 range
   }
 
@@ -600,34 +612,34 @@ export class PhotoQualityScorer {
   private estimateNoiseLevel(grayscale: number[]): number {
     // Simplified noise estimation
     let noise = 0;
-    
+
     for (let i = 1; i < grayscale.length - 1; i++) {
       const diff = Math.abs(grayscale[i] - grayscale[i - 1]);
       noise += diff;
     }
-    
-    return (noise / grayscale.length) / 10;
+
+    return noise / grayscale.length / 10;
   }
 
   private calculateContrast(histogram: number[]): number {
     // Calculate RMS contrast
     let mean = 0;
     let totalPixels = 0;
-    
+
     histogram.forEach((count, value) => {
       mean += count * value;
       totalPixels += count;
     });
-    
+
     mean /= totalPixels;
-    
+
     let variance = 0;
     histogram.forEach((count, value) => {
       variance += count * Math.pow(value - mean, 2);
     });
-    
+
     variance /= totalPixels;
-    
+
     return Math.sqrt(variance) / 128; // Normalized to 0-1
   }
 
@@ -635,21 +647,21 @@ export class PhotoQualityScorer {
     const { data } = imageData;
     let totalSaturation = 0;
     let pixelCount = 0;
-    
+
     for (let i = 0; i < data.length; i += 4) {
       const r = data[i] / 255;
       const g = data[i + 1] / 255;
       const b = data[i + 2] / 255;
-      
+
       const max = Math.max(r, g, b);
       const min = Math.min(r, g, b);
-      
+
       if (max > 0) {
         totalSaturation += (max - min) / max;
         pixelCount++;
       }
     }
-    
+
     return pixelCount > 0 ? totalSaturation / pixelCount : 0;
   }
 
@@ -662,7 +674,7 @@ export class PhotoQualityScorer {
     colorVibrancy: number;
   }): number {
     const weights = this.config.weights;
-    
+
     return (
       scores.sharpness * weights.sharpness +
       scores.exposure * weights.exposure +
@@ -694,16 +706,21 @@ export class PhotoQualityScorer {
 /**
  * Get singleton instance of PhotoQualityScorer
  */
-export function getPhotoQualityScorer(config?: Partial<QualityConfig>): PhotoQualityScorer {
+export function getPhotoQualityScorer(
+  config?: Partial<QualityConfig>,
+): PhotoQualityScorer {
   const key = JSON.stringify(config || {});
   if (!(global as any).photoQualityScorerInstances) {
     (global as any).photoQualityScorerInstances = new Map();
   }
-  
+
   if (!(global as any).photoQualityScorerInstances.has(key)) {
-    (global as any).photoQualityScorerInstances.set(key, new PhotoQualityScorer(config));
+    (global as any).photoQualityScorerInstances.set(
+      key,
+      new PhotoQualityScorer(config),
+    );
   }
-  
+
   return (global as any).photoQualityScorerInstances.get(key);
 }
 
@@ -719,7 +736,9 @@ export async function quickQualityScore(imageUri: string): Promise<number> {
 /**
  * Get quality rating label
  */
-export function getQualityRating(score: number): "excellent" | "good" | "fair" | "poor" {
+export function getQualityRating(
+  score: number,
+): "excellent" | "good" | "fair" | "poor" {
   if (score >= 85) return "excellent";
   if (score >= 70) return "good";
   if (score >= 50) return "fair";
@@ -730,8 +749,8 @@ export function getQualityRating(score: number): "excellent" | "good" | "fair" |
  * Check if image meets quality threshold
  */
 export async function meetsQualityThreshold(
-  imageUri: string, 
-  threshold: number = 70
+  imageUri: string,
+  threshold: number = 70,
 ): Promise<boolean> {
   const score = await quickQualityScore(imageUri);
   return score >= threshold;

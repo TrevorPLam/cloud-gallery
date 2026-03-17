@@ -8,16 +8,16 @@
 // TESTS: client/lib/ml/clip-embeddings.test.ts
 // AI-META-END
 
-import { Buffer } from 'buffer';
-import { Platform } from 'react-native';
-import { Image } from 'expo-image';
+import { Buffer } from "buffer";
+import { Platform } from "react-native";
+import { Image } from "expo-image";
 import {
   getModelManager,
   ModelConfig,
   ModelMetadata,
   GPUDelegateType,
-} from './model-manager';
-import { getTensorFlowLiteManager } from './tflite';
+} from "./model-manager";
+import { getTensorFlowLiteManager } from "./tflite";
 
 // ─────────────────────────────────────────────────────────
 // CLIP MODEL CONFIGURATION
@@ -46,9 +46,9 @@ export interface EmbeddingSimilarity {
 
 // CLIP model variants with their specific configurations
 export const CLIP_MODELS: Record<string, CLIPModelConfig> = {
-  'clip-vit-b-32': {
-    name: 'clip-vit-b-32',
-    path: require('../assets/models/clip-vit-b-32.tflite'),
+  "clip-vit-b-32": {
+    name: "clip-vit-b-32",
+    path: require("../assets/models/clip-vit-b-32.tflite"),
     inputSize: 224,
     outputSize: 512,
     embeddingSize: 512,
@@ -57,9 +57,9 @@ export const CLIP_MODELS: Record<string, CLIPModelConfig> = {
     quantized: true,
     normalizeFeatures: true,
   },
-  'clip-vit-b-16': {
-    name: 'clip-vit-b-16',
-    path: require('../assets/models/clip-vit-b-16.tflite'),
+  "clip-vit-b-16": {
+    name: "clip-vit-b-16",
+    path: require("../assets/models/clip-vit-b-16.tflite"),
     inputSize: 224,
     outputSize: 512,
     embeddingSize: 512,
@@ -77,7 +77,7 @@ export const CLIP_MODELS: Record<string, CLIPModelConfig> = {
 export class CLIPEmbeddingsService {
   private modelManager = getModelManager();
   private tfliteManager = getTensorFlowLiteManager();
-  private currentModel: string = 'clip-vit-b-32';
+  private currentModel: string = "clip-vit-b-32";
   private isInitialized = false;
   private initializationPromise: Promise<void> | null = null;
 
@@ -100,19 +100,24 @@ export class CLIPEmbeddingsService {
     try {
       // Load CLIP model with optimal delegate selection
       const modelConfig = CLIP_MODELS[this.currentModel];
-      
+
       // Adjust delegate based on platform and model requirements
       const delegate = this.selectOptimalDelegate();
-      
-      await this.modelManager.loadModel({
-        ...modelConfig,
-        delegate,
-      }, 'high'); // CLIP is high priority for semantic search
+
+      await this.modelManager.loadModel(
+        {
+          ...modelConfig,
+          delegate,
+        },
+        "high",
+      ); // CLIP is high priority for semantic search
 
       this.isInitialized = true;
-      console.log(`CLIPEmbeddingsService: Initialized with model "${this.currentModel}"`);
+      console.log(
+        `CLIPEmbeddingsService: Initialized with model "${this.currentModel}"`,
+      );
     } catch (error) {
-      console.error('CLIPEmbeddingsService: Initialization failed:', error);
+      console.error("CLIPEmbeddingsService: Initialization failed:", error);
       throw error;
     }
   }
@@ -122,21 +127,24 @@ export class CLIPEmbeddingsService {
    */
   private selectOptimalDelegate(): GPUDelegateType {
     const capabilities = this.tfliteManager.getDeviceCapabilities();
-    
+
     if (!capabilities) {
-      return 'none';
+      return "none";
     }
 
     // CLIP benefits significantly from GPU acceleration
-    if (capabilities.platform === 'ios' && capabilities.hasNeuralEngine) {
-      return 'core-ml';
+    if (capabilities.platform === "ios" && capabilities.hasNeuralEngine) {
+      return "core-ml";
     }
 
-    if (capabilities.platform === 'android' && capabilities.hasGPUAcceleration) {
-      return 'android-gpu';
+    if (
+      capabilities.platform === "android" &&
+      capabilities.hasGPUAcceleration
+    ) {
+      return "android-gpu";
     }
 
-    return 'none';
+    return "none";
   }
 
   // ─── TEXT EMBEDDINGS ───────────────────────────────────────
@@ -148,7 +156,7 @@ export class CLIPEmbeddingsService {
     await this.initialize();
 
     if (!this.isInitialized) {
-      throw new Error('CLIP service not initialized');
+      throw new Error("CLIP service not initialized");
     }
 
     const results: Float32Array[] = [];
@@ -158,20 +166,27 @@ export class CLIPEmbeddingsService {
         const embedding = await this._generateSingleTextEmbedding(text);
         results.push(embedding);
       } catch (error) {
-        console.error(`Failed to generate embedding for text "${text}":`, error);
+        console.error(
+          `Failed to generate embedding for text "${text}":`,
+          error,
+        );
         // Return zero embedding as fallback
-        results.push(new Float32Array(CLIP_MODELS[this.currentModel].embeddingSize));
+        results.push(
+          new Float32Array(CLIP_MODELS[this.currentModel].embeddingSize),
+        );
       }
     }
 
     return results;
   }
 
-  private async _generateSingleTextEmbedding(text: string): Promise<Float32Array> {
+  private async _generateSingleTextEmbedding(
+    text: string,
+  ): Promise<Float32Array> {
     // Tokenize text (simplified tokenization - in production would use proper tokenizer)
     const tokens = this.tokenizeText(text);
     const maxLength = CLIP_MODELS[this.currentModel].maxLength;
-    
+
     // Pad or truncate to max length
     const paddedTokens = tokens.slice(0, maxLength);
     while (paddedTokens.length < maxLength) {
@@ -180,13 +195,15 @@ export class CLIPEmbeddingsService {
 
     // Prepare input tensor
     const inputTensor = new Int32Array(paddedTokens);
-    
+
     // Run inference
-    const outputs = await this.modelManager.runInference(this.currentModel, [inputTensor]);
-    
+    const outputs = await this.modelManager.runInference(this.currentModel, [
+      inputTensor,
+    ]);
+
     // Extract text embedding (first output is typically text embedding)
     const textEmbedding = new Float32Array(outputs[0]);
-    
+
     // Normalize if required
     if (CLIP_MODELS[this.currentModel].normalizeFeatures) {
       this.normalizeEmbedding(textEmbedding);
@@ -204,20 +221,20 @@ export class CLIPEmbeddingsService {
     // Real implementation would use CLIP's BPE tokenizer
     const normalized = text.toLowerCase().trim();
     const tokens: number[] = [];
-    
+
     // Start of sequence token
     tokens.push(49406); // CLIP's SOS token
-    
+
     // Add character tokens (simplified)
     for (let i = 0; i < normalized.length; i++) {
       const charCode = normalized.charCodeAt(i);
       // Map to reasonable token range (simplified)
       tokens.push(Math.min(charCode + 1000, 49407)); // Avoid reserved tokens
     }
-    
+
     // End of sequence token
     tokens.push(49407); // CLIP's EOS token
-    
+
     return tokens;
   }
 
@@ -230,7 +247,7 @@ export class CLIPEmbeddingsService {
     await this.initialize();
 
     if (!this.isInitialized) {
-      throw new Error('CLIP service not initialized');
+      throw new Error("CLIP service not initialized");
     }
 
     const results: Float32Array[] = [];
@@ -240,25 +257,34 @@ export class CLIPEmbeddingsService {
         const embedding = await this._generateSingleImageEmbedding(uri);
         results.push(embedding);
       } catch (error) {
-        console.error(`Failed to generate embedding for image "${uri}":`, error);
+        console.error(
+          `Failed to generate embedding for image "${uri}":`,
+          error,
+        );
         // Return zero embedding as fallback
-        results.push(new Float32Array(CLIP_MODELS[this.currentModel].embeddingSize));
+        results.push(
+          new Float32Array(CLIP_MODELS[this.currentModel].embeddingSize),
+        );
       }
     }
 
     return results;
   }
 
-  private async _generateSingleImageEmbedding(imageUri: string): Promise<Float32Array> {
+  private async _generateSingleImageEmbedding(
+    imageUri: string,
+  ): Promise<Float32Array> {
     // Load and preprocess image
     const preprocessedImage = await this.preprocessImage(imageUri);
-    
+
     // Run inference
-    const outputs = await this.modelManager.runInference(this.currentModel, [preprocessedImage]);
-    
+    const outputs = await this.modelManager.runInference(this.currentModel, [
+      preprocessedImage,
+    ]);
+
     // Extract image embedding (second output is typically image embedding)
     const imageEmbedding = new Float32Array(outputs[1] || outputs[0]); // Fallback to first output
-    
+
     // Normalize if required
     if (CLIP_MODELS[this.currentModel].normalizeFeatures) {
       this.normalizeEmbedding(imageEmbedding);
@@ -272,33 +298,36 @@ export class CLIPEmbeddingsService {
    */
   private async preprocessImage(imageUri: string): Promise<Uint8Array> {
     const imageSize = CLIP_MODELS[this.currentModel].imageSize;
-    
+
     // Load image using expo-image
     const imageInfo = await Image.getInfoAsync(imageUri);
-    
+
     if (!imageInfo.width || !imageInfo.height) {
-      throw new Error('Invalid image dimensions');
+      throw new Error("Invalid image dimensions");
     }
 
     // Calculate scaling and crop parameters
-    const scale = Math.min(imageSize / imageInfo.width, imageSize / imageInfo.height);
+    const scale = Math.min(
+      imageSize / imageInfo.width,
+      imageSize / imageInfo.height,
+    );
     const scaledWidth = Math.round(imageInfo.width * scale);
     const scaledHeight = Math.round(imageInfo.height * scale);
 
     // Note: In a full implementation, would use image manipulation library
     // to resize, crop, and normalize the image to the required format
     // For now, return a placeholder that matches the expected input size
-    
+
     const inputSize = imageSize * imageSize * 3; // RGB
     const processedImage = new Uint8Array(inputSize);
-    
+
     // Fill with placeholder data (would be actual processed image data)
     // Real implementation would:
     // 1. Resize image to imageSize x imageSize
     // 2. Center crop if needed
     // 3. Normalize pixel values to [0, 1] or [-1, 1] based on model requirements
     // 4. Convert to CHW or HWC format as expected by model
-    
+
     return processedImage;
   }
 
@@ -313,7 +342,7 @@ export class CLIPEmbeddingsService {
       norm += embedding[i] * embedding[i];
     }
     norm = Math.sqrt(norm);
-    
+
     if (norm > 0) {
       for (let i = 0; i < embedding.length; i++) {
         embedding[i] /= norm;
@@ -326,7 +355,7 @@ export class CLIPEmbeddingsService {
    */
   cosineSimilarity(embedding1: Float32Array, embedding2: Float32Array): number {
     if (embedding1.length !== embedding2.length) {
-      throw new Error('Embedding dimensions must match');
+      throw new Error("Embedding dimensions must match");
     }
 
     let dotProduct = 0;
@@ -352,9 +381,12 @@ export class CLIPEmbeddingsService {
   /**
    * Calculate Euclidean distance between two embeddings
    */
-  euclideanDistance(embedding1: Float32Array, embedding2: Float32Array): number {
+  euclideanDistance(
+    embedding1: Float32Array,
+    embedding2: Float32Array,
+  ): number {
     if (embedding1.length !== embedding2.length) {
-      throw new Error('Embedding dimensions must match');
+      throw new Error("Embedding dimensions must match");
     }
 
     let distance = 0;
@@ -372,7 +404,7 @@ export class CLIPEmbeddingsService {
   findSimilarEmbeddings(
     queryEmbedding: Float32Array,
     candidateEmbeddings: Float32Array[],
-    topK: number = 10
+    topK: number = 10,
   ): EmbeddingSimilarity[] {
     const similarities: EmbeddingSimilarity[] = [];
 
@@ -419,10 +451,13 @@ export class CLIPEmbeddingsService {
     const modelConfig = CLIP_MODELS[modelName];
     const delegate = this.selectOptimalDelegate();
 
-    await this.modelManager.loadModel({
-      ...modelConfig,
-      delegate,
-    }, 'high');
+    await this.modelManager.loadModel(
+      {
+        ...modelConfig,
+        delegate,
+      },
+      "high",
+    );
 
     console.log(`CLIPEmbeddingsService: Switched to model "${modelName}"`);
   }
@@ -445,7 +480,9 @@ export class CLIPEmbeddingsService {
    * Check if service is ready for inference
    */
   isReady(): boolean {
-    return this.isInitialized && this.modelManager.isModelLoaded(this.currentModel);
+    return (
+      this.isInitialized && this.modelManager.isModelLoaded(this.currentModel)
+    );
   }
 
   /**
@@ -459,7 +496,7 @@ export class CLIPEmbeddingsService {
     cacheHitRate: number;
   }> {
     const managerStats = await this.modelManager.getStats();
-    
+
     return {
       model: this.currentModel,
       embeddingSize: CLIP_MODELS[this.currentModel].embeddingSize,

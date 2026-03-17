@@ -5,23 +5,23 @@
 // DEPENDENCIES: @react-native-async-storage/async-storage, @/lib/storage, crypto
 // AI-META-END
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Photo, Album } from '@/types';
-import * as storage from './storage';
-import * as crypto from 'crypto';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Photo, Album } from "@/types";
+import * as storage from "./storage";
+import * as crypto from "crypto";
 
 // Sync operation types
 export enum SyncOperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
+  CREATE = "create",
+  UPDATE = "update",
+  DELETE = "delete",
 }
 
 // Sync operation for tracking changes
 export interface SyncOperation {
   id: string;
   type: SyncOperationType;
-  entityType: 'photo' | 'album';
+  entityType: "photo" | "album";
   entityId: string;
   timestamp: number;
   data?: any; // For create/update operations
@@ -62,8 +62,8 @@ export interface ChangeDetectionResult {
 }
 
 // Storage keys
-const DELTA_SYNC_STATE_KEY = '@delta_sync_state';
-const CHECKSUMS_KEY = '@entity_checksums';
+const DELTA_SYNC_STATE_KEY = "@delta_sync_state";
+const CHECKSUMS_KEY = "@entity_checksums";
 
 // Entity checksums for change detection
 interface EntityChecksums {
@@ -81,21 +81,23 @@ export function calculateChecksum(entity: Photo | Album): string {
     id: entity.id,
     modifiedAt: entity.modifiedAt,
     // Include only fields that affect sync
-    ...(entity.id.startsWith('photo_') ? {
-      uri: (entity as Photo).uri,
-      width: (entity as Photo).width,
-      height: (entity as Photo).height,
-      isFavorite: (entity as Photo).isFavorite,
-      albumIds: (entity as Photo).albumIds,
-    } : {
-      title: (entity as Album).title,
-      coverPhotoUri: (entity as Album).coverPhotoUri,
-      photoIds: (entity as Album).photoIds,
-    })
+    ...(entity.id.startsWith("photo_")
+      ? {
+          uri: (entity as Photo).uri,
+          width: (entity as Photo).width,
+          height: (entity as Photo).height,
+          isFavorite: (entity as Photo).isFavorite,
+          albumIds: (entity as Photo).albumIds,
+        }
+      : {
+          title: (entity as Album).title,
+          coverPhotoUri: (entity as Album).coverPhotoUri,
+          photoIds: (entity as Album).photoIds,
+        }),
   });
 
   // Create hash using Node.js crypto
-  return crypto.createHash('sha256').update(entityString).digest('hex');
+  return crypto.createHash("sha256").update(entityString).digest("hex");
 }
 
 /**
@@ -113,7 +115,7 @@ export async function getEntityChecksums(): Promise<EntityChecksums> {
       lastCalculated: 0,
     };
   } catch (error) {
-    console.error('Error loading checksums:', error);
+    console.error("Error loading checksums:", error);
     return {
       photos: {},
       albums: {},
@@ -125,12 +127,14 @@ export async function getEntityChecksums(): Promise<EntityChecksums> {
 /**
  * Save entity checksums to storage
  */
-export async function saveEntityChecksums(checksums: EntityChecksums): Promise<void> {
+export async function saveEntityChecksums(
+  checksums: EntityChecksums,
+): Promise<void> {
   try {
     checksums.lastCalculated = Date.now();
     await AsyncStorage.setItem(CHECKSUMS_KEY, JSON.stringify(checksums));
   } catch (error) {
-    console.error('Error saving checksums:', error);
+    console.error("Error saving checksums:", error);
   }
 }
 
@@ -171,7 +175,7 @@ export async function detectChanges(): Promise<ChangeDetectionResult> {
 
     // Check for deleted photos
     for (const photoId of Object.keys(checksums.photos)) {
-      if (!currentPhotos.find(p => p.id === photoId)) {
+      if (!currentPhotos.find((p) => p.id === photoId)) {
         result.deletedPhotos.push(photoId);
         delete checksums.photos[photoId];
       }
@@ -195,23 +199,27 @@ export async function detectChanges(): Promise<ChangeDetectionResult> {
 
     // Check for deleted albums
     for (const albumId of Object.keys(checksums.albums)) {
-      if (!currentAlbums.find(a => a.id === albumId)) {
+      if (!currentAlbums.find((a) => a.id === albumId)) {
         result.deletedAlbums.push(albumId);
         delete checksums.albums[albumId];
       }
     }
 
     // Calculate total changes
-    result.totalChanges = result.newPhotos.length + result.updatedPhotos.length + 
-                         result.deletedPhotos.length + result.newAlbums.length + 
-                         result.updatedAlbums.length + result.deletedAlbums.length;
+    result.totalChanges =
+      result.newPhotos.length +
+      result.updatedPhotos.length +
+      result.deletedPhotos.length +
+      result.newAlbums.length +
+      result.updatedAlbums.length +
+      result.deletedAlbums.length;
 
     // Save updated checksums
     await saveEntityChecksums(checksums);
 
     return result;
   } catch (error) {
-    console.error('Error detecting changes:', error);
+    console.error("Error detecting changes:", error);
     return {
       newPhotos: [],
       updatedPhotos: [],
@@ -227,7 +235,9 @@ export async function detectChanges(): Promise<ChangeDetectionResult> {
 /**
  * Create sync operations from change detection
  */
-export function createSyncOperations(changes: ChangeDetectionResult): SyncOperation[] {
+export function createSyncOperations(
+  changes: ChangeDetectionResult,
+): SyncOperation[] {
   const operations: SyncOperation[] = [];
   const timestamp = Date.now();
 
@@ -236,7 +246,7 @@ export function createSyncOperations(changes: ChangeDetectionResult): SyncOperat
     operations.push({
       id: `sync_${timestamp}_${photo.id}_create`,
       type: SyncOperationType.CREATE,
-      entityType: 'photo',
+      entityType: "photo",
       entityId: photo.id,
       timestamp,
       data: photo,
@@ -248,7 +258,7 @@ export function createSyncOperations(changes: ChangeDetectionResult): SyncOperat
     operations.push({
       id: `sync_${timestamp}_${photo.id}_update`,
       type: SyncOperationType.UPDATE,
-      entityType: 'photo',
+      entityType: "photo",
       entityId: photo.id,
       timestamp,
       data: photo,
@@ -260,7 +270,7 @@ export function createSyncOperations(changes: ChangeDetectionResult): SyncOperat
     operations.push({
       id: `sync_${timestamp}_${photoId}_delete`,
       type: SyncOperationType.DELETE,
-      entityType: 'photo',
+      entityType: "photo",
       entityId: photoId,
       timestamp,
     });
@@ -271,7 +281,7 @@ export function createSyncOperations(changes: ChangeDetectionResult): SyncOperat
     operations.push({
       id: `sync_${timestamp}_${album.id}_create`,
       type: SyncOperationType.CREATE,
-      entityType: 'album',
+      entityType: "album",
       entityId: album.id,
       timestamp,
       data: album,
@@ -283,7 +293,7 @@ export function createSyncOperations(changes: ChangeDetectionResult): SyncOperat
     operations.push({
       id: `sync_${timestamp}_${album.id}_update`,
       type: SyncOperationType.UPDATE,
-      entityType: 'album',
+      entityType: "album",
       entityId: album.id,
       timestamp,
       data: album,
@@ -295,7 +305,7 @@ export function createSyncOperations(changes: ChangeDetectionResult): SyncOperat
     operations.push({
       id: `sync_${timestamp}_${albumId}_delete`,
       type: SyncOperationType.DELETE,
-      entityType: 'album',
+      entityType: "album",
       entityId: albumId,
       timestamp,
     });
@@ -323,7 +333,7 @@ export async function getDeltaSyncState(): Promise<DeltaSyncState> {
       totalBytesSynced: 0,
     };
   } catch (error) {
-    console.error('Error loading delta sync state:', error);
+    console.error("Error loading delta sync state:", error);
     return {
       lastSyncTime: null,
       pendingOperations: [],
@@ -343,20 +353,22 @@ export async function saveDeltaSyncState(state: DeltaSyncState): Promise<void> {
   try {
     await AsyncStorage.setItem(DELTA_SYNC_STATE_KEY, JSON.stringify(state));
   } catch (error) {
-    console.error('Error saving delta sync state:', error);
+    console.error("Error saving delta sync state:", error);
   }
 }
 
 /**
  * Add operations to pending queue
  */
-export async function addPendingOperations(operations: SyncOperation[]): Promise<void> {
+export async function addPendingOperations(
+  operations: SyncOperation[],
+): Promise<void> {
   try {
     const state = await getDeltaSyncState();
     state.pendingOperations.push(...operations);
     await saveDeltaSyncState(state);
   } catch (error) {
-    console.error('Error adding pending operations:', error);
+    console.error("Error adding pending operations:", error);
   }
 }
 
@@ -365,7 +377,7 @@ export async function addPendingOperations(operations: SyncOperation[]): Promise
  */
 export async function processPendingOperations(
   batchSize: number = 10,
-  onProgress?: (processed: number, total: number) => void
+  onProgress?: (processed: number, total: number) => void,
 ): Promise<DeltaSyncResult> {
   const startTime = Date.now();
   const result: DeltaSyncResult = {
@@ -379,9 +391,9 @@ export async function processPendingOperations(
 
   try {
     const state = await getDeltaSyncState();
-    
+
     if (state.syncInProgress) {
-      result.errors.push('Sync already in progress');
+      result.errors.push("Sync already in progress");
       return result;
     }
 
@@ -400,19 +412,19 @@ export async function processPendingOperations(
 
     for (let i = 0; i < operationsToProcess.length; i++) {
       const operation = operationsToProcess[i];
-      
+
       try {
         await processSyncOperation(operation);
         result.operationsProcessed++;
-        
+
         // Update statistics
-        if (operation.entityType === 'photo') {
+        if (operation.entityType === "photo") {
           state.totalPhotosSynced++;
           // Estimate bytes transferred (rough calculation)
           if (operation.data && operation.data.uri) {
             result.bytesTransferred += estimatePhotoSize(operation.data);
           }
-        } else if (operation.entityType === 'album') {
+        } else if (operation.entityType === "album") {
           state.totalAlbumsSynced++;
           result.bytesTransferred += 1024; // 1KB for album metadata
         }
@@ -425,7 +437,7 @@ export async function processPendingOperations(
         const errorMessage = `Failed to process ${operation.type} for ${operation.entityType} ${operation.entityId}: ${error}`;
         console.error(errorMessage);
         result.errors.push(errorMessage);
-        
+
         // Add to failed operations
         state.failedOperations.push(operation);
       }
@@ -441,20 +453,21 @@ export async function processPendingOperations(
 
     // Check if there are more operations to process
     result.hasMoreData = remainingOperations.length > 0;
-    result.success = result.errors.length === 0 || result.operationsProcessed > 0;
+    result.success =
+      result.errors.length === 0 || result.operationsProcessed > 0;
 
     return result;
   } catch (error) {
-    console.error('Error processing pending operations:', error);
+    console.error("Error processing pending operations:", error);
     result.errors.push(`Processing error: ${error}`);
-    
+
     // Reset sync in progress flag
     try {
       const state = await getDeltaSyncState();
       state.syncInProgress = false;
       await saveDeltaSyncState(state);
     } catch (resetError) {
-      console.error('Error resetting sync in progress flag:', resetError);
+      console.error("Error resetting sync in progress flag:", resetError);
     }
 
     return result;
@@ -467,7 +480,7 @@ export async function processPendingOperations(
 async function processSyncOperation(operation: SyncOperation): Promise<void> {
   // This is where you'd implement the actual server communication
   // For now, we'll simulate the operation
-  
+
   switch (operation.type) {
     case SyncOperationType.CREATE:
       await simulateServerCreate(operation);
@@ -488,13 +501,15 @@ async function processSyncOperation(operation: SyncOperation): Promise<void> {
  */
 async function simulateServerCreate(operation: SyncOperation): Promise<void> {
   // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 200));
-  
+  await new Promise((resolve) =>
+    setTimeout(resolve, 100 + Math.random() * 200),
+  );
+
   // Simulate occasional failures (5% failure rate)
   if (Math.random() < 0.05) {
-    throw new Error('Simulated server error during create');
+    throw new Error("Simulated server error during create");
   }
-  
+
   console.log(`Created ${operation.entityType} ${operation.entityId}`);
 }
 
@@ -503,13 +518,13 @@ async function simulateServerCreate(operation: SyncOperation): Promise<void> {
  */
 async function simulateServerUpdate(operation: SyncOperation): Promise<void> {
   // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 150));
-  
+  await new Promise((resolve) => setTimeout(resolve, 50 + Math.random() * 150));
+
   // Simulate occasional failures (3% failure rate)
   if (Math.random() < 0.03) {
-    throw new Error('Simulated server error during update');
+    throw new Error("Simulated server error during update");
   }
-  
+
   console.log(`Updated ${operation.entityType} ${operation.entityId}`);
 }
 
@@ -518,13 +533,13 @@ async function simulateServerUpdate(operation: SyncOperation): Promise<void> {
  */
 async function simulateServerDelete(operation: SyncOperation): Promise<void> {
   // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 30 + Math.random() * 100));
-  
+  await new Promise((resolve) => setTimeout(resolve, 30 + Math.random() * 100));
+
   // Simulate occasional failures (2% failure rate)
   if (Math.random() < 0.02) {
-    throw new Error('Simulated server error during delete');
+    throw new Error("Simulated server error during delete");
   }
-  
+
   console.log(`Deleted ${operation.entityType} ${operation.entityId}`);
 }
 
@@ -534,7 +549,7 @@ async function simulateServerDelete(operation: SyncOperation): Promise<void> {
 function estimatePhotoSize(photo: Photo): number {
   // Rough estimation based on dimensions
   const megapixels = (photo.width * photo.height) / 1000000;
-  
+
   // Assume JPEG compression with varying quality
   let bytesPerPixel;
   if (megapixels < 1) {
@@ -546,7 +561,7 @@ function estimatePhotoSize(photo: Photo): number {
   } else {
     bytesPerPixel = 4.0; // Low compression for large photos
   }
-  
+
   return Math.round(photo.width * photo.height * bytesPerPixel);
 }
 
@@ -554,12 +569,12 @@ function estimatePhotoSize(photo: Photo): number {
  * Retry failed operations
  */
 export async function retryFailedOperations(
-  maxRetries: number = 3
+  maxRetries: number = 3,
 ): Promise<DeltaSyncResult> {
   try {
     const state = await getDeltaSyncState();
     const failedOperations = [...state.failedOperations];
-    
+
     // Clear failed operations
     state.failedOperations = [];
     await saveDeltaSyncState(state);
@@ -570,7 +585,7 @@ export async function retryFailedOperations(
     // Process them
     return await processPendingOperations(failedOperations.length);
   } catch (error) {
-    console.error('Error retrying failed operations:', error);
+    console.error("Error retrying failed operations:", error);
     return {
       success: false,
       operationsProcessed: 0,
@@ -590,7 +605,7 @@ export async function clearSyncState(): Promise<void> {
     await AsyncStorage.removeItem(DELTA_SYNC_STATE_KEY);
     await AsyncStorage.removeItem(CHECKSUMS_KEY);
   } catch (error) {
-    console.error('Error clearing sync state:', error);
+    console.error("Error clearing sync state:", error);
   }
 }
 
@@ -616,7 +631,7 @@ export async function getSyncStatistics(): Promise<{
       totalBytesSynced: state.totalBytesSynced,
     };
   } catch (error) {
-    console.error('Error getting sync statistics:', error);
+    console.error("Error getting sync statistics:", error);
     return {
       pendingOperations: 0,
       failedOperations: 0,
@@ -629,4 +644,9 @@ export async function getSyncStatistics(): Promise<{
 }
 
 // Export types for use in other modules
-export type { SyncOperation, DeltaSyncState, DeltaSyncResult, ChangeDetectionResult };
+export type {
+  SyncOperation,
+  DeltaSyncState,
+  DeltaSyncResult,
+  ChangeDetectionResult,
+};

@@ -5,11 +5,11 @@
 // DEPENDENCIES: vitest, @/lib/background-sync, @/lib/network-sync, @/lib/battery-sync, @/lib/delta-sync
 // AI-META-END
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as BackgroundTask from 'expo-background-task';
-import * as TaskManager from 'expo-task-manager';
-import * as Battery from 'expo-battery';
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as BackgroundTask from "expo-background-task";
+import * as TaskManager from "expo-task-manager";
+import * as Battery from "expo-battery";
 
 // Import modules to test
 import {
@@ -23,7 +23,7 @@ import {
   resetSyncStats,
   BACKGROUND_SYNC_TASK,
   initializeBackgroundSync,
-} from '../background-sync';
+} from "../background-sync";
 
 import {
   getNetworkSyncPreferences,
@@ -33,7 +33,7 @@ import {
   getBandwidthAdaptation,
   NetworkType,
   NetworkQuality,
-} from '../network-sync';
+} from "../network-sync";
 
 import {
   getBatteryPreferences,
@@ -42,7 +42,7 @@ import {
   isBatteryOptimal,
   isPeakHour,
   BatteryState,
-} from '../battery-sync';
+} from "../battery-sync";
 
 import {
   detectChanges,
@@ -52,10 +52,10 @@ import {
   processPendingOperations,
   calculateChecksum,
   SyncOperationType,
-} from '../delta-sync';
+} from "../delta-sync";
 
 // Mock external dependencies
-vi.mock('@react-native-async-storage/async-storage', () => ({
+vi.mock("@react-native-async-storage/async-storage", () => ({
   default: {
     getItem: vi.fn(),
     setItem: vi.fn(),
@@ -64,7 +64,7 @@ vi.mock('@react-native-async-storage/async-storage', () => ({
   },
 }));
 
-vi.mock('expo-background-task', () => ({
+vi.mock("expo-background-task", () => ({
   default: {
     isAvailableAsync: vi.fn(),
     registerTaskAsync: vi.fn(),
@@ -73,25 +73,25 @@ vi.mock('expo-background-task', () => ({
     triggerTaskWorkerForTestingAsync: vi.fn(),
   },
   BackgroundTaskStatus: {
-    Available: 'available',
-    Denied: 'denied',
-    Restricted: 'restricted',
+    Available: "available",
+    Denied: "denied",
+    Restricted: "restricted",
   },
   BackgroundTaskResult: {
-    Success: 'success',
-    Failure: 'failure',
-    NoData: 'no_data',
+    Success: "success",
+    Failure: "failure",
+    NoData: "no_data",
   },
 }));
 
-vi.mock('expo-task-manager', () => ({
+vi.mock("expo-task-manager", () => ({
   default: {
     defineTask: vi.fn(),
     isTaskRegisteredAsync: vi.fn(),
   },
 }));
 
-vi.mock('expo-battery', () => ({
+vi.mock("expo-battery", () => ({
   default: {
     getBatteryLevelAsync: vi.fn(),
     getBatteryStateAsync: vi.fn(),
@@ -106,13 +106,13 @@ vi.mock('expo-battery', () => ({
 }));
 
 // Mock NetInfo
-vi.mock('@react-native-community/netinfo', () => ({
+vi.mock("@react-native-community/netinfo", () => ({
   default: {
     fetch: vi.fn(),
   },
 }));
 
-describe('Background Sync Tests', () => {
+describe("Background Sync Tests", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -121,8 +121,8 @@ describe('Background Sync Tests', () => {
     vi.resetAllMocks();
   });
 
-  describe('Background Sync Core', () => {
-    it('should register background sync task successfully', async () => {
+  describe("Background Sync Core", () => {
+    it("should register background sync task successfully", async () => {
       vi.mocked(BackgroundTask.isAvailableAsync).mockResolvedValue(true);
       vi.mocked(BackgroundTask.registerTaskAsync).mockResolvedValue();
       vi.mocked(TaskManager.isTaskRegisteredAsync).mockResolvedValue(false);
@@ -134,11 +134,11 @@ describe('Background Sync Tests', () => {
         BACKGROUND_SYNC_TASK,
         expect.objectContaining({
           minimumInterval: 3600, // 1 hour in seconds
-        })
+        }),
       );
     });
 
-    it('should handle background task unavailability', async () => {
+    it("should handle background task unavailability", async () => {
       vi.mocked(BackgroundTask.isAvailableAsync).mockResolvedValue(false);
 
       const result = await registerBackgroundSyncTask();
@@ -147,18 +147,20 @@ describe('Background Sync Tests', () => {
       expect(BackgroundTask.registerTaskAsync).not.toHaveBeenCalled();
     });
 
-    it('should check if background sync is registered', async () => {
+    it("should check if background sync is registered", async () => {
       vi.mocked(TaskManager.isTaskRegisteredAsync).mockResolvedValue(true);
 
       const isRegistered = await isBackgroundSyncRegistered();
 
       expect(isRegistered).toBe(true);
-      expect(TaskManager.isTaskRegisteredAsync).toHaveBeenCalledWith(BACKGROUND_SYNC_TASK);
+      expect(TaskManager.isTaskRegisteredAsync).toHaveBeenCalledWith(
+        BACKGROUND_SYNC_TASK,
+      );
     });
 
-    it('should get background task status', async () => {
+    it("should get background task status", async () => {
       vi.mocked(BackgroundTask.getStatusAsync).mockResolvedValue(
-        BackgroundTask.BackgroundTaskStatus.Available
+        BackgroundTask.BackgroundTaskStatus.Available,
       );
 
       const status = await getBackgroundTaskStatus();
@@ -167,24 +169,24 @@ describe('Background Sync Tests', () => {
       expect(BackgroundTask.getStatusAsync).toHaveBeenCalled();
     });
 
-    it('should update and retrieve sync statistics', async () => {
+    it("should update and retrieve sync statistics", async () => {
       const initialStats = getSyncStats();
       expect(initialStats.totalSyncs).toBe(0);
 
-      updateSyncStats('success', 5000);
-      
+      updateSyncStats("success", 5000);
+
       const updatedStats = getSyncStats();
       expect(updatedStats.totalSyncs).toBe(1);
       expect(updatedStats.successfulSyncs).toBe(1);
       expect(updatedStats.averageSyncDuration).toBe(5000);
     });
 
-    it('should reset sync statistics', () => {
-      updateSyncStats('success', 1000);
-      updateSyncStats('failure', 2000, 'Test error');
+    it("should reset sync statistics", () => {
+      updateSyncStats("success", 1000);
+      updateSyncStats("failure", 2000, "Test error");
 
       resetSyncStats();
-      
+
       const stats = getSyncStats();
       expect(stats.totalSyncs).toBe(0);
       expect(stats.successfulSyncs).toBe(0);
@@ -194,8 +196,8 @@ describe('Background Sync Tests', () => {
     });
   });
 
-  describe('Network Sync', () => {
-    it('should get and save network preferences', async () => {
+  describe("Network Sync", () => {
+    it("should get and save network preferences", async () => {
       const mockPreferences = {
         allowOnCellular: true,
         allowOnWiFi: true,
@@ -205,27 +207,29 @@ describe('Background Sync Tests', () => {
         prioritizeWiFi: true,
       };
 
-      vi.mocked(AsyncStorage.getItem).mockResolvedValue(JSON.stringify(mockPreferences));
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(
+        JSON.stringify(mockPreferences),
+      );
 
       const preferences = await getNetworkSyncPreferences();
       expect(preferences).toEqual(expect.objectContaining(mockPreferences));
 
       vi.mocked(AsyncStorage.setItem).mockResolvedValue();
       await saveNetworkSyncPreferences({ allowOnCellular: false });
-      
+
       expect(AsyncStorage.setItem).toHaveBeenCalledWith(
-        '@network_sync_preferences',
-        expect.stringContaining('"allowOnCellular":false')
+        "@network_sync_preferences",
+        expect.stringContaining('"allowOnCellular":false'),
       );
     });
 
-    it('should determine optimal network conditions', async () => {
+    it("should determine optimal network conditions", async () => {
       const mockNetworkState = {
         isConnected: true,
         type: NetworkType.WIFI,
         quality: NetworkQuality.GOOD,
         isConnectionExpensive: false,
-        effectiveType: 'wifi',
+        effectiveType: "wifi",
         downlinkSpeed: 10,
         uplinkSpeed: 3,
         rtt: 50,
@@ -234,69 +238,73 @@ describe('Background Sync Tests', () => {
       vi.mocked(AsyncStorage.getItem).mockResolvedValue(null); // Use defaults
 
       // Mock NetInfo
-      const NetInfo = require('@react-native-community/netinfo').default;
+      const NetInfo = require("@react-native-community/netinfo").default;
       vi.mocked(NetInfo.fetch).mockResolvedValue({
         isConnected: true,
-        type: 'wifi',
+        type: "wifi",
         isConnectionExpensive: false,
         details: {
-          effectiveType: 'wifi',
+          effectiveType: "wifi",
           downlink: 10,
         },
       });
 
       const result = await isNetworkOptimal();
-      
+
       expect(result.isOptimal).toBe(true);
-      expect(result.networkState).toEqual(expect.objectContaining({
-        isConnected: true,
-        type: NetworkType.WIFI,
-        quality: NetworkQuality.GOOD,
-      }));
+      expect(result.networkState).toEqual(
+        expect.objectContaining({
+          isConnected: true,
+          type: NetworkType.WIFI,
+          quality: NetworkQuality.GOOD,
+        }),
+      );
     });
 
-    it('should reject sync on poor network quality', async () => {
+    it("should reject sync on poor network quality", async () => {
       const mockPreferences = {
         allowOnCellular: true,
         minimumCellularQuality: NetworkQuality.GOOD,
       };
 
-      vi.mocked(AsyncStorage.getItem).mockResolvedValue(JSON.stringify(mockPreferences));
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(
+        JSON.stringify(mockPreferences),
+      );
 
       // Mock poor cellular network
-      const NetInfo = require('@react-native-community/netinfo').default;
+      const NetInfo = require("@react-native-community/netinfo").default;
       vi.mocked(NetInfo.fetch).mockResolvedValue({
         isConnected: true,
-        type: 'cellular',
+        type: "cellular",
         isConnectionExpensive: true,
         details: {
-          effectiveType: '3g',
+          effectiveType: "3g",
           downlink: 2,
         },
       });
 
       const result = await isNetworkOptimal();
-      
+
       expect(result.isOptimal).toBe(false);
-      expect(result.reason).toContain('below minimum');
+      expect(result.reason).toContain("below minimum");
     });
 
-    it('should provide bandwidth adaptation parameters', () => {
+    it("should provide bandwidth adaptation parameters", () => {
       const excellentNetwork = {
         type: NetworkType.WIFI,
         quality: NetworkQuality.EXCELLENT,
       };
 
       const adaptation = getBandwidthAdaptation(excellentNetwork);
-      
+
       expect(adaptation.maxConcurrentUploads).toBe(4);
       expect(adaptation.chunkSize).toBe(1024 * 1024); // 1MB
       expect(adaptation.timeout).toBe(30000); // 30 seconds
     });
   });
 
-  describe('Battery Sync', () => {
-    it('should get and save battery preferences', async () => {
+  describe("Battery Sync", () => {
+    it("should get and save battery preferences", async () => {
       const mockPreferences = {
         minimumBatteryLevel: 0.2,
         allowOnBattery: true,
@@ -306,54 +314,60 @@ describe('Background Sync Tests', () => {
         peakHourEnd: 17,
       };
 
-      vi.mocked(AsyncStorage.getItem).mockResolvedValue(JSON.stringify(mockPreferences));
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(
+        JSON.stringify(mockPreferences),
+      );
 
       const preferences = await getBatteryPreferences();
       expect(preferences).toEqual(expect.objectContaining(mockPreferences));
 
       vi.mocked(AsyncStorage.setItem).mockResolvedValue();
       await saveBatteryPreferences({ minimumBatteryLevel: 0.3 });
-      
+
       expect(AsyncStorage.setItem).toHaveBeenCalledWith(
-        '@battery_sync_preferences',
-        expect.stringContaining('"minimumBatteryLevel":0.3')
+        "@battery_sync_preferences",
+        expect.stringContaining('"minimumBatteryLevel":0.3'),
       );
     });
 
-    it('should determine optimal battery conditions', async () => {
+    it("should determine optimal battery conditions", async () => {
       vi.mocked(Battery.getBatteryLevelAsync).mockResolvedValue(0.8);
-      vi.mocked(Battery.getBatteryStateAsync).mockResolvedValue(Battery.BatteryState.CHARGING);
+      vi.mocked(Battery.getBatteryStateAsync).mockResolvedValue(
+        Battery.BatteryState.CHARGING,
+      );
       vi.mocked(Battery.isLowPowerModeEnabledAsync).mockResolvedValue(false);
 
       vi.mocked(AsyncStorage.getItem).mockResolvedValue(null); // Use defaults
 
       const result = await isBatteryOptimal();
-      
+
       expect(result.isOptimal).toBe(true);
       expect(result.batteryLevel).toBe(0.8);
       expect(result.batteryState).toBe(Battery.BatteryState.CHARGING);
       expect(result.isLowPowerMode).toBe(false);
     });
 
-    it('should reject sync on low battery', async () => {
+    it("should reject sync on low battery", async () => {
       vi.mocked(Battery.getBatteryLevelAsync).mockResolvedValue(0.1); // 10%
-      vi.mocked(Battery.getBatteryStateAsync).mockResolvedValue(Battery.BatteryState.UNPLUGGED);
+      vi.mocked(Battery.getBatteryStateAsync).mockResolvedValue(
+        Battery.BatteryState.UNPLUGGED,
+      );
       vi.mocked(Battery.isLowPowerModeEnabledAsync).mockResolvedValue(false);
 
       vi.mocked(AsyncStorage.getItem).mockResolvedValue(null); // Use defaults
 
       const result = await isBatteryOptimal();
-      
+
       expect(result.isOptimal).toBe(false);
-      expect(result.reason).toContain('below minimum');
+      expect(result.reason).toContain("below minimum");
       expect(result.recommendedBackoff).toBe(60);
     });
 
-    it('should detect peak hours correctly', () => {
+    it("should detect peak hours correctly", () => {
       // Test normal peak hours (9 AM to 5 PM)
       expect(isPeakHour(9, 17)).toBe(true); // 10 AM
       expect(isPeakHour(9, 17)).toBe(false); // 8 AM
-      
+
       // Test overnight peak hours (10 PM to 6 AM)
       expect(isPeakHour(22, 6)).toBe(true); // 11 PM
       expect(isPeakHour(22, 6)).toBe(true); // 3 AM
@@ -361,79 +375,81 @@ describe('Background Sync Tests', () => {
     });
   });
 
-  describe('Delta Sync', () => {
-    it('should calculate checksums for entities', () => {
+  describe("Delta Sync", () => {
+    it("should calculate checksums for entities", () => {
       const photo = {
-        id: 'photo_1',
-        uri: 'file://photo.jpg',
+        id: "photo_1",
+        uri: "file://photo.jpg",
         width: 1920,
         height: 1080,
         isFavorite: false,
-        albumIds: ['album_1'],
+        albumIds: ["album_1"],
         createdAt: Date.now(),
         modifiedAt: Date.now(),
       };
 
       const checksum1 = calculateChecksum(photo);
       const checksum2 = calculateChecksum(photo);
-      
+
       expect(checksum1).toBe(checksum2);
       expect(checksum1).toMatch(/^[a-f0-9]+$/); // Hex string
     });
 
-    it('should detect changes in entities', async () => {
+    it("should detect changes in entities", async () => {
       // Mock storage functions
       const mockPhotos = [
-        { id: 'photo_1', modifiedAt: 1000, uri: 'file://old.jpg' },
-        { id: 'photo_2', modifiedAt: 2000, uri: 'file://new.jpg' },
+        { id: "photo_1", modifiedAt: 1000, uri: "file://old.jpg" },
+        { id: "photo_2", modifiedAt: 2000, uri: "file://new.jpg" },
       ];
 
       const mockAlbums = [
-        { id: 'album_1', modifiedAt: 1500, title: 'Old Album' },
+        { id: "album_1", modifiedAt: 1500, title: "Old Album" },
       ];
 
-      vi.doMock('../storage', () => ({
+      vi.doMock("../storage", () => ({
         getPhotos: vi.fn().mockResolvedValue(mockPhotos),
         getAlbums: vi.fn().mockResolvedValue(mockAlbums),
       }));
 
-      vi.mocked(AsyncStorage.getItem).mockResolvedValue(JSON.stringify({
-        photos: { 'photo_1': 'old_checksum' },
-        albums: { 'album_1': 'old_album_checksum' },
-        lastCalculated: 0,
-      }));
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(
+        JSON.stringify({
+          photos: { photo_1: "old_checksum" },
+          albums: { album_1: "old_album_checksum" },
+          lastCalculated: 0,
+        }),
+      );
 
       const changes = await detectChanges();
-      
+
       expect(changes.newPhotos).toHaveLength(1); // photo_2
       expect(changes.updatedPhotos).toHaveLength(1); // photo_1
       expect(changes.totalChanges).toBeGreaterThan(0);
     });
 
-    it('should create sync operations from changes', () => {
+    it("should create sync operations from changes", () => {
       const changes = {
-        newPhotos: [{ id: 'photo_1', uri: 'file://new.jpg' }],
-        updatedPhotos: [{ id: 'photo_2', uri: 'file://updated.jpg' }],
-        deletedPhotos: ['photo_3'],
-        newAlbums: [{ id: 'album_1', title: 'New Album' }],
+        newPhotos: [{ id: "photo_1", uri: "file://new.jpg" }],
+        updatedPhotos: [{ id: "photo_2", uri: "file://updated.jpg" }],
+        deletedPhotos: ["photo_3"],
+        newAlbums: [{ id: "album_1", title: "New Album" }],
         updatedAlbums: [],
         deletedAlbums: [],
         totalChanges: 4,
       };
 
       const operations = createSyncOperations(changes);
-      
+
       expect(operations).toHaveLength(4);
       expect(operations[0].type).toBe(SyncOperationType.CREATE);
-      expect(operations[0].entityType).toBe('photo');
-      expect(operations[0].entityId).toBe('photo_1');
-      
+      expect(operations[0].entityType).toBe("photo");
+      expect(operations[0].entityId).toBe("photo_1");
+
       expect(operations[1].type).toBe(SyncOperationType.UPDATE);
       expect(operations[2].type).toBe(SyncOperationType.DELETE);
       expect(operations[3].type).toBe(SyncOperationType.CREATE);
     });
 
-    it('should manage delta sync state', async () => {
+    it("should manage delta sync state", async () => {
       const mockState = {
         lastSyncTime: Date.now(),
         pendingOperations: [],
@@ -444,7 +460,9 @@ describe('Background Sync Tests', () => {
         totalBytesSynced: 1000000,
       };
 
-      vi.mocked(AsyncStorage.getItem).mockResolvedValue(JSON.stringify(mockState));
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(
+        JSON.stringify(mockState),
+      );
       vi.mocked(AsyncStorage.setItem).mockResolvedValue();
 
       const state = await getDeltaSyncState();
@@ -453,80 +471,86 @@ describe('Background Sync Tests', () => {
 
       const updatedState = { ...state, totalPhotosSynced: 11 };
       await saveDeltaSyncState(updatedState);
-      
+
       expect(AsyncStorage.setItem).toHaveBeenCalledWith(
-        '@delta_sync_state',
-        expect.stringContaining('"totalPhotosSynced":11')
+        "@delta_sync_state",
+        expect.stringContaining('"totalPhotosSynced":11'),
       );
     });
 
-    it('should process pending operations', async () => {
+    it("should process pending operations", async () => {
       const mockOperations = [
         {
-          id: 'op_1',
+          id: "op_1",
           type: SyncOperationType.CREATE,
-          entityType: 'photo',
-          entityId: 'photo_1',
+          entityType: "photo",
+          entityId: "photo_1",
           timestamp: Date.now(),
-          data: { id: 'photo_1', uri: 'file://test.jpg' },
+          data: { id: "photo_1", uri: "file://test.jpg" },
         },
       ];
 
-      vi.mocked(AsyncStorage.getItem).mockResolvedValue(JSON.stringify({
-        lastSyncTime: null,
-        pendingOperations: mockOperations,
-        failedOperations: [],
-        syncInProgress: false,
-        totalPhotosSynced: 0,
-        totalAlbumsSynced: 0,
-        totalBytesSynced: 0,
-      }));
+      vi.mocked(AsyncStorage.getItem).mockResolvedValue(
+        JSON.stringify({
+          lastSyncTime: null,
+          pendingOperations: mockOperations,
+          failedOperations: [],
+          syncInProgress: false,
+          totalPhotosSynced: 0,
+          totalAlbumsSynced: 0,
+          totalBytesSynced: 0,
+        }),
+      );
 
       vi.mocked(AsyncStorage.setItem).mockResolvedValue();
 
       const result = await processPendingOperations(1);
-      
+
       expect(result.success).toBe(true);
       expect(result.operationsProcessed).toBe(1);
       expect(result.errors).toHaveLength(0);
     });
   });
 
-  describe('Integration Tests', () => {
-    it('should determine if background sync should run', async () => {
+  describe("Integration Tests", () => {
+    it("should determine if background sync should run", async () => {
       // Mock optimal conditions
       vi.mocked(Battery.getBatteryLevelAsync).mockResolvedValue(0.8);
-      vi.mocked(Battery.getBatteryStateAsync).mockResolvedValue(Battery.BatteryState.CHARGING);
+      vi.mocked(Battery.getBatteryStateAsync).mockResolvedValue(
+        Battery.BatteryState.CHARGING,
+      );
       vi.mocked(Battery.isLowPowerModeEnabledAsync).mockResolvedValue(false);
 
-      const NetInfo = require('@react-native-community/netinfo').default;
+      const NetInfo = require("@react-native-community/netinfo").default;
       vi.mocked(NetInfo.fetch).mockResolvedValue({
         isConnected: true,
-        type: 'wifi',
+        type: "wifi",
         isConnectionExpensive: false,
-        details: { effectiveType: 'wifi', downlink: 10 },
+        details: { effectiveType: "wifi", downlink: 10 },
       });
 
       vi.mocked(AsyncStorage.getItem).mockResolvedValue(null); // Use defaults
 
       const shouldRun = await shouldRunBackgroundSync();
-      
+
       expect(shouldRun.shouldRun).toBe(true);
       expect(shouldRun.reason).toBeUndefined();
     });
 
-    it('should reject background sync due to poor conditions', async () => {
+    it("should reject background sync due to poor conditions", async () => {
       // Mock poor battery conditions
       vi.mocked(Battery.getBatteryLevelAsync).mockResolvedValue(0.1);
-      vi.mocked(Battery.getBatteryStateAsync).mockResolvedValue(Battery.BatteryState.UNPLUGGED);
+      vi.mocked(Battery.getBatteryStateAsync).mockResolvedValue(
+        Battery.BatteryState.UNPLUGGED,
+      );
       vi.mocked(Battery.isLowPowerModeEnabledAsync).mockResolvedValue(true);
 
       vi.mocked(AsyncStorage.getItem).mockResolvedValue(null); // Use defaults
 
       const shouldRun = await shouldRunBackgroundSync();
-      
+
       expect(shouldRun.shouldRun).toBe(false);
-      expect(shouldRun.reason).toContain('below minimum');
+      expect(shouldRun.reason).toContain("below minimum");
     });
   });
 });

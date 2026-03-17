@@ -8,9 +8,9 @@
 // TESTS: Unit tests for projection accuracy, performance benchmarks
 // AI-META-END
 
-import React from 'react';
-import { ViewStyle, View } from 'react-native';
-import { Photo } from '@/types';
+import React from "react";
+import { ViewStyle, View } from "react-native";
+import { Photo } from "@/types";
 
 export interface HeatmapPoint {
   longitude: number;
@@ -33,7 +33,7 @@ export interface HeatmapOptions {
     startPoints: number[];
   };
   maxIntensity?: number;
-  heatmapMode?: 'density' | 'time' | 'frequency';
+  heatmapMode?: "density" | "time" | "frequency";
 }
 
 export interface HeatmapStats {
@@ -56,7 +56,9 @@ class WebMercatorProjection {
    */
   static project(lat: number, lng: number): { x: number; y: number } {
     const x = this.RADIUS * lng * this.DEGREES_TO_RADIANS;
-    const y = this.RADIUS * Math.log(Math.tan((Math.PI * 0.25) + (0.5 * lat * this.DEGREES_TO_RADIANS)));
+    const y =
+      this.RADIUS *
+      Math.log(Math.tan(Math.PI * 0.25 + 0.5 * lat * this.DEGREES_TO_RADIANS));
     return { x, y };
   }
 
@@ -64,15 +66,22 @@ class WebMercatorProjection {
    * Convert Web Mercator x/y coordinates to latitude/longitude
    */
   static unproject(x: number, y: number): { lat: number; lng: number } {
-    const lng = x * this.RADIANS_TO_DEGREES / this.RADIUS;
-    const lat = (2 * Math.atan(Math.exp(y / this.RADIUS)) - (Math.PI * 0.5)) * this.RADIANS_TO_DEGREES;
+    const lng = (x * this.RADIANS_TO_DEGREES) / this.RADIUS;
+    const lat =
+      (2 * Math.atan(Math.exp(y / this.RADIUS)) - Math.PI * 0.5) *
+      this.RADIANS_TO_DEGREES;
     return { lat, lng };
   }
 
   /**
    * Calculate distance between two points in meters
    */
-  static distance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  static distance(
+    lat1: number,
+    lng1: number,
+    lat2: number,
+    lng2: number,
+  ): number {
     const p1 = this.project(lat1, lng1);
     const p2 = this.project(lat2, lng2);
     return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
@@ -92,11 +101,20 @@ export class HeatmapRenderer {
       radius: 40,
       opacity: 0.7,
       gradient: {
-        colors: ['#3288bd', '#66c2a5', '#abdda4', '#e6f598', '#fee08b', '#fdae61', '#f46d43', '#d53e4f'],
+        colors: [
+          "#3288bd",
+          "#66c2a5",
+          "#abdda4",
+          "#e6f598",
+          "#fee08b",
+          "#fdae61",
+          "#f46d43",
+          "#d53e4f",
+        ],
         startPoints: [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 1],
       },
       maxIntensity: 100,
-      heatmapMode: 'density',
+      heatmapMode: "density",
       ...options,
     };
   }
@@ -106,8 +124,8 @@ export class HeatmapRenderer {
    */
   private photosToHeatmapPoints(photos: Photo[]): HeatmapPoint[] {
     return photos
-      .filter(photo => this.isValidLocation(photo.location))
-      .map(photo => ({
+      .filter((photo) => this.isValidLocation(photo.location))
+      .map((photo) => ({
         longitude: photo.location!.longitude,
         latitude: photo.location!.latitude,
         intensity: this.calculateIntensity(photo),
@@ -117,11 +135,13 @@ export class HeatmapRenderer {
   /**
    * Validate location data
    */
-  private isValidLocation(location: any): location is NonNullable<Photo['location']> {
+  private isValidLocation(
+    location: any,
+  ): location is NonNullable<Photo["location"]> {
     return (
       location &&
-      typeof location.latitude === 'number' &&
-      typeof location.longitude === 'number' &&
+      typeof location.latitude === "number" &&
+      typeof location.longitude === "number" &&
       location.latitude >= -90 &&
       location.latitude <= 90 &&
       location.longitude >= -180 &&
@@ -134,20 +154,23 @@ export class HeatmapRenderer {
    */
   private calculateIntensity(photo: Photo): number {
     switch (this.options.heatmapMode) {
-      case 'density':
+      case "density":
         return 1; // All photos contribute equally to density
 
-      case 'time':
+      case "time":
         // Newer photos have higher intensity
-        const ageInDays = (Date.now() - photo.createdAt) / (1000 * 60 * 60 * 24);
+        const ageInDays =
+          (Date.now() - photo.createdAt) / (1000 * 60 * 60 * 24);
         return Math.max(0, 100 - ageInDays / 3.65); // Decay over ~27 years
 
-      case 'frequency':
+      case "frequency":
         // Photos with more metadata have higher intensity
         let intensity = 10; // Base intensity
         if (photo.isFavorite) intensity += 20;
-        if (photo.tags && photo.tags.length > 0) intensity += photo.tags.length * 2;
-        if (photo.mlLabels && photo.mlLabels.length > 0) intensity += photo.mlLabels.length;
+        if (photo.tags && photo.tags.length > 0)
+          intensity += photo.tags.length * 2;
+        if (photo.mlLabels && photo.mlLabels.length > 0)
+          intensity += photo.mlLabels.length;
         if (photo.notes) intensity += 5;
         return Math.min(intensity, 100);
 
@@ -168,12 +191,16 @@ export class HeatmapRenderer {
   /**
    * Get heatmap points for a specific region
    */
-  getPointsInRegion(points: HeatmapPoint[], region: HeatmapRegion): HeatmapPoint[] {
-    return points.filter(point => 
-      point.latitude >= region.latitude - region.latitudeDelta &&
-      point.latitude <= region.latitude + region.latitudeDelta &&
-      point.longitude >= region.longitude - region.longitudeDelta &&
-      point.longitude <= region.longitude + region.longitudeDelta
+  getPointsInRegion(
+    points: HeatmapPoint[],
+    region: HeatmapRegion,
+  ): HeatmapPoint[] {
+    return points.filter(
+      (point) =>
+        point.latitude >= region.latitude - region.latitudeDelta &&
+        point.latitude <= region.latitude + region.latitudeDelta &&
+        point.longitude >= region.longitude - region.longitudeDelta &&
+        point.longitude <= region.longitude + region.longitudeDelta,
     );
   }
 
@@ -190,9 +217,12 @@ export class HeatmapRenderer {
       };
     }
 
-    const totalIntensity = points.reduce((sum, point) => sum + point.intensity, 0);
+    const totalIntensity = points.reduce(
+      (sum, point) => sum + point.intensity,
+      0,
+    );
     const averageIntensity = totalIntensity / points.length;
-    const maxIntensity = Math.max(...points.map(p => p.intensity));
+    const maxIntensity = Math.max(...points.map((p) => p.intensity));
 
     // Calculate density (points per square kilometer)
     let density = 0;
@@ -219,8 +249,8 @@ export class HeatmapRenderer {
     minLng: number;
     maxLng: number;
   } {
-    const lats = points.map(p => p.latitude);
-    const lngs = points.map(p => p.longitude);
+    const lats = points.map((p) => p.latitude);
+    const lngs = points.map((p) => p.longitude);
 
     return {
       minLat: Math.min(...lats),
@@ -233,9 +263,21 @@ export class HeatmapRenderer {
   /**
    * Calculate area in square kilometers
    */
-  private calculateArea(bounds: ReturnType<typeof this.calculateBounds>): number {
-    const width = WebMercatorProjection.distance(bounds.minLat, bounds.minLng, bounds.minLat, bounds.maxLng);
-    const height = WebMercatorProjection.distance(bounds.minLat, bounds.minLng, bounds.maxLat, bounds.minLng);
+  private calculateArea(
+    bounds: ReturnType<typeof this.calculateBounds>,
+  ): number {
+    const width = WebMercatorProjection.distance(
+      bounds.minLat,
+      bounds.minLng,
+      bounds.minLat,
+      bounds.maxLng,
+    );
+    const height = WebMercatorProjection.distance(
+      bounds.minLat,
+      bounds.minLng,
+      bounds.maxLat,
+      bounds.minLng,
+    );
     return (width * height) / 1000000; // Convert to square kilometers
   }
 
@@ -255,27 +297,27 @@ export class HeatmapRenderer {
     const grid: HeatmapPoint[][] = Array.from({ length: gridSize }, () => []);
 
     // Assign points to grid cells
-    points.forEach(point => {
+    points.forEach((point) => {
       const latIndex = Math.min(
         Math.floor((point.latitude - bounds.minLat) / latStep),
-        gridSize - 1
+        gridSize - 1,
       );
       const lngIndex = Math.min(
         Math.floor((point.longitude - bounds.minLng) / lngStep),
-        gridSize - 1
+        gridSize - 1,
       );
       const gridIndex = latIndex * gridSize + lngIndex;
-      
+
       if (!grid[gridIndex]) grid[gridIndex] = [];
       grid[gridIndex].push(point);
     });
 
     // Sample from each grid cell
-    grid.forEach(cell => {
+    grid.forEach((cell) => {
       if (cell.length > 0) {
         // Take the point with highest intensity from each cell
-        const selected = cell.reduce((max, point) => 
-          point.intensity > max.intensity ? point : max
+        const selected = cell.reduce((max, point) =>
+          point.intensity > max.intensity ? point : max,
         );
         sampled.push(selected);
       }
@@ -305,7 +347,7 @@ export class HeatmapRenderer {
     points = this.samplePoints(points);
 
     // Convert to format expected by react-native-heat-map
-    return points.map(point => [
+    return points.map((point) => [
       point.longitude,
       point.latitude,
       Math.min(point.intensity, this.options.maxIntensity),
@@ -318,7 +360,7 @@ export class HeatmapRenderer {
   renderHeatmap(
     photos: Photo[],
     region: HeatmapRegion,
-    style?: ViewStyle
+    style?: ViewStyle,
   ): React.ReactElement {
     // Placeholder implementation - would use canvas rendering in production
     return React.createElement(View, {
@@ -375,14 +417,19 @@ export const heatmapRenderer = new HeatmapRenderer();
 /**
  * Utility function to create heatmap renderer with custom options
  */
-export function createHeatmapRenderer(options: HeatmapOptions): HeatmapRenderer {
+export function createHeatmapRenderer(
+  options: HeatmapOptions,
+): HeatmapRenderer {
   return new HeatmapRenderer(options);
 }
 
 /**
  * Utility function to calculate optimal heatmap radius based on zoom level
  */
-export function calculateOptimalRadius(zoomLevel: number, baseRadius = 40): number {
+export function calculateOptimalRadius(
+  zoomLevel: number,
+  baseRadius = 40,
+): number {
   // Adjust radius based on zoom level
   const zoomFactor = Math.max(0.5, Math.min(2, zoomLevel / 10));
   return Math.round(baseRadius * zoomFactor);
@@ -391,9 +438,21 @@ export function calculateOptimalRadius(zoomLevel: number, baseRadius = 40): numb
 /**
  * Utility function to create time-based gradient
  */
-export function createTimeBasedGradient(): { colors: string[]; startPoints: number[] } {
+export function createTimeBasedGradient(): {
+  colors: string[];
+  startPoints: number[];
+} {
   return {
-    colors: ['#ff0000', '#ff4500', '#ffa500', '#ffff00', '#00ff00', '#00ffff', '#0000ff', '#800080'],
+    colors: [
+      "#ff0000",
+      "#ff4500",
+      "#ffa500",
+      "#ffff00",
+      "#00ff00",
+      "#00ffff",
+      "#0000ff",
+      "#800080",
+    ],
     startPoints: [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 1],
   };
 }
@@ -401,9 +460,21 @@ export function createTimeBasedGradient(): { colors: string[]; startPoints: numb
 /**
  * Utility function to create density-based gradient
  */
-export function createDensityBasedGradient(): { colors: string[]; startPoints: number[] } {
+export function createDensityBasedGradient(): {
+  colors: string[];
+  startPoints: number[];
+} {
   return {
-    colors: ['#3288bd', '#66c2a5', '#abdda4', '#e6f598', '#fee08b', '#fdae61', '#f46d43', '#d53e4f'],
+    colors: [
+      "#3288bd",
+      "#66c2a5",
+      "#abdda4",
+      "#e6f598",
+      "#fee08b",
+      "#fdae61",
+      "#f46d43",
+      "#d53e4f",
+    ],
     startPoints: [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 1],
   };
 }

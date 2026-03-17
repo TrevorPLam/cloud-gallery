@@ -5,21 +5,21 @@
 // DEPENDENCIES: expo-background-task, expo-battery, @/lib/storage, @/lib/network-sync
 // AI-META-END
 
-import * as BackgroundTask from 'expo-background-task';
-import * as TaskManager from 'expo-task-manager';
-import { Platform } from 'react-native';
+import * as BackgroundTask from "expo-background-task";
+import * as TaskManager from "expo-task-manager";
+import { Platform } from "react-native";
 
 // Import BackgroundTaskResult for proper typing
-declare module 'expo-background-task' {
+declare module "expo-background-task" {
   export enum BackgroundTaskResult {
-    Success = 'success',
-    Failure = 'failure',
-    NoData = 'no_data',
+    Success = "success",
+    Failure = "failure",
+    NoData = "no_data",
   }
 }
 
 // Task name for background sync
-export const BACKGROUND_SYNC_TASK = 'background-sync';
+export const BACKGROUND_SYNC_TASK = "background-sync";
 
 // Background sync configuration
 export interface BackgroundSyncConfig {
@@ -43,12 +43,12 @@ const DEFAULT_CONFIG: BackgroundSyncConfig = {
 
 // Background sync result types
 export enum SyncResult {
-  SUCCESS = 'success',
-  FAILURE = 'failure',
-  NO_DATA = 'no_data',
-  NETWORK_ERROR = 'network_error',
-  BATTERY_LOW = 'battery_low',
-  USER_PAUSED = 'user_paused',
+  SUCCESS = "success",
+  FAILURE = "failure",
+  NO_DATA = "no_data",
+  NETWORK_ERROR = "network_error",
+  BATTERY_LOW = "battery_low",
+  USER_PAUSED = "user_paused",
 }
 
 // Sync statistics for monitoring
@@ -75,15 +75,15 @@ let syncStats: SyncStats = {
  * Register the background sync task with the system
  */
 export async function registerBackgroundSyncTask(
-  config: Partial<BackgroundSyncConfig> = {}
+  config: Partial<BackgroundSyncConfig> = {},
 ): Promise<boolean> {
   try {
     const finalConfig = { ...DEFAULT_CONFIG, ...config };
-    
+
     // Check if background tasks are available
     const isAvailable = await BackgroundTask.isAvailableAsync();
     if (!isAvailable) {
-      console.warn('Background tasks are not available on this device');
+      console.warn("Background tasks are not available on this device");
       return false;
     }
 
@@ -92,10 +92,10 @@ export async function registerBackgroundSyncTask(
       minimumInterval: finalConfig.minimumInterval * 60, // Convert minutes to seconds
     });
 
-    console.log('Background sync task registered successfully');
+    console.log("Background sync task registered successfully");
     return true;
   } catch (error) {
-    console.error('Failed to register background sync task:', error);
+    console.error("Failed to register background sync task:", error);
     return false;
   }
 }
@@ -106,9 +106,9 @@ export async function registerBackgroundSyncTask(
 export async function unregisterBackgroundSyncTask(): Promise<void> {
   try {
     await BackgroundTask.unregisterTaskAsync(BACKGROUND_SYNC_TASK);
-    console.log('Background sync task unregistered');
+    console.log("Background sync task unregistered");
   } catch (error) {
-    console.error('Failed to unregister background sync task:', error);
+    console.error("Failed to unregister background sync task:", error);
   }
 }
 
@@ -119,7 +119,7 @@ export async function isBackgroundSyncRegistered(): Promise<boolean> {
   try {
     return await TaskManager.isTaskRegisteredAsync(BACKGROUND_SYNC_TASK);
   } catch (error) {
-    console.error('Error checking background sync registration:', error);
+    console.error("Error checking background sync registration:", error);
     return false;
   }
 }
@@ -131,7 +131,7 @@ export async function getBackgroundTaskStatus(): Promise<BackgroundTask.Backgrou
   try {
     return await BackgroundTask.getStatusAsync();
   } catch (error) {
-    console.error('Error getting background task status:', error);
+    console.error("Error getting background task status:", error);
     return BackgroundTask.BackgroundTaskStatus.Denied;
   }
 }
@@ -139,10 +139,14 @@ export async function getBackgroundTaskStatus(): Promise<BackgroundTask.Backgrou
 /**
  * Update sync statistics
  */
-export function updateSyncStats(result: SyncResult, duration: number, error?: string): void {
+export function updateSyncStats(
+  result: SyncResult,
+  duration: number,
+  error?: string,
+): void {
   syncStats.totalSyncs++;
   syncStats.lastSyncTime = Date.now();
-  
+
   if (result === SyncResult.SUCCESS) {
     syncStats.successfulSyncs++;
   } else {
@@ -151,7 +155,8 @@ export function updateSyncStats(result: SyncResult, duration: number, error?: st
   }
 
   // Update average duration
-  const totalDuration = syncStats.averageSyncDuration * (syncStats.totalSyncs - 1) + duration;
+  const totalDuration =
+    syncStats.averageSyncDuration * (syncStats.totalSyncs - 1) + duration;
   syncStats.averageSyncDuration = totalDuration / syncStats.totalSyncs;
 }
 
@@ -185,8 +190,8 @@ export async function shouldRunBackgroundSync(): Promise<{
 }> {
   try {
     // Import dynamically to avoid circular dependencies
-    const { isBatteryOptimal } = await import('./battery-sync');
-    const { isNetworkOptimal } = await import('./network-sync');
+    const { isBatteryOptimal } = await import("./battery-sync");
+    const { isNetworkOptimal } = await import("./network-sync");
 
     // Check battery conditions
     const batteryOk = await isBatteryOptimal();
@@ -208,10 +213,10 @@ export async function shouldRunBackgroundSync(): Promise<{
 
     return { shouldRun: true };
   } catch (error) {
-    console.error('Error checking background sync conditions:', error);
+    console.error("Error checking background sync conditions:", error);
     return {
       shouldRun: false,
-      reason: 'Error checking conditions',
+      reason: "Error checking conditions",
     };
   }
 }
@@ -222,11 +227,13 @@ export async function shouldRunBackgroundSync(): Promise<{
 export async function triggerBackgroundSyncForTesting(): Promise<void> {
   try {
     if (__DEV__) {
-      await BackgroundTask.triggerTaskWorkerForTestingAsync(BACKGROUND_SYNC_TASK);
-      console.log('Background sync triggered for testing');
+      await BackgroundTask.triggerTaskWorkerForTestingAsync(
+        BACKGROUND_SYNC_TASK,
+      );
+      console.log("Background sync triggered for testing");
     }
   } catch (error) {
-    console.error('Failed to trigger background sync for testing:', error);
+    console.error("Failed to trigger background sync for testing:", error);
   }
 }
 
@@ -238,19 +245,19 @@ export async function initializeBackgroundSync(): Promise<void> {
     // Check if already registered
     const isRegistered = await isBackgroundSyncRegistered();
     if (isRegistered) {
-      console.log('Background sync already registered');
+      console.log("Background sync already registered");
       return;
     }
 
     // Register the task
     const success = await registerBackgroundSyncTask();
     if (success) {
-      console.log('Background sync initialized successfully');
+      console.log("Background sync initialized successfully");
     } else {
-      console.warn('Failed to initialize background sync');
+      console.warn("Failed to initialize background sync");
     }
   } catch (error) {
-    console.error('Error initializing background sync:', error);
+    console.error("Error initializing background sync:", error);
   }
 }
 

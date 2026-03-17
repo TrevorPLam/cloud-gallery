@@ -11,18 +11,13 @@ export default function ForgotPasswordScreen() {
   const colors = isDark ? Colors.dark : Colors.light;
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
-    >
+    <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
       <ThemedText style={styles.title}>Forgot password</ThemedText>
       <ThemedText style={[styles.message, { color: colors.textSecondary }]}>
         Password reset is not yet available. Please sign in with your current
         password or create a new account.
       </ThemedText>
-      <Pressable
-        style={styles.link}
-        onPress={() => navigation.goBack()}
-      >
+      <Pressable style={styles.link} onPress={() => navigation.goBack()}>
         <ThemedText style={[styles.linkText, { color: colors.link }]}>
           Back to sign in
         </ThemedText>

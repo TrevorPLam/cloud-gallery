@@ -2,10 +2,10 @@
 // Manages master, file, sharing, and device keys with proper key separation.
 
 import { Buffer } from "buffer";
-import { 
-  deriveSpecializedKey, 
-  KeyType, 
-  DerivedKey, 
+import {
+  deriveSpecializedKey,
+  KeyType,
+  DerivedKey,
   retrieveMasterKey,
   isValidKey,
   generateDerivationSalt,
@@ -92,7 +92,9 @@ export class KeyHierarchy implements KeyHierarchyManager {
    * @param requireBiometrics - Whether to require biometric authentication
    * @returns Master key or null if unavailable
    */
-  async getMasterKey(requireBiometrics: boolean = false): Promise<string | null> {
+  async getMasterKey(
+    requireBiometrics: boolean = false,
+  ): Promise<string | null> {
     // Check cache first
     const cached = this.keyCache.get<string>("master_key");
     if (cached && !requireBiometrics) {
@@ -106,11 +108,11 @@ export class KeyHierarchy implements KeyHierarchyManager {
 
     try {
       const masterKey = await this.masterKeyPromise;
-      
+
       if (masterKey) {
         // Cache the master key with shorter TTL for security
         this.keyCache.set("master_key", masterKey, 2 * 60 * 1000); // 2 minutes
-        
+
         // Update metadata
         this.updateKeyMetadata("master", KeyType.MASTER, undefined);
       }
@@ -124,18 +126,20 @@ export class KeyHierarchy implements KeyHierarchyManager {
   /**
    * Internal method to retrieve master key with proper error handling
    */
-  private async retrieveMasterKeyInternal(requireBiometrics: boolean): Promise<string | null> {
+  private async retrieveMasterKeyInternal(
+    requireBiometrics: boolean,
+  ): Promise<string | null> {
     try {
       return await retrieveMasterKey(requireBiometrics);
     } catch (error) {
       console.error("Failed to retrieve master key:", error);
-      
+
       // If biometrics failed and wasn't required, try without biometrics
       if (requireBiometrics) {
         console.log("Retrying master key retrieval without biometrics...");
         return await retrieveMasterKey(false);
       }
-      
+
       return null;
     }
   }
@@ -157,11 +161,15 @@ export class KeyHierarchy implements KeyHierarchyManager {
       throw new Error("Master key required for file key derivation");
     }
 
-    const derivedKey = await deriveSpecializedKey(masterKey, KeyType.FILE, fileId);
-    
+    const derivedKey = await deriveSpecializedKey(
+      masterKey,
+      KeyType.FILE,
+      fileId,
+    );
+
     // Cache the file key for longer duration (files are accessed frequently)
     this.keyCache.set(cacheKey, derivedKey.key, 10 * 60 * 1000); // 10 minutes
-    
+
     // Update metadata
     this.updateKeyMetadata(cacheKey, KeyType.FILE, "master");
 
@@ -185,11 +193,15 @@ export class KeyHierarchy implements KeyHierarchyManager {
       throw new Error("Master key required for sharing key derivation");
     }
 
-    const derivedKey = await deriveSpecializedKey(masterKey, KeyType.SHARING, sharingId);
-    
+    const derivedKey = await deriveSpecializedKey(
+      masterKey,
+      KeyType.SHARING,
+      sharingId,
+    );
+
     // Cache sharing keys with medium duration
     this.keyCache.set(cacheKey, derivedKey.key, 7 * 60 * 1000); // 7 minutes
-    
+
     // Update metadata
     this.updateKeyMetadata(cacheKey, KeyType.SHARING, "master");
 
@@ -213,11 +225,15 @@ export class KeyHierarchy implements KeyHierarchyManager {
       throw new Error("Master key required for device key derivation");
     }
 
-    const derivedKey = await deriveSpecializedKey(masterKey, KeyType.DEVICE, deviceId);
-    
+    const derivedKey = await deriveSpecializedKey(
+      masterKey,
+      KeyType.DEVICE,
+      deviceId,
+    );
+
     // Cache device keys for longer duration (device keys change rarely)
     this.keyCache.set(cacheKey, derivedKey.key, 30 * 60 * 1000); // 30 minutes
-    
+
     // Update metadata
     this.updateKeyMetadata(cacheKey, KeyType.DEVICE, "master");
 
@@ -233,10 +249,10 @@ export class KeyHierarchy implements KeyHierarchyManager {
     try {
       // Clear current master key from cache
       this.keyCache.clear();
-      
+
       // Import the key derivation functions
       const { createAndStoreMasterKey } = await import("./key-derivation");
-      
+
       // Create new master key
       const newMasterKey = await createAndStoreMasterKey(newPassword);
       if (!newMasterKey) {
@@ -245,7 +261,7 @@ export class KeyHierarchy implements KeyHierarchyManager {
 
       // Clear all derived keys from cache (they'll be re-derived on next use)
       this.clearCache();
-      
+
       // Update rotation metadata
       const masterMetadata = this.keyMetadata.get("master");
       if (masterMetadata) {
@@ -268,7 +284,7 @@ export class KeyHierarchy implements KeyHierarchyManager {
     try {
       this.keyCache.clear();
       this.keyMetadata.clear();
-      
+
       const { clearAllKeys } = await import("./key-derivation");
       return await clearAllKeys();
     } catch (error) {
@@ -308,7 +324,7 @@ export class KeyHierarchy implements KeyHierarchyManager {
    */
   invalidateKey(keyType: KeyType, identifier?: string): void {
     let cacheKey: string;
-    
+
     switch (keyType) {
       case KeyType.MASTER:
         cacheKey = "master_key";
@@ -337,7 +353,7 @@ export class KeyHierarchy implements KeyHierarchyManager {
    */
   hasKey(keyType: KeyType, identifier?: string): boolean {
     let cacheKey: string;
-    
+
     switch (keyType) {
       case KeyType.MASTER:
         cacheKey = "master_key";
@@ -390,7 +406,11 @@ export class KeyHierarchy implements KeyHierarchyManager {
   /**
    * Update key metadata
    */
-  private updateKeyMetadata(id: string, type: KeyType, parentId?: string): void {
+  private updateKeyMetadata(
+    id: string,
+    type: KeyType,
+    parentId?: string,
+  ): void {
     const existing = this.keyMetadata.get(id);
     const now = Date.now();
 
@@ -460,7 +480,9 @@ export async function getDeviceEncryptionKey(
  * @param requireBiometrics - Whether to enable biometric protection
  * @returns Setup success status
  */
-export async function setupKeyHierarchy(requireBiometrics: boolean = false): Promise<boolean> {
+export async function setupKeyHierarchy(
+  requireBiometrics: boolean = false,
+): Promise<boolean> {
   try {
     // Test master key retrieval
     const masterKey = await keyHierarchy.getMasterKey(requireBiometrics);

@@ -5,36 +5,36 @@
 // DEPENDENCIES: @/lib/background-sync, @/lib/network-sync, @/lib/battery-sync, @/lib/delta-sync
 // AI-META-END
 
-import { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
-import { 
-  initializeBackgroundSync, 
-  registerBackgroundSyncTask, 
-  unregisterBackgroundSyncTask, 
+import { useEffect, useState } from "react";
+import { Platform } from "react-native";
+import {
+  initializeBackgroundSync,
+  registerBackgroundSyncTask,
+  unregisterBackgroundSyncTask,
   isBackgroundSyncRegistered,
   getBackgroundTaskStatus,
   getSyncStats,
   triggerBackgroundSyncForTesting,
-  BACKGROUND_SYNC_TASK
-} from './background-sync';
-import { 
-  getNetworkSyncPreferences, 
-  saveNetworkSyncPreferences, 
+  BACKGROUND_SYNC_TASK,
+} from "./background-sync";
+import {
+  getNetworkSyncPreferences,
+  saveNetworkSyncPreferences,
   getNetworkStats,
-  resetNetworkStats
-} from './network-sync';
-import { 
-  getBatteryPreferences, 
-  saveBatteryPreferences, 
+  resetNetworkStats,
+} from "./network-sync";
+import {
+  getBatteryPreferences,
+  saveBatteryPreferences,
   getBatteryStats,
   resetBatteryStats,
-  getBatteryOptimizationRecommendations
-} from './battery-sync';
-import { 
+  getBatteryOptimizationRecommendations,
+} from "./battery-sync";
+import {
   getSyncStatistics,
   retryFailedOperations,
-  clearSyncState
-} from './delta-sync';
+  clearSyncState,
+} from "./delta-sync";
 
 // Background sync service hooks and utilities
 
@@ -54,22 +54,22 @@ export function useBackgroundSync() {
   const initializeSync = async () => {
     try {
       setIsLoading(true);
-      
+
       // Initialize background sync
       await initializeBackgroundSync();
-      
+
       // Check registration status
       const registered = await isBackgroundSyncRegistered();
       setIsRegistered(registered);
-      
+
       // Check availability
-      const { isAvailable } = await import('expo-background-task');
+      const { isAvailable } = await import("expo-background-task");
       setIsAvailable(isAvailable);
-      
+
       // Update stats
       setSyncStats(getSyncStats());
     } catch (error) {
-      console.error('Error initializing background sync:', error);
+      console.error("Error initializing background sync:", error);
     } finally {
       setIsLoading(false);
     }
@@ -83,7 +83,7 @@ export function useBackgroundSync() {
       }
       return success;
     } catch (error) {
-      console.error('Error enabling background sync:', error);
+      console.error("Error enabling background sync:", error);
       return false;
     }
   };
@@ -93,7 +93,7 @@ export function useBackgroundSync() {
       await unregisterBackgroundSyncTask();
       setIsRegistered(false);
     } catch (error) {
-      console.error('Error disabling background sync:', error);
+      console.error("Error disabling background sync:", error);
     }
   };
 
@@ -107,7 +107,7 @@ export function useBackgroundSync() {
       // Refresh stats after a delay
       setTimeout(refreshStats, 2000);
     } catch (error) {
-      console.error('Error triggering test sync:', error);
+      console.error("Error triggering test sync:", error);
     }
   };
 
@@ -145,7 +145,7 @@ export function useNetworkSyncPreferences() {
       setPreferences(prefs);
       setStats(networkStats);
     } catch (error) {
-      console.error('Error loading network preferences:', error);
+      console.error("Error loading network preferences:", error);
     } finally {
       setIsLoading(false);
     }
@@ -156,7 +156,7 @@ export function useNetworkSyncPreferences() {
       await saveNetworkSyncPreferences(newPreferences);
       setPreferences({ ...preferences, ...newPreferences });
     } catch (error) {
-      console.error('Error updating network preferences:', error);
+      console.error("Error updating network preferences:", error);
     }
   };
 
@@ -165,7 +165,7 @@ export function useNetworkSyncPreferences() {
       await resetNetworkStats();
       setStats(null);
     } catch (error) {
-      console.error('Error resetting network stats:', error);
+      console.error("Error resetting network stats:", error);
     }
   };
 
@@ -204,7 +204,7 @@ export function useBatterySyncPreferences() {
       setStats(batteryStats);
       setRecommendations(recs);
     } catch (error) {
-      console.error('Error loading battery preferences:', error);
+      console.error("Error loading battery preferences:", error);
     } finally {
       setIsLoading(false);
     }
@@ -215,7 +215,7 @@ export function useBatterySyncPreferences() {
       await saveBatteryPreferences(newPreferences);
       setPreferences({ ...preferences, ...newPreferences });
     } catch (error) {
-      console.error('Error updating battery preferences:', error);
+      console.error("Error updating battery preferences:", error);
     }
   };
 
@@ -224,7 +224,7 @@ export function useBatterySyncPreferences() {
       await resetBatteryStats();
       setStats(null);
     } catch (error) {
-      console.error('Error resetting battery stats:', error);
+      console.error("Error resetting battery stats:", error);
     }
   };
 
@@ -256,7 +256,7 @@ export function useSyncOperations() {
       const stats = await getSyncStatistics();
       setStatistics(stats);
     } catch (error) {
-      console.error('Error loading sync statistics:', error);
+      console.error("Error loading sync statistics:", error);
     } finally {
       setIsLoading(false);
     }
@@ -268,7 +268,7 @@ export function useSyncOperations() {
       await loadStatistics(); // Refresh statistics
       return result;
     } catch (error) {
-      console.error('Error retrying failed operations:', error);
+      console.error("Error retrying failed operations:", error);
       return null;
     }
   };
@@ -278,7 +278,7 @@ export function useSyncOperations() {
       await clearSyncState();
       await loadStatistics(); // Refresh statistics
     } catch (error) {
-      console.error('Error clearing sync state:', error);
+      console.error("Error clearing sync state:", error);
     }
   };
 
@@ -366,34 +366,34 @@ export class BackgroundSyncService {
  */
 export async function initializeAppBackgroundSync(): Promise<void> {
   try {
-    console.log('Initializing app background sync...');
-    
+    console.log("Initializing app background sync...");
+
     // Initialize the background sync system
     await initializeBackgroundSync();
-    
+
     // Check if background tasks are available on this platform
-    if (Platform.OS === 'ios' || Platform.OS === 'android') {
-      const { isAvailable } = await import('expo-background-task');
-      
+    if (Platform.OS === "ios" || Platform.OS === "android") {
+      const { isAvailable } = await import("expo-background-task");
+
       if (!isAvailable) {
-        console.warn('Background tasks are not available on this device');
+        console.warn("Background tasks are not available on this device");
         return;
       }
 
       // Check if already registered
       const isRegistered = await isBackgroundSyncRegistered();
       if (isRegistered) {
-        console.log('Background sync already registered');
+        console.log("Background sync already registered");
       } else {
-        console.log('Background sync not registered - user needs to enable it');
+        console.log("Background sync not registered - user needs to enable it");
       }
     } else {
-      console.log('Background sync not supported on this platform');
+      console.log("Background sync not supported on this platform");
     }
-    
-    console.log('App background sync initialization completed');
+
+    console.log("App background sync initialization completed");
   } catch (error) {
-    console.error('Error initializing app background sync:', error);
+    console.error("Error initializing app background sync:", error);
   }
 }
 

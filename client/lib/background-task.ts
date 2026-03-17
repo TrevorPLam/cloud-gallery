@@ -5,21 +5,28 @@
 // DEPENDENCIES: expo-task-manager, @/lib/background-sync, @/lib/delta-sync
 // AI-META-END
 
-import * as TaskManager from 'expo-task-manager';
-import { BACKGROUND_SYNC_TASK, updateSyncStats } from './background-sync';
-import { shouldRunBackgroundSync } from './background-sync';
-import { detectChanges, createSyncOperations, processPendingOperations } from './delta-sync';
-import { updateNetworkStats, getCurrentNetworkState } from './network-sync';
-import { updateBatteryStats, getCurrentBatteryState } from './battery-sync';
+import * as TaskManager from "expo-task-manager";
+import {
+  BACKGROUND_SYNC_TASK,
+  updateSyncStats,
+  shouldRunBackgroundSync,
+} from "./background-sync";
+import {
+  detectChanges,
+  createSyncOperations,
+  processPendingOperations,
+} from "./delta-sync";
+import { updateNetworkStats, getCurrentNetworkState } from "./network-sync";
+import { updateBatteryStats, getCurrentBatteryState } from "./battery-sync";
 
 // Define SyncResult enum locally to avoid import issues
 export enum SyncResult {
-  SUCCESS = 'success',
-  FAILURE = 'failure',
-  NO_DATA = 'no_data',
-  NETWORK_ERROR = 'network_error',
-  BATTERY_LOW = 'battery_low',
-  USER_PAUSED = 'user_paused',
+  SUCCESS = "success",
+  FAILURE = "failure",
+  NO_DATA = "no_data",
+  NETWORK_ERROR = "network_error",
+  BATTERY_LOW = "battery_low",
+  USER_PAUSED = "user_paused",
 }
 
 /**
@@ -27,7 +34,7 @@ export enum SyncResult {
  * This task runs when the app is backgrounded and performs photo/album sync
  */
 TaskManager.defineTask(BACKGROUND_SYNC_TASK, async () => {
-  console.log('Background sync task started');
+  console.log("Background sync task started");
   const startTime = Date.now();
 
   try {
@@ -47,7 +54,7 @@ TaskManager.defineTask(BACKGROUND_SYNC_TASK, async () => {
     console.log(`Detected ${changes.totalChanges} changes`);
 
     if (changes.totalChanges === 0) {
-      console.log('No changes to sync');
+      console.log("No changes to sync");
       updateSyncStats(SyncResult.NO_DATA, Date.now() - startTime);
       return SyncResult.NO_DATA;
     }
@@ -61,29 +68,30 @@ TaskManager.defineTask(BACKGROUND_SYNC_TASK, async () => {
       20, // Process up to 20 operations per background task
       (processed, total) => {
         console.log(`Sync progress: ${processed}/${total}`);
-      }
+      },
     );
 
     // Update statistics
     const duration = Date.now() - startTime;
     const dataUsed = estimateDataUsage(changes);
-    
+
     updateSyncStats(
       result.success ? SyncResult.SUCCESS : SyncResult.FAILURE,
       duration,
-      result.errors.join('; ')
+      result.errors.join("; "),
     );
 
     updateNetworkStats(networkState, dataUsed);
     updateBatteryStats(batteryState);
 
-    console.log(`Background sync completed in ${duration}ms, ${result.operationsProcessed} operations processed`);
+    console.log(
+      `Background sync completed in ${duration}ms, ${result.operationsProcessed} operations processed`,
+    );
 
     return result.success ? SyncResult.SUCCESS : SyncResult.FAILURE;
-
   } catch (error) {
-    console.error('Background sync task failed:', error);
-    
+    console.error("Background sync task failed:", error);
+
     // Update failure statistics
     const duration = Date.now() - startTime;
     updateSyncStats(SyncResult.FAILURE, duration, String(error));

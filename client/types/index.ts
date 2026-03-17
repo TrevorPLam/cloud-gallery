@@ -54,6 +54,14 @@ export interface Photo {
   backupCompletedAt?: string;
   originalSize?: number;
   compressedSize?: number;
+  // Live Photo fields
+  isLivePhoto?: boolean;
+  liveVideoUri?: string;
+  livePresentationTimestampUs?: number;
+  livePhotoFormat?: "apple" | "android";
+  liveAssetIdentifier?: string;
+  liveVideoDuration?: number;
+  liveProcessedAt?: string;
 }
 
 export interface Album {

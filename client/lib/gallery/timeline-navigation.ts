@@ -9,17 +9,17 @@
 // AI-META-END
 
 import { Photo } from "@/types";
-import { 
-  startOfYear, 
-  startOfMonth, 
-  startOfDay, 
-  isAfter, 
-  isBefore, 
+import {
+  startOfYear,
+  startOfMonth,
+  startOfDay,
+  isAfter,
+  isBefore,
   isEqual,
   format,
   getYear,
   getMonth,
-  getDate
+  getDate,
 } from "date-fns";
 
 export type TimelineLevel = "year" | "month" | "day" | "photo";
@@ -65,11 +65,11 @@ export function createTimelineHierarchy(photos: Photo[]): TimelineNode[] {
 
   // Sort photos by creation date (newest first)
   const sortedPhotos = [...photos].sort((a, b) => b.createdAt - a.createdAt);
-  
+
   // Group by year
   const yearGroups = new Map<number, Photo[]>();
-  
-  sortedPhotos.forEach(photo => {
+
+  sortedPhotos.forEach((photo) => {
     const year = getYear(new Date(photo.createdAt));
     if (!yearGroups.has(year)) {
       yearGroups.set(year, []);
@@ -79,7 +79,7 @@ export function createTimelineHierarchy(photos: Photo[]): TimelineNode[] {
 
   // Build timeline hierarchy
   const timeline: TimelineNode[] = [];
-  
+
   for (const [year, yearPhotos] of yearGroups.entries()) {
     const yearNode: TimelineNode = {
       id: `year-${year}`,
@@ -93,8 +93,8 @@ export function createTimelineHierarchy(photos: Photo[]): TimelineNode[] {
 
     // Group by month within the year
     const monthGroups = new Map<number, Photo[]>();
-    
-    yearPhotos.forEach(photo => {
+
+    yearPhotos.forEach((photo) => {
       const month = getMonth(new Date(photo.createdAt));
       if (!monthGroups.has(month)) {
         monthGroups.set(month, []);
@@ -117,8 +117,8 @@ export function createTimelineHierarchy(photos: Photo[]): TimelineNode[] {
 
       // Group by day within the month
       const dayGroups = new Map<number, Photo[]>();
-      
-      monthPhotos.forEach(photo => {
+
+      monthPhotos.forEach((photo) => {
         const day = getDate(new Date(photo.createdAt));
         if (!dayGroups.has(day)) {
           dayGroups.set(day, []);
@@ -155,7 +155,7 @@ export function createTimelineHierarchy(photos: Photo[]): TimelineNode[] {
 
   // Sort years chronologically (newest first)
   timeline.sort((a, b) => b.date.getTime() - a.date.getTime());
-  
+
   return timeline;
 }
 
@@ -163,12 +163,12 @@ export function createTimelineHierarchy(photos: Photo[]): TimelineNode[] {
  * Finds a specific node in the timeline hierarchy by its ID
  */
 export function findTimelineNode(
-  hierarchy: TimelineNode[], 
-  nodeId: string
+  hierarchy: TimelineNode[],
+  nodeId: string,
 ): TimelineNode | null {
   for (const node of hierarchy) {
     if (node.id === nodeId) return node;
-    
+
     if (node.children) {
       const found = findTimelineNode(node.children, nodeId);
       if (found) return found;
@@ -181,27 +181,34 @@ export function findTimelineNode(
  * Gets the navigation path to a specific node
  */
 export function getTimelinePath(
-  hierarchy: TimelineNode[], 
-  targetNodeId: string
+  hierarchy: TimelineNode[],
+  targetNodeId: string,
 ): TimelinePath[] {
   const path: TimelinePath[] = [];
-  
-  function searchPath(nodes: TimelineNode[], targetId: string, currentPath: TimelinePath[] = []): boolean {
+
+  function searchPath(
+    nodes: TimelineNode[],
+    targetId: string,
+    currentPath: TimelinePath[] = [],
+  ): boolean {
     for (const node of nodes) {
-      const newPath = [...currentPath, { level: node.level, nodeId: node.id, title: node.title }];
-      
+      const newPath = [
+        ...currentPath,
+        { level: node.level, nodeId: node.id, title: node.title },
+      ];
+
       if (node.id === targetId) {
         path.push(...newPath);
         return true;
       }
-      
+
       if (node.children && searchPath(node.children, targetId, newPath)) {
         return true;
       }
     }
     return false;
   }
-  
+
   searchPath(hierarchy, targetNodeId);
   return path;
 }
@@ -210,14 +217,14 @@ export function getTimelinePath(
  * Gets the parent node of a specific node
  */
 export function getParentTimelineNode(
-  hierarchy: TimelineNode[], 
-  nodeId: string
+  hierarchy: TimelineNode[],
+  nodeId: string,
 ): TimelineNode | null {
   for (const node of hierarchy) {
     if (node.children) {
-      const found = node.children.find(child => child.id === nodeId);
+      const found = node.children.find((child) => child.id === nodeId);
       if (found) return node;
-      
+
       const parentInChild = getParentTimelineNode(node.children, nodeId);
       if (parentInChild) return parentInChild;
     }
@@ -229,12 +236,12 @@ export function getParentTimelineNode(
  * Gets the siblings of a node (nodes at the same level with the same parent)
  */
 export function getTimelineSiblings(
-  hierarchy: TimelineNode[], 
-  nodeId: string
+  hierarchy: TimelineNode[],
+  nodeId: string,
 ): TimelineNode[] {
   const parent = getParentTimelineNode(hierarchy, nodeId);
   if (!parent) return hierarchy; // Root level nodes
-  
+
   return parent.children || [];
 }
 
@@ -242,8 +249,8 @@ export function getTimelineSiblings(
  * Calculates zoom level based on pinch scale factor
  */
 export function getZoomLevelForScale(
-  scale: number, 
-  zoomLevels: ZoomLevel[] = DEFAULT_ZOOM_LEVELS
+  scale: number,
+  zoomLevels: ZoomLevel[] = DEFAULT_ZOOM_LEVELS,
 ): ZoomLevel {
   // Find the highest threshold that's less than or equal to the scale
   for (let i = zoomLevels.length - 1; i >= 0; i--) {
@@ -251,7 +258,7 @@ export function getZoomLevelForScale(
       return zoomLevels[i];
     }
   }
-  
+
   // Default to most zoomed out level
   return zoomLevels[0];
 }
@@ -262,26 +269,26 @@ export function getZoomLevelForScale(
 export function getTimelineDataForLevel(
   hierarchy: TimelineNode[],
   nodeId: string | null,
-  level: TimelineLevel
+  level: TimelineLevel,
 ): TimelineNode[] {
   if (!nodeId) {
     // Root level - return top-level nodes
-    return hierarchy.filter(node => node.level === level);
+    return hierarchy.filter((node) => node.level === level);
   }
-  
+
   const node = findTimelineNode(hierarchy, nodeId);
   if (!node) return [];
-  
+
   if (node.level === level) {
     // Return siblings at the same level
     return getTimelineSiblings(hierarchy, nodeId);
   }
-  
+
   // Return children at the requested level
   if (node.children) {
-    return node.children.filter(child => child.level === level);
+    return node.children.filter((child) => child.level === level);
   }
-  
+
   return [];
 }
 
@@ -290,17 +297,17 @@ export function getTimelineDataForLevel(
  */
 export function timelineToFlashListData(
   nodes: TimelineNode[],
-  showHeaders: boolean = true
+  showHeaders: boolean = true,
 ): (TimelineNode | { type: "header"; title: string })[] {
   const flatData: (TimelineNode | { type: "header"; title: string })[] = [];
-  
-  nodes.forEach(node => {
+
+  nodes.forEach((node) => {
     if (showHeaders && node.level !== "photo") {
       flatData.push({ type: "header", title: node.title });
     }
     flatData.push(node);
   });
-  
+
   return flatData;
 }
 
@@ -311,21 +318,29 @@ export function estimateVisiblePhotos(
   hierarchy: TimelineNode[],
   level: TimelineLevel,
   containerHeight: number,
-  itemHeight: number
+  itemHeight: number,
 ): number {
   const visibleItems = Math.ceil(containerHeight / itemHeight) + 2; // +2 for buffer
-  
+
   switch (level) {
     case "year":
       return hierarchy.length * 50; // Estimate 50 photos per year
     case "month":
-      return hierarchy.reduce((sum, year) => sum + (year.children?.length || 0), 0) * 20;
+      return (
+        hierarchy.reduce((sum, year) => sum + (year.children?.length || 0), 0) *
+        20
+      );
     case "day":
-      return hierarchy.reduce((sum, year) => {
-        return sum + (year.children?.reduce((monthSum, month) => {
-          return monthSum + (month.children?.length || 0);
-        }, 0) || 0);
-      }, 0) * 5;
+      return (
+        hierarchy.reduce((sum, year) => {
+          return (
+            sum +
+            (year.children?.reduce((monthSum, month) => {
+              return monthSum + (month.children?.length || 0);
+            }, 0) || 0)
+          );
+        }, 0) * 5
+      );
     case "photo":
       return hierarchy.reduce((sum, node) => sum + node.count, 0);
     default:
@@ -339,7 +354,7 @@ export function estimateVisiblePhotos(
 export class TimelineCache {
   private cache = new Map<string, TimelineNode[]>();
   private maxSize = 10; // Maximum number of cached hierarchies
-  
+
   set(key: string, hierarchy: TimelineNode[]): void {
     if (this.cache.size >= this.maxSize) {
       // Remove oldest entry (first in Map)
@@ -348,15 +363,15 @@ export class TimelineCache {
     }
     this.cache.set(key, hierarchy);
   }
-  
+
   get(key: string): TimelineNode[] | undefined {
     return this.cache.get(key);
   }
-  
+
   clear(): void {
     this.cache.clear();
   }
-  
+
   has(key: string): boolean {
     return this.cache.has(key);
   }

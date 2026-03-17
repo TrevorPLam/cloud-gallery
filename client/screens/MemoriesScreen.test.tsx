@@ -9,9 +9,17 @@
 // AI-META-END
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react-native";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from "@testing-library/react-native";
 import { migrationHelpers } from "../test-utils/accessibility";
-import { AccessibilityTester, AccessibilityPatterns } from "../test-utils/accessibility-testing-simple";
+import {
+  AccessibilityTester,
+  AccessibilityPatterns,
+} from "../test-utils/accessibility-testing-simple";
 import React from "react";
 import MemoriesScreen from "./MemoriesScreen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -128,7 +136,9 @@ describe("MemoriesScreen", () => {
 
       renderComponent();
 
-      expect(screen.getByRole("progressbar", { name: "skeleton-loader" })).toBeTruthy();
+      expect(
+        screen.getByRole("progressbar", { name: "skeleton-loader" }),
+      ).toBeTruthy();
     });
 
     it("should show empty state when no memories exist", async () => {
@@ -139,8 +149,12 @@ describe("MemoriesScreen", () => {
       renderComponent();
 
       await waitFor(() => {
-        expect(screen.getByRole("heading", { name: "No Memories Yet" })).toBeTruthy();
-        expect(screen.getByRole("button", { name: /Generate Memories/i })).toBeTruthy();
+        expect(
+          screen.getByRole("heading", { name: "No Memories Yet" }),
+        ).toBeTruthy();
+        expect(
+          screen.getByRole("button", { name: /Generate Memories/i }),
+        ).toBeTruthy();
       });
     });
 
@@ -150,7 +164,9 @@ describe("MemoriesScreen", () => {
       renderComponent();
 
       await waitFor(() => {
-        expect(screen.getByRole("heading", { name: "Error Loading Memories" })).toBeTruthy();
+        expect(
+          screen.getByRole("heading", { name: "Error Loading Memories" }),
+        ).toBeTruthy();
       });
     });
   });
@@ -243,7 +259,9 @@ describe("MemoriesScreen", () => {
       renderComponent();
 
       await waitFor(() => {
-        expect(screen.getByRole("button", { name: /create|add|fab/i })).toBeTruthy();
+        expect(
+          screen.getByRole("button", { name: /create|add|fab/i }),
+        ).toBeTruthy();
       });
     });
   });
@@ -257,7 +275,9 @@ describe("MemoriesScreen", () => {
       renderComponent();
 
       await waitFor(() => {
-        expect(screen.getByRole("button", { name: /Generate Memories/i })).toBeTruthy();
+        expect(
+          screen.getByRole("button", { name: /Generate Memories/i }),
+        ).toBeTruthy();
       });
 
       // Mock the generate API call
@@ -266,7 +286,9 @@ describe("MemoriesScreen", () => {
         data: { memories: [] },
       });
 
-      fireEvent.press(screen.getByRole("button", { name: /Generate Memories/i }));
+      fireEvent.press(
+        screen.getByRole("button", { name: /Generate Memories/i }),
+      );
 
       await waitFor(() => {
         expect(mockApiRequest).toHaveBeenCalledWith("/api/memories/generate", {
@@ -297,7 +319,9 @@ describe("MemoriesScreen", () => {
       renderComponent();
 
       await waitFor(() => {
-        expect(screen.getByRole("button", { name: /create|add|fab/i })).toBeTruthy();
+        expect(
+          screen.getByRole("button", { name: /create|add|fab/i }),
+        ).toBeTruthy();
       });
 
       // Mock the generate API call
@@ -306,7 +330,7 @@ describe("MemoriesScreen", () => {
         data: { memories: mockMemories },
       });
 
-      fireEvent.press(screen.getByRole('button', { name: /create|add|fab/i }));
+      fireEvent.press(screen.getByRole("button", { name: /create|add|fab/i }));
 
       await waitFor(() => {
         expect(mockApiRequest).toHaveBeenCalledWith("/api/memories/generate", {
@@ -346,10 +370,10 @@ describe("MemoriesScreen", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /memory1/i })).toBeTruthy();
+        expect(screen.getByRole("button", { name: /memory1/i })).toBeTruthy();
       });
 
-      fireEvent.press(screen.getByRole('button', { name: /memory1/i }));
+      fireEvent.press(screen.getByRole("button", { name: /memory1/i }));
 
       expect(mockNavigation.navigate).toHaveBeenCalledWith(
         "MemoryDetailScreen",
@@ -381,7 +405,7 @@ describe("MemoriesScreen", () => {
       renderComponent();
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /memory1/i })).toBeTruthy();
+        expect(screen.getByRole("button", { name: /memory1/i })).toBeTruthy();
       });
 
       // Mock the update API call
@@ -418,7 +442,9 @@ describe("MemoriesScreen", () => {
       renderComponent();
 
       await waitFor(() => {
-        expect(screen.getByRole('progressbar', { name: /loading/i })).toBeTruthy();
+        expect(
+          screen.getByRole("progressbar", { name: /loading/i }),
+        ).toBeTruthy();
       });
 
       // Mock refresh control
@@ -438,8 +464,10 @@ describe("MemoriesScreen", () => {
       renderComponent();
 
       await waitFor(() => {
-        expect(screen.getByRole('heading', { name: 'Error Loading Memories' })).toBeTruthy();
-        expect(screen.getByRole('button', { name: /Retry/i })).toBeTruthy();
+        expect(
+          screen.getByRole("heading", { name: "Error Loading Memories" }),
+        ).toBeTruthy();
+        expect(screen.getByRole("button", { name: /Retry/i })).toBeTruthy();
       });
     });
 
@@ -451,7 +479,9 @@ describe("MemoriesScreen", () => {
       renderComponent();
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Retry|Try Again/i })).toBeTruthy();
+        expect(
+          screen.getByRole("button", { name: /Retry|Try Again/i }),
+        ).toBeTruthy();
       });
 
       // Mock generation failure
@@ -464,7 +494,7 @@ describe("MemoriesScreen", () => {
         });
       });
 
-      fireEvent.press(screen.getByRole('button', { name: /Retry|Try Again/i }));
+      fireEvent.press(screen.getByRole("button", { name: /Retry|Try Again/i }));
 
       // The error would be handled by the mutation's onError callback
       // In a real test, we'd check for an alert or error message
@@ -497,17 +527,17 @@ describe("MemoriesScreen", () => {
       });
 
       renderComponent();
-      
+
       await waitFor(() => {
         expect(screen.getByText("Memories")).toBeTruthy();
       });
-      
+
       await AccessibilityTester.expectNoViolations(
         <ThemeProvider theme={defaultTheme}>
           <QueryClientProvider client={new QueryClient()}>
             <MemoriesScreen />
           </QueryClientProvider>
-        </ThemeProvider>
+        </ThemeProvider>,
       );
     });
 
@@ -533,17 +563,17 @@ describe("MemoriesScreen", () => {
       });
 
       renderComponent();
-      
+
       await waitFor(() => {
         expect(screen.getByText("Summer Vacation")).toBeTruthy();
       });
-      
+
       await AccessibilityPatterns.testInteractiveElement(
         <ThemeProvider theme={defaultTheme}>
           <QueryClientProvider client={new QueryClient()}>
             <MemoriesScreen />
           </QueryClientProvider>
-        </ThemeProvider>
+        </ThemeProvider>,
       );
     });
 
@@ -555,19 +585,19 @@ describe("MemoriesScreen", () => {
           </QueryClientProvider>
         </ThemeProvider>
       );
-      
+
       await expect(component).toBeAccessible();
     });
 
     it("should have proper accessibility labels for memory actions", async () => {
       renderComponent();
-      
+
       await waitFor(() => {
         expect(screen.getByText("Memories")).toBeTruthy();
       });
-      
+
       // Check that generate memories button is accessible
-      const generateButton = screen.getByRole('button', { name: /generate/i });
+      const generateButton = screen.getByRole("button", { name: /generate/i });
       expect(generateButton).toBeTruthy();
       expect(generateButton.props.accessibilityLabel).toBeDefined();
     });

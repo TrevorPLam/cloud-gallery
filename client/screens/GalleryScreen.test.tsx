@@ -208,11 +208,11 @@ describe("GalleryScreen", () => {
   describe("Rendering", () => {
     it("should render loading state initially", () => {
       const { impactAsync } = require("expo-haptics");
-      
+
       const { getByTestId } = render(
         <TestWrapper>
           <GalleryScreen />
-        </TestWrapper>
+        </TestWrapper>,
       );
 
       // Should show skeleton loader
@@ -221,38 +221,40 @@ describe("GalleryScreen", () => {
 
     it("should render empty state when no photos", async () => {
       const { impactAsync } = require("expo-haptics");
-      
+
       // Mock successful query with empty data
       queryClient.setQueryData(["photos"], []);
-      
+
       const { getByText } = render(
         <TestWrapper>
           <GalleryScreen />
-        </TestWrapper>
+        </TestWrapper>,
       );
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       expect(getByText("No photos found")).toBeTruthy();
-      expect(getByText("Start by adding some photos to your gallery")).toBeTruthy();
+      expect(
+        getByText("Start by adding some photos to your gallery"),
+      ).toBeTruthy();
     });
 
     it("should render gallery with photos", async () => {
       const { impactAsync } = require("expo-haptics");
       const mockPhotos = createMockPhotos(10);
-      
+
       queryClient.setQueryData(["photos"], mockPhotos);
-      
+
       const { getByTestId } = render(
         <TestWrapper>
           <GalleryScreen />
-        </TestWrapper>
+        </TestWrapper>,
       );
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       // Should render FlashList
@@ -261,22 +263,24 @@ describe("GalleryScreen", () => {
 
     it("should render error state when query fails", async () => {
       const { impactAsync } = require("expo-haptics");
-      
+
       // Mock failed query
       queryClient.setQueryData(["photos"], new Error("Network error"));
-      
+
       const { getByText } = render(
         <TestWrapper>
           <GalleryScreen />
-        </TestWrapper>
+        </TestWrapper>,
       );
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       expect(getByText("Error loading photos")).toBeTruthy();
-      expect(getByText("Please check your connection and try again")).toBeTruthy();
+      expect(
+        getByText("Please check your connection and try again"),
+      ).toBeTruthy();
     });
   });
 
@@ -284,17 +288,17 @@ describe("GalleryScreen", () => {
     it("should display current zoom level", async () => {
       const { impactAsync } = require("expo-haptics");
       const mockPhotos = createMockPhotos(10);
-      
+
       queryClient.setQueryData(["photos"], mockPhotos);
-      
+
       const { getByText } = render(
         <TestWrapper>
           <GalleryScreen />
-        </TestWrapper>
+        </TestWrapper>,
       );
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       // Should show current zoom level (PHOTO by default)
@@ -304,17 +308,17 @@ describe("GalleryScreen", () => {
     it("should reset zoom when reset button is pressed", async () => {
       const { impactAsync } = require("expo-haptics");
       const mockPhotos = createMockPhotos(10);
-      
+
       queryClient.setQueryData(["photos"], mockPhotos);
-      
+
       const { getByTestId, getByLabelText } = render(
         <TestWrapper>
           <GalleryScreen />
-        </TestWrapper>
+        </TestWrapper>,
       );
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       // Find and press reset button
@@ -330,17 +334,17 @@ describe("GalleryScreen", () => {
     it("should show breadcrumb when navigating into timeline", async () => {
       const { impactAsync } = require("expo-haptics");
       const mockPhotos = createMockPhotos(50); // Enough to create hierarchy
-      
+
       queryClient.setQueryData(["photos"], mockPhotos);
-      
+
       const { getByText, getByTestId } = render(
         <TestWrapper>
           <GalleryScreen />
-        </TestWrapper>
+        </TestWrapper>,
       );
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       // Initially no breadcrumb should be visible
@@ -354,17 +358,17 @@ describe("GalleryScreen", () => {
     it("should handle back navigation", async () => {
       const { impactAsync } = require("expo-haptics");
       const mockPhotos = createMockPhotos(50);
-      
+
       queryClient.setQueryData(["photos"], mockPhotos);
-      
+
       const { getByLabelText } = render(
         <TestWrapper>
           <GalleryScreen />
-        </TestWrapper>
+        </TestWrapper>,
       );
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       // Find and press back button (if visible)
@@ -376,17 +380,17 @@ describe("GalleryScreen", () => {
     it("should initialize gesture handler", async () => {
       const { impactAsync } = require("expo-haptics");
       const mockPhotos = createMockPhotos(10);
-      
+
       queryClient.setQueryData(["photos"], mockPhotos);
-      
+
       const { getByTestId } = render(
         <TestWrapper>
           <GalleryScreen />
-        </TestWrapper>
+        </TestWrapper>,
       );
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       // Should have gesture handler set up
@@ -396,17 +400,17 @@ describe("GalleryScreen", () => {
     it("should trigger haptic feedback on gesture start", async () => {
       const { impactAsync } = require("expo-haptics");
       const mockPhotos = createMockPhotos(10);
-      
+
       queryClient.setQueryData(["photos"], mockPhotos);
-      
+
       const { getByTestId } = render(
         <TestWrapper>
           <GalleryScreen />
-        </TestWrapper>
+        </TestWrapper>,
       );
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       // Simulate gesture start
@@ -424,17 +428,17 @@ describe("GalleryScreen", () => {
     it("should handle zoom level changes", async () => {
       const { impactAsync } = require("expo-haptics");
       const mockPhotos = createMockPhotos(10);
-      
+
       queryClient.setQueryData(["photos"], mockPhotos);
-      
+
       const { getByTestId, getByText } = render(
         <TestWrapper>
           <GalleryScreen />
-        </TestWrapper>
+        </TestWrapper>,
       );
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       // Initially at PHOTO level
@@ -450,7 +454,7 @@ describe("GalleryScreen", () => {
 
       // Should update zoom level display
       expect(getByText("MONTH")).toBeTruthy();
-      
+
       // Should trigger haptic feedback
       expect(impactAsync).toHaveBeenCalledWith("medium");
     });
@@ -460,17 +464,17 @@ describe("GalleryScreen", () => {
     it("should handle photo press", async () => {
       const { impactAsync } = require("expo-haptics");
       const mockPhotos = createMockPhotos(10);
-      
+
       queryClient.setQueryData(["photos"], mockPhotos);
-      
+
       const { getByTestId } = render(
         <TestWrapper>
           <GalleryScreen />
-        </TestWrapper>
+        </TestWrapper>,
       );
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       // Find and press photo
@@ -485,17 +489,17 @@ describe("GalleryScreen", () => {
       const { impactAsync } = require("expo-haptics");
       const favoritePhoto = createMockPhoto({ isFavorite: true });
       const mockPhotos = [favoritePhoto, ...createMockPhotos(9)];
-      
+
       queryClient.setQueryData(["photos"], mockPhotos);
-      
+
       const { getByTestId } = render(
         <TestWrapper>
           <GalleryScreen />
-        </TestWrapper>
+        </TestWrapper>,
       );
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       // Should show favorite icon
@@ -507,26 +511,26 @@ describe("GalleryScreen", () => {
     it("should handle large photo libraries efficiently", async () => {
       const { impactAsync } = require("expo-haptics");
       const largePhotoSet = createMockPhotos(1000); // Large dataset
-      
+
       queryClient.setQueryData(["photos"], largePhotoSet);
-      
+
       const startTime = performance.now();
-      
+
       const { getByTestId } = render(
         <TestWrapper>
           <GalleryScreen />
-        </TestWrapper>
+        </TestWrapper>,
       );
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       const endTime = performance.now();
-      
+
       // Should render within reasonable time (adjust threshold as needed)
       expect(endTime - startTime).toBeLessThan(1000); // 1 second
-      
+
       // Should still render FlashList
       expect(getByTestId("flash-list")).toBeTruthy();
     });
@@ -534,25 +538,25 @@ describe("GalleryScreen", () => {
     it("should maintain performance during rapid zoom changes", async () => {
       const { impactAsync } = require("expo-haptics");
       const mockPhotos = createMockPhotos(100);
-      
+
       queryClient.setQueryData(["photos"], mockPhotos);
-      
+
       const { getByTestId } = render(
         <TestWrapper>
           <GalleryScreen />
-        </TestWrapper>
+        </TestWrapper>,
       );
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       const gestureHandler = getByTestId("pinch-gesture-handler");
-      
+
       // Simulate rapid zoom changes
       for (let i = 0; i < 10; i++) {
         fireEvent(gestureHandler, "onGestureUpdate", {
-          scale: 0.25 + (i * 0.1),
+          scale: 0.25 + i * 0.1,
           focalX: 100,
           focalY: 100,
         });
@@ -567,17 +571,17 @@ describe("GalleryScreen", () => {
     it("should provide accessibility labels for interactive elements", async () => {
       const { impactAsync } = require("expo-haptics");
       const mockPhotos = createMockPhotos(10);
-      
+
       queryClient.setQueryData(["photos"], mockPhotos);
-      
+
       const { getByLabelText } = render(
         <TestWrapper>
           <GalleryScreen />
-        </TestWrapper>
+        </TestWrapper>,
       );
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       // Should have accessible controls
@@ -587,17 +591,17 @@ describe("GalleryScreen", () => {
     it("should support screen reader navigation", async () => {
       const { impactAsync } = require("expo-haptics");
       const mockPhotos = createMockPhotos(10);
-      
+
       queryClient.setQueryData(["photos"], mockPhotos);
-      
+
       const { getByA11yLabel } = render(
         <TestWrapper>
           <GalleryScreen />
-        </TestWrapper>
+        </TestWrapper>,
       );
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       // Should have accessible elements
@@ -608,22 +612,22 @@ describe("GalleryScreen", () => {
   describe("Error Handling", () => {
     it("should handle network errors gracefully", async () => {
       const { impactAsync } = require("expo-haptics");
-      
+
       // Mock network error
       queryClient.setQueryData(["photos"], new Error("Network error"));
-      
+
       const { getByText, getByLabelText } = render(
         <TestWrapper>
           <GalleryScreen />
-        </TestWrapper>
+        </TestWrapper>,
       );
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       expect(getByText("Error loading photos")).toBeTruthy();
-      
+
       // Should have retry button
       const retryButton = getByLabelText("Retry loading photos");
       expect(retryButton).toBeTruthy();
@@ -631,17 +635,17 @@ describe("GalleryScreen", () => {
 
     it("should handle retry functionality", async () => {
       const { impactAsync } = require("expo-haptics");
-      
+
       queryClient.setQueryData(["photos"], new Error("Network error"));
-      
+
       const { getByLabelText } = render(
         <TestWrapper>
           <GalleryScreen />
-        </TestWrapper>
+        </TestWrapper>,
       );
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       // Press retry button
@@ -657,17 +661,17 @@ describe("GalleryScreen", () => {
     it("should handle complete user workflow", async () => {
       const { impactAsync } = require("expo-haptics");
       const mockPhotos = createMockPhotos(50);
-      
+
       queryClient.setQueryData(["photos"], mockPhotos);
-      
+
       const { getByTestId, getByLabelText, getByText } = render(
         <TestWrapper>
           <GalleryScreen />
-        </TestWrapper>
+        </TestWrapper>,
       );
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       // 1. Start at photo level
@@ -708,17 +712,17 @@ describe("GalleryScreen", () => {
 
       const { impactAsync } = require("expo-haptics");
       const mockPhotos = createMockPhotos(10);
-      
+
       queryClient.setQueryData(["photos"], mockPhotos);
-      
+
       const { getByTestId } = render(
         <TestWrapper>
           <GalleryScreen />
-        </TestWrapper>
+        </TestWrapper>,
       );
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       // Simulate gesture on web (should not trigger haptics)
@@ -737,17 +741,17 @@ describe("GalleryScreen", () => {
   describe("Edge Cases", () => {
     it("should handle empty photo array", async () => {
       const { impactAsync } = require("expo-haptics");
-      
+
       queryClient.setQueryData(["photos"], []);
-      
+
       const { getByText } = render(
         <TestWrapper>
           <GalleryScreen />
-        </TestWrapper>
+        </TestWrapper>,
       );
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       expect(getByText("No photos found")).toBeTruthy();
@@ -756,17 +760,17 @@ describe("GalleryScreen", () => {
     it("should handle single photo", async () => {
       const { impactAsync } = require("expo-haptics");
       const singlePhoto = createMockPhoto();
-      
+
       queryClient.setQueryData(["photos"], [singlePhoto]);
-      
+
       const { getByTestId } = render(
         <TestWrapper>
           <GalleryScreen />
-        </TestWrapper>
+        </TestWrapper>,
       );
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       expect(getByTestId("flash-list")).toBeTruthy();
@@ -779,17 +783,17 @@ describe("GalleryScreen", () => {
         uri: "file://photo.jpg",
         // Missing other required fields
       } as Photo;
-      
+
       queryClient.setQueryData(["photos"], [incompletePhoto]);
-      
+
       const { getByTestId } = render(
         <TestWrapper>
           <GalleryScreen />
-        </TestWrapper>
+        </TestWrapper>,
       );
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       // Should not crash and render what it can

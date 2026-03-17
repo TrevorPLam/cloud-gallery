@@ -34,12 +34,12 @@ vi.mock("@/lib/query-client", () => ({
 function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: {
-      queries: { 
+      queries: {
         retry: false,
         gcTime: 0, // v5: was cacheTime in v4
         staleTime: 0,
       },
-      mutations: { 
+      mutations: {
         retry: false,
         gcTime: 0,
       },
@@ -300,12 +300,12 @@ describe("Property 14: Album Operation Requests", () => {
 
 describe("Property 15: Dual Cache Invalidation for Albums", () => {
   const originalEnv = process.env;
-  
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv("EXPO_PUBLIC_DOMAIN", "api.example.com");
   });
-  
+
   afterEach(() => {
     process.env = originalEnv;
     vi.unstubAllEnvs();

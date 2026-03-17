@@ -68,7 +68,7 @@ describe("Storage Performance Tests", () => {
           largeDataset.photos.slice(0, 100).map((p) => p.id),
         ),
       ).resolves.not.toThrow();
-      
+
       // Verify some AsyncStorage activity occurred
       const setItemCalls = vi.mocked(AsyncStorage.setItem).mock.calls;
       expect(setItemCalls.length).toBeGreaterThanOrEqual(0);
@@ -193,7 +193,7 @@ describe("Storage Performance Tests", () => {
 
       await expect(Promise.all(operations)).resolves.not.toThrow();
       expect(vi.mocked(AsyncStorage.setItem)).toHaveBeenCalledTimes(100);
-      
+
       // Verify operations completed successfully
       const lastCall = vi.mocked(AsyncStorage.setItem).mock.calls[99];
       expect(lastCall).toBeDefined();

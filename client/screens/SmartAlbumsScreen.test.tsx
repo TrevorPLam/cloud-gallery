@@ -9,9 +9,17 @@
 // AI-META-END
 
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react-native";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from "@testing-library/react-native";
 import { migrationHelpers } from "../test-utils/accessibility";
-import { AccessibilityTester, AccessibilityPatterns } from "../test-utils/accessibility-testing-simple";
+import {
+  AccessibilityTester,
+  AccessibilityPatterns,
+} from "../test-utils/accessibility-testing-simple";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Alert } from "react-native";
 import SmartAlbumsScreen from "./SmartAlbumsScreen";
@@ -199,7 +207,7 @@ describe("SmartAlbumsScreen", () => {
 
       await waitFor(() => {
         // John Doe album should have pinned badge
-        const pinnedAlbum = getByRole('button', { name: /John Doe/i });
+        const pinnedAlbum = getByRole("button", { name: /John Doe/i });
         expect(pinnedAlbum).toHaveStyle({
           borderWidth: 1,
           borderColor: "#FFD700",
@@ -233,7 +241,7 @@ describe("SmartAlbumsScreen", () => {
       });
 
       // Tap on album to select it
-      const albumCard = getByRole('button', { name: /John Doe/i });
+      const albumCard = getByRole("button", { name: /John Doe/i });
       fireEvent.press(albumCard);
 
       // Actions should be visible (selected state)
@@ -244,11 +252,11 @@ describe("SmartAlbumsScreen", () => {
       const { getByRole } = renderWithQueryClient(<SmartAlbumsScreen />);
 
       await waitFor(() => {
-        const albumCard = getByRole('button', { name: /John Doe/i });
+        const albumCard = getByRole("button", { name: /John Doe/i });
         expect(albumCard).toBeTruthy();
       });
 
-      const albumCard = getByRole('button', { name: /John Doe/i });
+      const albumCard = getByRole("button", { name: /John Doe/i });
 
       // Select album
       fireEvent.press(albumCard);
@@ -272,11 +280,11 @@ describe("SmartAlbumsScreen", () => {
       });
 
       // Select album
-      const albumCard = getByRole('button', { name: /John Doe/i });
+      const albumCard = getByRole("button", { name: /John Doe/i });
       fireEvent.press(albumCard);
 
       // Tap hide button
-      const hideButton = getByRole('button', { name: /hide/i });
+      const hideButton = getByRole("button", { name: /hide/i });
       fireEvent.press(hideButton);
 
       // Alert should be shown
@@ -314,17 +322,17 @@ describe("SmartAlbumsScreen", () => {
       const { getByRole } = renderWithQueryClient(<SmartAlbumsScreen />);
 
       await waitFor(() => {
-        const albumCard = getByRole('button', { name: /John Doe/i });
+        const albumCard = getByRole("button", { name: /John Doe/i });
         expect(albumCard).toBeTruthy();
       });
 
-      const albumCard = getByRole('button', { name: /John Doe/i });
+      const albumCard = getByRole("button", { name: /John Doe/i });
 
       // Select album
       fireEvent.press(albumCard);
 
       // Tap pin button
-      const pinButton = getByRole('button', { name: /pin/i });
+      const pinButton = getByRole("button", { name: /pin/i });
       fireEvent.press(pinButton);
 
       // API call should be made
@@ -341,11 +349,11 @@ describe("SmartAlbumsScreen", () => {
       const { getByRole } = renderWithQueryClient(<SmartAlbumsScreen />);
 
       await waitFor(() => {
-        const generateButton = getByRole('button', { name: /generate/i });
+        const generateButton = getByRole("button", { name: /generate/i });
         expect(generateButton).toBeTruthy();
       });
 
-      const generateButton = getByRole('button', { name: /generate/i });
+      const generateButton = getByRole("button", { name: /generate/i });
       fireEvent.press(generateButton);
 
       expect(Alert.alert).toHaveBeenCalledWith(
@@ -380,11 +388,11 @@ describe("SmartAlbumsScreen", () => {
       const { getByRole } = renderWithQueryClient(<SmartAlbumsScreen />);
 
       await waitFor(() => {
-        const generateButton = getByRole('button', { name: /generate/i });
+        const generateButton = getByRole("button", { name: /generate/i });
         expect(generateButton).toBeTruthy();
       });
 
-      const generateButton = getByRole('button', { name: /generate/i });
+      const generateButton = getByRole("button", { name: /generate/i });
       fireEvent.press(generateButton);
 
       // Get the alert callback and call the "Generate" button
@@ -527,7 +535,7 @@ describe("SmartAlbumsScreen", () => {
 
       await waitFor(() => {
         // Trigger refresh
-        const refreshControl = getByRole('button', { name: /refresh/i });
+        const refreshControl = getByRole("button", { name: /refresh/i });
         fireEvent(refreshControl, "refresh");
       });
 
@@ -566,7 +574,7 @@ describe("SmartAlbumsScreen", () => {
       await waitFor(() => {
         expect(getByText("Smart Albums")).toBeTruthy();
       });
-      
+
       await AccessibilityTester.expectNoViolations(<SmartAlbumsScreen />);
     });
 
@@ -574,7 +582,7 @@ describe("SmartAlbumsScreen", () => {
       await waitFor(() => {
         expect(getByText("John Doe")).toBeTruthy();
       });
-      
+
       await AccessibilityPatterns.testInteractiveElement(<SmartAlbumsScreen />);
     });
 
@@ -584,7 +592,7 @@ describe("SmartAlbumsScreen", () => {
           <SmartAlbumsScreen />
         </QueryClientProvider>
       );
-      
+
       await expect(component).toBeAccessible();
     });
 
@@ -592,9 +600,9 @@ describe("SmartAlbumsScreen", () => {
       await waitFor(() => {
         expect(getByText("People")).toBeTruthy();
       });
-      
+
       // Check that section headers are accessible
-      const peopleHeader = getByRole('header', { name: /people/i });
+      const peopleHeader = getByRole("header", { name: /people/i });
       expect(peopleHeader).toBeTruthy();
     });
   });

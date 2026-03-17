@@ -172,7 +172,10 @@ describe("PhotoMetadataEditor ML Labels", () => {
       const mlLabelsInput = getByPlaceholderText(
         "AI labels will appear here...",
       );
-      await fireEvent.changeText(mlLabelsInput, " mountain , , forest ,  , hiking ");
+      await fireEvent.changeText(
+        mlLabelsInput,
+        " mountain , , forest ,  , hiking ",
+      );
 
       // Save
       const saveButton = getByText("Save");

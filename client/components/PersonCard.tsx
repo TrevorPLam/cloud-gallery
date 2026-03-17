@@ -8,7 +8,7 @@
 // TESTS: client/components/PersonCard.test.tsx
 // AI-META-END
 
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   StyleSheet,
   View,
@@ -20,19 +20,19 @@ import {
   TextInput,
   Switch,
   ActivityIndicator,
-} from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import { Image } from 'expo-image';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+} from "react-native";
+import { Feather } from "@expo/vector-icons";
+import { Image } from "expo-image";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   apiRequest,
   AuthenticationError,
   ValidationError,
   NetworkError,
   ServerError,
-} from '@/lib/query-client';
-import { useTheme } from '@/hooks/useTheme';
-import { Spacing } from '@/constants/theme';
+} from "@/lib/query-client";
+import { useTheme } from "@/hooks/useTheme";
+import { Spacing } from "@/constants/theme";
 
 // Types
 interface Person {
@@ -76,8 +76,8 @@ export default function PersonCard({
   // State for modals and interactions
   const [renameModalVisible, setRenameModalVisible] = useState(false);
   const [mergeModalVisible, setMergeModalVisible] = useState(false);
-  const [newName, setNewName] = useState(person.name || '');
-  const [targetPersonId, setTargetPersonId] = useState('');
+  const [newName, setNewName] = useState(person.name || "");
+  const [targetPersonId, setTargetPersonId] = useState("");
 
   // ═══════════════════════════════════════════════════════════
   // MUTATIONS
@@ -86,91 +86,97 @@ export default function PersonCard({
   const renameMutation = useMutation({
     mutationFn: async (data: { personId: string; name: string }) => {
       const response = await apiRequest(`/api/faces/people/${data.personId}`, {
-        method: 'PUT',
+        method: "PUT",
         body: JSON.stringify({ name: data.name }),
       });
       return response;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['people'] });
+      queryClient.invalidateQueries({ queryKey: ["people"] });
       setRenameModalVisible(false);
       onRename?.(variables.personId, variables.name);
     },
     onError: (error) => {
-      console.error('PersonCard: Rename failed:', error);
-      Alert.alert('Error', getErrorMessage(error));
+      console.error("PersonCard: Rename failed:", error);
+      Alert.alert("Error", getErrorMessage(error));
     },
   });
 
   const togglePinMutation = useMutation({
     mutationFn: async (data: { personId: string; isPinned: boolean }) => {
       const response = await apiRequest(`/api/faces/people/${data.personId}`, {
-        method: 'PUT',
+        method: "PUT",
         body: JSON.stringify({ isPinned: data.isPinned }),
       });
       return response;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['people'] });
+      queryClient.invalidateQueries({ queryKey: ["people"] });
       onTogglePin?.(variables.personId, variables.isPinned);
     },
     onError: (error) => {
-      console.error('PersonCard: Toggle pin failed:', error);
-      Alert.alert('Error', getErrorMessage(error));
+      console.error("PersonCard: Toggle pin failed:", error);
+      Alert.alert("Error", getErrorMessage(error));
     },
   });
 
   const toggleHideMutation = useMutation({
     mutationFn: async (data: { personId: string; isHidden: boolean }) => {
       const response = await apiRequest(`/api/faces/people/${data.personId}`, {
-        method: 'PUT',
+        method: "PUT",
         body: JSON.stringify({ isHidden: data.isHidden }),
       });
       return response;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['people'] });
+      queryClient.invalidateQueries({ queryKey: ["people"] });
       onToggleHide?.(variables.personId, variables.isHidden);
     },
     onError: (error) => {
-      console.error('PersonCard: Toggle hide failed:', error);
-      Alert.alert('Error', getErrorMessage(error));
+      console.error("PersonCard: Toggle hide failed:", error);
+      Alert.alert("Error", getErrorMessage(error));
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (personId: string) => {
       const response = await apiRequest(`/api/faces/people/${personId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
       return response;
     },
     onSuccess: (_, personId) => {
-      queryClient.invalidateQueries({ queryKey: ['people'] });
+      queryClient.invalidateQueries({ queryKey: ["people"] });
       onDelete?.(personId);
     },
     onError: (error) => {
-      console.error('PersonCard: Delete failed:', error);
-      Alert.alert('Error', getErrorMessage(error));
+      console.error("PersonCard: Delete failed:", error);
+      Alert.alert("Error", getErrorMessage(error));
     },
   });
 
   const mergeMutation = useMutation({
-    mutationFn: async (data: { sourcePersonId: string; targetPersonId: string }) => {
-      const response = await apiRequest(`/api/faces/people/${data.sourcePersonId}/merge`, {
-        method: 'PUT',
-        body: JSON.stringify({ targetPersonId: data.targetPersonId }),
-      });
+    mutationFn: async (data: {
+      sourcePersonId: string;
+      targetPersonId: string;
+    }) => {
+      const response = await apiRequest(
+        `/api/faces/people/${data.sourcePersonId}/merge`,
+        {
+          method: "PUT",
+          body: JSON.stringify({ targetPersonId: data.targetPersonId }),
+        },
+      );
       return response;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['people'] });
+      queryClient.invalidateQueries({ queryKey: ["people"] });
       setMergeModalVisible(false);
       onMerge?.(variables.sourcePersonId, variables.targetPersonId);
     },
     onError: (error) => {
-      console.error('PersonCard: Merge failed:', error);
-      Alert.alert('Error', getErrorMessage(error));
+      console.error("PersonCard: Merge failed:", error);
+      Alert.alert("Error", getErrorMessage(error));
     },
   });
 
@@ -180,21 +186,21 @@ export default function PersonCard({
 
   const getErrorMessage = (error: unknown): string => {
     if (error instanceof AuthenticationError) {
-      return 'Session expired. Please log in again.';
+      return "Session expired. Please log in again.";
     }
     if (error instanceof NetworkError) {
-      return 'No internet connection. Please try again.';
+      return "No internet connection. Please try again.";
     }
     if (error instanceof ServerError) {
-      return 'Server error. Please try again later.';
+      return "Server error. Please try again later.";
     }
     if (error instanceof ValidationError) {
-      return `Validation error: ${error.validationDetails.map((d) => d.message).join(', ')}`;
+      return `Validation error: ${error.validationDetails.map((d) => d.message).join(", ")}`;
     }
     if (error instanceof Error) {
       return error.message;
     }
-    return 'An unknown error occurred.';
+    return "An unknown error occurred.";
   };
 
   // ═══════════════════════════════════════════════════════════
@@ -211,7 +217,7 @@ export default function PersonCard({
 
   const handleRenameSubmit = () => {
     if (!newName.trim()) {
-      Alert.alert('Error', 'Please enter a valid name.');
+      Alert.alert("Error", "Please enter a valid name.");
       return;
     }
 
@@ -237,16 +243,16 @@ export default function PersonCard({
 
   const handleDelete = () => {
     Alert.alert(
-      'Delete Person',
-      `Are you sure you want to delete "${person.name || 'this person'}"? This action cannot be undone.`,
+      "Delete Person",
+      `Are you sure you want to delete "${person.name || "this person"}"? This action cannot be undone.`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Delete',
-          style: 'destructive',
+          text: "Delete",
+          style: "destructive",
           onPress: () => deleteMutation.mutate(person.id),
         },
-      ]
+      ],
     );
   };
 
@@ -256,7 +262,7 @@ export default function PersonCard({
 
   const handleMergeSubmit = () => {
     if (!targetPersonId.trim() || targetPersonId === person.id) {
-      Alert.alert('Error', 'Please select a valid person to merge with.');
+      Alert.alert("Error", "Please select a valid person to merge with.");
       return;
     }
 
@@ -268,41 +274,41 @@ export default function PersonCard({
 
   const showActionMenu = () => {
     const options = [
-      person.name ? 'Rename' : 'Name',
-      person.isPinned ? 'Unpin' : 'Pin',
-      person.isHidden ? 'Show' : 'Hide',
-      'Merge with...',
-      'Delete',
-      'Cancel',
+      person.name ? "Rename" : "Name",
+      person.isPinned ? "Unpin" : "Pin",
+      person.isHidden ? "Show" : "Hide",
+      "Merge with...",
+      "Delete",
+      "Cancel",
     ];
 
     Alert.alert(
-      person.name || 'Unnamed Person',
+      person.name || "Unnamed Person",
       `${person.faceCount} photos • Quality: ${Math.round(person.clusterQuality * 100)}%`,
       options.map((option, index) => ({
         text: option,
-        style: option === 'Delete' ? 'destructive' : 'default',
+        style: option === "Delete" ? "destructive" : "default",
         onPress: () => {
           switch (option) {
-            case person.name ? 'Rename' : 'Name':
+            case person.name ? "Rename" : "Name":
               handleRename();
               break;
-            case person.isPinned ? 'Unpin' : 'Pin':
+            case person.isPinned ? "Unpin" : "Pin":
               handleTogglePin();
               break;
-            case person.isHidden ? 'Show' : 'Hide':
+            case person.isHidden ? "Show" : "Hide":
               handleToggleHide();
               break;
-            case 'Merge with...':
+            case "Merge with...":
               handleMerge();
               break;
-            case 'Delete':
+            case "Delete":
               handleDelete();
               break;
             // Cancel does nothing
           }
         },
-      }))
+      })),
     );
   };
 
@@ -315,12 +321,12 @@ export default function PersonCard({
     // For now, we'll show a placeholder with initials
     const initials = person.name
       ? person.name
-          .split(' ')
-          .map(word => word[0])
-          .join('')
+          .split(" ")
+          .map((word) => word[0])
+          .join("")
           .toUpperCase()
           .slice(0, 2)
-      : '?';
+      : "?";
 
     return (
       <View style={[styles.avatar, { backgroundColor: theme.colors.primary }]}>
@@ -343,9 +349,11 @@ export default function PersonCard({
             ]}
             numberOfLines={1}
           >
-            {person.name || 'Unnamed'}
+            {person.name || "Unnamed"}
           </Text>
-          <Text style={[styles.compactCount, { color: theme.colors.textSecondary }]}>
+          <Text
+            style={[styles.compactCount, { color: theme.colors.textSecondary }]}
+          >
             {person.faceCount} photos
           </Text>
         </View>
@@ -363,17 +371,17 @@ export default function PersonCard({
             ]}
             numberOfLines={1}
           >
-            {person.name || 'Unnamed'}
+            {person.name || "Unnamed"}
           </Text>
           {person.isPinned && (
             <Feather name="pin" size={16} color={theme.colors.primary} />
           )}
         </View>
-        
+
         <Text style={[styles.count, { color: theme.colors.textSecondary }]}>
           {person.faceCount} photos
         </Text>
-        
+
         <View style={styles.qualityBar}>
           <View style={styles.qualityBarBackground}>
             <View
@@ -381,16 +389,19 @@ export default function PersonCard({
                 styles.qualityBarFill,
                 {
                   width: `${person.clusterQuality * 100}%`,
-                  backgroundColor: person.clusterQuality > 0.8 
-                    ? theme.colors.success 
-                    : person.clusterQuality > 0.6 
-                    ? theme.colors.warning 
-                    : theme.colors.error,
+                  backgroundColor:
+                    person.clusterQuality > 0.8
+                      ? theme.colors.success
+                      : person.clusterQuality > 0.6
+                        ? theme.colors.warning
+                        : theme.colors.error,
                 },
               ]}
             />
           </View>
-          <Text style={[styles.qualityText, { color: theme.colors.textSecondary }]}>
+          <Text
+            style={[styles.qualityText, { color: theme.colors.textSecondary }]}
+          >
             {Math.round(person.clusterQuality * 100)}%
           </Text>
         </View>
@@ -406,7 +417,11 @@ export default function PersonCard({
         style={[styles.actionsButton, { borderColor: theme.colors.border }]}
         onPress={showActionMenu}
       >
-        <Feather name="more-vertical" size={20} color={theme.colors.textSecondary} />
+        <Feather
+          name="more-vertical"
+          size={20}
+          color={theme.colors.textSecondary}
+        />
       </TouchableOpacity>
     );
   };
@@ -420,7 +435,10 @@ export default function PersonCard({
       style={[
         styles.container,
         compact && styles.compactContainer,
-        { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
+        {
+          backgroundColor: theme.colors.card,
+          borderColor: theme.colors.border,
+        },
         person.isHidden && styles.hiddenContainer,
       ]}
       onPress={handlePress}
@@ -438,15 +456,20 @@ export default function PersonCard({
         onRequestClose={() => setRenameModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: theme.colors.card },
+            ]}
+          >
             <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
               Rename Person
             </Text>
-            
+
             <TextInput
               style={[
                 styles.textInput,
-                { 
+                {
                   backgroundColor: theme.colors.background,
                   borderColor: theme.colors.border,
                   color: theme.colors.text,
@@ -458,17 +481,22 @@ export default function PersonCard({
               placeholderTextColor={theme.colors.textSecondary}
               autoFocus
             />
-            
+
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
                 onPress={() => setRenameModalVisible(false)}
               >
-                <Text style={[styles.modalButtonText, { color: theme.colors.textSecondary }]}>
+                <Text
+                  style={[
+                    styles.modalButtonText,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
                   Cancel
                 </Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={[
                   styles.modalButton,
@@ -479,9 +507,17 @@ export default function PersonCard({
                 disabled={renameMutation.isPending}
               >
                 {renameMutation.isPending ? (
-                  <ActivityIndicator size="small" color={theme.colors.background} />
+                  <ActivityIndicator
+                    size="small"
+                    color={theme.colors.background}
+                  />
                 ) : (
-                  <Text style={[styles.modalButtonText, { color: theme.colors.background }]}>
+                  <Text
+                    style={[
+                      styles.modalButtonText,
+                      { color: theme.colors.background },
+                    ]}
+                  >
                     Save
                   </Text>
                 )}
@@ -499,19 +535,30 @@ export default function PersonCard({
         onRequestClose={() => setMergeModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: theme.colors.card },
+            ]}
+          >
             <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
               Merge Person
             </Text>
-            
-            <Text style={[styles.modalDescription, { color: theme.colors.textSecondary }]}>
-              Merge "{person.name || 'this person'}" with another person. The source person will be removed.
+
+            <Text
+              style={[
+                styles.modalDescription,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
+              Merge "{person.name || "this person"}" with another person. The
+              source person will be removed.
             </Text>
-            
+
             <TextInput
               style={[
                 styles.textInput,
-                { 
+                {
                   backgroundColor: theme.colors.background,
                   borderColor: theme.colors.border,
                   color: theme.colors.text,
@@ -523,17 +570,22 @@ export default function PersonCard({
               placeholderTextColor={theme.colors.textSecondary}
               autoFocus
             />
-            
+
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
                 onPress={() => setMergeModalVisible(false)}
               >
-                <Text style={[styles.modalButtonText, { color: theme.colors.textSecondary }]}>
+                <Text
+                  style={[
+                    styles.modalButtonText,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
                   Cancel
                 </Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={[
                   styles.modalButton,
@@ -544,9 +596,17 @@ export default function PersonCard({
                 disabled={mergeMutation.isPending}
               >
                 {mergeMutation.isPending ? (
-                  <ActivityIndicator size="small" color={theme.colors.background} />
+                  <ActivityIndicator
+                    size="small"
+                    color={theme.colors.background}
+                  />
                 ) : (
-                  <Text style={[styles.modalButtonText, { color: theme.colors.background }]}>
+                  <Text
+                    style={[
+                      styles.modalButtonText,
+                      { color: theme.colors.background },
+                    ]}
+                  >
                     Merge
                   </Text>
                 )}
@@ -565,8 +625,8 @@ export default function PersonCard({
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: Spacing.md,
     marginHorizontal: Spacing.sm,
     marginVertical: Spacing.xs,
@@ -585,8 +645,8 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: Spacing.md,
   },
   compactAvatar: {
@@ -597,7 +657,7 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   content: {
     flex: 1,
@@ -606,22 +666,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 4,
   },
   name: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     flex: 1,
   },
   compactName: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   pinnedText: {
-    fontStyle: 'italic',
+    fontStyle: "italic",
   },
   count: {
     fontSize: 14,
@@ -631,24 +691,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   qualityBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   qualityBarBackground: {
     flex: 1,
     height: 4,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: "#E0E0E0",
     borderRadius: 2,
     marginRight: 8,
   },
   qualityBarFill: {
-    height: '100%',
+    height: "100%",
     borderRadius: 2,
   },
   qualityText: {
     fontSize: 12,
     minWidth: 35,
-    textAlign: 'right',
+    textAlign: "right",
   },
   actionsButton: {
     padding: Spacing.sm,
@@ -658,27 +718,27 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    alignItems: "center",
+    justifyContent: "center",
     padding: Spacing.lg,
   },
   modalContent: {
     borderRadius: 12,
     padding: Spacing.lg,
-    width: '100%',
+    width: "100%",
     maxWidth: 400,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: Spacing.md,
-    textAlign: 'center',
+    textAlign: "center",
   },
   modalDescription: {
     fontSize: 14,
     marginBottom: Spacing.lg,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 20,
   },
   textInput: {
@@ -689,19 +749,19 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     gap: Spacing.md,
   },
   modalButton: {
     flex: 1,
     padding: Spacing.md,
     borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   cancelButton: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     borderWidth: 1,
   },
   confirmButton: {
@@ -709,6 +769,6 @@ const styles = StyleSheet.create({
   },
   modalButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

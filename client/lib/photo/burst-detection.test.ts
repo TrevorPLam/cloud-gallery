@@ -17,7 +17,11 @@ import {
   quickBurstCheck,
   analyzeCollectionBursts,
 } from "./burst-detection";
-import type { PhotoMetadata, BurstGroup, BurstDetectionConfig } from "./burst-detection";
+import type {
+  PhotoMetadata,
+  BurstGroup,
+  BurstDetectionConfig,
+} from "./burst-detection";
 
 // ─────────────────────────────────────────────────────────
 // TEST SETUP AND TEARDOWN
@@ -29,7 +33,7 @@ describe("BurstDetector", () => {
 
   beforeEach(() => {
     detector = new BurstDetector();
-    
+
     // Create mock photo data
     const baseTime = Date.now();
     mockPhotos = Array.from({ length: 20 }, (_, i) => ({
@@ -55,30 +59,39 @@ describe("BurstDetector", () => {
       await expect(
         fc.assert(
           fc.asyncProperty(
-            fc.array(fc.record({
-              id: fc.string(),
-              uri: fc.webUrl(),
-              timestamp: fc.integer({ min: 1000000000, max: 2000000000 }),
-              fileTimestamp: fc.integer({ min: 1000000000, max: 2000000000 }),
-            }), { minLength: 3, maxLength: 20 }),
+            fc.array(
+              fc.record({
+                id: fc.string(),
+                uri: fc.webUrl(),
+                timestamp: fc.integer({ min: 1000000000, max: 2000000000 }),
+                fileTimestamp: fc.integer({ min: 1000000000, max: 2000000000 }),
+              }),
+              { minLength: 3, maxLength: 20 },
+            ),
             async (photos: PhotoMetadata[]) => {
               const detector = new BurstDetector();
               const bursts = await detector.detectBursts(photos);
 
               // Each burst should have photos in chronological order
-              bursts.forEach(burst => {
-                const burstPhotos = photos.filter(p => burst.photoIds.includes(p.id));
+              bursts.forEach((burst) => {
+                const burstPhotos = photos.filter((p) =>
+                  burst.photoIds.includes(p.id),
+                );
                 // Sort by timestamp and compare to burst's internal ordering
-                const sortedTimestamps = burstPhotos.map(p => p.timestamp).sort((a, b) => a - b);
-                const actualTimestamps = burstPhotos.map(p => p.timestamp);
-                
+                const sortedTimestamps = burstPhotos
+                  .map((p) => p.timestamp)
+                  .sort((a, b) => a - b);
+                const actualTimestamps = burstPhotos.map((p) => p.timestamp);
+
                 // Check that the set of timestamps matches (order may differ)
-                expect(new Set(actualTimestamps)).toEqual(new Set(sortedTimestamps));
+                expect(new Set(actualTimestamps)).toEqual(
+                  new Set(sortedTimestamps),
+                );
               });
             },
           ),
           { numRuns: 5 }, // Reduced runs for faster testing
-        )
+        ),
       ).resolves.toBeUndefined();
     });
 
@@ -86,12 +99,15 @@ describe("BurstDetector", () => {
       await expect(
         fc.assert(
           fc.asyncProperty(
-            fc.array(fc.record({
-              id: fc.string(),
-              uri: fc.webUrl(),
-              timestamp: fc.integer({ min: 1000000000, max: 2000000000 }),
-              fileTimestamp: fc.integer({ min: 1000000000, max: 2000000000 }),
-            }), { minLength: 3, maxLength: 20 }),
+            fc.array(
+              fc.record({
+                id: fc.string(),
+                uri: fc.webUrl(),
+                timestamp: fc.integer({ min: 1000000000, max: 2000000000 }),
+                fileTimestamp: fc.integer({ min: 1000000000, max: 2000000000 }),
+              }),
+              { minLength: 3, maxLength: 20 },
+            ),
             fc.record({
               maxTimeGap: fc.integer({ min: 100, max: 10000 }),
               minBurstSize: fc.integer({ min: 2, max: 5 }),
@@ -104,8 +120,10 @@ describe("BurstDetector", () => {
               const bursts = await detector.detectBursts(photos);
 
               // All bursts should respect duration limits
-              bursts.forEach(burst => {
-                expect(burst.duration).toBeLessThanOrEqual(config.maxBurstDuration);
+              bursts.forEach((burst) => {
+                expect(burst.duration).toBeLessThanOrEqual(
+                  config.maxBurstDuration,
+                );
                 expect(burst.count).toBeGreaterThanOrEqual(config.minBurstSize);
                 expect(burst.confidence).toBeGreaterThanOrEqual(0);
                 expect(burst.confidence).toBeLessThanOrEqual(1);
@@ -113,7 +131,7 @@ describe("BurstDetector", () => {
             },
           ),
           { numRuns: 10 },
-        )
+        ),
       ).resolves.toBeUndefined();
     });
 
@@ -121,28 +139,36 @@ describe("BurstDetector", () => {
       await expect(
         fc.assert(
           fc.asyncProperty(
-            fc.array(fc.record({
-              id: fc.string(),
-              uri: fc.webUrl(),
-              timestamp: fc.integer({ min: 1000000000, max: 2000000000 }),
-              fileTimestamp: fc.integer({ min: 1000000000, max: 2000000000 }),
-            }), { minLength: 5, maxLength: 15 }),
+            fc.array(
+              fc.record({
+                id: fc.string(),
+                uri: fc.webUrl(),
+                timestamp: fc.integer({ min: 1000000000, max: 2000000000 }),
+                fileTimestamp: fc.integer({ min: 1000000000, max: 2000000000 }),
+              }),
+              { minLength: 5, maxLength: 15 },
+            ),
             async (photos: PhotoMetadata[]) => {
               // Sort photos by timestamp
-              const sortedPhotos = [...photos].sort((a, b) => a.timestamp - b.timestamp);
-              
+              const sortedPhotos = [...photos].sort(
+                (a, b) => a.timestamp - b.timestamp,
+              );
+
               // Create artificial burst with small gaps
               const baseTime = Date.now();
               const burstPhotos = sortedPhotos.slice(0, 5).map((photo, i) => ({
                 ...photo,
                 timestamp: baseTime + i * 500, // 500ms gaps
               }));
-              
-              const detector = new BurstDetector({ maxTimeGap: 1000, minBurstSize: 3 });
+
+              const detector = new BurstDetector({
+                maxTimeGap: 1000,
+                minBurstSize: 3,
+              });
               const bursts = await detector.detectBursts(burstPhotos);
 
               // If bursts are detected, check time gaps
-              bursts.forEach(burst => {
+              bursts.forEach((burst) => {
                 if (burst.count >= 2) {
                   expect(burst.avgInterval).toBeLessThanOrEqual(1000);
                 }
@@ -150,7 +176,7 @@ describe("BurstDetector", () => {
             },
           ),
           { numRuns: 10 },
-        )
+        ),
       ).resolves.toBeUndefined();
     });
 
@@ -158,25 +184,28 @@ describe("BurstDetector", () => {
       await expect(
         fc.assert(
           fc.asyncProperty(
-            fc.array(fc.record({
-              id: fc.string(),
-              uri: fc.webUrl(),
-              timestamp: fc.integer({ min: 1000000000, max: 2000000000 }),
-              fileTimestamp: fc.integer({ min: 1000000000, max: 2000000000 }),
-            }), { minLength: 3, maxLength: 20 }),
+            fc.array(
+              fc.record({
+                id: fc.string(),
+                uri: fc.webUrl(),
+                timestamp: fc.integer({ min: 1000000000, max: 2000000000 }),
+                fileTimestamp: fc.integer({ min: 1000000000, max: 2000000000 }),
+              }),
+              { minLength: 3, maxLength: 20 },
+            ),
             async (photos: PhotoMetadata[]) => {
               const detector = new BurstDetector();
               const bursts = await detector.detectBursts(photos);
 
               // All confidence scores should be valid
-              bursts.forEach(burst => {
+              bursts.forEach((burst) => {
                 expect(burst.confidence).toBeGreaterThanOrEqual(0);
                 expect(burst.confidence).toBeLessThanOrEqual(1);
               });
             },
           ),
           { numRuns: 10 },
-        )
+        ),
       ).resolves.toBeUndefined();
     });
 
@@ -184,31 +213,37 @@ describe("BurstDetector", () => {
       await expect(
         fc.assert(
           fc.asyncProperty(
-            fc.array(fc.record({
-              id: fc.string(),
-              uri: fc.webUrl(),
-              timestamp: fc.integer({ min: 1000000000, max: 2000000000 }),
-              fileTimestamp: fc.integer({ min: 1000000000, max: 2000000000 }),
-            }), { minLength: 5, maxLength: 20 }),
+            fc.array(
+              fc.record({
+                id: fc.string(),
+                uri: fc.webUrl(),
+                timestamp: fc.integer({ min: 1000000000, max: 2000000000 }),
+                fileTimestamp: fc.integer({ min: 1000000000, max: 2000000000 }),
+              }),
+              { minLength: 5, maxLength: 20 },
+            ),
             async (photos: PhotoMetadata[]) => {
               const detector = new BurstDetector();
               const analysis = detector.analyzeBurstPatterns(photos);
 
               // Coverage should be accurate
-              const expectedPhotosInBursts = analysis.burstGroups * analysis.avgBurstSize;
+              const expectedPhotosInBursts =
+                analysis.burstGroups * analysis.avgBurstSize;
               expect(analysis.photosInBursts).toBeGreaterThanOrEqual(0);
-              expect(analysis.photosInBursts).toBeLessThanOrEqual(photos.length);
-              
+              expect(analysis.photosInBursts).toBeLessThanOrEqual(
+                photos.length,
+              );
+
               // Percentage should be valid
               expect(analysis.burstCoverage).toBeGreaterThanOrEqual(0);
               expect(analysis.burstCoverage).toBeLessThanOrEqual(100);
-              
+
               // Total photos should match input
               expect(analysis.totalPhotos).toBe(photos.length);
             },
           ),
           { numRuns: 10 },
-        )
+        ),
       ).resolves.toBeUndefined();
     });
   });
@@ -220,9 +255,9 @@ describe("BurstDetector", () => {
   describe("Basic Burst Detection", () => {
     it("should detect no bursts with insufficient photos", async () => {
       const photos = mockPhotos.slice(0, 1); // Only 1 photo
-      
+
       const bursts = await detector.detectBursts(photos);
-      
+
       expect(bursts).toEqual([]);
     });
 
@@ -236,7 +271,7 @@ describe("BurstDetector", () => {
       ];
 
       const bursts = await detector.detectBursts(burstPhotos);
-      
+
       expect(bursts).toHaveLength(1);
       expect(bursts[0].photoIds).toHaveLength(4);
       expect(bursts[0].duration).toBe(1500);
@@ -252,7 +287,7 @@ describe("BurstDetector", () => {
       ];
 
       const bursts = await detector.detectBursts(photos);
-      
+
       expect(bursts).toEqual([]);
     });
 
@@ -271,7 +306,7 @@ describe("BurstDetector", () => {
       ];
 
       const bursts = await detector.detectBursts(photos);
-      
+
       expect(bursts).toHaveLength(2);
       expect(bursts[0].photoIds).toHaveLength(3);
       expect(bursts[1].photoIds).toHaveLength(3); // Fixed: should be 3 photos, not 2
@@ -288,9 +323,12 @@ describe("BurstDetector", () => {
         { ...mockPhotos[3], timestamp: baseTime + 1500, sequenceNumber: 200 }, // Different sequence
       ];
 
-      const detector = new BurstDetector({ useSequenceNumbers: true, minBurstSize: 3 });
+      const detector = new BurstDetector({
+        useSequenceNumbers: true,
+        minBurstSize: 3,
+      });
       const bursts = await detector.detectBursts(photos);
-      
+
       expect(bursts).toHaveLength(1);
       expect(bursts[0].type).toBe("sequence");
       expect(bursts[0].photoIds).toHaveLength(3);
@@ -306,7 +344,7 @@ describe("BurstDetector", () => {
 
       const detector = new BurstDetector({ useSequenceNumbers: false });
       const bursts = await detector.detectBursts(photos);
-      
+
       expect(bursts).toEqual([]); // No temporal bursts due to large gaps
     });
   });
@@ -327,7 +365,7 @@ describe("BurstDetector", () => {
       ];
 
       const analysis = detector.analyzeBurstPatterns(photos);
-      
+
       expect(analysis.totalPhotos).toBe(6);
       expect(analysis.burstGroups).toBe(2);
       expect(analysis.photosInBursts).toBe(6); // All 6 photos are in bursts
@@ -337,7 +375,7 @@ describe("BurstDetector", () => {
 
     it("should handle empty photo collection", () => {
       const analysis = detector.analyzeBurstPatterns([]);
-      
+
       expect(analysis.totalPhotos).toBe(0);
       expect(analysis.burstGroups).toBe(0);
       expect(analysis.photosInBursts).toBe(0);
@@ -357,7 +395,7 @@ describe("BurstDetector", () => {
       ];
 
       const isBurst = await detector.isBurstPhoto(photos[0], photos);
-      
+
       expect(isBurst).toBe(true);
     });
 
@@ -370,7 +408,7 @@ describe("BurstDetector", () => {
       ];
 
       const isBurst = await detector.isBurstPhoto(photos[0], photos);
-      
+
       expect(isBurst).toBe(false);
     });
   });
@@ -388,7 +426,7 @@ describe("BurstDetector", () => {
       ];
 
       const { bursts, individuals } = await detector.groupPhotosByBurst(photos);
-      
+
       expect(bursts).toHaveLength(1);
       expect(bursts[0].photoIds).toHaveLength(3);
       expect(individuals).toHaveLength(1);
@@ -531,14 +569,14 @@ describe("BurstDetector", () => {
       ];
 
       const bursts = await detector.detectBursts(photos);
-      
+
       // Should not throw, but handle gracefully
       expect(Array.isArray(bursts)).toBe(true);
     });
 
     it("should handle metadata extraction errors", async () => {
       const metadata = await extractPhotoMetadata("", "test");
-      
+
       expect(metadata.id).toBe("test");
       expect(metadata.uri).toBe("");
       expect(metadata.timestamp).toBeGreaterThan(0);
@@ -576,7 +614,9 @@ describe("BurstDetector", () => {
       }
 
       const avgTime = times.reduce((sum, time) => sum + time, 0) / times.length;
-      const variance = times.reduce((sum, time) => sum + (time - avgTime) ** 2, 0) / times.length;
+      const variance =
+        times.reduce((sum, time) => sum + (time - avgTime) ** 2, 0) /
+        times.length;
 
       // Performance should be relatively consistent (allowing for some variance)
       // Handle case where variance is 0 (perfectly consistent)
@@ -610,11 +650,13 @@ describe("BurstDetector Integration", () => {
     }));
 
     // Run multiple detections concurrently
-    const promises = Array(3).fill(null).map(() => detector.detectBursts(photos));
+    const promises = Array(3)
+      .fill(null)
+      .map(() => detector.detectBursts(photos));
     const results = await Promise.all(promises);
 
     // All should complete successfully with same structure
-    results.forEach(result => {
+    results.forEach((result) => {
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBeGreaterThan(0);
       if (result.length > 0) {
@@ -637,7 +679,9 @@ describe("BurstDetector Integration", () => {
       "file:///test/burst_photo2.jpg",
     ];
 
-    const metadataPromises = imageUris.map((uri, i) => extractPhotoMetadata(uri, `photo_${i}`));
+    const metadataPromises = imageUris.map((uri, i) =>
+      extractPhotoMetadata(uri, `photo_${i}`),
+    );
     const metadata = await Promise.all(metadataPromises);
 
     const detector = getBurstDetector();

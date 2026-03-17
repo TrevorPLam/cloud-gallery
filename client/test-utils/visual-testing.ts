@@ -1,12 +1,12 @@
 /**
  * Visual Testing Utilities
- * 
+ *
  * Purpose: Helper functions for creating comprehensive visual test stories
  * Usage: Generate test patterns for component states, sizes, and variations
  * Standards: Consistent visual testing patterns across components
  */
 
-import type { ComponentType } from 'react';
+import type { ComponentType } from "react";
 
 export interface VisualTestVariant<T = {}> {
   name: string;
@@ -16,7 +16,10 @@ export interface VisualTestVariant<T = {}> {
 export interface VisualTestPatterns<T = {}> {
   states: (component: ComponentType<T>, baseProps: T) => VisualTestVariant<T>[];
   sizes: (component: ComponentType<T>, baseProps: T) => VisualTestVariant<T>[];
-  variants: (component: ComponentType<T>, baseProps: T) => VisualTestVariant<T>[];
+  variants: (
+    component: ComponentType<T>,
+    baseProps: T,
+  ) => VisualTestVariant<T>[];
 }
 
 /**
@@ -26,51 +29,57 @@ export const visualTestPatterns = {
   /**
    * Generate state variations (loading, disabled, pressed)
    */
-  states: <T>(component: ComponentType<T>, baseProps: T): VisualTestVariant<T>[] => {
+  states: <T>(
+    component: ComponentType<T>,
+    baseProps: T,
+  ): VisualTestVariant<T>[] => {
     const variants: VisualTestVariant<T>[] = [];
-    
+
     // Default state
     variants.push({
-      name: 'Default',
+      name: "Default",
       props: baseProps,
     });
-    
+
     // Loading state (if supported)
-    if ('loading' in baseProps) {
+    if ("loading" in baseProps) {
       variants.push({
-        name: 'Loading',
+        name: "Loading",
         props: { ...baseProps, loading: true } as T,
       });
     }
-    
+
     // Disabled state (if supported)
-    if ('disabled' in baseProps) {
+    if ("disabled" in baseProps) {
       variants.push({
-        name: 'Disabled',
+        name: "Disabled",
         props: { ...baseProps, disabled: true } as T,
       });
     }
-    
+
     // Error state (if supported)
-    if ('error' in baseProps) {
+    if ("error" in baseProps) {
       variants.push({
-        name: 'Error',
+        name: "Error",
         props: { ...baseProps, error: true } as T,
       });
     }
-    
+
     return variants;
   },
-  
+
   /**
    * Generate size variations (small, medium, large)
    */
-  sizes: <T>(component: ComponentType<T>, baseProps: T): VisualTestVariant<T>[] => {
+  sizes: <T>(
+    component: ComponentType<T>,
+    baseProps: T,
+  ): VisualTestVariant<T>[] => {
     const variants: VisualTestVariant<T>[] = [];
-    
-    if ('size' in baseProps) {
-      const sizes = ['small', 'medium', 'large'] as const;
-      
+
+    if ("size" in baseProps) {
+      const sizes = ["small", "medium", "large"] as const;
+
       sizes.forEach((size) => {
         variants.push({
           name: `Size ${size.charAt(0).toUpperCase() + size.slice(1)}`,
@@ -80,23 +89,31 @@ export const visualTestPatterns = {
     } else {
       // If no size prop, just add default
       variants.push({
-        name: 'Default Size',
+        name: "Default Size",
         props: baseProps,
       });
     }
-    
+
     return variants;
   },
-  
+
   /**
    * Generate variant variations (primary, secondary, outline, ghost)
    */
-  variants: <T>(component: ComponentType<T>, baseProps: T): VisualTestVariant<T>[] => {
+  variants: <T>(
+    component: ComponentType<T>,
+    baseProps: T,
+  ): VisualTestVariant<T>[] => {
     const variants: VisualTestVariant<T>[] = [];
-    
-    if ('variant' in baseProps) {
-      const variantTypes = ['primary', 'secondary', 'outline', 'ghost'] as const;
-      
+
+    if ("variant" in baseProps) {
+      const variantTypes = [
+        "primary",
+        "secondary",
+        "outline",
+        "ghost",
+      ] as const;
+
       variantTypes.forEach((variant) => {
         variants.push({
           name: `Variant ${variant.charAt(0).toUpperCase() + variant.slice(1)}`,
@@ -106,11 +123,11 @@ export const visualTestPatterns = {
     } else {
       // If no variant prop, just add default
       variants.push({
-        name: 'Default Variant',
+        name: "Default Variant",
         props: baseProps,
       });
     }
-    
+
     return variants;
   },
 };
@@ -125,24 +142,28 @@ export const createVisualTest = <T>(
     includeStates?: boolean;
     includeSizes?: boolean;
     includeVariants?: boolean;
-  }
+  },
 ) => {
-  const { includeStates = true, includeSizes = true, includeVariants = true } = options || {};
-  
+  const {
+    includeStates = true,
+    includeSizes = true,
+    includeVariants = true,
+  } = options || {};
+
   const allVariants: VisualTestVariant<T>[] = [];
-  
+
   if (includeStates) {
     allVariants.push(...visualTestPatterns.states(component, baseProps));
   }
-  
+
   if (includeSizes) {
     allVariants.push(...visualTestPatterns.sizes(component, baseProps));
   }
-  
+
   if (includeVariants) {
     allVariants.push(...visualTestPatterns.variants(component, baseProps));
   }
-  
+
   return allVariants;
 };
 
@@ -158,7 +179,7 @@ export const chromaticConfig = {
       disableSnapshot: true,
     },
   },
-  
+
   /**
    * Add delay for components with animations
    */
@@ -167,25 +188,25 @@ export const chromaticConfig = {
       delay,
     },
   }),
-  
+
   /**
    * Configure multiple viewports for responsive testing
    */
   responsiveViewports: {
     chromatic: {
-      viewports: ['mobile', 'tablet', 'desktop'],
+      viewports: ["mobile", "tablet", "desktop"],
     },
   },
-  
+
   /**
    * Configure theme testing
    */
   themeTesting: {
     backgrounds: {
-      default: 'light',
+      default: "light",
       values: [
-        { name: 'light', value: '#ffffff' },
-        { name: 'dark', value: '#333333' },
+        { name: "light", value: "#ffffff" },
+        { name: "dark", value: "#333333" },
       ],
     },
   },

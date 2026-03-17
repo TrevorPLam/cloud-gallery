@@ -8,12 +8,8 @@
 // TESTS: client/lib/ml/face-detection.test.ts
 // AI-META-END
 
-import { Platform, InteractionManager } from 'react-native';
-import {
-  getModelManager,
-  ModelConfig,
-  GPUDelegateType,
-} from './model-manager';
+import { Platform, InteractionManager } from "react-native";
+import { getModelManager, ModelConfig, GPUDelegateType } from "./model-manager";
 
 // ─────────────────────────────────────────────────────────
 // TYPES AND INTERFACES
@@ -36,7 +32,7 @@ export interface FaceLandmark {
   /** Y coordinate of the landmark (normalized 0-1) */
   y: number;
   /** Type of landmark */
-  type: 'left_eye' | 'right_eye' | 'left_ear' | 'right_ear' | 'mouth' | 'nose';
+  type: "left_eye" | "right_eye" | "left_ear" | "right_ear" | "mouth" | "nose";
 }
 
 export interface FaceDetection {
@@ -77,7 +73,7 @@ export interface FaceDetectionStats {
 
 export class FaceDetectionService {
   private modelManager = getModelManager();
-  private modelName = 'blazeface';
+  private modelName = "blazeface";
   private config: FaceDetectionConfig;
   private isInitialized = false;
   private initializationPromise: Promise<void> | null = null;
@@ -97,7 +93,7 @@ export class FaceDetectionService {
       maxFaces: 10,
       minFaceSize: 0.1, // 10% of image dimensions
       enableTemporalSmoothing: true,
-      gpuDelegate: Platform.OS === 'ios' ? 'core-ml' : 'android-gpu',
+      gpuDelegate: Platform.OS === "ios" ? "core-ml" : "android-gpu",
       ...config,
     };
 
@@ -122,9 +118,11 @@ export class FaceDetectionService {
       // Load BlazeFace model with optimal configuration
       let modelPath;
       try {
-        modelPath = require('../../assets/models/blazeface.tflite');
+        modelPath = require("../../assets/models/blazeface.tflite");
       } catch (error) {
-        console.warn('FaceDetectionService: Model file not found. Using mock implementation for testing.');
+        console.warn(
+          "FaceDetectionService: Model file not found. Using mock implementation for testing.",
+        );
         this.isInitialized = true; // Allow initialization to succeed for testing
         return;
       }
@@ -138,25 +136,25 @@ export class FaceDetectionService {
         delegate: this.config.gpuDelegate,
       };
 
-      await this.modelManager.loadModel(modelConfig, 'high');
-      
+      await this.modelManager.loadModel(modelConfig, "high");
+
       this.stats.modelLoadTime = Date.now() - startTime;
       this.isInitialized = true;
 
-      console.log('FaceDetectionService: Initialized successfully', {
+      console.log("FaceDetectionService: Initialized successfully", {
         modelLoadTime: this.stats.modelLoadTime,
         delegate: this.config.gpuDelegate,
       });
     } catch (error) {
-      console.error('FaceDetectionService: Initialization failed:', error);
-      
+      console.error("FaceDetectionService: Initialization failed:", error);
+
       // Fallback to CPU-only if GPU delegate failed
-      if (this.config.gpuDelegate !== 'none') {
-        console.log('FaceDetectionService: Retrying with CPU-only delegate');
-        this.config.gpuDelegate = 'none';
+      if (this.config.gpuDelegate !== "none") {
+        console.log("FaceDetectionService: Retrying with CPU-only delegate");
+        this.config.gpuDelegate = "none";
         return this._initializeInternal();
       }
-      
+
       throw error;
     }
   }
@@ -166,27 +164,37 @@ export class FaceDetectionService {
   /**
    * Detect faces in an image using BlazeFace
    */
-  async detectFaces(imageData: Uint8Array, imageWidth: number, imageHeight: number): Promise<FaceDetection[]> {
+  async detectFaces(
+    imageData: Uint8Array,
+    imageWidth: number,
+    imageHeight: number,
+  ): Promise<FaceDetection[]> {
     await this.initialize();
 
     if (!this.isInitialized) {
-      throw new Error('FaceDetectionService not initialized');
+      throw new Error("FaceDetectionService not initialized");
     }
 
     const startTime = Date.now();
 
     try {
       // Run inference in background to avoid blocking UI
-      const detections = await new Promise<FaceDetection[]>((resolve, reject) => {
-        InteractionManager.runAfterInteractions(async () => {
-          try {
-            const result = await this._detectFacesInternal(imageData, imageWidth, imageHeight);
-            resolve(result);
-          } catch (error) {
-            reject(error);
-          }
-        });
-      });
+      const detections = await new Promise<FaceDetection[]>(
+        (resolve, reject) => {
+          InteractionManager.runAfterInteractions(async () => {
+            try {
+              const result = await this._detectFacesInternal(
+                imageData,
+                imageWidth,
+                imageHeight,
+              );
+              resolve(result);
+            } catch (error) {
+              reject(error);
+            }
+          });
+        },
+      );
 
       const inferenceTime = Date.now() - startTime;
       this._updateStats(detections, inferenceTime);
@@ -198,7 +206,7 @@ export class FaceDetectionService {
 
       return smoothedDetections;
     } catch (error) {
-      console.error('FaceDetectionService: Face detection failed:', error);
+      console.error("FaceDetectionService: Face detection failed:", error);
       throw error;
     }
   }
@@ -209,28 +217,40 @@ export class FaceDetectionService {
   private async _detectFacesInternal(
     imageData: Uint8Array,
     imageWidth: number,
-    imageHeight: number
+    imageHeight: number,
   ): Promise<FaceDetection[]> {
     // Check if we're using mock implementation (model file not found)
     if (!this.modelManager.isModelLoaded(this.modelName)) {
-      console.warn('FaceDetectionService: Using mock implementation for testing');
+      console.warn(
+        "FaceDetectionService: Using mock implementation for testing",
+      );
       return this._getMockFaceDetections(imageWidth, imageHeight);
     }
 
     // Prepare input tensor for BlazeFace
     // BlazeFace expects RGB image normalized to [0, 255]
-    const inputTensor = this._prepareInputTensor(imageData, imageWidth, imageHeight);
+    const inputTensor = this._prepareInputTensor(
+      imageData,
+      imageWidth,
+      imageHeight,
+    );
 
     // Run inference
-    const outputs = await this.modelManager.runInference(this.modelName, [inputTensor]);
+    const outputs = await this.modelManager.runInference(this.modelName, [
+      inputTensor,
+    ]);
 
     // Process BlazeFace outputs
-    const detections = this._processBlazeFaceOutputs(outputs, imageWidth, imageHeight);
+    const detections = this._processBlazeFaceOutputs(
+      outputs,
+      imageWidth,
+      imageHeight,
+    );
 
     // Filter by confidence and size
     const filteredDetections = detections
-      .filter(detection => detection.confidence >= this.config.minConfidence)
-      .filter(detection => this._isFaceSizeValid(detection.boundingBox))
+      .filter((detection) => detection.confidence >= this.config.minConfidence)
+      .filter((detection) => this._isFaceSizeValid(detection.boundingBox))
       .slice(0, this.config.maxFaces);
 
     return filteredDetections;
@@ -239,7 +259,10 @@ export class FaceDetectionService {
   /**
    * Mock face detection for testing when model files are not available
    */
-  private _getMockFaceDetections(imageWidth: number, imageHeight: number): FaceDetection[] {
+  private _getMockFaceDetections(
+    imageWidth: number,
+    imageHeight: number,
+  ): FaceDetection[] {
     // Generate mock face detections for testing
     return [
       {
@@ -251,12 +274,12 @@ export class FaceDetectionService {
         },
         confidence: 0.9,
         landmarks: [
-          { x: 0.15, y: 0.15, type: 'left_eye' },
-          { x: 0.25, y: 0.15, type: 'right_eye' },
-          { x: 0.12, y: 0.3, type: 'left_ear' },
-          { x: 0.28, y: 0.3, type: 'right_ear' },
-          { x: 0.2, y: 0.35, type: 'mouth' },
-          { x: 0.2, y: 0.25, type: 'nose' },
+          { x: 0.15, y: 0.15, type: "left_eye" },
+          { x: 0.25, y: 0.15, type: "right_eye" },
+          { x: 0.12, y: 0.3, type: "left_ear" },
+          { x: 0.28, y: 0.3, type: "right_ear" },
+          { x: 0.2, y: 0.35, type: "mouth" },
+          { x: 0.2, y: 0.25, type: "nose" },
         ],
         timestamp: Date.now(),
       },
@@ -269,12 +292,12 @@ export class FaceDetectionService {
         },
         confidence: 0.8,
         landmarks: [
-          { x: 0.65, y: 0.25, type: 'left_eye' },
-          { x: 0.75, y: 0.25, type: 'right_eye' },
-          { x: 0.62, y: 0.4, type: 'left_ear' },
-          { x: 0.78, y: 0.4, type: 'right_ear' },
-          { x: 0.7, y: 0.45, type: 'mouth' },
-          { x: 0.7, y: 0.35, type: 'nose' },
+          { x: 0.65, y: 0.25, type: "left_eye" },
+          { x: 0.75, y: 0.25, type: "right_eye" },
+          { x: 0.62, y: 0.4, type: "left_ear" },
+          { x: 0.78, y: 0.4, type: "right_ear" },
+          { x: 0.7, y: 0.45, type: "mouth" },
+          { x: 0.7, y: 0.35, type: "nose" },
         ],
         timestamp: Date.now(),
       },
@@ -284,7 +307,11 @@ export class FaceDetectionService {
   /**
    * Prepare input tensor for BlazeFace model
    */
-  private _prepareInputTensor(imageData: Uint8Array, imageWidth: number, imageHeight: number): Uint8Array {
+  private _prepareInputTensor(
+    imageData: Uint8Array,
+    imageWidth: number,
+    imageHeight: number,
+  ): Uint8Array {
     // BlazeFace expects 128x128 RGB input
     const targetSize = 128;
     const inputTensor = new Uint8Array(targetSize * targetSize * 3);
@@ -298,9 +325,9 @@ export class FaceDetectionService {
         const srcIndex = (srcY * imageWidth + srcX) * 3;
 
         const destIndex = (y * targetSize + x) * 3;
-        
+
         // Copy RGB values (assuming input is already RGB)
-        inputTensor[destIndex] = imageData[srcIndex] || 0;     // R
+        inputTensor[destIndex] = imageData[srcIndex] || 0; // R
         inputTensor[destIndex + 1] = imageData[srcIndex + 1] || 0; // G
         inputTensor[destIndex + 2] = imageData[srcIndex + 2] || 0; // B
       }
@@ -312,7 +339,11 @@ export class FaceDetectionService {
   /**
    * Process BlazeFace model outputs
    */
-  private _processBlazeFaceOutputs(outputs: any[], imageWidth: number, imageHeight: number): FaceDetection[] {
+  private _processBlazeFaceOutputs(
+    outputs: any[],
+    imageWidth: number,
+    imageHeight: number,
+  ): FaceDetection[] {
     // BlazeFace outputs:
     // - Bounding boxes: [num_faces, 4] (x, y, w, h) normalized
     // - Confidence scores: [num_faces] (0-1)
@@ -322,7 +353,7 @@ export class FaceDetectionService {
     const detections: FaceDetection[] = [];
 
     if (!boxes || !scores || !landmarks) {
-      console.warn('FaceDetectionService: Invalid model outputs');
+      console.warn("FaceDetectionService: Invalid model outputs");
       return detections;
     }
 
@@ -347,12 +378,12 @@ export class FaceDetectionService {
 
       // Process landmarks
       const faceLandmarks: FaceLandmark[] = [
-        { x: landmarkPoints[0][0], y: landmarkPoints[0][1], type: 'left_eye' },
-        { x: landmarkPoints[1][0], y: landmarkPoints[1][1], type: 'right_eye' },
-        { x: landmarkPoints[2][0], y: landmarkPoints[2][1], type: 'left_ear' },
-        { x: landmarkPoints[3][0], y: landmarkPoints[3][1], type: 'right_ear' },
-        { x: landmarkPoints[4][0], y: landmarkPoints[4][1], type: 'mouth' },
-        { x: landmarkPoints[5][0], y: landmarkPoints[5][1], type: 'nose' },
+        { x: landmarkPoints[0][0], y: landmarkPoints[0][1], type: "left_eye" },
+        { x: landmarkPoints[1][0], y: landmarkPoints[1][1], type: "right_eye" },
+        { x: landmarkPoints[2][0], y: landmarkPoints[2][1], type: "left_ear" },
+        { x: landmarkPoints[3][0], y: landmarkPoints[3][1], type: "right_ear" },
+        { x: landmarkPoints[4][0], y: landmarkPoints[4][1], type: "mouth" },
+        { x: landmarkPoints[5][0], y: landmarkPoints[5][1], type: "nose" },
       ];
 
       detections.push({
@@ -378,7 +409,9 @@ export class FaceDetectionService {
   /**
    * Apply temporal smoothing to reduce jitter in video
    */
-  private _applyTemporalSmoothing(detections: FaceDetection[]): FaceDetection[] {
+  private _applyTemporalSmoothing(
+    detections: FaceDetection[],
+  ): FaceDetection[] {
     this.temporalBuffer.push(detections);
     if (this.temporalBuffer.length > this.maxBufferLength) {
       this.temporalBuffer.shift();
@@ -394,7 +427,7 @@ export class FaceDetectionService {
 
     for (let i = 0; i < detections.length; i++) {
       const detection = detections[i];
-      
+
       // Find corresponding detection in previous frames
       let totalWeight = weights[weights.length - 1];
       let smoothedBox = {
@@ -405,17 +438,26 @@ export class FaceDetectionService {
       };
 
       // Look back through buffer
-      for (let bufIndex = 0; bufIndex < this.temporalBuffer.length - 1; bufIndex++) {
+      for (
+        let bufIndex = 0;
+        bufIndex < this.temporalBuffer.length - 1;
+        bufIndex++
+      ) {
         const bufferDetections = this.temporalBuffer[bufIndex];
-        const correspondingDetection = this._findCorrespondingDetection(detection, bufferDetections);
-        
+        const correspondingDetection = this._findCorrespondingDetection(
+          detection,
+          bufferDetections,
+        );
+
         if (correspondingDetection) {
           const weight = weights[bufIndex];
           totalWeight += weight;
           smoothedBox.x += correspondingDetection.boundingBox.x * weight;
           smoothedBox.y += correspondingDetection.boundingBox.y * weight;
-          smoothedBox.width += correspondingDetection.boundingBox.width * weight;
-          smoothedBox.height += correspondingDetection.boundingBox.height * weight;
+          smoothedBox.width +=
+            correspondingDetection.boundingBox.width * weight;
+          smoothedBox.height +=
+            correspondingDetection.boundingBox.height * weight;
         }
       }
 
@@ -439,13 +481,16 @@ export class FaceDetectionService {
    */
   private _findCorrespondingDetection(
     currentDetection: FaceDetection,
-    previousDetections: FaceDetection[]
+    previousDetections: FaceDetection[],
   ): FaceDetection | null {
     let bestMatch: FaceDetection | null = null;
     let bestIoU = 0.3; // Minimum IoU threshold
 
     for (const prevDetection of previousDetections) {
-      const iou = this._calculateIoU(currentDetection.boundingBox, prevDetection.boundingBox);
+      const iou = this._calculateIoU(
+        currentDetection.boundingBox,
+        prevDetection.boundingBox,
+      );
       if (iou > bestIoU) {
         bestIoU = iou;
         bestMatch = prevDetection;
@@ -481,18 +526,26 @@ export class FaceDetectionService {
   /**
    * Update detection statistics
    */
-  private _updateStats(detections: FaceDetection[], inferenceTime: number): void {
+  private _updateStats(
+    detections: FaceDetection[],
+    inferenceTime: number,
+  ): void {
     this.stats.totalDetections += detections.length;
-    
+
     if (detections.length > 0) {
-      const avgConfidence = detections.reduce((sum, d) => sum + d.confidence, 0) / detections.length;
-      this.stats.averageConfidence = 
-        (this.stats.averageConfidence * (this.stats.totalDetections - detections.length) + avgConfidence * detections.length) /
+      const avgConfidence =
+        detections.reduce((sum, d) => sum + d.confidence, 0) /
+        detections.length;
+      this.stats.averageConfidence =
+        (this.stats.averageConfidence *
+          (this.stats.totalDetections - detections.length) +
+          avgConfidence * detections.length) /
         this.stats.totalDetections;
     }
 
-    this.stats.averageInferenceTime = 
-      (this.stats.averageInferenceTime * (this.stats.totalDetections - 1) + inferenceTime) /
+    this.stats.averageInferenceTime =
+      (this.stats.averageInferenceTime * (this.stats.totalDetections - 1) +
+        inferenceTime) /
       this.stats.totalDetections;
   }
 
@@ -553,7 +606,9 @@ let faceDetectionInstance: FaceDetectionService | null = null;
 /**
  * Get singleton instance of FaceDetectionService
  */
-export function getFaceDetectionService(config?: Partial<FaceDetectionConfig>): FaceDetectionService {
+export function getFaceDetectionService(
+  config?: Partial<FaceDetectionConfig>,
+): FaceDetectionService {
   if (!faceDetectionInstance) {
     faceDetectionInstance = new FaceDetectionService(config);
   }

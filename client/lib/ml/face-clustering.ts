@@ -8,8 +8,8 @@
 // TESTS: client/lib/ml/face-clustering.test.ts
 // AI-META-END
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { FaceEmbedding, FaceEmbeddingService } from './face-embeddings';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { FaceEmbedding, FaceEmbeddingService } from "./face-embeddings";
 
 // ─────────────────────────────────────────────────────────
 // TYPES AND INTERFACES
@@ -47,7 +47,7 @@ export interface ClusterResult {
     clusteringTime: number;
     epsilon: number;
     minPts: number;
-    algorithm: 'dbscan';
+    algorithm: "dbscan";
   };
 }
 
@@ -78,9 +78,9 @@ export interface FaceClusteringStats {
 // ─────────────────────────────────────────────────────────
 
 const STORAGE_KEYS = {
-  CLUSTERS: '@face_clusters',
-  CONFIG: '@face_clustering_config',
-  STATS: '@face_clustering_stats',
+  CLUSTERS: "@face_clusters",
+  CONFIG: "@face_clustering_config",
+  STATS: "@face_clustering_stats",
 } as const;
 
 // ─────────────────────────────────────────────────────────
@@ -102,7 +102,7 @@ export class FaceClusteringService {
   constructor(config: Partial<FaceClusteringConfig> = {}) {
     this.config = {
       epsilon: 0.3, // Cosine similarity threshold (based on research)
-      minPts: 2,   // Minimum points for cluster (based on research)
+      minPts: 2, // Minimum points for cluster (based on research)
       minClusterQuality: 0.7,
       maxSampleEmbeddings: 5,
       persistClusters: true,
@@ -122,18 +122,20 @@ export class FaceClusteringService {
 
     try {
       // Extract embedding vectors
-      const vectors = embeddings.map(e => e.vector);
-      
+      const vectors = embeddings.map((e) => e.vector);
+
       // Run DBSCAN clustering
       const clusters = this._dbscanClustering(vectors);
-      
+
       // Convert clusters to Person objects
       const people = this._clustersToPeople(clusters, embeddings);
-      
+
       // Calculate clustering metadata
       const clusteringTime = Date.now() - startTime;
-      const unclusteredCount = embeddings.length - people.reduce((sum, person) => sum + person.faceCount, 0);
-      
+      const unclusteredCount =
+        embeddings.length -
+        people.reduce((sum, person) => sum + person.faceCount, 0);
+
       const result: ClusterResult = {
         people,
         unclusteredCount,
@@ -142,7 +144,7 @@ export class FaceClusteringService {
           clusteringTime,
           epsilon: this.config.epsilon,
           minPts: this.config.minPts,
-          algorithm: 'dbscan',
+          algorithm: "dbscan",
         },
       };
 
@@ -154,7 +156,7 @@ export class FaceClusteringService {
         await this._persistClusters(result.people);
       }
 
-      console.log('FaceClusteringService: Clustering completed', {
+      console.log("FaceClusteringService: Clustering completed", {
         clusters: people.length,
         unclustered: unclusteredCount,
         time: clusteringTime,
@@ -162,7 +164,7 @@ export class FaceClusteringService {
 
       return result;
     } catch (error) {
-      console.error('FaceClusteringService: Clustering failed:', error);
+      console.error("FaceClusteringService: Clustering failed:", error);
       throw error;
     }
   }
@@ -204,7 +206,10 @@ export class FaceClusteringService {
     for (let i = 0; i < vectors.length; i++) {
       if (i === pointIndex) continue;
 
-      const similarity = FaceEmbeddingService.cosineSimilarity(point, vectors[i]);
+      const similarity = FaceEmbeddingService.cosineSimilarity(
+        point,
+        vectors[i],
+      );
       const distance = 1 - similarity; // Convert similarity to distance
 
       if (distance <= this.config.epsilon) {
@@ -222,18 +227,20 @@ export class FaceClusteringService {
     vectors: number[][],
     cluster: number[],
     neighbors: number[],
-    visited: boolean[]
+    visited: boolean[],
   ): void {
     let i = 0;
     while (i < neighbors.length) {
       const neighborIndex = neighbors[i];
-      
+
       if (!visited[neighborIndex]) {
         visited[neighborIndex] = true;
         const neighborNeighbors = this._getNeighbors(vectors, neighborIndex);
-        
+
         if (neighborNeighbors.length >= this.config.minPts) {
-          neighbors.push(...neighborNeighbors.filter(n => !neighbors.includes(n)));
+          neighbors.push(
+            ...neighborNeighbors.filter((n) => !neighbors.includes(n)),
+          );
         }
       }
 
@@ -248,16 +255,19 @@ export class FaceClusteringService {
   /**
    * Convert cluster indices to Person objects
    */
-  private _clustersToPeople(clusters: number[][], embeddings: FaceEmbedding[]): Person[] {
+  private _clustersToPeople(
+    clusters: number[][],
+    embeddings: FaceEmbedding[],
+  ): Person[] {
     return clusters.map((cluster, index) => {
-      const clusterEmbeddings = cluster.map(i => embeddings[i]);
-      
+      const clusterEmbeddings = cluster.map((i) => embeddings[i]);
+
       // Calculate cluster quality
       const quality = this._calculateClusterQuality(clusterEmbeddings);
-      
+
       // Select sample embeddings (representative faces)
       const sampleEmbeddings = this._selectSampleEmbeddings(clusterEmbeddings);
-      
+
       return {
         id: this._generatePersonId(index),
         name: null, // Unnamed by default
@@ -286,7 +296,7 @@ export class FaceClusteringService {
       for (let j = i + 1; j < embeddings.length; j++) {
         const similarity = FaceEmbeddingService.cosineSimilarity(
           embeddings[i].vector,
-          embeddings[j].vector
+          embeddings[j].vector,
         );
         totalSimilarity += similarity;
         pairCount++;
@@ -294,12 +304,13 @@ export class FaceClusteringService {
     }
 
     const averageSimilarity = pairCount > 0 ? totalSimilarity / pairCount : 0;
-    
+
     // Factor in embedding qualities
-    const averageQuality = embeddings.reduce((sum, e) => sum + e.quality, 0) / embeddings.length;
-    
+    const averageQuality =
+      embeddings.reduce((sum, e) => sum + e.quality, 0) / embeddings.length;
+
     // Combined quality score
-    return (averageSimilarity * 0.7 + averageQuality * 0.3);
+    return averageSimilarity * 0.7 + averageQuality * 0.3;
   }
 
   /**
@@ -307,14 +318,16 @@ export class FaceClusteringService {
    */
   private _selectSampleEmbeddings(embeddings: FaceEmbedding[]): number[][] {
     if (embeddings.length <= this.config.maxSampleEmbeddings) {
-      return embeddings.map(e => e.vector);
+      return embeddings.map((e) => e.vector);
     }
 
     // Sort by quality and select top embeddings
-    const sortedEmbeddings = [...embeddings].sort((a, b) => b.quality - a.quality);
+    const sortedEmbeddings = [...embeddings].sort(
+      (a, b) => b.quality - a.quality,
+    );
     return sortedEmbeddings
       .slice(0, this.config.maxSampleEmbeddings)
-      .map(e => e.vector);
+      .map((e) => e.vector);
   }
 
   /**
@@ -329,15 +342,22 @@ export class FaceClusteringService {
   /**
    * Update person information
    */
-  async updatePerson(personId: string, updates: Partial<Person>): Promise<Person | null> {
+  async updatePerson(
+    personId: string,
+    updates: Partial<Person>,
+  ): Promise<Person | null> {
     const clusters = await this.loadClusters();
-    const personIndex = clusters.findIndex(p => p.id === personId);
+    const personIndex = clusters.findIndex((p) => p.id === personId);
 
     if (personIndex === -1) {
       return null;
     }
 
-    const updatedPerson = { ...clusters[personIndex], ...updates, updatedAt: Date.now() };
+    const updatedPerson = {
+      ...clusters[personIndex],
+      ...updates,
+      updatedAt: Date.now(),
+    };
     clusters[personIndex] = updatedPerson;
 
     await this._persistClusters(clusters);
@@ -347,10 +367,13 @@ export class FaceClusteringService {
   /**
    * Merge two people
    */
-  async mergePeople(sourcePersonId: string, targetPersonId: string): Promise<Person | null> {
+  async mergePeople(
+    sourcePersonId: string,
+    targetPersonId: string,
+  ): Promise<Person | null> {
     const clusters = await this.loadClusters();
-    const sourcePerson = clusters.find(p => p.id === sourcePersonId);
-    const targetPerson = clusters.find(p => p.id === targetPersonId);
+    const sourcePerson = clusters.find((p) => p.id === sourcePersonId);
+    const targetPerson = clusters.find((p) => p.id === targetPersonId);
 
     if (!sourcePerson || !targetPerson) {
       return null;
@@ -371,8 +394,10 @@ export class FaceClusteringService {
     };
 
     // Remove source person
-    const filteredClusters = clusters.filter(p => p.id !== sourcePersonId);
-    const targetIndex = filteredClusters.findIndex(p => p.id === targetPersonId);
+    const filteredClusters = clusters.filter((p) => p.id !== sourcePersonId);
+    const targetIndex = filteredClusters.findIndex(
+      (p) => p.id === targetPersonId,
+    );
     filteredClusters[targetIndex] = mergedPerson;
 
     await this._persistClusters(filteredClusters);
@@ -384,7 +409,7 @@ export class FaceClusteringService {
    */
   async deletePerson(personId: string): Promise<boolean> {
     const clusters = await this.loadClusters();
-    const filteredClusters = clusters.filter(p => p.id !== personId);
+    const filteredClusters = clusters.filter((p) => p.id !== personId);
 
     if (filteredClusters.length === clusters.length) {
       return false; // Person not found
@@ -397,7 +422,10 @@ export class FaceClusteringService {
   /**
    * Find similar faces to a query embedding
    */
-  async findSimilarFaces(queryEmbedding: number[], threshold: number = 0.8): Promise<Person[]> {
+  async findSimilarFaces(
+    queryEmbedding: number[],
+    threshold: number = 0.8,
+  ): Promise<Person[]> {
     const clusters = await this.loadClusters();
     const similarPeople: Person[] = [];
 
@@ -406,7 +434,10 @@ export class FaceClusteringService {
 
       // Check similarity against sample embeddings
       for (const sampleEmbedding of person.sampleEmbeddings) {
-        const similarity = FaceEmbeddingService.cosineSimilarity(queryEmbedding, sampleEmbedding);
+        const similarity = FaceEmbeddingService.cosineSimilarity(
+          queryEmbedding,
+          sampleEmbedding,
+        );
         maxSimilarity = Math.max(maxSimilarity, similarity);
       }
 
@@ -432,7 +463,7 @@ export class FaceClusteringService {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.CLUSTERS);
       return data ? JSON.parse(data) : [];
     } catch (error) {
-      console.error('FaceClusteringService: Failed to load clusters:', error);
+      console.error("FaceClusteringService: Failed to load clusters:", error);
       return [];
     }
   }
@@ -446,9 +477,15 @@ export class FaceClusteringService {
     }
 
     try {
-      await AsyncStorage.setItem(STORAGE_KEYS.CLUSTERS, JSON.stringify(clusters));
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.CLUSTERS,
+        JSON.stringify(clusters),
+      );
     } catch (error) {
-      console.error('FaceClusteringService: Failed to persist clusters:', error);
+      console.error(
+        "FaceClusteringService: Failed to persist clusters:",
+        error,
+      );
     }
   }
 
@@ -469,7 +506,10 @@ export class FaceClusteringService {
         this.stats = { ...this.stats, ...JSON.parse(statsData) };
       }
     } catch (error) {
-      console.error('FaceClusteringService: Failed to load persisted data:', error);
+      console.error(
+        "FaceClusteringService: Failed to load persisted data:",
+        error,
+      );
     }
   }
 
@@ -478,9 +518,12 @@ export class FaceClusteringService {
    */
   async persistConfig(): Promise<void> {
     try {
-      await AsyncStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(this.config));
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.CONFIG,
+        JSON.stringify(this.config),
+      );
     } catch (error) {
-      console.error('FaceClusteringService: Failed to persist config:', error);
+      console.error("FaceClusteringService: Failed to persist config:", error);
     }
   }
 
@@ -495,7 +538,10 @@ export class FaceClusteringService {
         STORAGE_KEYS.STATS,
       ]);
     } catch (error) {
-      console.error('FaceClusteringService: Failed to clear persisted data:', error);
+      console.error(
+        "FaceClusteringService: Failed to clear persisted data:",
+        error,
+      );
     }
   }
 
@@ -511,8 +557,12 @@ export class FaceClusteringService {
     this.stats.lastClusteringTimestamp = Date.now();
 
     if (result.people.length > 0) {
-      this.stats.averageClusterSize = result.people.reduce((sum, p) => sum + p.faceCount, 0) / result.people.length;
-      this.stats.averageClusterQuality = result.people.reduce((sum, p) => sum + p.clusterQuality, 0) / result.people.length;
+      this.stats.averageClusterSize =
+        result.people.reduce((sum, p) => sum + p.faceCount, 0) /
+        result.people.length;
+      this.stats.averageClusterQuality =
+        result.people.reduce((sum, p) => sum + p.clusterQuality, 0) /
+        result.people.length;
     }
 
     // Persist statistics
@@ -524,9 +574,12 @@ export class FaceClusteringService {
    */
   private async _persistStats(): Promise<void> {
     try {
-      await AsyncStorage.setItem(STORAGE_KEYS.STATS, JSON.stringify(this.stats));
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.STATS,
+        JSON.stringify(this.stats),
+      );
     } catch (error) {
-      console.error('FaceClusteringService: Failed to persist stats:', error);
+      console.error("FaceClusteringService: Failed to persist stats:", error);
     }
   }
 
@@ -588,7 +641,9 @@ let faceClusteringInstance: FaceClusteringService | null = null;
 /**
  * Get singleton instance of FaceClusteringService
  */
-export function getFaceClusteringService(config?: Partial<FaceClusteringConfig>): FaceClusteringService {
+export function getFaceClusteringService(
+  config?: Partial<FaceClusteringConfig>,
+): FaceClusteringService {
   if (!faceClusteringInstance) {
     faceClusteringInstance = new FaceClusteringService(config);
   }

@@ -41,12 +41,12 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, Colors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 
-import { 
-  getCLIPEmbeddingsService, 
+import {
+  getCLIPEmbeddingsService,
   getEmbeddingCache,
   EmbeddingSimilarity,
   GenerationProgress,
-  CacheStats
+  CacheStats,
 } from "@/lib/ml/clip-embeddings";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -72,22 +72,22 @@ interface SearchMode {
 
 const SEARCH_MODES: SearchMode[] = [
   {
-    id: 'text-to-image',
-    label: 'Text to Image',
-    icon: 'search',
-    description: 'Find photos using natural language descriptions',
+    id: "text-to-image",
+    label: "Text to Image",
+    icon: "search",
+    description: "Find photos using natural language descriptions",
   },
   {
-    id: 'image-to-image',
-    label: 'Similar Images',
-    icon: 'image',
-    description: 'Find visually similar photos',
+    id: "image-to-image",
+    label: "Similar Images",
+    icon: "image",
+    description: "Find visually similar photos",
   },
   {
-    id: 'text-to-text',
-    label: 'Similar Tags',
-    icon: 'tag',
-    description: 'Find photos with similar concepts',
+    id: "text-to-text",
+    label: "Similar Tags",
+    icon: "tag",
+    description: "Find photos with similar concepts",
   },
 ];
 
@@ -121,26 +121,24 @@ function SearchModeCard({
       style={[
         styles.modeCard,
         {
-          backgroundColor: isSelected 
-            ? Colors.light.primary 
+          backgroundColor: isSelected
+            ? Colors.light.primary
             : theme.backgroundDefault,
-          borderColor: isSelected 
-            ? Colors.light.primary 
-            : theme.border,
+          borderColor: isSelected ? Colors.light.primary : theme.border,
         },
         animatedStyle,
       ]}
     >
-      <Feather 
-        name={mode.icon} 
-        size={24} 
-        color={isSelected ? 'white' : theme.textSecondary} 
+      <Feather
+        name={mode.icon}
+        size={24}
+        color={isSelected ? "white" : theme.textSecondary}
       />
       <ThemedText
         type="subtitle"
         style={[
           styles.modeCardTitle,
-          { color: isSelected ? 'white' : theme.text },
+          { color: isSelected ? "white" : theme.text },
         ]}
       >
         {mode.label}
@@ -149,7 +147,7 @@ function SearchModeCard({
         type="small"
         style={[
           styles.modeCardDescription,
-          { color: isSelected ? 'rgba(255,255,255,0.8)' : theme.textSecondary },
+          { color: isSelected ? "rgba(255,255,255,0.8)" : theme.textSecondary },
         ]}
       >
         {mode.description}
@@ -166,7 +164,7 @@ function SearchProgressIndicator({
   stage: string;
 }) {
   const { theme } = useTheme();
-  
+
   return (
     <View style={styles.progressContainer}>
       <ThemedText
@@ -175,7 +173,12 @@ function SearchProgressIndicator({
       >
         {stage}
       </ThemedText>
-      <View style={[styles.progressBar, { backgroundColor: theme.backgroundSecondary }]}>
+      <View
+        style={[
+          styles.progressBar,
+          { backgroundColor: theme.backgroundSecondary },
+        ]}
+      >
         <Animated.View
           style={[
             styles.progressFill,
@@ -230,35 +233,31 @@ function SemanticResultCard({
         contentFit="cover"
         transition={200}
       />
-      
+
       {/* Similarity score overlay */}
       <View style={styles.similarityOverlay}>
         <ThemedText
           type="small"
-          style={[styles.similarityText, { color: 'white' }]}
+          style={[styles.similarityText, { color: "white" }]}
         >
           {Math.round(result.similarity.score * 100)}%
         </ThemedText>
       </View>
-      
+
       {/* Favorite indicator */}
       {result.photo.isFavorite && (
         <View style={styles.favoriteOverlay}>
-          <Feather
-            name="heart"
-            size={12}
-            color={Colors.light.error}
-          />
+          <Feather name="heart" size={12} color={Colors.light.error} />
         </View>
       )}
-      
+
       {/* Video indicator */}
       {result.photo.isVideo && (
         <View style={styles.videoOverlay}>
           <Feather name="play" size={12} color="white" />
         </View>
       )}
-      
+
       {/* Embedding generation indicator */}
       {!result.embeddingGenerated && (
         <View style={styles.generatingOverlay}>
@@ -279,9 +278,12 @@ export default function SemanticSearchScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMode, setSelectedMode] = useState<SearchMode>(SEARCH_MODES[0]);
   const [localPhotos, setLocalPhotos] = useState<Photo[]>([]);
-  const [searchResults, setSearchResults] = useState<SemanticSearchResult[]>([]);
+  const [searchResults, setSearchResults] = useState<SemanticSearchResult[]>(
+    [],
+  );
   const [isSearching, setIsSearching] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState<GenerationProgress | null>(null);
+  const [generationProgress, setGenerationProgress] =
+    useState<GenerationProgress | null>(null);
   const [cacheStats, setCacheStats] = useState<CacheStats | null>(null);
 
   // Services
@@ -306,7 +308,7 @@ export default function SemanticSearchScreen() {
 
   // Cache statistics query
   const { data: stats } = useQuery({
-    queryKey: ['embedding-cache-stats'],
+    queryKey: ["embedding-cache-stats"],
     queryFn: async () => {
       return await embeddingCache.getStats();
     },
@@ -330,7 +332,9 @@ export default function SemanticSearchScreen() {
 
     try {
       // Generate query embedding
-      const queryEmbedding = await clipService.generateTextEmbeddings([searchQuery]);
+      const queryEmbedding = await clipService.generateTextEmbeddings([
+        searchQuery,
+      ]);
       const queryVector = queryEmbedding[0];
 
       // Generate embeddings for all photos (or use cached ones)
@@ -349,26 +353,30 @@ export default function SemanticSearchScreen() {
             // Generate embedding if not cached
             setGenerationProgress({
               id: cacheKey,
-              type: 'image',
+              type: "image",
               progress: 0,
-              stage: 'processing',
+              stage: "processing",
               startTime: Date.now(),
             });
 
             embedding = await embeddingCache.generateAndCache(
               cacheKey,
-              'image',
+              "image",
               photo.uri,
-              'medium'
+              "medium",
             );
           }
 
           photoEmbeddings.push(embedding);
 
           // Calculate similarity
-          const similarity = clipService.cosineSimilarity(queryVector, embedding);
-          
-          if (similarity > 0.1) { // Only include results with meaningful similarity
+          const similarity = clipService.cosineSimilarity(
+            queryVector,
+            embedding,
+          );
+
+          if (similarity > 0.1) {
+            // Only include results with meaningful similarity
             results.push({
               photo,
               similarity: {
@@ -396,13 +404,15 @@ export default function SemanticSearchScreen() {
         // Update progress
         if (generationProgress) {
           const progress = ((i + 1) / localPhotos.length) * 100;
-          setGenerationProgress(prev => prev ? { ...prev, progress } : null);
+          setGenerationProgress((prev) =>
+            prev ? { ...prev, progress } : null,
+          );
         }
       }
 
       // Sort results by similarity
       results.sort((a, b) => b.similarity.score - a.similarity.score);
-      
+
       // Update ranks
       results.forEach((result, index) => {
         result.similarity.rank = index + 1;
@@ -410,33 +420,39 @@ export default function SemanticSearchScreen() {
 
       setSearchResults(results);
     } catch (error) {
-      console.error('Semantic search failed:', error);
-      Alert.alert('Search Error', 'Failed to perform semantic search. Please try again.');
+      console.error("Semantic search failed:", error);
+      Alert.alert(
+        "Search Error",
+        "Failed to perform semantic search. Please try again.",
+      );
     } finally {
       setIsSearching(false);
       setGenerationProgress(null);
     }
-  }, [searchQuery, localPhotos, clipService, embeddingCache, generationProgress]);
+  }, [
+    searchQuery,
+    localPhotos,
+    clipService,
+    embeddingCache,
+    generationProgress,
+  ]);
 
   // Debounced search
-  const debouncedSearch = useCallback(
-    () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
+  const debouncedSearch = useCallback(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
 
-      searchTimeoutRef.current = setTimeout(() => {
-        performSemanticSearch();
-      }, 500);
-    },
-    [performSemanticSearch],
-  );
+    searchTimeoutRef.current = setTimeout(() => {
+      performSemanticSearch();
+    }, 500);
+  }, [performSemanticSearch]);
 
   // Handle search input changes
   const handleSearchChange = useCallback(
     (text: string) => {
       setSearchQuery(text);
-      
+
       if (text.trim()) {
         debouncedSearch();
       } else {
@@ -460,7 +476,7 @@ export default function SemanticSearchScreen() {
     setSelectedMode(mode);
     setSearchResults([]);
     setSearchQuery("");
-    
+
     // Focus input after mode change
     setTimeout(() => {
       searchInputRef.current?.focus();
@@ -488,16 +504,11 @@ export default function SemanticSearchScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
       {/* Header */}
-      <View
-        style={[
-          styles.header,
-          { paddingTop: insets.top + Spacing.lg },
-        ]}
-      >
+      <View style={[styles.header, { paddingTop: insets.top + Spacing.lg }]}>
         <ThemedText type="h3" style={[styles.title, { color: theme.text }]}>
           Semantic Search
         </ThemedText>
-        
+
         {/* Cache stats */}
         {cacheStats && (
           <View style={styles.statsContainer}>
@@ -505,7 +516,8 @@ export default function SemanticSearchScreen() {
               type="small"
               style={[styles.statsText, { color: theme.textSecondary }]}
             >
-              Cache: {cacheStats.memoryEntries} memory, {cacheStats.diskEntries} disk
+              Cache: {cacheStats.memoryEntries} memory, {cacheStats.diskEntries}{" "}
+              disk
             </ThemedText>
             <ThemedText
               type="small"
@@ -615,11 +627,7 @@ export default function SemanticSearchScreen() {
           </>
         ) : searchQuery ? (
           <View style={styles.noResults}>
-            <Feather
-              name="search"
-              size={48}
-              color={theme.textSecondary}
-            />
+            <Feather name="search" size={48} color={theme.textSecondary} />
             <ThemedText
               type="body"
               style={[styles.noResultsText, { color: theme.textSecondary }]}
@@ -635,11 +643,7 @@ export default function SemanticSearchScreen() {
           </View>
         ) : (
           <View style={styles.emptyState}>
-            <Feather
-              name="cpu"
-              size={48}
-              color={theme.textSecondary}
-            />
+            <Feather name="cpu" size={48} color={theme.textSecondary} />
             <ThemedText
               type="body"
               style={[styles.emptyStateText, { color: theme.textSecondary }]}
@@ -662,14 +666,14 @@ export default function SemanticSearchScreen() {
 // Helper function
 function getPlaceholderForMode(modeId: string): string {
   switch (modeId) {
-    case 'text-to-image':
-      return 'Describe what you\'re looking for...';
-    case 'image-to-image':
-      return 'Find similar images to...';
-    case 'text-to-text':
-      return 'Search for similar concepts...';
+    case "text-to-image":
+      return "Describe what you're looking for...";
+    case "image-to-image":
+      return "Find similar images to...";
+    case "text-to-text":
+      return "Search for similar concepts...";
     default:
-      return 'Search photos with AI...';
+      return "Search photos with AI...";
   }
 }
 
@@ -685,8 +689,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   statsText: {
     opacity: 0.7,
@@ -705,15 +709,15 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     borderRadius: BorderRadius.md,
     borderWidth: 2,
-    alignItems: 'center',
+    alignItems: "center",
     gap: Spacing.sm,
   },
   modeCardTitle: {
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: "600",
+    textAlign: "center",
   },
   modeCardDescription: {
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 16,
   },
   searchContainer: {
@@ -739,20 +743,20 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   progressContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     gap: Spacing.sm,
   },
   progressText: {
-    textAlign: 'center',
+    textAlign: "center",
   },
   progressBar: {
-    width: '100%',
+    width: "100%",
     height: 4,
     borderRadius: 2,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   progressFill: {
-    height: '100%',
+    height: "100%",
     borderRadius: 2,
   },
   progressPercent: {
@@ -779,7 +783,7 @@ const styles = StyleSheet.create({
     marginRight: GAP,
     marginBottom: GAP,
     borderRadius: BorderRadius.sm,
-    overflow: 'hidden',
+    overflow: "hidden",
     opacity: 0,
   },
   resultImage: {
@@ -798,7 +802,7 @@ const styles = StyleSheet.create({
   },
   similarityText: {
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   favoriteOverlay: {
     position: "absolute",

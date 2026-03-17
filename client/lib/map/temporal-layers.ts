@@ -8,7 +8,7 @@
 // TESTS: Unit tests for time bucketing, performance benchmarks for animations
 // AI-META-END
 
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback } from "react";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -18,12 +18,12 @@ import Animated, {
   Extrapolation,
   runOnJS,
   useDerivedValue,
-} from 'react-native-reanimated';
-import { Photo } from '@/types';
+} from "react-native-reanimated";
+import { Photo } from "@/types";
 
 export interface TimeRange {
   start: number; // Unix timestamp in milliseconds
-  end: number;   // Unix timestamp in milliseconds
+  end: number; // Unix timestamp in milliseconds
 }
 
 export interface TimeBucket {
@@ -45,7 +45,7 @@ export interface TemporalLayer {
 }
 
 export interface TimelineConfig {
-  bucketSize?: 'day' | 'week' | 'month' | 'quarter' | 'year';
+  bucketSize?: "day" | "week" | "month" | "quarter" | "year";
   animationDuration?: number;
   springConfig?: {
     damping: number;
@@ -69,15 +69,23 @@ export class TimeUtils {
   /**
    * Get bucket size in milliseconds
    */
-  static getBucketSize(bucketSize: NonNullable<TimelineConfig['bucketSize']>): number {
+  static getBucketSize(
+    bucketSize: NonNullable<TimelineConfig["bucketSize"]>,
+  ): number {
     const dayMs = 24 * 60 * 60 * 1000;
     switch (bucketSize) {
-      case 'day': return dayMs;
-      case 'week': return 7 * dayMs;
-      case 'month': return 30 * dayMs;
-      case 'quarter': return 90 * dayMs;
-      case 'year': return 365 * dayMs;
-      default: return dayMs;
+      case "day":
+        return dayMs;
+      case "week":
+        return 7 * dayMs;
+      case "month":
+        return 30 * dayMs;
+      case "quarter":
+        return 90 * dayMs;
+      case "year":
+        return 365 * dayMs;
+      default:
+        return dayMs;
     }
   }
 
@@ -86,15 +94,15 @@ export class TimeUtils {
    */
   static createTimeBuckets(
     photos: Photo[],
-    bucketSize: NonNullable<TimelineConfig['bucketSize']>,
-    paddingDays = 0
+    bucketSize: NonNullable<TimelineConfig["bucketSize"]>,
+    paddingDays = 0,
   ): TimeBucket[] {
     if (photos.length === 0) return [];
 
     const bucketMs = this.getBucketSize(bucketSize);
     const paddingMs = paddingDays * 24 * 60 * 60 * 1000;
-    
-    const timestamps = photos.map(p => p.createdAt);
+
+    const timestamps = photos.map((p) => p.createdAt);
     const minTime = Math.min(...timestamps) - paddingMs;
     const maxTime = Math.max(...timestamps) + paddingMs;
 
@@ -103,8 +111,8 @@ export class TimeUtils {
 
     while (currentStart < maxTime) {
       const currentEnd = currentStart + bucketMs;
-      const bucketPhotos = photos.filter(p => 
-        p.createdAt >= currentStart && p.createdAt < currentEnd
+      const bucketPhotos = photos.filter(
+        (p) => p.createdAt >= currentStart && p.createdAt < currentEnd,
       );
 
       if (bucketPhotos.length > 0) {
@@ -139,7 +147,7 @@ export class TimeUtils {
       return { start: now, end: now };
     }
 
-    const timestamps = photos.map(p => p.createdAt);
+    const timestamps = photos.map((p) => p.createdAt);
     return {
       start: Math.min(...timestamps),
       end: Math.max(...timestamps),
@@ -182,24 +190,30 @@ export class TimeUtils {
   /**
    * Format timestamp for display
    */
-  static formatTimestamp(timestamp: number, format: 'short' | 'medium' | 'long' = 'medium'): string {
+  static formatTimestamp(
+    timestamp: number,
+    format: "short" | "medium" | "long" = "medium",
+  ): string {
     const date = new Date(timestamp);
-    
+
     switch (format) {
-      case 'short':
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      case 'medium':
-        return date.toLocaleDateString('en-US', { 
-          month: 'short', 
-          day: 'numeric', 
-          year: 'numeric' 
+      case "short":
+        return date.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
         });
-      case 'long':
-        return date.toLocaleDateString('en-US', { 
-          weekday: 'short',
-          month: 'short', 
-          day: 'numeric', 
-          year: 'numeric' 
+      case "medium":
+        return date.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        });
+      case "long":
+        return date.toLocaleDateString("en-US", {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          year: "numeric",
         });
       default:
         return date.toLocaleDateString();
@@ -222,13 +236,19 @@ export class TimeUtils {
     const months = Math.floor(days / 30);
     const years = Math.floor(days / 365);
 
-    if (years > 0) return `${years} year${years > 1 ? 's' : ''} ${diff > 0 ? 'ago' : 'from now'}`;
-    if (months > 0) return `${months} month${months > 1 ? 's' : ''} ${diff > 0 ? 'ago' : 'from now'}`;
-    if (weeks > 0) return `${weeks} week${weeks > 1 ? 's' : ''} ${diff > 0 ? 'ago' : 'from now'}`;
-    if (days > 0) return `${days} day${days > 1 ? 's' : ''} ${diff > 0 ? 'ago' : 'from now'}`;
-    if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ${diff > 0 ? 'ago' : 'from now'}`;
-    if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ${diff > 0 ? 'ago' : 'from now'}`;
-    return 'just now';
+    if (years > 0)
+      return `${years} year${years > 1 ? "s" : ""} ${diff > 0 ? "ago" : "from now"}`;
+    if (months > 0)
+      return `${months} month${months > 1 ? "s" : ""} ${diff > 0 ? "ago" : "from now"}`;
+    if (weeks > 0)
+      return `${weeks} week${weeks > 1 ? "s" : ""} ${diff > 0 ? "ago" : "from now"}`;
+    if (days > 0)
+      return `${days} day${days > 1 ? "s" : ""} ${diff > 0 ? "ago" : "from now"}`;
+    if (hours > 0)
+      return `${hours} hour${hours > 1 ? "s" : ""} ${diff > 0 ? "ago" : "from now"}`;
+    if (minutes > 0)
+      return `${minutes} minute${minutes > 1 ? "s" : ""} ${diff > 0 ? "ago" : "from now"}`;
+    return "just now";
   }
 }
 
@@ -248,7 +268,7 @@ export class TemporalLayersService {
 
   constructor(config: TimelineConfig = {}) {
     this.config = {
-      bucketSize: 'week',
+      bucketSize: "week",
       animationDuration: 300,
       springConfig: {
         damping: 20,
@@ -267,7 +287,7 @@ export class TemporalLayersService {
     this.buckets = TimeUtils.createTimeBuckets(
       photos,
       this.config.bucketSize,
-      this.config.paddingDays
+      this.config.paddingDays,
     );
 
     // Create layers from buckets
@@ -295,7 +315,7 @@ export class TemporalLayersService {
    * Generate human-readable layer name
    */
   private generateLayerName(bucket: TimeBucket): string {
-    return `${TimeUtils.formatTimestamp(bucket.start, 'short')} - ${TimeUtils.formatTimestamp(bucket.end - 1, 'short')}`;
+    return `${TimeUtils.formatTimestamp(bucket.start, "short")} - ${TimeUtils.formatTimestamp(bucket.end - 1, "short")}`;
   }
 
   /**
@@ -303,8 +323,16 @@ export class TemporalLayersService {
    */
   private generateLayerColor(index: number): string {
     const colors = [
-      '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
-      '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2'
+      "#FF6B6B",
+      "#4ECDC4",
+      "#45B7D1",
+      "#96CEB4",
+      "#FFEAA7",
+      "#DDA0DD",
+      "#98D8C8",
+      "#F7DC6F",
+      "#BB8FCE",
+      "#85C1E2",
     ];
     return colors[index % colors.length];
   }
@@ -347,29 +375,30 @@ export class TemporalLayersService {
    * Get photos visible at specific time
    */
   getPhotosAtTime(timestamp: number): Photo[] {
-    const visibleLayers = Array.from(this.layers.values()).filter(layer => 
-      layer.visible && 
-      timestamp >= layer.timeRange.start && 
-      timestamp < layer.timeRange.end
+    const visibleLayers = Array.from(this.layers.values()).filter(
+      (layer) =>
+        layer.visible &&
+        timestamp >= layer.timeRange.start &&
+        timestamp < layer.timeRange.end,
     );
 
-    return visibleLayers.flatMap(layer => layer.photos);
+    return visibleLayers.flatMap((layer) => layer.photos);
   }
 
   /**
    * Get photos in time range
    */
   getPhotosInRange(timeRange: TimeRange): Photo[] {
-    const visibleLayers = Array.from(this.layers.values()).filter(layer => 
-      layer.visible && 
-      TimeUtils.rangesOverlap(layer.timeRange, timeRange)
+    const visibleLayers = Array.from(this.layers.values()).filter(
+      (layer) =>
+        layer.visible && TimeUtils.rangesOverlap(layer.timeRange, timeRange),
     );
 
-    return visibleLayers.flatMap(layer => 
-      layer.photos.filter(photo => 
-        photo.createdAt >= timeRange.start && 
-        photo.createdAt < timeRange.end
-      )
+    return visibleLayers.flatMap((layer) =>
+      layer.photos.filter(
+        (photo) =>
+          photo.createdAt >= timeRange.start && photo.createdAt < timeRange.end,
+      ),
     );
   }
 
@@ -388,8 +417,11 @@ export class TemporalLayersService {
     if (timeRange.start === 0 && timeRange.end === 0) return;
 
     const duration = timeRange.end - timeRange.start;
-    const progress = Math.max(0, Math.min(1, (timestamp - timeRange.start) / duration));
-    
+    const progress = Math.max(
+      0,
+      Math.min(1, (timestamp - timeRange.start) / duration),
+    );
+
     this.animationState.currentTime = timestamp;
     this.animationState.progress = progress;
   }
@@ -402,8 +434,9 @@ export class TemporalLayersService {
     if (timeRange.start === 0 && timeRange.end === 0) return;
 
     const clampedProgress = Math.max(0, Math.min(1, progress));
-    const timestamp = timeRange.start + (timeRange.end - timeRange.start) * clampedProgress;
-    
+    const timestamp =
+      timeRange.start + (timeRange.end - timeRange.start) * clampedProgress;
+
     this.animationState.progress = clampedProgress;
     this.animationState.currentTime = timestamp;
   }
@@ -430,9 +463,9 @@ export class TemporalLayersService {
       return { start: 0, end: 0 };
     }
 
-    const starts = this.buckets.map(b => b.start);
-    const ends = this.buckets.map(b => b.end);
-    
+    const starts = this.buckets.map((b) => b.start);
+    const ends = this.buckets.map((b) => b.end);
+
     return {
       start: Math.min(...starts),
       end: Math.max(...ends),
@@ -493,12 +526,9 @@ export const temporalLayersService = new TemporalLayersService();
 /**
  * Hook for using temporal layers with animations
  */
-export function useTemporalLayers(
-  photos: Photo[],
-  config?: TimelineConfig
-) {
+export function useTemporalLayers(photos: Photo[], config?: TimelineConfig) {
   const service = useMemo(() => new TemporalLayersService(config), [config]);
-  
+
   // Initialize service when photos change
   React.useEffect(() => {
     service.initializeLayers(photos);
@@ -510,18 +540,26 @@ export function useTemporalLayers(
   const speedValue = useSharedValue(1);
 
   // Update service when animation values change
-  const updateServiceProgress = useCallback((progress: number) => {
-    service.setAnimationProgress(progress);
-  }, [service]);
+  const updateServiceProgress = useCallback(
+    (progress: number) => {
+      service.setAnimationProgress(progress);
+    },
+    [service],
+  );
 
-  const updateServicePlaying = useCallback((isPlaying: boolean) => {
-    service.setAnimationPlaying(isPlaying);
-  }, [service]);
+  const updateServicePlaying = useCallback(
+    (isPlaying: boolean) => {
+      service.setAnimationPlaying(isPlaying);
+    },
+    [service],
+  );
 
   // Derived values
   const currentTime = useDerivedValue(() => {
     const timeRange = service.getOverallTimeRange();
-    return timeRange.start + (timeRange.end - timeRange.start) * progressValue.value;
+    return (
+      timeRange.start + (timeRange.end - timeRange.start) * progressValue.value
+    );
   });
 
   const visiblePhotos = useDerivedValue(() => {
@@ -531,7 +569,9 @@ export function useTemporalLayers(
   // Animated styles
   const animatedProgressStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ translateX: interpolate(progressValue.value, [0, 1], [-100, 100]) }],
+      transform: [
+        { translateX: interpolate(progressValue.value, [0, 1], [-100, 100]) },
+      ],
     };
   });
 
@@ -546,22 +586,34 @@ export function useTemporalLayers(
     updateServicePlaying(false);
   }, [isPlayingValue, updateServicePlaying]);
 
-  const seekTo = useCallback((progress: number) => {
-    progressValue.value = withTiming(progress, { duration: service.config.animationDuration });
-    runOnJS(updateServiceProgress)(progress);
-  }, [progressValue, service.config.animationDuration, updateServiceProgress]);
+  const seekTo = useCallback(
+    (progress: number) => {
+      progressValue.value = withTiming(progress, {
+        duration: service.config.animationDuration,
+      });
+      runOnJS(updateServiceProgress)(progress);
+    },
+    [progressValue, service.config.animationDuration, updateServiceProgress],
+  );
 
-  const seekToTime = useCallback((timestamp: number) => {
-    const timeRange = service.getOverallTimeRange();
-    const progress = (timestamp - timeRange.start) / (timeRange.end - timeRange.start);
-    seekTo(Math.max(0, Math.min(1, progress)));
-  }, [service, seekTo]);
+  const seekToTime = useCallback(
+    (timestamp: number) => {
+      const timeRange = service.getOverallTimeRange();
+      const progress =
+        (timestamp - timeRange.start) / (timeRange.end - timeRange.start);
+      seekTo(Math.max(0, Math.min(1, progress)));
+    },
+    [service, seekTo],
+  );
 
-  const setSpeed = useCallback((speed: number) => {
-    const clampedSpeed = Math.max(0.25, Math.min(8, speed));
-    speedValue.value = clampedSpeed;
-    service.setAnimationSpeed(clampedSpeed);
-  }, [speedValue, service]);
+  const setSpeed = useCallback(
+    (speed: number) => {
+      const clampedSpeed = Math.max(0.25, Math.min(8, speed));
+      speedValue.value = clampedSpeed;
+      service.setAnimationSpeed(clampedSpeed);
+    },
+    [speedValue, service],
+  );
 
   return {
     service,
@@ -582,21 +634,23 @@ export function useTemporalLayers(
 /**
  * Utility function to create temporal layers service with custom config
  */
-export function createTemporalLayersService(config: TimelineConfig): TemporalLayersService {
+export function createTemporalLayersService(
+  config: TimelineConfig,
+): TemporalLayersService {
   return new TemporalLayersService(config);
 }
 
 /**
  * Utility function to create timeline markers
  */
-export function createTimelineMarkers(buckets: TimeBucket[]): Array<{
+export function createTimelineMarkers(buckets: TimeBucket[]): {
   time: number;
   label: string;
   count: number;
-}> {
-  return buckets.map(bucket => ({
+}[] {
+  return buckets.map((bucket) => ({
     time: bucket.start,
-    label: TimeUtils.formatTimestamp(bucket.start, 'short'),
+    label: TimeUtils.formatTimestamp(bucket.start, "short"),
     count: bucket.count,
   }));
 }
@@ -611,14 +665,18 @@ export function getTemporalStatistics(layers: TemporalLayer[]): {
   timeSpan: number; // in days
 } {
   const totalLayers = layers.length;
-  const totalPhotos = layers.reduce((sum, layer) => sum + layer.photos.length, 0);
+  const totalPhotos = layers.reduce(
+    (sum, layer) => sum + layer.photos.length,
+    0,
+  );
   const averagePhotosPerLayer = totalLayers > 0 ? totalPhotos / totalLayers : 0;
-  
-  const timeRanges = layers.map(layer => layer.timeRange);
+
+  const timeRanges = layers.map((layer) => layer.timeRange);
   const merged = TimeUtils.mergeRanges(timeRanges);
-  const timeSpan = merged.length > 0 
-    ? (merged[0].end - merged[0].start) / (24 * 60 * 60 * 1000)
-    : 0;
+  const timeSpan =
+    merged.length > 0
+      ? (merged[0].end - merged[0].start) / (24 * 60 * 60 * 1000)
+      : 0;
 
   return {
     totalLayers,

@@ -8,8 +8,8 @@
 // TESTS: client/lib/ml/model-manager.test.ts
 // AI-META-END
 
-import { Platform, InteractionManager } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform, InteractionManager } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   getTensorFlowLiteManager,
   ModelConfig,
@@ -17,24 +17,24 @@ import {
   GPUDelegateType,
   DeviceCapabilities,
   cleanupTensorFlowLiteManager,
-} from './tflite';
+} from "./tflite";
 
 // ─────────────────────────────────────────────────────────
 // TYPES AND INTERFACES
 // ─────────────────────────────────────────────────────────
 
-export type CacheStrategy = 
-  | 'memory-only'     // Keep models in memory only
-  | 'disk-priority'   // Prioritize disk caching with memory fallback
-  | 'adaptive'        // Adapt based on memory pressure
-  | 'aggressive';     // Cache everything aggressively
+export type CacheStrategy =
+  | "memory-only" // Keep models in memory only
+  | "disk-priority" // Prioritize disk caching with memory fallback
+  | "adaptive" // Adapt based on memory pressure
+  | "aggressive"; // Cache everything aggressively
 
 export interface ModelCacheEntry {
   metadata: ModelMetadata;
   lastUsed: number;
   useCount: number;
   size: number;
-  priority: 'high' | 'medium' | 'low';
+  priority: "high" | "medium" | "low";
 }
 
 export interface CacheConfig {
@@ -49,7 +49,7 @@ export interface CacheConfig {
 export interface LoadingProgress {
   modelName: string;
   progress: number;
-  stage: 'downloading' | 'loading' | 'ready' | 'error';
+  stage: "downloading" | "loading" | "ready" | "error";
   error?: string;
 }
 
@@ -68,9 +68,9 @@ export interface ModelManagerStats {
 // ─────────────────────────────────────────────────────────
 
 const STORAGE_KEYS = {
-  CACHE_METADATA: '@ml_cache_metadata',
-  MODEL_USAGE: '@ml_model_usage',
-  CACHE_CONFIG: '@ml_cache_config',
+  CACHE_METADATA: "@ml_cache_metadata",
+  MODEL_USAGE: "@ml_model_usage",
+  CACHE_CONFIG: "@ml_cache_config",
 } as const;
 
 class ModelCacheStorage {
@@ -93,10 +93,13 @@ class ModelCacheStorage {
           priority: entry.priority,
         },
       ]);
-      
-      await AsyncStorage.setItem(STORAGE_KEYS.CACHE_METADATA, JSON.stringify(metadata));
+
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.CACHE_METADATA,
+        JSON.stringify(metadata),
+      );
     } catch (error) {
-      console.warn('ModelCacheStorage: Failed to save cache metadata:', error);
+      console.warn("ModelCacheStorage: Failed to save cache metadata:", error);
     }
   }
 
@@ -104,18 +107,18 @@ class ModelCacheStorage {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.CACHE_METADATA);
       if (data) {
-        const metadata: Array<[string, any]> = JSON.parse(data);
-        
+        const metadata: [string, any][] = JSON.parse(data);
+
         // Restore cache entries without actual model metadata
         metadata.forEach(([key, entry]) => {
           this.cache.set(key, {
             ...entry,
             metadata: {
               name: key,
-              version: '1.0.0',
+              version: "1.0.0",
               inputs: [],
               outputs: [],
-              delegate: 'none',
+              delegate: "none",
               loadTime: 0,
               memoryUsage: entry.size,
             },
@@ -123,13 +126,17 @@ class ModelCacheStorage {
         });
       }
     } catch (error) {
-      console.warn('ModelCacheStorage: Failed to load cache metadata:', error);
+      console.warn("ModelCacheStorage: Failed to load cache metadata:", error);
     }
   }
 
   // ─── CACHE OPERATIONS ───────────────────────────────────
 
-  async addToCache(modelName: string, metadata: ModelMetadata, priority: 'high' | 'medium' | 'low' = 'medium'): Promise<void> {
+  async addToCache(
+    modelName: string,
+    metadata: ModelMetadata,
+    priority: "high" | "medium" | "low" = "medium",
+  ): Promise<void> {
     const entry: ModelCacheEntry = {
       metadata,
       lastUsed: Date.now(),
@@ -189,11 +196,11 @@ class ModelCacheStorage {
   }
 
   notifyProgress(progress: LoadingProgress): void {
-    this.progressCallbacks.forEach(callback => {
+    this.progressCallbacks.forEach((callback) => {
       try {
         callback(progress);
       } catch (error) {
-        console.warn('ModelCacheStorage: Progress callback error:', error);
+        console.warn("ModelCacheStorage: Progress callback error:", error);
       }
     });
   }
@@ -209,11 +216,14 @@ class ModelCacheStorage {
     const entries = this.getAllCacheEntries();
     const totalSize = entries.reduce((sum, entry) => sum + entry.size, 0);
     const totalUsage = entries.reduce((sum, entry) => sum + entry.useCount, 0);
-    
-    const priorityBreakdown = entries.reduce((acc, entry) => {
-      acc[entry.priority] = (acc[entry.priority] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+
+    const priorityBreakdown = entries.reduce(
+      (acc, entry) => {
+        acc[entry.priority] = (acc[entry.priority] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     return {
       entries: entries.length,
@@ -241,7 +251,7 @@ export class ModelManager {
 
   constructor(config: Partial<CacheConfig> = {}) {
     this.config = {
-      strategy: 'adaptive',
+      strategy: "adaptive",
       maxMemoryMB: 512, // 512MB for model caching
       maxDiskCacheMB: 1024, // 1GB disk cache
       maxModels: 10,
@@ -268,21 +278,22 @@ export class ModelManager {
     try {
       // Load cache metadata
       await this.cache.loadCacheMetadata();
-      
+
       // Get device capabilities
-      this.deviceCapabilities = await this.tfliteManager.getDeviceCapabilities();
-      
+      this.deviceCapabilities =
+        await this.tfliteManager.getDeviceCapabilities();
+
       // Adjust config based on device capabilities
       this.adjustConfigForDevice();
-      
+
       // Preload high-priority models
       if (this.config.preloadModels.length > 0) {
         this.preloadModels();
       }
-      
-      console.log('ModelManager: Initialized with config:', this.config);
+
+      console.log("ModelManager: Initialized with config:", this.config);
     } catch (error) {
-      console.error('ModelManager: Initialization failed:', error);
+      console.error("ModelManager: Initialization failed:", error);
       throw error;
     }
   }
@@ -293,21 +304,23 @@ export class ModelManager {
     const { memoryMB, platform } = this.deviceCapabilities;
 
     // Adjust memory limits based on available memory
-    if (memoryMB < 4096) { // Less than 4GB
+    if (memoryMB < 4096) {
+      // Less than 4GB
       this.config.maxMemoryMB = Math.min(this.config.maxMemoryMB, 128);
       this.config.maxModels = Math.min(this.config.maxModels, 3);
-    } else if (memoryMB < 8192) { // Less than 8GB
+    } else if (memoryMB < 8192) {
+      // Less than 8GB
       this.config.maxMemoryMB = Math.min(this.config.maxMemoryMB, 256);
       this.config.maxModels = Math.min(this.config.maxModels, 5);
     }
 
     // Adjust strategy based on platform
-    if (platform === 'ios' && this.deviceCapabilities.hasNeuralEngine) {
+    if (platform === "ios" && this.deviceCapabilities.hasNeuralEngine) {
       // iOS with Neural Engine can handle more aggressive caching
-      this.config.strategy = 'aggressive';
+      this.config.strategy = "aggressive";
     } else if (memoryMB < 6144) {
       // Low memory devices use disk-priority caching
-      this.config.strategy = 'disk-priority';
+      this.config.strategy = "disk-priority";
     }
   }
 
@@ -318,10 +331,18 @@ export class ModelManager {
     InteractionManager.runAfterInteractions(async () => {
       for (const modelName of this.config.preloadModels) {
         try {
-          await this.loadModel({ name: modelName, path: `assets/models/${modelName}.tflite`, inputSize: 224, outputSize: 1000 });
+          await this.loadModel({
+            name: modelName,
+            path: `assets/models/${modelName}.tflite`,
+            inputSize: 224,
+            outputSize: 1000,
+          });
           console.log(`ModelManager: Preloaded model "${modelName}"`);
         } catch (error) {
-          console.warn(`ModelManager: Failed to preload model "${modelName}":`, error);
+          console.warn(
+            `ModelManager: Failed to preload model "${modelName}":`,
+            error,
+          );
         }
       }
     });
@@ -332,7 +353,10 @@ export class ModelManager {
   /**
    * Load a model with caching and background loading
    */
-  async loadModel(config: ModelConfig, priority: 'high' | 'medium' | 'low' = 'medium'): Promise<ModelMetadata> {
+  async loadModel(
+    config: ModelConfig,
+    priority: "high" | "medium" | "low" = "medium",
+  ): Promise<ModelMetadata> {
     await this.initialize();
 
     this.cacheRequests++;
@@ -366,12 +390,15 @@ export class ModelManager {
     }
   }
 
-  private async _loadModelInternal(config: ModelConfig, priority: 'high' | 'medium' | 'low'): Promise<ModelMetadata> {
+  private async _loadModelInternal(
+    config: ModelConfig,
+    priority: "high" | "medium" | "low",
+  ): Promise<ModelMetadata> {
     // Notify loading start
     this.cache.notifyProgress({
       modelName: config.name,
       progress: 0,
-      stage: 'loading',
+      stage: "loading",
     });
 
     try {
@@ -385,7 +412,7 @@ export class ModelManager {
       this.cache.notifyProgress({
         modelName: config.name,
         progress: 100,
-        stage: 'ready',
+        stage: "ready",
       });
 
       return metadata;
@@ -394,8 +421,8 @@ export class ModelManager {
       this.cache.notifyProgress({
         modelName: config.name,
         progress: 0,
-        stage: 'error',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        stage: "error",
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -407,7 +434,7 @@ export class ModelManager {
   private async ensureMemoryCapacity(config: ModelConfig): Promise<void> {
     const currentUsage = this.getCurrentMemoryUsage();
     const estimatedUsage = config.inputSize * config.inputSize * 3 * 4; // Rough estimate
-    
+
     if (currentUsage + estimatedUsage > this.config.maxMemoryMB * 1024 * 1024) {
       await this.cleanupMemory(estimatedUsage);
     }
@@ -423,7 +450,8 @@ export class ModelManager {
    * Get current memory usage in bytes
    */
   private getCurrentMemoryUsage(): number {
-    return this.cache.getAllCacheEntries()
+    return this.cache
+      .getAllCacheEntries()
       .reduce((sum, entry) => sum + entry.size, 0);
   }
 
@@ -431,19 +459,19 @@ export class ModelManager {
    * Cleanup memory to make room for new model
    */
   private async cleanupMemory(requiredBytes: number): Promise<void> {
-    const entries = this.cache.getAllCacheEntries()
-      .sort((a, b) => {
-        // Sort by priority and last used time
-        const priorityOrder = { low: 0, medium: 1, high: 2 };
-        const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
-        if (priorityDiff !== 0) return priorityDiff;
-        return a.lastUsed - b.lastUsed;
-      });
+    const entries = this.cache.getAllCacheEntries().sort((a, b) => {
+      // Sort by priority and last used time
+      const priorityOrder = { low: 0, medium: 1, high: 2 };
+      const priorityDiff =
+        priorityOrder[a.priority] - priorityOrder[b.priority];
+      if (priorityDiff !== 0) return priorityDiff;
+      return a.lastUsed - b.lastUsed;
+    });
 
     let freedBytes = 0;
     for (const entry of entries) {
       if (freedBytes >= requiredBytes) break;
-      
+
       await this.unloadModel(entry.metadata.name);
       freedBytes += entry.size;
     }
@@ -453,11 +481,14 @@ export class ModelManager {
    * Unload least used models
    */
   private async unloadLeastUsedModels(count: number): Promise<void> {
-    const entries = this.cache.getAllCacheEntries()
+    const entries = this.cache
+      .getAllCacheEntries()
       .sort((a, b) => a.lastUsed - b.lastUsed)
       .slice(0, count);
 
-    await Promise.all(entries.map(entry => this.unloadModel(entry.metadata.name)));
+    await Promise.all(
+      entries.map((entry) => this.unloadModel(entry.metadata.name)),
+    );
   }
 
   // ─── INFERENCE ────────────────────────────────────────────
@@ -465,30 +496,39 @@ export class ModelManager {
   /**
    * Run inference with automatic model loading
    */
-  async runInference(modelName: string, inputs: any[], config?: ModelConfig): Promise<any[]> {
+  async runInference(
+    modelName: string,
+    inputs: any[],
+    config?: ModelConfig,
+  ): Promise<any[]> {
     await this.initialize();
 
     // Load model if not already loaded
     if (!this.tfliteManager.isModelLoaded(modelName)) {
       if (!config) {
-        throw new Error(`Model "${modelName}" not loaded and no config provided`);
+        throw new Error(
+          `Model "${modelName}" not loaded and no config provided`,
+        );
       }
       await this.loadModel(config);
     }
 
     const startTime = Date.now();
-    
+
     try {
       const result = await this.tfliteManager.runInference(modelName, inputs);
-      
+
       // Update statistics
       this.inferenceCount++;
       this.totalInferenceTime += Date.now() - startTime;
       await this.cache.updateCacheUsage(modelName);
-      
+
       return result.outputs;
     } catch (error) {
-      console.error(`ModelManager: Inference failed for model "${modelName}":`, error);
+      console.error(
+        `ModelManager: Inference failed for model "${modelName}":`,
+        error,
+      );
       throw error;
     }
   }
@@ -502,18 +542,21 @@ export class ModelManager {
     }
 
     const startTime = Date.now();
-    
+
     try {
       const result = this.tfliteManager.runInferenceSync(modelName, inputs);
-      
+
       // Update statistics
       this.inferenceCount++;
       this.totalInferenceTime += Date.now() - startTime;
       this.cache.updateCacheUsage(modelName); // Async but fire-and-forget for sync
-      
+
       return result.outputs;
     } catch (error) {
-      console.error(`ModelManager: Sync inference failed for model "${modelName}":`, error);
+      console.error(
+        `ModelManager: Sync inference failed for model "${modelName}":`,
+        error,
+      );
       throw error;
     }
   }
@@ -533,10 +576,12 @@ export class ModelManager {
    */
   async unloadAllModels(): Promise<void> {
     await this.tfliteManager.unloadAllModels();
-    
+
     // Clear cache entries but keep metadata for disk caching
     const entries = this.cache.getAllCacheEntries();
-    await Promise.all(entries.map(entry => this.cache.removeFromCache(entry.metadata.name)));
+    await Promise.all(
+      entries.map((entry) => this.cache.removeFromCache(entry.metadata.name)),
+    );
   }
 
   /**
@@ -572,9 +617,9 @@ export class ModelManager {
         STORAGE_KEYS.MODEL_USAGE,
         STORAGE_KEYS.CACHE_CONFIG,
       ]);
-      console.log('ModelManager: Disk cache cleared');
+      console.log("ModelManager: Disk cache cleared");
     } catch (error) {
-      console.error('ModelManager: Failed to clear disk cache:', error);
+      console.error("ModelManager: Failed to clear disk cache:", error);
     }
   }
 
@@ -583,15 +628,21 @@ export class ModelManager {
    */
   async optimizeCache(): Promise<void> {
     const entries = this.cache.getAllCacheEntries();
-    
+
     // Identify unused models
-    const unusedThreshold = Date.now() - (7 * 24 * 60 * 60 * 1000); // 7 days ago
-    const unusedModels = entries.filter(entry => entry.lastUsed < unusedThreshold);
-    
+    const unusedThreshold = Date.now() - 7 * 24 * 60 * 60 * 1000; // 7 days ago
+    const unusedModels = entries.filter(
+      (entry) => entry.lastUsed < unusedThreshold,
+    );
+
     // Unload unused models
-    await Promise.all(unusedModels.map(entry => this.unloadModel(entry.metadata.name)));
-    
-    console.log(`ModelManager: Optimized cache, unloaded ${unusedModels.length} unused models`);
+    await Promise.all(
+      unusedModels.map((entry) => this.unloadModel(entry.metadata.name)),
+    );
+
+    console.log(
+      `ModelManager: Optimized cache, unloaded ${unusedModels.length} unused models`,
+    );
   }
 
   // ─── STATISTICS AND MONITORING ─────────────────────────────
@@ -602,15 +653,19 @@ export class ModelManager {
   async getStats(): Promise<ModelManagerStats> {
     const cacheStats = this.cache.getCacheStats();
     const tfliteStats = this.tfliteManager.getPerformanceStats();
-    
+
     return {
       loadedModels: tfliteStats.loadedModels,
       cachedModels: cacheStats.entries,
       memoryUsageMB: tfliteStats.totalMemoryUsage / (1024 * 1024),
       diskCacheUsageMB: cacheStats.totalSize / (1024 * 1024),
       totalInferences: this.inferenceCount,
-      averageInferenceTime: this.inferenceCount > 0 ? this.totalInferenceTime / this.inferenceCount : 0,
-      cacheHitRate: this.cacheRequests > 0 ? this.cacheHits / this.cacheRequests : 0,
+      averageInferenceTime:
+        this.inferenceCount > 0
+          ? this.totalInferenceTime / this.inferenceCount
+          : 0,
+      cacheHitRate:
+        this.cacheRequests > 0 ? this.cacheHits / this.cacheRequests : 0,
     };
   }
 
@@ -641,12 +696,15 @@ export class ModelManager {
   async updateConfig(newConfig: Partial<CacheConfig>): Promise<void> {
     this.config = { ...this.config, ...newConfig };
     this.adjustConfigForDevice();
-    
+
     // Save config to storage
     try {
-      await AsyncStorage.setItem(STORAGE_KEYS.CACHE_CONFIG, JSON.stringify(this.config));
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.CACHE_CONFIG,
+        JSON.stringify(this.config),
+      );
     } catch (error) {
-      console.warn('ModelManager: Failed to save config:', error);
+      console.warn("ModelManager: Failed to save config:", error);
     }
   }
 

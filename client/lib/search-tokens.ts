@@ -3,15 +3,15 @@
 
 import { Buffer } from "buffer";
 import sodium from "@s77rt/react-native-sodium";
-import { 
-  SearchToken, 
-  SearchTokenType, 
+import {
+  SearchToken,
+  SearchTokenType,
   SearchOperator,
   initializeSSE,
   encryptSearchTerm,
   generateTokenId,
   secureWipeSSE,
-  MAX_QUERY_LENGTH
+  MAX_QUERY_LENGTH,
 } from "./encrypted-search";
 
 // Token configuration constants
@@ -77,7 +77,7 @@ export interface TokenVerificationResult {
  */
 export async function initializeTokenManager(
   sseKey: string,
-  defaultExpiry: number = TOKEN_EXPIRY_DEFAULT
+  defaultExpiry: number = TOKEN_EXPIRY_DEFAULT,
 ): Promise<TokenManager> {
   await initializeSSE();
 
@@ -86,7 +86,7 @@ export async function initializeTokenManager(
     revokedTokens: new Set(),
     tokenCache: new Map(),
     sseKey,
-    defaultExpiry
+    defaultExpiry,
   };
 }
 
@@ -100,7 +100,7 @@ export async function initializeTokenManager(
 export async function generateExactMatchToken(
   manager: TokenManager,
   query: string,
-  expiry?: number
+  expiry?: number,
 ): Promise<SearchToken> {
   try {
     // Validate query
@@ -119,7 +119,11 @@ export async function generateExactMatchToken(
     const expiresAt = now + Math.min(tokenExpiry, TOKEN_EXPIRY_MAX);
 
     // Encrypt the query
-    const encryptedQuery = encryptSearchTerm(query.trim(), manager.sseKey, SearchTokenType.EXACT);
+    const encryptedQuery = encryptSearchTerm(
+      query.trim(),
+      manager.sseKey,
+      SearchTokenType.EXACT,
+    );
 
     // Create token
     const token: SearchToken = {
@@ -127,14 +131,13 @@ export async function generateExactMatchToken(
       encryptedQuery: encryptedQuery.encryptedTerm,
       queryType: SearchTokenType.EXACT,
       timestamp: now,
-      expiresAt
+      expiresAt,
     };
 
     // Cache the token
     cacheToken(manager, token);
 
     return token;
-
   } catch (error) {
     console.error("Failed to generate exact match token:", error);
     throw error;
@@ -151,7 +154,7 @@ export async function generateExactMatchToken(
 export async function generatePrefixToken(
   manager: TokenManager,
   prefix: string,
-  expiry?: number
+  expiry?: number,
 ): Promise<SearchToken> {
   try {
     // Validate prefix
@@ -170,7 +173,11 @@ export async function generatePrefixToken(
     const expiresAt = now + Math.min(tokenExpiry, TOKEN_EXPIRY_MAX);
 
     // Encrypt the prefix with prefix token type
-    const encryptedPrefix = encryptSearchTerm(prefix.trim() + "*", manager.sseKey, SearchTokenType.PREFIX);
+    const encryptedPrefix = encryptSearchTerm(
+      prefix.trim() + "*",
+      manager.sseKey,
+      SearchTokenType.PREFIX,
+    );
 
     // Create token
     const token: SearchToken = {
@@ -178,14 +185,13 @@ export async function generatePrefixToken(
       encryptedQuery: encryptedPrefix.encryptedTerm,
       queryType: SearchTokenType.PREFIX,
       timestamp: now,
-      expiresAt
+      expiresAt,
     };
 
     // Cache the token
     cacheToken(manager, token);
 
     return token;
-
   } catch (error) {
     console.error("Failed to generate prefix token:", error);
     throw error;
@@ -204,7 +210,7 @@ export async function generateBooleanToken(
   manager: TokenManager,
   terms: string[],
   operators: SearchOperator[],
-  expiry?: number
+  expiry?: number,
 ): Promise<SearchToken> {
   try {
     // Validate inputs
@@ -217,7 +223,9 @@ export async function generateBooleanToken(
     }
 
     if (!operators || operators.length !== terms.length - 1) {
-      throw new Error("Number of operators must be one less than number of terms");
+      throw new Error(
+        "Number of operators must be one less than number of terms",
+      );
     }
 
     // Validate each term
@@ -240,7 +248,11 @@ export async function generateBooleanToken(
     const booleanQuery = constructBooleanQuery(terms, operators);
 
     // Encrypt the boolean query
-    const encryptedQuery = encryptSearchTerm(booleanQuery, manager.sseKey, SearchTokenType.BOOLEAN);
+    const encryptedQuery = encryptSearchTerm(
+      booleanQuery,
+      manager.sseKey,
+      SearchTokenType.BOOLEAN,
+    );
 
     // Create token
     const token: SearchToken = {
@@ -249,14 +261,13 @@ export async function generateBooleanToken(
       queryType: SearchTokenType.BOOLEAN,
       operators,
       timestamp: now,
-      expiresAt
+      expiresAt,
     };
 
     // Cache the token
     cacheToken(manager, token);
 
     return token;
-
   } catch (error) {
     console.error("Failed to generate boolean token:", error);
     throw error;
@@ -269,14 +280,17 @@ export async function generateBooleanToken(
  * @param operators - List of boolean operators
  * @returns Boolean query string
  */
-function constructBooleanQuery(terms: string[], operators: SearchOperator[]): string {
+function constructBooleanQuery(
+  terms: string[],
+  operators: SearchOperator[],
+): string {
   try {
     let query = terms[0].trim();
-    
+
     for (let i = 0; i < operators.length; i++) {
       const operator = operators[i];
       const term = terms[i + 1].trim();
-      
+
       switch (operator) {
         case SearchOperator.AND:
           query += ` AND ${term}`;
@@ -293,7 +307,6 @@ function constructBooleanQuery(terms: string[], operators: SearchOperator[]): st
     }
 
     return query;
-
   } catch (error) {
     console.error("Failed to construct boolean query:", error);
     throw error;
@@ -309,9 +322,10 @@ function cacheToken(manager: TokenManager, token: SearchToken): void {
   try {
     // Remove oldest tokens if cache is full
     if (manager.activeTokens.size >= TOKEN_CACHE_SIZE) {
-      const oldestToken = Array.from(manager.activeTokens.entries())
-        .sort((a, b) => a[1].createdAt - b[1].createdAt)[0];
-      
+      const oldestToken = Array.from(manager.activeTokens.entries()).sort(
+        (a, b) => a[1].createdAt - b[1].createdAt,
+      )[0];
+
       if (oldestToken) {
         manager.activeTokens.delete(oldestToken[0]);
       }
@@ -322,11 +336,10 @@ function cacheToken(manager: TokenManager, token: SearchToken): void {
       token,
       createdAt: Date.now(),
       lastUsed: Date.now(),
-      useCount: 1
+      useCount: 1,
     };
 
     manager.activeTokens.set(token.tokenId, cacheEntry);
-
   } catch (error) {
     console.error("Failed to cache token:", error);
     throw error;
@@ -339,7 +352,10 @@ function cacheToken(manager: TokenManager, token: SearchToken): void {
  * @param tokenId - Token ID to validate
  * @returns Token validation result
  */
-export function validateToken(manager: TokenManager, tokenId: string): TokenValidationResult {
+export function validateToken(
+  manager: TokenManager,
+  tokenId: string,
+): TokenValidationResult {
   try {
     // Check if token is revoked
     if (manager.revokedTokens.has(tokenId)) {
@@ -349,7 +365,7 @@ export function validateToken(manager: TokenManager, tokenId: string): TokenVali
         expiresAt: 0,
         timeRemaining: 0,
         isExpired: true,
-        error: "Token has been revoked"
+        error: "Token has been revoked",
       };
     }
 
@@ -362,7 +378,7 @@ export function validateToken(manager: TokenManager, tokenId: string): TokenVali
         expiresAt: 0,
         timeRemaining: 0,
         isExpired: true,
-        error: "Token not found"
+        error: "Token not found",
       };
     }
 
@@ -376,9 +392,8 @@ export function validateToken(manager: TokenManager, tokenId: string): TokenVali
       tokenId,
       expiresAt: token.expiresAt,
       timeRemaining: Math.max(0, timeRemaining),
-      isExpired
+      isExpired,
     };
-
   } catch (error) {
     console.error("Token validation failed:", error);
     return {
@@ -387,7 +402,7 @@ export function validateToken(manager: TokenManager, tokenId: string): TokenVali
       expiresAt: 0,
       timeRemaining: 0,
       isExpired: true,
-      error: "Validation error"
+      error: "Validation error",
     };
   }
 }
@@ -401,15 +416,14 @@ export function revokeToken(manager: TokenManager, tokenId: string): void {
   try {
     // Remove from active tokens
     manager.activeTokens.delete(tokenId);
-    
+
     // Add to revoked tokens
     manager.revokedTokens.add(tokenId);
-    
+
     // Remove from cache
     manager.tokenCache.delete(tokenId);
 
     console.log(`Token ${tokenId} has been revoked`);
-
   } catch (error) {
     console.error("Failed to revoke token:", error);
     throw error;
@@ -426,7 +440,7 @@ export function revokeToken(manager: TokenManager, tokenId: string): void {
 export function createTokenizedRequest(
   manager: TokenManager,
   token: SearchToken,
-  requestMetadata?: Partial<TokenizedSearchRequest["requestMetadata"]>
+  requestMetadata?: Partial<TokenizedSearchRequest["requestMetadata"]>,
 ): TokenizedSearchRequest {
   try {
     // Validate token
@@ -449,12 +463,11 @@ export function createTokenizedRequest(
       requestMetadata: {
         userAgent: requestMetadata?.userAgent || "CloudGallery/1.0",
         timestamp: requestMetadata?.timestamp || Date.now(),
-        requestId: requestMetadata?.requestId || generateTokenId()
-      }
+        requestId: requestMetadata?.requestId || generateTokenId(),
+      },
     };
 
     return tokenizedRequest;
-
   } catch (error) {
     console.error("Failed to create tokenized request:", error);
     throw error;
@@ -469,7 +482,7 @@ export function createTokenizedRequest(
  */
 export async function verifyTokenizedRequest(
   request: TokenizedSearchRequest,
-  sseKey: string
+  sseKey: string,
 ): Promise<TokenVerificationResult> {
   try {
     const { token, encryptedQuery } = request;
@@ -481,7 +494,7 @@ export async function verifyTokenizedRequest(
         isValid: false,
         tokenId: token.tokenId,
         queryType: token.queryType,
-        error: "Token has expired"
+        error: "Token has expired",
       };
     }
 
@@ -492,7 +505,7 @@ export async function verifyTokenizedRequest(
         isValid: false,
         tokenId: token.tokenId,
         queryType: token.queryType,
-        error: "Token integrity verification failed"
+        error: "Token integrity verification failed",
       };
     }
 
@@ -512,16 +525,15 @@ export async function verifyTokenizedRequest(
       tokenId: token.tokenId,
       queryType: token.queryType,
       operators: token.operators,
-      decryptedQuery
+      decryptedQuery,
     };
-
   } catch (error) {
     console.error("Tokenized request verification failed:", error);
     return {
       isValid: false,
       tokenId: request.token.tokenId,
       queryType: request.token.queryType,
-      error: "Verification error"
+      error: "Verification error",
     };
   }
 }
@@ -556,7 +568,6 @@ export function cleanupExpiredTokens(manager: TokenManager): number {
     }
 
     return cleanedCount;
-
   } catch (error) {
     console.error("Token cleanup failed:", error);
     return 0;
@@ -589,7 +600,7 @@ export function getTokenManagerStats(manager: TokenManager): {
 
     for (const cacheEntry of manager.activeTokens.values()) {
       totalUseCount += cacheEntry.useCount;
-      
+
       const tokenAge = now - cacheEntry.createdAt;
       oldestTokenAge = Math.max(oldestTokenAge, tokenAge);
       newestTokenAge = Math.min(newestTokenAge, tokenAge);
@@ -603,9 +614,8 @@ export function getTokenManagerStats(manager: TokenManager): {
       cachedTokens,
       averageUseCount,
       oldestTokenAge,
-      newestTokenAge: newestTokenAge === Infinity ? 0 : newestTokenAge
+      newestTokenAge: newestTokenAge === Infinity ? 0 : newestTokenAge,
     };
-
   } catch (error) {
     console.error("Failed to get token manager stats:", error);
     throw error;
@@ -623,7 +633,7 @@ export function exportTokenManager(manager: TokenManager): string {
       activeTokens: Array.from(manager.activeTokens.entries()),
       revokedTokens: Array.from(manager.revokedTokens),
       tokenCache: Array.from(manager.tokenCache.entries()),
-      defaultExpiry: manager.defaultExpiry
+      defaultExpiry: manager.defaultExpiry,
       // Note: sseKey is not exported for security reasons
     };
 
@@ -640,7 +650,10 @@ export function exportTokenManager(manager: TokenManager): string {
  * @param sseKey - SSE encryption key
  * @returns Imported token manager
  */
-export function importTokenManager(serializedData: string, sseKey: string): TokenManager {
+export function importTokenManager(
+  serializedData: string,
+  sseKey: string,
+): TokenManager {
   try {
     const parsed = JSON.parse(serializedData);
 
@@ -649,14 +662,13 @@ export function importTokenManager(serializedData: string, sseKey: string): Toke
       revokedTokens: new Set(parsed.revokedTokens),
       tokenCache: new Map(parsed.tokenCache),
       sseKey,
-      defaultExpiry: parsed.defaultExpiry || TOKEN_EXPIRY_DEFAULT
+      defaultExpiry: parsed.defaultExpiry || TOKEN_EXPIRY_DEFAULT,
     };
 
     // Clean up expired tokens on import
     cleanupExpiredTokens(manager);
 
     return manager;
-
   } catch (error) {
     console.error("Failed to import token manager:", error);
     throw error;

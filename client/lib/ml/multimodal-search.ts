@@ -8,15 +8,15 @@
 // TESTS: client/lib/ml/multimodal-search.test.ts
 // AI-META-END
 
-import { Float32Array, getCLIPEmbeddingsService } from './clip-embeddings';
-import { getEmbeddingCache } from './embedding-cache';
-import { Photo } from '@/types';
+import { Float32Array, getCLIPEmbeddingsService } from "./clip-embeddings";
+import { getEmbeddingCache } from "./embedding-cache";
+import { Photo } from "@/types";
 
 // ─────────────────────────────────────────────────────────
 // MULTIMODAL SEARCH TYPES
 // ─────────────────────────────────────────────────────────
 
-export type SearchModality = 'text' | 'image' | 'audio' | 'video' | 'metadata';
+export type SearchModality = "text" | "image" | "audio" | "video" | "metadata";
 
 export interface MultimodalQuery {
   id: string;
@@ -51,9 +51,9 @@ export interface SearchFilters {
     radius: number;
   };
   tags?: string[];
-  mediaType?: 'photo' | 'video' | 'all';
+  mediaType?: "photo" | "video" | "all";
   favorites?: boolean;
-  quality?: 'high' | 'medium' | 'low' | 'all';
+  quality?: "high" | "medium" | "low" | "all";
 }
 
 export interface MultimodalResult {
@@ -77,7 +77,7 @@ export interface FusionStrategy {
   name: string;
   description: string;
   weights: ModalityWeights;
-  aggregationMethod: 'weighted' | 'max' | 'average' | 'adaptive';
+  aggregationMethod: "weighted" | "max" | "average" | "adaptive";
 }
 
 // ─────────────────────────────────────────────────────────
@@ -85,35 +85,53 @@ export interface FusionStrategy {
 // ─────────────────────────────────────────────────────────
 
 export const FUSION_STRATEGIES: Record<string, FusionStrategy> = {
-  'balanced': {
-    name: 'Balanced Fusion',
-    description: 'Equal weight to all modalities',
-    weights: { text: 0.25, image: 0.25, audio: 0.25, video: 0.25, metadata: 0.0 },
-    aggregationMethod: 'weighted',
+  balanced: {
+    name: "Balanced Fusion",
+    description: "Equal weight to all modalities",
+    weights: {
+      text: 0.25,
+      image: 0.25,
+      audio: 0.25,
+      video: 0.25,
+      metadata: 0.0,
+    },
+    aggregationMethod: "weighted",
   },
-  'visual-priority': {
-    name: 'Visual Priority',
-    description: 'Emphasize visual content (images/videos)',
+  "visual-priority": {
+    name: "Visual Priority",
+    description: "Emphasize visual content (images/videos)",
     weights: { text: 0.2, image: 0.4, audio: 0.1, video: 0.3, metadata: 0.0 },
-    aggregationMethod: 'weighted',
+    aggregationMethod: "weighted",
   },
-  'semantic-priority': {
-    name: 'Semantic Priority',
-    description: 'Emphasize text and metadata understanding',
+  "semantic-priority": {
+    name: "Semantic Priority",
+    description: "Emphasize text and metadata understanding",
     weights: { text: 0.4, image: 0.2, audio: 0.1, video: 0.2, metadata: 0.1 },
-    aggregationMethod: 'weighted',
+    aggregationMethod: "weighted",
   },
-  'adaptive': {
-    name: 'Adaptive Fusion',
-    description: 'Automatically adjust weights based on query content',
-    weights: { text: 0.25, image: 0.25, audio: 0.25, video: 0.25, metadata: 0.0 },
-    aggregationMethod: 'adaptive',
+  adaptive: {
+    name: "Adaptive Fusion",
+    description: "Automatically adjust weights based on query content",
+    weights: {
+      text: 0.25,
+      image: 0.25,
+      audio: 0.25,
+      video: 0.25,
+      metadata: 0.0,
+    },
+    aggregationMethod: "adaptive",
   },
-  'max-similarity': {
-    name: 'Maximum Similarity',
-    description: 'Use the highest similarity across modalities',
-    weights: { text: 0.25, image: 0.25, audio: 0.25, video: 0.25, metadata: 0.0 },
-    aggregationMethod: 'max',
+  "max-similarity": {
+    name: "Maximum Similarity",
+    description: "Use the highest similarity across modalities",
+    weights: {
+      text: 0.25,
+      image: 0.25,
+      audio: 0.25,
+      video: 0.25,
+      metadata: 0.0,
+    },
+    aggregationMethod: "max",
   },
 };
 
@@ -137,44 +155,49 @@ export class MultimodalSearchService {
   async search(
     query: MultimodalQuery,
     candidatePhotos: Photo[],
-    fusionStrategy: FusionStrategy = FUSION_STRATEGIES['balanced']
+    fusionStrategy: FusionStrategy = FUSION_STRATEGIES["balanced"],
   ): Promise<MultimodalResult[]> {
     try {
       // Validate inputs
       this.validateQuery(query);
-      
+
       // Generate embeddings for all query modalities
       const queryEmbeddings = await this.generateQueryEmbeddings(query);
-      
+
       // Generate embeddings for candidate photos
-      const candidateEmbeddings = await this.generateCandidateEmbeddings(candidatePhotos);
-      
+      const candidateEmbeddings =
+        await this.generateCandidateEmbeddings(candidatePhotos);
+
       // Calculate cross-modal similarities
       const similarities = await this.calculateCrossModalSimilarities(
         queryEmbeddings,
         candidateEmbeddings,
-        query.modalities
+        query.modalities,
       );
-      
+
       // Apply fusion strategy to combine results
       const fusedResults = this.applyFusionStrategy(
         similarities,
         fusionStrategy,
-        query.weights || fusionStrategy.weights
+        query.weights || fusionStrategy.weights,
       );
-      
+
       // Apply filters and threshold
-      const filteredResults = this.applyFilters(fusedResults, query.filters, query.threshold);
-      
+      const filteredResults = this.applyFilters(
+        fusedResults,
+        query.filters,
+        query.threshold,
+      );
+
       // Sort and rank results
       const rankedResults = this.rankResults(filteredResults);
-      
+
       // Apply limit
       const limitedResults = rankedResults.slice(0, query.limit || 50);
-      
+
       return limitedResults;
     } catch (error) {
-      console.error('Multimodal search failed:', error);
+      console.error("Multimodal search failed:", error);
       throw error;
     }
   }
@@ -189,18 +212,22 @@ export class MultimodalSearchService {
       limit?: number;
       threshold?: number;
       filters?: SearchFilters;
-    } = {}
+    } = {},
   ): Promise<MultimodalResult[]> {
     const query: MultimodalQuery = {
-      id: 'image-similarity',
-      modalities: ['image'],
+      id: "image-similarity",
+      modalities: ["image"],
       imageUris: queryImageUris,
       limit: options.limit || 20,
       threshold: options.threshold || 0.3,
       filters: options.filters,
     };
 
-    return this.search(query, candidatePhotos, FUSION_STRATEGIES['visual-priority']);
+    return this.search(
+      query,
+      candidatePhotos,
+      FUSION_STRATEGIES["visual-priority"],
+    );
   }
 
   /**
@@ -214,20 +241,20 @@ export class MultimodalSearchService {
       threshold?: number;
       filters?: SearchFilters;
       fusionStrategy?: string;
-    } = {}
+    } = {},
   ): Promise<MultimodalResult[]> {
     const query: MultimodalQuery = {
-      id: 'text-visual',
-      modalities: ['text', 'image'],
+      id: "text-visual",
+      modalities: ["text", "image"],
       text: textQuery,
       limit: options.limit || 50,
       threshold: options.threshold || 0.2,
       filters: options.filters,
     };
 
-    const strategy = options.fusionStrategy 
-      ? FUSION_STRATEGIES[options.fusionStrategy] 
-      : FUSION_STRATEGIES['semantic-priority'];
+    const strategy = options.fusionStrategy
+      ? FUSION_STRATEGIES[options.fusionStrategy]
+      : FUSION_STRATEGIES["semantic-priority"];
 
     return this.search(query, candidatePhotos, strategy);
   }
@@ -237,7 +264,7 @@ export class MultimodalSearchService {
    */
   async complexSearch(
     query: MultimodalQuery,
-    candidatePhotos: Photo[]
+    candidatePhotos: Photo[],
   ): Promise<MultimodalResult[]> {
     // Use adaptive fusion for complex queries
     const adaptiveStrategy = this.createAdaptiveStrategy(query);
@@ -246,44 +273,61 @@ export class MultimodalSearchService {
 
   // ─── EMBEDDING GENERATION ─────────────────────────────────
 
-  private async generateQueryEmbeddings(query: MultimodalQuery): Promise<Record<SearchModality, Float32Array[]>> {
+  private async generateQueryEmbeddings(
+    query: MultimodalQuery,
+  ): Promise<Record<SearchModality, Float32Array[]>> {
     const embeddings: Record<SearchModality, Float32Array[]> = {} as any;
 
     // Generate text embeddings
-    if (query.text && query.modalities.includes('text')) {
-      const textEmbeddings = await this.clipService.generateTextEmbeddings([query.text]);
+    if (query.text && query.modalities.includes("text")) {
+      const textEmbeddings = await this.clipService.generateTextEmbeddings([
+        query.text,
+      ]);
       embeddings.text = textEmbeddings;
     }
 
     // Generate image embeddings
-    if (query.imageUris && query.modalities.includes('image')) {
-      const imageEmbeddings = await this.clipService.generateImageEmbeddings(query.imageUris);
+    if (query.imageUris && query.modalities.includes("image")) {
+      const imageEmbeddings = await this.clipService.generateImageEmbeddings(
+        query.imageUris,
+      );
       embeddings.image = imageEmbeddings;
     }
 
     // Generate video embeddings (using video frames)
-    if (query.videoUris && query.modalities.includes('video')) {
-      const videoEmbeddings = await this.generateVideoEmbeddings(query.videoUris);
+    if (query.videoUris && query.modalities.includes("video")) {
+      const videoEmbeddings = await this.generateVideoEmbeddings(
+        query.videoUris,
+      );
       embeddings.video = videoEmbeddings;
     }
 
     // Generate audio embeddings (placeholder - would integrate audio model)
-    if (query.audioUris && query.modalities.includes('audio')) {
-      const audioEmbeddings = await this.generateAudioEmbeddings(query.audioUris);
+    if (query.audioUris && query.modalities.includes("audio")) {
+      const audioEmbeddings = await this.generateAudioEmbeddings(
+        query.audioUris,
+      );
       embeddings.audio = audioEmbeddings;
     }
 
     // Generate metadata embeddings (using text encoding of metadata)
-    if (query.metadata && query.modalities.includes('metadata')) {
-      const metadataEmbeddings = await this.generateMetadataEmbeddings(query.metadata);
+    if (query.metadata && query.modalities.includes("metadata")) {
+      const metadataEmbeddings = await this.generateMetadataEmbeddings(
+        query.metadata,
+      );
       embeddings.metadata = metadataEmbeddings;
     }
 
     return embeddings;
   }
 
-  private async generateCandidateEmbeddings(photos: Photo[]): Promise<Map<string, Record<SearchModality, Float32Array>>> {
-    const candidateEmbeddings = new Map<string, Record<SearchModality, Float32Array>>();
+  private async generateCandidateEmbeddings(
+    photos: Photo[],
+  ): Promise<Map<string, Record<SearchModality, Float32Array>>> {
+    const candidateEmbeddings = new Map<
+      string,
+      Record<SearchModality, Float32Array>
+    >();
 
     for (const photo of photos) {
       const embeddings: Record<SearchModality, Float32Array> = {} as any;
@@ -300,7 +344,9 @@ export class MultimodalSearchService {
       // Metadata embedding
       if (photo.filename || photo.tags || photo.notes) {
         const metadataText = this.createMetadataText(photo);
-        const metadataEmbedding = await this.clipService.generateTextEmbeddings([metadataText]);
+        const metadataEmbedding = await this.clipService.generateTextEmbeddings(
+          [metadataText],
+        );
         embeddings.metadata = metadataEmbedding[0];
       }
 
@@ -310,61 +356,69 @@ export class MultimodalSearchService {
     return candidateEmbeddings;
   }
 
-  private async generateVideoEmbeddings(videoUris: string[]): Promise<Float32Array[]> {
+  private async generateVideoEmbeddings(
+    videoUris: string[],
+  ): Promise<Float32Array[]> {
     // Placeholder implementation
     // In production would extract key frames and generate embeddings
     const embeddings: Float32Array[] = [];
-    
+
     for (const uri of videoUris) {
       // For now, use a zero embedding as placeholder
       const embeddingSize = this.clipService.getCurrentModel().embeddingSize;
       embeddings.push(new Float32Array(embeddingSize));
     }
-    
+
     return embeddings;
   }
 
-  private async generateAudioEmbeddings(audioUris: string[]): Promise<Float32Array[]> {
+  private async generateAudioEmbeddings(
+    audioUris: string[],
+  ): Promise<Float32Array[]> {
     // Placeholder implementation
     // In production would integrate audio model (e.g., YAMNet, VGGish)
     const embeddings: Float32Array[] = [];
-    
+
     for (const uri of audioUris) {
       // For now, use a zero embedding as placeholder
       const embeddingSize = this.clipService.getCurrentModel().embeddingSize;
       embeddings.push(new Float32Array(embeddingSize));
     }
-    
+
     return embeddings;
   }
 
-  private async generateMetadataEmbeddings(metadata: Record<string, any>): Promise<Float32Array[]> {
+  private async generateMetadataEmbeddings(
+    metadata: Record<string, any>,
+  ): Promise<Float32Array[]> {
     // Convert metadata to text for embedding
     const metadataText = JSON.stringify(metadata);
-    const embeddings = await this.clipService.generateTextEmbeddings([metadataText]);
+    const embeddings = await this.clipService.generateTextEmbeddings([
+      metadataText,
+    ]);
     return embeddings;
   }
 
   private createMetadataText(photo: Photo): string {
     const parts: string[] = [];
-    
+
     if (photo.filename) {
       parts.push(photo.filename);
     }
-    
+
     if (photo.tags && photo.tags.length > 0) {
-      parts.push(photo.tags.join(' '));
+      parts.push(photo.tags.join(" "));
     }
-    
+
     if (photo.notes) {
       parts.push(photo.notes);
     }
-    
+
     if (photo.location) {
       parts.push(`location: ${photo.location}`);
     }
-    
-    return parts.join(' ');
+
+    return parts.join(" ");
   }
 
   // ─── SIMILARITY CALCULATION ───────────────────────────────
@@ -372,7 +426,7 @@ export class MultimodalSearchService {
   private async calculateCrossModalSimilarities(
     queryEmbeddings: Record<SearchModality, Float32Array[]>,
     candidateEmbeddings: Map<string, Record<SearchModality, Float32Array>>,
-    modalities: SearchModality[]
+    modalities: SearchModality[],
   ): Promise<Map<string, Record<SearchModality, number>>> {
     const similarities = new Map<string, Record<SearchModality, number>>();
 
@@ -388,7 +442,7 @@ export class MultimodalSearchService {
           const similarity = this.calculateModalitySimilarity(
             queryEmbedding[0],
             candidateEmbedding,
-            modality
+            modality,
           );
           photoSimilarities[modality] = similarity;
         } else {
@@ -405,30 +459,33 @@ export class MultimodalSearchService {
   private calculateModalitySimilarity(
     queryEmbedding: Float32Array,
     candidateEmbedding: Float32Array,
-    modality: SearchModality
+    modality: SearchModality,
   ): number {
     // Use cosine similarity for most modalities
-    let similarity = this.clipService.cosineSimilarity(queryEmbedding, candidateEmbedding);
+    let similarity = this.clipService.cosineSimilarity(
+      queryEmbedding,
+      candidateEmbedding,
+    );
 
     // Apply modality-specific adjustments
     switch (modality) {
-      case 'text':
+      case "text":
         // Text similarity might need different weighting
         similarity = similarity * 1.0;
         break;
-      case 'image':
+      case "image":
         // Visual similarity might be more reliable
         similarity = similarity * 1.1;
         break;
-      case 'video':
+      case "video":
         // Video similarity might be less reliable (placeholder)
         similarity = similarity * 0.8;
         break;
-      case 'audio':
+      case "audio":
         // Audio similarity might be less reliable (placeholder)
         similarity = similarity * 0.7;
         break;
-      case 'metadata':
+      case "metadata":
         // Metadata similarity might be less reliable
         similarity = similarity * 0.6;
         break;
@@ -442,25 +499,35 @@ export class MultimodalSearchService {
   private applyFusionStrategy(
     similarities: Map<string, Record<SearchModality, number>>,
     strategy: FusionStrategy,
-    customWeights?: ModalityWeights
-  ): Map<string, { overallScore: number; modalityScores: Record<SearchModality, number> }> {
+    customWeights?: ModalityWeights,
+  ): Map<
+    string,
+    { overallScore: number; modalityScores: Record<SearchModality, number> }
+  > {
     const weights = customWeights || strategy.weights;
-    const fusedResults = new Map<string, { overallScore: number; modalityScores: Record<SearchModality, number> }>();
+    const fusedResults = new Map<
+      string,
+      { overallScore: number; modalityScores: Record<SearchModality, number> }
+    >();
 
     for (const [photoId, modalityScores] of similarities.entries()) {
       let overallScore = 0;
 
       switch (strategy.aggregationMethod) {
-        case 'weighted':
+        case "weighted":
           overallScore = this.calculateWeightedScore(modalityScores, weights);
           break;
-        case 'max':
+        case "max":
           overallScore = Math.max(...Object.values(modalityScores));
           break;
-        case 'average':
-          overallScore = Object.values(modalityScores).reduce((sum, score) => sum + score, 0) / Object.values(modalityScores).length;
+        case "average":
+          overallScore =
+            Object.values(modalityScores).reduce(
+              (sum, score) => sum + score,
+              0,
+            ) / Object.values(modalityScores).length;
           break;
-        case 'adaptive':
+        case "adaptive":
           overallScore = this.calculateAdaptiveScore(modalityScores, weights);
           break;
       }
@@ -476,7 +543,7 @@ export class MultimodalSearchService {
 
   private calculateWeightedScore(
     modalityScores: Record<SearchModality, number>,
-    weights: ModalityWeights
+    weights: ModalityWeights,
   ): number {
     let score = 0;
     let totalWeight = 0;
@@ -492,20 +559,21 @@ export class MultimodalSearchService {
 
   private calculateAdaptiveScore(
     modalityScores: Record<SearchModality, number>,
-    baseWeights: ModalityWeights
+    baseWeights: ModalityWeights,
   ): number {
     // Adaptive weighting based on score distribution
     const scores = Object.values(modalityScores);
     const maxScore = Math.max(...scores);
-    const avgScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+    const avgScore =
+      scores.reduce((sum, score) => sum + score, 0) / scores.length;
 
     // Boost weights for modalities with high scores
     const adaptiveWeights: ModalityWeights = { ...baseWeights };
-    
+
     for (const [modality, score] of Object.entries(modalityScores)) {
       if (score > avgScore) {
         const boost = (score - avgScore) / (maxScore - avgScore);
-        adaptiveWeights[modality as SearchModality] *= (1 + boost * 0.5);
+        adaptiveWeights[modality as SearchModality] *= 1 + boost * 0.5;
       }
     }
 
@@ -514,7 +582,13 @@ export class MultimodalSearchService {
 
   private createAdaptiveStrategy(query: MultimodalQuery): FusionStrategy {
     // Create adaptive fusion strategy based on query content
-    const weights: ModalityWeights = { text: 0.2, image: 0.2, audio: 0.2, video: 0.2, metadata: 0.2 };
+    const weights: ModalityWeights = {
+      text: 0.2,
+      image: 0.2,
+      audio: 0.2,
+      video: 0.2,
+      metadata: 0.2,
+    };
 
     // Adjust weights based on query modalities
     if (query.text) {
@@ -534,26 +608,35 @@ export class MultimodalSearchService {
     }
 
     // Normalize weights
-    const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
+    const totalWeight = Object.values(weights).reduce(
+      (sum, weight) => sum + weight,
+      0,
+    );
     for (const modality of Object.keys(weights)) {
       weights[modality as SearchModality] /= totalWeight;
     }
 
     return {
-      name: 'Adaptive Query',
-      description: 'Automatically adapted to query content',
+      name: "Adaptive Query",
+      description: "Automatically adapted to query content",
       weights,
-      aggregationMethod: 'adaptive',
+      aggregationMethod: "adaptive",
     };
   }
 
   // ─── FILTERING AND RANKING ───────────────────────────────
 
   private applyFilters(
-    results: Map<string, { overallScore: number; modalityScores: Record<SearchModality, number> }>,
+    results: Map<
+      string,
+      { overallScore: number; modalityScores: Record<SearchModality, number> }
+    >,
     filters?: SearchFilters,
-    threshold?: number
-  ): Map<string, { overallScore: number; modalityScores: Record<SearchModality, number> }> {
+    threshold?: number,
+  ): Map<
+    string,
+    { overallScore: number; modalityScores: Record<SearchModality, number> }
+  > {
     const filteredResults = new Map();
 
     for (const [photoId, result] of results.entries()) {
@@ -571,11 +654,15 @@ export class MultimodalSearchService {
   }
 
   private rankResults(
-    results: Map<string, { overallScore: number; modalityScores: Record<SearchModality, number> }>
+    results: Map<
+      string,
+      { overallScore: number; modalityScores: Record<SearchModality, number> }
+    >,
   ): MultimodalResult[] {
     // Convert to array and sort by overall score
-    const sortedResults = Array.from(results.entries())
-      .sort(([, a], [, b]) => b.overallScore - a.overallScore);
+    const sortedResults = Array.from(results.entries()).sort(
+      ([, a], [, b]) => b.overallScore - a.overallScore,
+    );
 
     return sortedResults.map(([photoId, result], index) => ({
       photo: { id: photoId } as Photo, // Would need to get actual photo data
@@ -590,35 +677,37 @@ export class MultimodalSearchService {
 
   private validateQuery(query: MultimodalQuery): void {
     if (!query.modalities || query.modalities.length === 0) {
-      throw new Error('Query must specify at least one modality');
+      throw new Error("Query must specify at least one modality");
     }
 
     // Validate that query has content for specified modalities
     for (const modality of query.modalities) {
       switch (modality) {
-        case 'text':
+        case "text":
           if (!query.text) {
-            throw new Error('Text modality specified but no text provided');
+            throw new Error("Text modality specified but no text provided");
           }
           break;
-        case 'image':
+        case "image":
           if (!query.imageUris || query.imageUris.length === 0) {
-            throw new Error('Image modality specified but no images provided');
+            throw new Error("Image modality specified but no images provided");
           }
           break;
-        case 'video':
+        case "video":
           if (!query.videoUris || query.videoUris.length === 0) {
-            throw new Error('Video modality specified but no videos provided');
+            throw new Error("Video modality specified but no videos provided");
           }
           break;
-        case 'audio':
+        case "audio":
           if (!query.audioUris || query.audioUris.length === 0) {
-            throw new Error('Audio modality specified but no audio provided');
+            throw new Error("Audio modality specified but no audio provided");
           }
           break;
-        case 'metadata':
+        case "metadata":
           if (!query.metadata) {
-            throw new Error('Metadata modality specified but no metadata provided');
+            throw new Error(
+              "Metadata modality specified but no metadata provided",
+            );
           }
           break;
       }
@@ -641,21 +730,27 @@ export class MultimodalSearchService {
     embedding1: Float32Array,
     embedding2: Float32Array,
     sourceModality: SearchModality,
-    targetModality: SearchModality
+    targetModality: SearchModality,
   ): CrossModalSimilarity {
-    const similarity = this.clipService.cosineSimilarity(embedding1, embedding2);
-    
+    const similarity = this.clipService.cosineSimilarity(
+      embedding1,
+      embedding2,
+    );
+
     // Calculate confidence based on modality combination
     let confidence = 0.5; // Base confidence
-    
+
     // Higher confidence for same-modality comparisons
     if (sourceModality === targetModality) {
       confidence = 0.8;
     }
-    
+
     // Adjust confidence based on modality reliability
-    const reliableModalities: SearchModality[] = ['text', 'image'];
-    if (reliableModalities.includes(sourceModality) && reliableModalities.includes(targetModality)) {
+    const reliableModalities: SearchModality[] = ["text", "image"];
+    if (
+      reliableModalities.includes(sourceModality) &&
+      reliableModalities.includes(targetModality)
+    ) {
       confidence += 0.2;
     }
 
@@ -672,7 +767,7 @@ export class MultimodalSearchService {
    */
   explainResult(result: MultimodalResult): string {
     const explanations: string[] = [];
-    
+
     // Find contributing modalities
     const contributingModalities = Object.entries(result.modalityScores)
       .filter(([_, score]) => score > 0.1)
@@ -680,13 +775,15 @@ export class MultimodalSearchService {
       .map(([modality, score]) => `${modality} (${Math.round(score * 100)}%)`);
 
     if (contributingModalities.length > 0) {
-      explanations.push(`Match based on: ${contributingModalities.join(', ')}`);
+      explanations.push(`Match based on: ${contributingModalities.join(", ")}`);
     }
 
     // Add overall score explanation
-    explanations.push(`Overall similarity: ${Math.round(result.overallScore * 100)}%`);
+    explanations.push(
+      `Overall similarity: ${Math.round(result.overallScore * 100)}%`,
+    );
 
-    return explanations.join('. ');
+    return explanations.join(". ");
   }
 }
 

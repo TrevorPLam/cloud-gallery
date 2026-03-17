@@ -45,7 +45,7 @@ vi.mock("react-native", async () => {
   return {
     ...actual,
     Platform: {
-      OS: 'ios', // Default for tests
+      OS: "ios", // Default for tests
       select: (obj: any) => obj.ios || obj.default,
     },
   };
@@ -85,7 +85,7 @@ describe("NativeShareService", () => {
     // Get Platform from the mocked module
     const { Platform } = await import("react-native");
     // Reset platform to ios for each test
-    vi.mocked(Platform).OS = 'ios';
+    vi.mocked(Platform).OS = "ios";
     service = nativeShareService;
   });
 
@@ -100,9 +100,9 @@ describe("NativeShareService", () => {
   describe("isSharingAvailable", () => {
     it("should return true for web platform", async () => {
       const { Platform } = await import("react-native");
-      vi.mocked(Platform).OS = 'web';
+      vi.mocked(Platform).OS = "web";
       console.log("Platform.OS mocked as:", Platform.OS);
-      
+
       const result = await service.isSharingAvailable();
       console.log("Result:", result);
 
@@ -111,7 +111,7 @@ describe("NativeShareService", () => {
 
     it("should check expo-sharing availability for mobile platforms", async () => {
       const { Platform } = await import("react-native");
-      vi.mocked(Platform).OS = 'ios';
+      vi.mocked(Platform).OS = "ios";
       const { isAvailableAsync } = await import("expo-sharing");
       vi.mocked(isAvailableAsync).mockResolvedValue(true);
 
@@ -123,7 +123,7 @@ describe("NativeShareService", () => {
 
     it("should handle errors gracefully", async () => {
       const { Platform } = await import("react-native");
-      vi.mocked(Platform).OS = 'android';
+      vi.mocked(Platform).OS = "android";
       const { isAvailableAsync } = await import("expo-sharing");
       vi.mocked(isAvailableAsync).mockRejectedValue(
         new Error("Permission denied"),
@@ -153,7 +153,7 @@ describe("NativeShareService", () => {
     });
 
     it("should use react-native-share for multiple photos", async () => {
-      vi.mocked(Platform).OS = 'ios';
+      vi.mocked(Platform).OS = "ios";
       vi.spyOn(service, "isSharingAvailable").mockResolvedValue(true);
       const Share = await import("react-native-share");
       vi.mocked(Share.default.open).mockResolvedValue({
@@ -169,7 +169,7 @@ describe("NativeShareService", () => {
     });
 
     it("should use expo-sharing for single photo on web", async () => {
-      vi.mocked(Platform).OS = 'web';
+      vi.mocked(Platform).OS = "web";
       vi.spyOn(service, "isSharingAvailable").mockResolvedValue(true);
       const { shareAsync } = await import("expo-sharing");
       const mockShareAsync = vi.mocked(shareAsync);
@@ -185,7 +185,7 @@ describe("NativeShareService", () => {
     });
 
     it("should handle user cancellation", async () => {
-      vi.mocked(Platform).OS = 'android';
+      vi.mocked(Platform).OS = "android";
       vi.spyOn(service, "isSharingAvailable").mockResolvedValue(true);
       const Share = await import("react-native-share");
       vi.mocked(Share.default.open).mockRejectedValue(
@@ -199,7 +199,7 @@ describe("NativeShareService", () => {
     });
 
     it("should handle sharing errors", async () => {
-      vi.mocked(Platform).OS = 'ios';
+      vi.mocked(Platform).OS = "ios";
       vi.spyOn(service, "isSharingAvailable").mockResolvedValue(true);
       const Share = await import("react-native-share");
       vi.mocked(Share.default.open).mockRejectedValue(
@@ -222,7 +222,7 @@ describe("NativeShareService", () => {
     });
 
     it("should copy single photo URI to clipboard", async () => {
-      vi.mocked(Platform).OS = 'ios';
+      vi.mocked(Platform).OS = "ios";
       const { setString } = await import("expo-clipboard");
       vi.mocked(setString).mockImplementation();
 
@@ -234,7 +234,7 @@ describe("NativeShareService", () => {
     });
 
     it("should copy multiple photo URIs to clipboard", async () => {
-      vi.mocked(Platform).OS = 'android';
+      vi.mocked(Platform).OS = "android";
       const { setString } = await import("expo-clipboard");
       vi.mocked(setString).mockImplementation();
 
@@ -246,7 +246,7 @@ describe("NativeShareService", () => {
     });
 
     it("should use setStringAsync on web platform", async () => {
-      vi.mocked(Platform).OS = 'web';
+      vi.mocked(Platform).OS = "web";
       const { setStringAsync } = await import("expo-clipboard");
       const mockSetStringAsync = vi.mocked(setStringAsync);
       mockSetStringAsync.mockResolvedValue(true);
@@ -259,7 +259,7 @@ describe("NativeShareService", () => {
     });
 
     it("should handle clipboard errors", async () => {
-      vi.mocked(Platform).OS = 'ios';
+      vi.mocked(Platform).OS = "ios";
       const { setString } = await import("expo-clipboard");
       vi.mocked(setString).mockRejectedValue(new Error("Clipboard denied"));
 
@@ -373,7 +373,7 @@ describe("NativeShareService", () => {
 
   describe("getAvailableShareMethods", () => {
     it("should return all methods for mobile platforms", () => {
-      vi.mocked(Platform).OS = 'ios';
+      vi.mocked(Platform).OS = "ios";
 
       const methods = service.getAvailableShareMethods();
 
@@ -383,7 +383,7 @@ describe("NativeShareService", () => {
     });
 
     it("should exclude device method for web", () => {
-      vi.mocked(Platform).OS = 'web';
+      vi.mocked(Platform).OS = "web";
 
       const methods = service.getAvailableShareMethods();
 
@@ -403,7 +403,7 @@ describe("NativeShareService", () => {
 
   describe("Platform-specific options", () => {
     it("should return iOS-specific options", () => {
-      vi.mocked(Platform).OS = 'ios';
+      vi.mocked(Platform).OS = "ios";
 
       const options = service.getPlatformSpecificOptions();
 
@@ -414,7 +414,7 @@ describe("NativeShareService", () => {
     });
 
     it("should return Android-specific options", () => {
-      vi.mocked(Platform).OS = 'android';
+      vi.mocked(Platform).OS = "android";
 
       const options = service.getPlatformSpecificOptions();
 
@@ -423,7 +423,7 @@ describe("NativeShareService", () => {
     });
 
     it("should return empty options for web", () => {
-      vi.mocked(Platform).OS = 'web';
+      vi.mocked(Platform).OS = "web";
 
       const options = service.getPlatformSpecificOptions();
 
@@ -433,7 +433,7 @@ describe("NativeShareService", () => {
 
   describe("Error Handling", () => {
     it("should handle network errors gracefully", async () => {
-      vi.mocked(Platform).OS = 'ios';
+      vi.mocked(Platform).OS = "ios";
       vi.spyOn(service, "isSharingAvailable").mockResolvedValue(true);
       const Share = await import("react-native-share");
       vi.mocked(Share.default.open).mockRejectedValue(
@@ -477,7 +477,7 @@ describe("NativeShareService", () => {
         uri: `file:///path/to/photo${i}.jpg`,
       }));
 
-      vi.mocked(Platform).OS = 'ios';
+      vi.mocked(Platform).OS = "ios";
       vi.spyOn(service, "isSharingAvailable").mockResolvedValue(true);
       const Share = await import("react-native-share");
       vi.mocked(Share.default.open).mockResolvedValue({
@@ -501,7 +501,7 @@ describe("NativeShareService", () => {
         { ...mockPhotos[1], uri: null as any },
       ];
 
-      vi.mocked(Platform).OS = 'ios';
+      vi.mocked(Platform).OS = "ios";
       vi.spyOn(service, "isSharingAvailable").mockResolvedValue(true);
       const Share = await import("react-native-share");
       vi.mocked(Share.default.open).mockRejectedValue(new Error("Invalid URI"));
@@ -512,7 +512,7 @@ describe("NativeShareService", () => {
     });
 
     it("should handle concurrent share requests", async () => {
-      vi.mocked(Platform).OS = 'ios';
+      vi.mocked(Platform).OS = "ios";
       vi.spyOn(service, "isSharingAvailable").mockResolvedValue(true);
       const Share = await import("react-native-share");
       vi.mocked(Share.default.open).mockResolvedValue({

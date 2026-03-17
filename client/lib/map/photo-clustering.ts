@@ -9,23 +9,23 @@
 // AI-META-END
 
 // Conditional imports for testing
+import { Photo } from "@/types";
+
 let Supercluster: any;
 let geoViewport: any;
 
-if (process.env.NODE_ENV === 'test') {
-  Supercluster = require('./__mocks__/supercluster.ts').default;
-  geoViewport = require('./__mocks__/geo-viewport.ts').default;
+if (process.env.NODE_ENV === "test") {
+  Supercluster = require("./__mocks__/supercluster.ts").default;
+  geoViewport = require("./__mocks__/geo-viewport.ts").default;
 } else {
-  Supercluster = require('supercluster').default;
-  geoViewport = require('@mapbox/geo-viewport').default;
+  Supercluster = require("supercluster").default;
+  geoViewport = require("@mapbox/geo-viewport").default;
 }
 
-import { Photo } from '@/types';
-
 export interface ClusterPoint {
-  type: 'Feature';
+  type: "Feature";
   geometry: {
-    type: 'Point';
+    type: "Point";
     coordinates: [number, number]; // [longitude, latitude]
   };
   properties: {
@@ -73,7 +73,7 @@ export class PhotoClusteringService {
     this.options = {
       radius: 60, // Cluster radius in pixels
       maxZoom: 20, // Maximum zoom level for clustering
-      minZoom: 0,  // Minimum zoom level for clustering
+      minZoom: 0, // Minimum zoom level for clustering
       extent: 512, // Tile extent
       nodeSize: 64, // Node size for KD-tree
       ...options,
@@ -87,11 +87,11 @@ export class PhotoClusteringService {
    */
   private photosToPoints(photos: Photo[]): ClusterPoint[] {
     return photos
-      .filter(photo => this.isValidLocation(photo.location))
-      .map(photo => ({
-        type: 'Feature' as const,
+      .filter((photo) => this.isValidLocation(photo.location))
+      .map((photo) => ({
+        type: "Feature" as const,
         geometry: {
-          type: 'Point' as const,
+          type: "Point" as const,
           coordinates: [photo.location!.longitude, photo.location!.latitude],
         },
         properties: {
@@ -106,11 +106,13 @@ export class PhotoClusteringService {
   /**
    * Validate that location data is complete and valid
    */
-  private isValidLocation(location: any): location is NonNullable<Photo['location']> {
+  private isValidLocation(
+    location: any,
+  ): location is NonNullable<Photo["location"]> {
     return (
       location &&
-      typeof location.latitude === 'number' &&
-      typeof location.longitude === 'number' &&
+      typeof location.latitude === "number" &&
+      typeof location.longitude === "number" &&
       location.latitude >= -90 &&
       location.latitude <= 90 &&
       location.longitude >= -180 &&
@@ -147,12 +149,12 @@ export class PhotoClusteringService {
     center: { latitude: number; longitude: number },
     zoom: number,
     width: number,
-    height: number
+    height: number,
   ): ClusterPoint[] {
     const bounds = geoViewport.bounds(
       [center.longitude, center.latitude],
       zoom,
-      [width, height]
+      [width, height],
     );
 
     const viewportBounds: ViewportBounds = {
@@ -185,7 +187,7 @@ export class PhotoClusteringService {
   findNearestCluster(
     point: { latitude: number; longitude: number },
     zoom: number,
-    maxDistance = 100 // in kilometers
+    maxDistance = 100, // in kilometers
   ): ClusterPoint | null {
     const nearbyClusters = this.getClusters(
       {
@@ -198,20 +200,17 @@ export class PhotoClusteringService {
           longitude: point.longitude - 0.5,
         },
       },
-      zoom
+      zoom,
     );
 
     let nearestCluster: ClusterPoint | null = null;
     let minDistance = maxDistance;
 
     for (const cluster of nearbyClusters) {
-      const distance = this.calculateDistance(
-        point,
-        {
-          latitude: cluster.geometry.coordinates[1],
-          longitude: cluster.geometry.coordinates[0],
-        }
-      );
+      const distance = this.calculateDistance(point, {
+        latitude: cluster.geometry.coordinates[1],
+        longitude: cluster.geometry.coordinates[0],
+      });
 
       if (distance < minDistance) {
         minDistance = distance;
@@ -227,7 +226,7 @@ export class PhotoClusteringService {
    */
   private calculateDistance(
     point1: { latitude: number; longitude: number },
-    point2: { latitude: number; longitude: number }
+    point2: { latitude: number; longitude: number },
   ): number {
     const R = 6371; // Earth's radius in kilometers
     const dLat = this.toRadians(point2.latitude - point1.latitude);
@@ -258,8 +257,12 @@ export class PhotoClusteringService {
     averagePointsPerCluster: number;
   } {
     const totalPoints = this.points.length;
-    const clusterCount = this.points.length > 0 ? this.cluster.getClusters([-180, -85, 180, 85], 0).length : 0;
-    const averagePointsPerCluster = clusterCount > 0 ? totalPoints / clusterCount : 0;
+    const clusterCount =
+      this.points.length > 0
+        ? this.cluster.getClusters([-180, -85, 180, 85], 0).length
+        : 0;
+    const averagePointsPerCluster =
+      clusterCount > 0 ? totalPoints / clusterCount : 0;
 
     return {
       totalPoints,
@@ -311,7 +314,9 @@ export const photoClusteringService = new PhotoClusteringService();
 /**
  * Utility function to create clustering service with custom options
  */
-export function createPhotoClusteringService(options: ClusterOptions): PhotoClusteringService {
+export function createPhotoClusteringService(
+  options: ClusterOptions,
+): PhotoClusteringService {
   return new PhotoClusteringService(options);
 }
 
@@ -326,8 +331,11 @@ export function isCluster(point: ClusterPoint): boolean {
  * Utility function to get cluster size display text
  */
 export function getClusterSizeText(point: ClusterPoint): string {
-  if (!isCluster(point)) return '';
-  return point.properties.point_count_abbreviated || String(point.properties.point_count || 0);
+  if (!isCluster(point)) return "";
+  return (
+    point.properties.point_count_abbreviated ||
+    String(point.properties.point_count || 0)
+  );
 }
 
 /**
@@ -336,8 +344,11 @@ export function getClusterSizeText(point: ClusterPoint): string {
 export function getClusterPhotos(
   cluster: ClusterPoint,
   clusteringService: PhotoClusteringService,
-  limit = 10
+  limit = 10,
 ): ClusterPoint[] {
   if (!isCluster(cluster) || !cluster.properties.cluster_id) return [];
-  return clusteringService.getClusterLeaves(cluster.properties.cluster_id, limit);
+  return clusteringService.getClusterLeaves(
+    cluster.properties.cluster_id,
+    limit,
+  );
 }

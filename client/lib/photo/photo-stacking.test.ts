@@ -17,7 +17,16 @@ import {
   getStackSummary,
 } from "./photo-stacking";
 import { Photo } from "@/types";
-import type { PhotoStack, StackingConfig, StackingResult } from "./photo-stacking";
+import type {
+  PhotoStack,
+  StackingConfig,
+  StackingResult,
+} from "./photo-stacking";
+
+import { getPhotos, savePhotos } from "../storage";
+import { getPerceptualHasher, generateCompositeHash } from "./perceptual-hash";
+import { getBurstDetector, extractPhotoMetadata } from "./burst-detection";
+import { getPhotoQualityScorer } from "./quality-score";
 
 // Mock dependencies
 vi.mock("../storage", () => ({
@@ -40,11 +49,6 @@ vi.mock("./quality-score", () => ({
   getQualityRating: vi.fn(),
 }));
 
-import { getPhotos, savePhotos } from "../storage";
-import { getPerceptualHasher, generateCompositeHash } from "./perceptual-hash";
-import { getBurstDetector, extractPhotoMetadata } from "./burst-detection";
-import { getPhotoQualityScorer } from "./quality-score";
-
 // ─────────────────────────────────────────────────────────
 // TEST SETUP AND TEARDOWN
 // ─────────────────────────────────────────────────────────
@@ -55,7 +59,7 @@ describe("PhotoStackingService", () => {
 
   beforeEach(() => {
     service = new PhotoStackingService();
-    
+
     // Create mock photo data
     const baseTime = Date.now();
     mockPhotos = Array.from({ length: 20 }, (_, i) => ({
@@ -76,15 +80,19 @@ describe("PhotoStackingService", () => {
 
     // Mock perceptual hasher
     const mockHasher = {
-      compareHashes: vi.fn((hash1: string, hash2: string, threshold: number) => ({
-        distance: Math.floor(Math.random() * 20),
-        similarity: Math.random(),
-        isDuplicate: Math.random() < 0.3,
-        threshold,
-      })),
+      compareHashes: vi.fn(
+        (hash1: string, hash2: string, threshold: number) => ({
+          distance: Math.floor(Math.random() * 20),
+          similarity: Math.random(),
+          isDuplicate: Math.random() < 0.3,
+          threshold,
+        }),
+      ),
     };
     (getPerceptualHasher as any).mockReturnValue(mockHasher);
-    (generateCompositeHash as any).mockResolvedValue(`hash_${Math.random().toString(36)}`);
+    (generateCompositeHash as any).mockResolvedValue(
+      `hash_${Math.random().toString(36)}`,
+    );
 
     // Mock burst detector
     const mockBurstDetector = {
@@ -104,12 +112,14 @@ describe("PhotoStackingService", () => {
     (getPhotoQualityScorer as any).mockReturnValue(mockQualityScorer);
 
     // Mock metadata extraction
-    (extractPhotoMetadata as any).mockImplementation((uri: string, id: string) => ({
-      id,
-      uri,
-      timestamp: Date.now(),
-      fileTimestamp: Date.now(),
-    }));
+    (extractPhotoMetadata as any).mockImplementation(
+      (uri: string, id: string) => ({
+        id,
+        uri,
+        timestamp: Date.now(),
+        fileTimestamp: Date.now(),
+      }),
+    );
   });
 
   afterEach(() => {
@@ -126,32 +136,35 @@ describe("PhotoStackingService", () => {
       await expect(
         fc.assert(
           fc.asyncProperty(
-            fc.array(fc.record({
-              id: fc.string(),
-              uri: fc.webUrl(),
-              width: fc.integer({ min: 100, max: 4000 }),
-              height: fc.integer({ min: 100, max: 4000 }),
-              createdAt: fc.timestamp(),
-              modifiedAt: fc.timestamp(),
-              filename: fc.string(),
-              isFavorite: fc.boolean(),
-              albumIds: fc.array(fc.string()),
-            }), { minLength: 5, maxLength: 20 }),
+            fc.array(
+              fc.record({
+                id: fc.string(),
+                uri: fc.webUrl(),
+                width: fc.integer({ min: 100, max: 4000 }),
+                height: fc.integer({ min: 100, max: 4000 }),
+                createdAt: fc.timestamp(),
+                modifiedAt: fc.timestamp(),
+                filename: fc.string(),
+                isFavorite: fc.boolean(),
+                albumIds: fc.array(fc.string()),
+              }),
+              { minLength: 5, maxLength: 20 },
+            ),
             async (photos: Photo[]) => {
               (getPhotos as any).mockResolvedValue(photos);
-              
+
               const service = new PhotoStackingService();
               const result = await service.analyzeAndStackPhotos();
 
               // All stack IDs should be unique
-              const stackIds = result.stacks.map(stack => stack.id);
+              const stackIds = result.stacks.map((stack) => stack.id);
               const uniqueIds = new Set(stackIds);
-              
+
               expect(uniqueIds.size).toBe(stackIds.length);
             },
           ),
           { numRuns: 5 },
-        )
+        ),
       ).resolves.toBeUndefined();
     });
 
@@ -159,32 +172,35 @@ describe("PhotoStackingService", () => {
       await expect(
         fc.assert(
           fc.asyncProperty(
-            fc.array(fc.record({
-              id: fc.string(),
-              uri: fc.webUrl(),
-              width: fc.integer({ min: 100, max: 4000 }),
-              height: fc.integer({ min: 100, max: 4000 }),
-              createdAt: fc.timestamp(),
-              modifiedAt: fc.timestamp(),
-              filename: fc.string(),
-              isFavorite: fc.boolean(),
-              albumIds: fc.array(fc.string()),
-            }), { minLength: 5, maxLength: 20 }),
+            fc.array(
+              fc.record({
+                id: fc.string(),
+                uri: fc.webUrl(),
+                width: fc.integer({ min: 100, max: 4000 }),
+                height: fc.integer({ min: 100, max: 4000 }),
+                createdAt: fc.timestamp(),
+                modifiedAt: fc.timestamp(),
+                filename: fc.string(),
+                isFavorite: fc.boolean(),
+                albumIds: fc.array(fc.string()),
+              }),
+              { minLength: 5, maxLength: 20 },
+            ),
             async (photos: Photo[]) => {
               (getPhotos as any).mockResolvedValue(photos);
-              
+
               const service = new PhotoStackingService();
               const result = await service.analyzeAndStackPhotos();
 
               // All stacks should have at least 2 photos
-              result.stacks.forEach(stack => {
+              result.stacks.forEach((stack) => {
                 expect(stack.photoIds.length).toBeGreaterThanOrEqual(2);
                 expect(stack.photoIds.length).toBeLessThanOrEqual(10); // Default max
               });
             },
           ),
           { numRuns: 5 },
-        )
+        ),
       ).resolves.toBeUndefined();
     });
 
@@ -192,32 +208,35 @@ describe("PhotoStackingService", () => {
       await expect(
         fc.assert(
           fc.asyncProperty(
-            fc.array(fc.record({
-              id: fc.string(),
-              uri: fc.webUrl(),
-              width: fc.integer({ min: 100, max: 4000 }),
-              height: fc.integer({ min: 100, max: 4000 }),
-              createdAt: fc.timestamp(),
-              modifiedAt: fc.timestamp(),
-              filename: fc.string(),
-              isFavorite: fc.boolean(),
-              albumIds: fc.array(fc.string()),
-            }), { minLength: 5, maxLength: 20 }),
+            fc.array(
+              fc.record({
+                id: fc.string(),
+                uri: fc.webUrl(),
+                width: fc.integer({ min: 100, max: 4000 }),
+                height: fc.integer({ min: 100, max: 4000 }),
+                createdAt: fc.timestamp(),
+                modifiedAt: fc.timestamp(),
+                filename: fc.string(),
+                isFavorite: fc.boolean(),
+                albumIds: fc.array(fc.string()),
+              }),
+              { minLength: 5, maxLength: 20 },
+            ),
             async (photos: Photo[]) => {
               (getPhotos as any).mockResolvedValue(photos);
-              
+
               const service = new PhotoStackingService();
               const result = await service.analyzeAndStackPhotos();
 
               // All confidence scores should be valid
-              result.stacks.forEach(stack => {
+              result.stacks.forEach((stack) => {
                 expect(stack.confidence).toBeGreaterThanOrEqual(0);
                 expect(stack.confidence).toBeLessThanOrEqual(1);
               });
             },
           ),
           { numRuns: 5 },
-        )
+        ),
       ).resolves.toBeUndefined();
     });
 
@@ -225,20 +244,23 @@ describe("PhotoStackingService", () => {
       await expect(
         fc.assert(
           fc.asyncProperty(
-            fc.array(fc.record({
-              id: fc.string(),
-              uri: fc.webUrl(),
-              width: fc.integer({ min: 100, max: 4000 }),
-              height: fc.integer({ min: 100, max: 4000 }),
-              createdAt: fc.timestamp(),
-              modifiedAt: fc.timestamp(),
-              filename: fc.string(),
-              isFavorite: fc.boolean(),
-              albumIds: fc.array(fc.string()),
-            }), { minLength: 5, maxLength: 20 }),
+            fc.array(
+              fc.record({
+                id: fc.string(),
+                uri: fc.webUrl(),
+                width: fc.integer({ min: 100, max: 4000 }),
+                height: fc.integer({ min: 100, max: 4000 }),
+                createdAt: fc.timestamp(),
+                modifiedAt: fc.timestamp(),
+                filename: fc.string(),
+                isFavorite: fc.boolean(),
+                albumIds: fc.array(fc.string()),
+              }),
+              { minLength: 5, maxLength: 20 },
+            ),
             async (photos: Photo[]) => {
               (getPhotos as any).mockResolvedValue(photos);
-              
+
               const service = new PhotoStackingService();
               const startTime = Date.now();
               const result = await service.analyzeAndStackPhotos();
@@ -251,7 +273,7 @@ describe("PhotoStackingService", () => {
             },
           ),
           { numRuns: 5 },
-        )
+        ),
       ).resolves.toBeUndefined();
     });
 
@@ -259,35 +281,40 @@ describe("PhotoStackingService", () => {
       await expect(
         fc.assert(
           fc.asyncProperty(
-            fc.array(fc.record({
-              id: fc.string(),
-              uri: fc.webUrl(),
-              width: fc.integer({ min: 100, max: 4000 }),
-              height: fc.integer({ min: 100, max: 4000 }),
-              createdAt: fc.timestamp(),
-              modifiedAt: fc.timestamp(),
-              filename: fc.string(),
-              isFavorite: fc.boolean(),
-              albumIds: fc.array(fc.string()),
-            }), { minLength: 5, maxLength: 20 }),
+            fc.array(
+              fc.record({
+                id: fc.string(),
+                uri: fc.webUrl(),
+                width: fc.integer({ min: 100, max: 4000 }),
+                height: fc.integer({ min: 100, max: 4000 }),
+                createdAt: fc.timestamp(),
+                modifiedAt: fc.timestamp(),
+                filename: fc.string(),
+                isFavorite: fc.boolean(),
+                albumIds: fc.array(fc.string()),
+              }),
+              { minLength: 5, maxLength: 20 },
+            ),
             async (photos: Photo[]) => {
               (getPhotos as any).mockResolvedValue(photos);
-              
+
               const service = new PhotoStackingService();
               const result = await service.analyzeAndStackPhotos();
 
               // Total photos should match input
               expect(result.totalPhotos).toBe(photos.length);
-              
+
               // Photos in stacks should not exceed total
               expect(result.photosInStacks).toBeLessThanOrEqual(photos.length);
-              
+
               // Number of stacks should be reasonable
-              expect(result.stacksCreated).toBeLessThanOrEqual(Math.floor(photos.length / 2));
+              expect(result.stacksCreated).toBeLessThanOrEqual(
+                Math.floor(photos.length / 2),
+              );
             },
           ),
           { numRuns: 5 },
-        )
+        ),
       ).resolves.toBeUndefined();
     });
   });
@@ -353,7 +380,7 @@ describe("PhotoStackingService", () => {
       const result = await service.analyzeAndStackPhotos();
 
       expect(result.stacks.length).toBeGreaterThan(0);
-      expect(result.stacks.some(stack => stack.type === "burst")).toBe(true);
+      expect(result.stacks.some((stack) => stack.type === "burst")).toBe(true);
     });
 
     it("should create duplicate stacks for similar photos", async () => {
@@ -370,7 +397,9 @@ describe("PhotoStackingService", () => {
       const result = await service.analyzeAndStackPhotos();
 
       expect(result.stacks.length).toBeGreaterThan(0);
-      expect(result.stacks.some(stack => stack.type === "duplicate")).toBe(true);
+      expect(result.stacks.some((stack) => stack.type === "duplicate")).toBe(
+        true,
+      );
     });
 
     it("should select best photo based on quality", async () => {
@@ -389,9 +418,9 @@ describe("PhotoStackingService", () => {
 
       const result = await service.analyzeAndStackPhotos();
 
-      result.stacks.forEach(stack => {
+      result.stacks.forEach((stack) => {
         const bestPhotoIndex = parseInt(stack.bestPhotoId.split("_")[1]);
-        stack.photoIds.forEach(photoId => {
+        stack.photoIds.forEach((photoId) => {
           const photoIndex = parseInt(photoId.split("_")[1]);
           expect(bestPhotoIndex).toBeGreaterThanOrEqual(photoIndex);
         });
@@ -434,8 +463,10 @@ describe("PhotoStackingService", () => {
       if (stacks.length === 0) return;
 
       const stack = stacks[0];
-      const alternativePhotoId = stack.photoIds.find(id => id !== stack.bestPhotoId);
-      
+      const alternativePhotoId = stack.photoIds.find(
+        (id) => id !== stack.bestPhotoId,
+      );
+
       if (alternativePhotoId) {
         await service.selectBestPhoto(stack.id, alternativePhotoId);
         expect(savePhotos).toHaveBeenCalled();
@@ -514,7 +545,9 @@ describe("PhotoStackingService", () => {
 
   describe("Configuration", () => {
     it("should use custom duplicate threshold", async () => {
-      const customService = new PhotoStackingService({ duplicateThreshold: 10 });
+      const customService = new PhotoStackingService({
+        duplicateThreshold: 10,
+      });
 
       const mockHasher = {
         compareHashes: vi.fn().mockReturnValue({
@@ -529,7 +562,9 @@ describe("PhotoStackingService", () => {
       const result = await customService.analyzeAndStackPhotos();
 
       // Should not create duplicate stacks with higher threshold
-      expect(result.stacks.filter(s => s.type === "duplicate")).toHaveLength(0);
+      expect(result.stacks.filter((s) => s.type === "duplicate")).toHaveLength(
+        0,
+      );
     });
 
     it("should respect max photos per stack", async () => {
@@ -537,9 +572,9 @@ describe("PhotoStackingService", () => {
 
       // This would require more complex mocking to test properly
       const result = await customService.analyzeAndStackPhotos();
-      
+
       expect(Array.isArray(result.stacks)).toBe(true);
-      result.stacks.forEach(stack => {
+      result.stacks.forEach((stack) => {
         expect(stack.photoIds.length).toBeLessThanOrEqual(3);
       });
     });
@@ -550,7 +585,7 @@ describe("PhotoStackingService", () => {
       const result = await customService.analyzeAndStackPhotos();
 
       // Should not have burst stacks
-      expect(result.stacks.filter(s => s.type === "burst")).toHaveLength(0);
+      expect(result.stacks.filter((s) => s.type === "burst")).toHaveLength(0);
     });
   });
 
@@ -619,8 +654,8 @@ describe("PhotoStackingService", () => {
           keepStrategy: "all",
         },
         analysis: {
-          hashSimilarities: { "photo_1": 1.0, "photo_2": 0.95 },
-          qualityScores: { "photo_1": 85, "photo_2": 75 },
+          hashSimilarities: { photo_1: 1.0, photo_2: 0.95 },
+          qualityScores: { photo_1: 85, photo_2: 75 },
         },
       };
 
@@ -657,26 +692,32 @@ describe("PhotoStackingService", () => {
     it("should handle storage errors gracefully", async () => {
       (getPhotos as any).mockRejectedValue(new Error("Storage error"));
 
-      await expect(service.analyzeAndStackPhotos()).rejects.toThrow("Storage error");
+      await expect(service.analyzeAndStackPhotos()).rejects.toThrow(
+        "Storage error",
+      );
     });
 
     it("should handle hashing errors gracefully", async () => {
-      (generateCompositeHash as any).mockRejectedValue(new Error("Hashing error"));
+      (generateCompositeHash as any).mockRejectedValue(
+        new Error("Hashing error"),
+      );
 
       const result = await service.analyzeAndStackPhotos();
-      
+
       // Should still complete but with fallback behavior
       expect(result.totalPhotos).toBe(mockPhotos.length);
     });
 
     it("should handle quality scoring errors gracefully", async () => {
       const mockQualityScorer = {
-        quickQualityCheck: vi.fn().mockRejectedValue(new Error("Quality error")),
+        quickQualityCheck: vi
+          .fn()
+          .mockRejectedValue(new Error("Quality error")),
       };
       (getPhotoQualityScorer as any).mockReturnValue(mockQualityScorer);
 
       const result = await service.analyzeAndStackPhotos();
-      
+
       // Should still complete but with fallback quality scores
       expect(result.totalPhotos).toBe(mockPhotos.length);
     });
@@ -686,7 +727,7 @@ describe("PhotoStackingService", () => {
       if (stacks.length === 0) return;
 
       await expect(
-        service.selectBestPhoto(stacks[0].id, "invalid_photo_id")
+        service.selectBestPhoto(stacks[0].id, "invalid_photo_id"),
       ).rejects.toThrow("Photo not found in stack");
     });
   });
@@ -730,7 +771,9 @@ describe("PhotoStackingService", () => {
       }
 
       const avgTime = times.reduce((sum, time) => sum + time, 0) / times.length;
-      const variance = times.reduce((sum, time) => sum + (time - avgTime) ** 2, 0) / times.length;
+      const variance =
+        times.reduce((sum, time) => sum + (time - avgTime) ** 2, 0) /
+        times.length;
 
       // Performance should be relatively consistent
       expect(Math.sqrt(variance)).toBeLessThan(avgTime);
@@ -750,7 +793,7 @@ describe("PhotoStackingService Integration", () => {
 
   it("should integrate all components correctly", async () => {
     const service = getPhotoStackingService();
-    
+
     // Mock all dependencies to work together
     const mockHasher = {
       compareHashes: vi.fn((hash1: string, hash2: string) => ({
@@ -793,11 +836,11 @@ describe("PhotoStackingService Integration", () => {
 
     expect(result.totalPhotos).toBeGreaterThan(0);
     expect(result.stacks.length).toBeGreaterThan(0);
-    
+
     // Should have both burst and other types of stacks
-    const stackTypes = result.stacks.map(s => s.type);
+    const stackTypes = result.stacks.map((s) => s.type);
     expect(stackTypes).toContain("burst");
-    
+
     // Verify all components were called
     expect(getPerceptualHasher).toHaveBeenCalled();
     expect(getBurstDetector).toHaveBeenCalled();
@@ -808,11 +851,13 @@ describe("PhotoStackingService Integration", () => {
     const service = getPhotoStackingService();
 
     // Run multiple analyses concurrently
-    const promises = Array(3).fill(null).map(() => service.analyzeAndStackPhotos());
+    const promises = Array(3)
+      .fill(null)
+      .map(() => service.analyzeAndStackPhotos());
     const results = await Promise.all(promises);
 
     // All should complete successfully
-    results.forEach(result => {
+    results.forEach((result) => {
       expect(result.totalPhotos).toBeGreaterThan(0);
       expect(Array.isArray(result.stacks)).toBe(true);
     });
