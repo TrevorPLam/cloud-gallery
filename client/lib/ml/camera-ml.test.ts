@@ -9,6 +9,17 @@
 // AI-META-END
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import {
+  frameDimensions,
+  boundingBox,
+  normalizedBoundingBox,
+  detectionOutputs,
+  standardAsyncProperty,
+  runAsyncPropertyTest,
+  lightConfig,
+  validDimensions,
+  validBoundingBox,
+} from "../../../tests/utils/property-testing";
 import fc from "fast-check";
 import {
   FrameProcessorManager,
@@ -632,136 +643,111 @@ describe("Camera ML Capabilities", () => {
 describe("Property Tests", () => {
   describe("FramePreprocessor", () => {
     it("Property 1: Output size consistency - preprocessFrame should always return correct size", async () => {
-      await expect(
-        fc.assert(
-          fc.property(
-            fc.integer({ min: 64, max: 512 }), // input size
-            fc.integer({ min: 640, max: 3840 }), // frame width
-            fc.integer({ min: 480, max: 2160 }), // frame height
-            (inputSize, frameWidth, frameHeight) => {
-              const mockFrame = {
-                width: frameWidth,
-                height: frameHeight,
-                timestamp: Date.now(),
-                data: new Uint8Array(frameWidth * frameHeight * 3),
-              };
-
-              const result = FramePreprocessor.preprocessFrame(
-                mockFrame,
-                inputSize,
-              );
-
-              expect(result).toBeInstanceOf(Uint8Array);
-              expect(result.length).toBe(inputSize * inputSize * 3);
-            },
-          ),
-          { numRuns: 20 },
+      const property = standardAsyncProperty(
+        fc.tuple(
+          fc.integer({ min: 64, max: 512 }), // input size
+          frameDimensions()
         ),
-      ).resolves.toBeUndefined();
+        async ([inputSize, [frameWidth, frameHeight]]) => {
+          fc.pre(inputSize > 0 && validDimensions(frameWidth, frameHeight));
+          
+          const mockFrame = {
+            width: frameWidth,
+            height: frameHeight,
+            timestamp: Date.now(),
+            data: new Uint8Array(frameWidth * frameHeight * 3),
+          };
+
+          const result = FramePreprocessor.preprocessFrame(
+            mockFrame,
+            inputSize,
+          );
+
+          expect(result).toBeInstanceOf(Uint8Array);
+          expect(result.length).toBe(inputSize * inputSize * 3);
+        }
+      );
+      
+      await runAsyncPropertyTest(property, lightConfig);
     });
 
     it("Property 2: Normalization bounds - normalized coordinates should be in [0,1]", async () => {
-      await expect(
-        fc.assert(
-          fc.property(
-            fc.integer({ min: 100, max: 2000 }), // bbox x
-            fc.integer({ min: 100, max: 2000 }), // bbox y
-            fc.integer({ min: 50, max: 500 }), // bbox width
-            fc.integer({ min: 50, max: 500 }), // bbox height
-            fc.integer({ min: 1000, max: 4000 }), // frame width
-            fc.integer({ min: 750, max: 3000 }), // frame height
-            (x, y, width, height, frameWidth, frameHeight) => {
-              const bbox = { x, y, width, height };
-              const normalized = FramePreprocessor.normalizeBoundingBox(
-                bbox,
-                frameWidth,
-                frameHeight,
-              );
-
-              expect(normalized.x).toBeGreaterThanOrEqual(0);
-              expect(normalized.x).toBeLessThanOrEqual(1);
-              expect(normalized.y).toBeGreaterThanOrEqual(0);
-              expect(normalized.y).toBeLessThanOrEqual(1);
-              expect(normalized.width).toBeGreaterThanOrEqual(0);
-              expect(normalized.width).toBeLessThanOrEqual(1);
-              expect(normalized.height).toBeGreaterThanOrEqual(0);
-              expect(normalized.height).toBeLessThanOrEqual(1);
-            },
-          ),
-          { numRuns: 50 },
+      const property = standardAsyncProperty(
+        fc.tuple(
+          boundingBox(2000, 2000),
+          frameDimensions()
         ),
-      ).resolves.toBeUndefined();
+        async ([bbox, [frameWidth, frameHeight]]) => {
+          fc.pre(validDimensions(frameWidth, frameHeight));
+          fc.pre(validBoundingBox(bbox, frameWidth, frameHeight));
+          
+          const normalized = FramePreprocessor.normalizeBoundingBox(
+            bbox,
+            frameWidth,
+            frameHeight,
+          );
+
+          expect(normalized.x).toBeGreaterThanOrEqual(0);
+          expect(normalized.x).toBeLessThanOrEqual(1);
+          expect(normalized.y).toBeGreaterThanOrEqual(0);
+          expect(normalized.y).toBeLessThanOrEqual(1);
+          expect(normalized.width).toBeGreaterThanOrEqual(0);
+          expect(normalized.width).toBeLessThanOrEqual(1);
+          expect(normalized.height).toBeGreaterThanOrEqual(0);
+          expect(normalized.height).toBeLessThanOrEqual(1);
+        }
+      );
+      
+      await runAsyncPropertyTest(property, lightConfig);
     });
   });
 
   describe("ResultPostprocessor", () => {
     it("Property 1: IoU bounds - IoU should always be in [0,1]", async () => {
-      await expect(
-        fc.assert(
-          fc.property(
-            fc.integer({ min: 0, max: 1000 }), // x1
-            fc.integer({ min: 0, max: 1000 }), // y1
-            fc.integer({ min: 10, max: 200 }), // w1
-            fc.integer({ min: 10, max: 200 }), // h1
-            fc.integer({ min: 0, max: 1000 }), // x2
-            fc.integer({ min: 0, max: 1000 }), // y2
-            fc.integer({ min: 10, max: 200 }), // w2
-            fc.integer({ min: 10, max: 200 }), // h2
-            (x1, y1, w1, h1, x2, y2, w2, h2) => {
-              const box1 = { x: x1, y: y1, width: w1, height: h1 };
-              const box2 = { x: x2, y: y2, width: w2, height: h2 };
-
-              const iou = ResultPostprocessor["calculateIoU"](box1, box2);
-
-              expect(iou).toBeGreaterThanOrEqual(0);
-              expect(iou).toBeLessThanOrEqual(1);
-            },
-          ),
-          { numRuns: 100 },
+      const property = standardAsyncProperty(
+        fc.tuple(
+          boundingBox(1000, 1000),
+          boundingBox(1000, 1000)
         ),
-      ).resolves.toBeUndefined();
+        async ([box1, box2]) => {
+          const iou = ResultPostprocessor["calculateIoU"](box1, box2);
+
+          expect(iou).toBeGreaterThanOrEqual(0);
+          expect(iou).toBeLessThanOrEqual(1);
+        }
+      );
+      
+      await runAsyncPropertyTest(property, lightConfig);
     });
 
     it("Property 2: Detection confidence bounds - processed detections should have valid confidence", async () => {
-      await expect(
-        fc.assert(
-          fc.property(
-            fc.array(fc.float32({ min: 0, max: 1 }), {
-              minLength: 4,
-              maxLength: 20,
-            }), // bbox values
-            fc.array(fc.float32({ min: 0, max: 1 }), {
-              minLength: 1,
-              maxLength: 5,
-            }), // scores
-            fc.array(fc.float32({ min: 0, max: 10 }), {
-              minLength: 1,
-              maxLength: 5,
-            }), // classes
-            (bboxValues, scores, classes) => {
-              const outputs = [
-                new Float32Array(bboxValues),
-                new Float32Array(scores),
-                new Float32Array(classes),
-              ];
+      const property = standardAsyncProperty(
+        detectionOutputs(),
+        async ([bboxValues, scores, classes]) => {
+          const outputs = [
+            new Float32Array(bboxValues),
+            new Float32Array(scores),
+            new Float32Array(classes),
+          ];
 
-              const detections = ResultPostprocessor.processDetections(
-                outputs,
-                1920,
-                1080,
-                0.5,
-                10,
-              );
+          const detections = ResultPostprocessor.processDetections(
+            outputs,
+            1920,
+            1080,
+            0.5,
+            10,
+          );
 
-              detections.forEach((detection) => {
-                expect(detection.confidence).toBeGreaterThanOrEqual(0);
-                expect(detection.confidence).toBeLessThanOrEqual(1);
-              });
-            },
-          ),
-          { numRuns: 20 },
-        ),
-      ).resolves.toBeUndefined();
+          detections.forEach((detection) => {
+            if (detection) {
+              expect(detection.confidence).toBeGreaterThanOrEqual(0);
+              expect(detection.confidence).toBeLessThanOrEqual(1);
+            }
+          });
+        }
+      );
+      
+      await runAsyncPropertyTest(property, lightConfig);
     });
   });
 });

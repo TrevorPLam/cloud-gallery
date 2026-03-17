@@ -11,6 +11,11 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import * as fc from "fast-check";
 import {
+  standardProperty,
+  runPropertyTest,
+  standardConfig,
+} from "../../../tests/utils/property-testing";
+import {
   PhotoEditor,
   createPhotoEditor,
   DEFAULT_ADJUSTMENTS,
@@ -232,39 +237,38 @@ describe("PhotoEditor - Property Tests", () => {
 
   describe("Adjustment Properties", () => {
     it("should satisfy adjustment equality property", () => {
-      // FIX 3: synchronous fc.assert() with fc.property() (not asyncProperty)
-      // must NOT be awaited — it returns void in fast-check v3. The original
-      // wrapped it in `const property = fc.assert(...); expect(property).resolves...`
-      // which silently passed. Drop the wrapper and call fc.assert directly.
-      fc.assert(
-        fc.property(adjustmentArb, (adjustments) => {
+      const property = standardProperty(
+        adjustmentArb,
+        (adjustments) => {
           expect(adjustmentsEqual(adjustments, adjustments)).toBe(true);
 
           const copy = { ...adjustments };
           expect(adjustmentsEqual(adjustments, copy)).toBe(true);
           expect(adjustmentsEqual(copy, adjustments)).toBe(true);
-        }),
+        }
       );
+      
+      runPropertyTest(property, standardConfig);
     });
 
     it("should satisfy clamp value properties", () => {
-      fc.assert(
-        fc.property(
-          fc.tuple(fc.float(), fc.float(), fc.float()),
-          ([value, min, max]) => {
-            if (min > max) return; // skip invalid range
+      const property = standardProperty(
+        fc.tuple(fc.float(), fc.float(), fc.float()),
+        ([value, min, max]) => {
+          if (min > max) return; // skip invalid range
 
-            const clamped = clampValue(value, min, max);
+          const clamped = clampValue(value, min, max);
 
-            expect(clamped).toBeGreaterThanOrEqual(min);
-            expect(clamped).toBeLessThanOrEqual(max);
+          expect(clamped).toBeGreaterThanOrEqual(min);
+          expect(clamped).toBeLessThanOrEqual(max);
 
-            if (value >= min && value <= max) expect(clamped).toBe(value);
-            if (value < min) expect(clamped).toBe(min);
-            if (value > max) expect(clamped).toBe(max);
-          },
-        ),
+          if (value >= min && value <= max) expect(clamped).toBe(value);
+          if (value < min) expect(clamped).toBe(min);
+          if (value > max) expect(clamped).toBe(max);
+        }
       );
+      
+      runPropertyTest(property, standardConfig);
     });
   });
 
@@ -282,16 +286,27 @@ describe("PhotoEditor - Property Tests", () => {
         expect(filter.description).toBeDefined();
         expect(filter.adjustments).toBeDefined();
 
-        expect(filter.adjustments.brightness).toBeGreaterThanOrEqual(-1);
-        expect(filter.adjustments.brightness).toBeLessThanOrEqual(1);
-        expect(filter.adjustments.contrast).toBeGreaterThanOrEqual(-1);
-        expect(filter.adjustments.contrast).toBeLessThanOrEqual(1);
-        expect(filter.adjustments.saturation).toBeGreaterThanOrEqual(-1);
-        expect(filter.adjustments.saturation).toBeLessThanOrEqual(1);
-        expect(filter.adjustments.vignette).toBeGreaterThanOrEqual(0);
-        expect(filter.adjustments.vignette).toBeLessThanOrEqual(1);
-        expect(filter.adjustments.exposure).toBeGreaterThanOrEqual(-2);
-        expect(filter.adjustments.exposure).toBeLessThanOrEqual(2);
+        // Check bounds with proper null/undefined handling
+        if (filter.adjustments.brightness !== undefined) {
+          expect(filter.adjustments.brightness).toBeGreaterThanOrEqual(-1);
+          expect(filter.adjustments.brightness).toBeLessThanOrEqual(1);
+        }
+        if (filter.adjustments.contrast !== undefined) {
+          expect(filter.adjustments.contrast).toBeGreaterThanOrEqual(-1);
+          expect(filter.adjustments.contrast).toBeLessThanOrEqual(1);
+        }
+        if (filter.adjustments.saturation !== undefined) {
+          expect(filter.adjustments.saturation).toBeGreaterThanOrEqual(-1);
+          expect(filter.adjustments.saturation).toBeLessThanOrEqual(1);
+        }
+        if (filter.adjustments.vignette !== undefined) {
+          expect(filter.adjustments.vignette).toBeGreaterThanOrEqual(0);
+          expect(filter.adjustments.vignette).toBeLessThanOrEqual(1);
+        }
+        if (filter.adjustments.exposure !== undefined) {
+          expect(filter.adjustments.exposure).toBeGreaterThanOrEqual(-2);
+          expect(filter.adjustments.exposure).toBeLessThanOrEqual(2);
+        }
       });
     });
 

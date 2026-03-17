@@ -43,20 +43,15 @@ export const createMockDatabase = (): MockDatabase => {
             limit: vi.fn().mockReturnValue({
               offset: vi.fn().mockReturnValue(Promise.resolve([])),
             }),
-            offset: vi.fn().mockReturnValue(Promise.resolve([])),
             execute: vi.fn().mockReturnValue(Promise.resolve([])),
           }),
           limit: vi.fn().mockReturnValue({
             offset: vi.fn().mockReturnValue(Promise.resolve([])),
           }),
-          offset: vi.fn().mockReturnValue(Promise.resolve([])),
-          execute: vi.fn().mockReturnValue(Promise.resolve([])),
-        }),
         orderBy: vi.fn().mockReturnValue({
           limit: vi.fn().mockReturnValue({
             offset: vi.fn().mockReturnValue(Promise.resolve([])),
           }),
-          offset: vi.fn().mockReturnValue(Promise.resolve([])),
           execute: vi.fn().mockReturnValue(Promise.resolve([])),
           groupBy: vi.fn().mockReturnValue({
             having: vi.fn().mockReturnValue({
@@ -64,7 +59,6 @@ export const createMockDatabase = (): MockDatabase => {
               execute: vi.fn().mockReturnValue(Promise.resolve([])),
             }),
             limit: vi.fn().mockReturnValue(Promise.resolve([])),
-            execute: vi.fn().mockReturnValue(Promise.resolve([])),
           }),
           having: vi.fn().mockReturnValue({
             limit: vi.fn().mockReturnValue(Promise.resolve([])),

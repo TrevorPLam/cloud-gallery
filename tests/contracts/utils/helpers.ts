@@ -55,7 +55,7 @@ export function createPhotoMatcher(overrides: Partial<any> = {}) {
 export function createAlbumMatcher(overrides: Partial<any> = {}) {
   return Matchers.like({
     id: matchers.uuid,
-    name: Matchers.like("Summer Vacation"),
+    title: Matchers.like("Summer Vacation"),
     description: Matchers.like("Photos from our summer trip"),
     coverPhotoId: matchers.uuid,
     photoCount: Matchers.like(25),
@@ -177,7 +177,7 @@ export function createPhotoCreationRequest() {
  */
 export function createAlbumCreationRequest() {
   return {
-    name: "Test Album",
+    title: "Test Album",
     description: "A test album for contract testing",
   };
 }

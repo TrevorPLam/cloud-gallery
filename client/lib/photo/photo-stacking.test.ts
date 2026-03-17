@@ -9,6 +9,14 @@
 // AI-META-END
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import {
+  uniquePhotoArray,
+  standardAsyncProperty,
+  runAsyncPropertyTest,
+  lightConfig,
+  uniqueIds,
+  validTimestamps,
+} from "../../../tests/utils/property-testing";
 import fc from "fast-check";
 import {
   PhotoStackingService,
@@ -133,189 +141,109 @@ describe("PhotoStackingService", () => {
 
   describe("Property Tests", () => {
     it("Property 1: Stack ID uniqueness - each stack should have unique ID", async () => {
-      await expect(
-        fc.assert(
-          fc.asyncProperty(
-            fc.array(
-              fc.record({
-                id: fc.string(),
-                uri: fc.webUrl(),
-                width: fc.integer({ min: 100, max: 4000 }),
-                height: fc.integer({ min: 100, max: 4000 }),
-                createdAt: fc.timestamp(),
-                modifiedAt: fc.timestamp(),
-                filename: fc.string(),
-                isFavorite: fc.boolean(),
-                albumIds: fc.array(fc.string()),
-              }),
-              { minLength: 5, maxLength: 20 },
-            ),
-            async (photos: Photo[]) => {
-              (getPhotos as any).mockResolvedValue(photos);
+      const property = standardAsyncProperty(
+        uniquePhotoArray(5, 20),
+        async (photos: Photo[]) => {
+          (getPhotos as any).mockResolvedValue(photos);
 
-              const service = new PhotoStackingService();
-              const result = await service.analyzeAndStackPhotos();
+          const service = new PhotoStackingService();
+          const result = await service.analyzeAndStackPhotos();
 
-              // All stack IDs should be unique
-              const stackIds = result.stacks.map((stack) => stack.id);
-              const uniqueIds = new Set(stackIds);
+          // All stack IDs should be unique
+          const stackIds = result.stacks.map((stack) => stack.id);
+          const uniqueIds = new Set(stackIds);
 
-              expect(uniqueIds.size).toBe(stackIds.length);
-            },
-          ),
-          { numRuns: 5 },
-        ),
-      ).resolves.toBeUndefined();
+          expect(uniqueIds.size).toBe(stackIds.length);
+        }
+      );
+      
+      await runAsyncPropertyTest(property, lightConfig);
     });
 
     it("Property 2: Stack photo count bounds - stacks should have reasonable photo counts", async () => {
-      await expect(
-        fc.assert(
-          fc.asyncProperty(
-            fc.array(
-              fc.record({
-                id: fc.string(),
-                uri: fc.webUrl(),
-                width: fc.integer({ min: 100, max: 4000 }),
-                height: fc.integer({ min: 100, max: 4000 }),
-                createdAt: fc.timestamp(),
-                modifiedAt: fc.timestamp(),
-                filename: fc.string(),
-                isFavorite: fc.boolean(),
-                albumIds: fc.array(fc.string()),
-              }),
-              { minLength: 5, maxLength: 20 },
-            ),
-            async (photos: Photo[]) => {
-              (getPhotos as any).mockResolvedValue(photos);
+      const property = standardAsyncProperty(
+        uniquePhotoArray(5, 20),
+        async (photos: Photo[]) => {
+          (getPhotos as any).mockResolvedValue(photos);
 
-              const service = new PhotoStackingService();
-              const result = await service.analyzeAndStackPhotos();
+          const service = new PhotoStackingService();
+          const result = await service.analyzeAndStackPhotos();
 
-              // All stacks should have at least 2 photos
-              result.stacks.forEach((stack) => {
-                expect(stack.photoIds.length).toBeGreaterThanOrEqual(2);
-                expect(stack.photoIds.length).toBeLessThanOrEqual(10); // Default max
-              });
-            },
-          ),
-          { numRuns: 5 },
-        ),
-      ).resolves.toBeUndefined();
+          // All stacks should have at least 2 photos
+          result.stacks.forEach((stack) => {
+            expect(stack.photoIds.length).toBeGreaterThanOrEqual(2);
+            expect(stack.photoIds.length).toBeLessThanOrEqual(10); // Default max
+          });
+        }
+      );
+      
+      await runAsyncPropertyTest(property, lightConfig);
     });
 
     it("Property 3: Confidence score bounds - confidence should be between 0 and 1", async () => {
-      await expect(
-        fc.assert(
-          fc.asyncProperty(
-            fc.array(
-              fc.record({
-                id: fc.string(),
-                uri: fc.webUrl(),
-                width: fc.integer({ min: 100, max: 4000 }),
-                height: fc.integer({ min: 100, max: 4000 }),
-                createdAt: fc.timestamp(),
-                modifiedAt: fc.timestamp(),
-                filename: fc.string(),
-                isFavorite: fc.boolean(),
-                albumIds: fc.array(fc.string()),
-              }),
-              { minLength: 5, maxLength: 20 },
-            ),
-            async (photos: Photo[]) => {
-              (getPhotos as any).mockResolvedValue(photos);
+      const property = standardAsyncProperty(
+        uniquePhotoArray(5, 20),
+        async (photos: Photo[]) => {
+          (getPhotos as any).mockResolvedValue(photos);
 
-              const service = new PhotoStackingService();
-              const result = await service.analyzeAndStackPhotos();
+          const service = new PhotoStackingService();
+          const result = await service.analyzeAndStackPhotos();
 
-              // All confidence scores should be valid
-              result.stacks.forEach((stack) => {
-                expect(stack.confidence).toBeGreaterThanOrEqual(0);
-                expect(stack.confidence).toBeLessThanOrEqual(1);
-              });
-            },
-          ),
-          { numRuns: 5 },
-        ),
-      ).resolves.toBeUndefined();
+          // All confidence scores should be valid
+          result.stacks.forEach((stack) => {
+            expect(stack.confidence).toBeGreaterThanOrEqual(0);
+            expect(stack.confidence).toBeLessThanOrEqual(1);
+          });
+        }
+      );
+      
+      await runAsyncPropertyTest(property, lightConfig);
     });
 
     it("Property 4: Processing time consistency - analysis should complete within reasonable time", async () => {
-      await expect(
-        fc.assert(
-          fc.asyncProperty(
-            fc.array(
-              fc.record({
-                id: fc.string(),
-                uri: fc.webUrl(),
-                width: fc.integer({ min: 100, max: 4000 }),
-                height: fc.integer({ min: 100, max: 4000 }),
-                createdAt: fc.timestamp(),
-                modifiedAt: fc.timestamp(),
-                filename: fc.string(),
-                isFavorite: fc.boolean(),
-                albumIds: fc.array(fc.string()),
-              }),
-              { minLength: 5, maxLength: 20 },
-            ),
-            async (photos: Photo[]) => {
-              (getPhotos as any).mockResolvedValue(photos);
+      const property = standardAsyncProperty(
+        uniquePhotoArray(5, 20).filter(photos => photos.length <= 20), // Limit for performance testing
+        async (photos: Photo[]) => {
+          (getPhotos as any).mockResolvedValue(photos);
 
-              const service = new PhotoStackingService();
-              const startTime = Date.now();
-              const result = await service.analyzeAndStackPhotos();
-              const endTime = Date.now();
+          const service = new PhotoStackingService();
+          const startTime = Date.now();
+          const result = await service.analyzeAndStackPhotos();
+          const endTime = Date.now();
 
-              // Processing time should be recorded and reasonable
-              expect(result.processingTime).toBeGreaterThanOrEqual(0);
-              expect(result.processingTime).toBeLessThan(30000); // 30 seconds max
-              expect(endTime - startTime).toBeLessThan(30000);
-            },
-          ),
-          { numRuns: 5 },
-        ),
-      ).resolves.toBeUndefined();
+          // Processing time should be recorded and reasonable
+          expect(result.processingTime).toBeGreaterThanOrEqual(0);
+          expect(result.processingTime).toBeLessThan(30000); // 30 seconds max
+          expect(endTime - startTime).toBeLessThan(30000);
+        }
+      );
+      
+      await runAsyncPropertyTest(property, lightConfig);
     });
 
     it("Property 5: Result consistency - total photos should match input", async () => {
-      await expect(
-        fc.assert(
-          fc.asyncProperty(
-            fc.array(
-              fc.record({
-                id: fc.string(),
-                uri: fc.webUrl(),
-                width: fc.integer({ min: 100, max: 4000 }),
-                height: fc.integer({ min: 100, max: 4000 }),
-                createdAt: fc.timestamp(),
-                modifiedAt: fc.timestamp(),
-                filename: fc.string(),
-                isFavorite: fc.boolean(),
-                albumIds: fc.array(fc.string()),
-              }),
-              { minLength: 5, maxLength: 20 },
-            ),
-            async (photos: Photo[]) => {
-              (getPhotos as any).mockResolvedValue(photos);
+      const property = standardAsyncProperty(
+        uniquePhotoArray(5, 20),
+        async (photos: Photo[]) => {
+          (getPhotos as any).mockResolvedValue(photos);
 
-              const service = new PhotoStackingService();
-              const result = await service.analyzeAndStackPhotos();
+          const service = new PhotoStackingService();
+          const result = await service.analyzeAndStackPhotos();
 
-              // Total photos should match input
-              expect(result.totalPhotos).toBe(photos.length);
+          // Total photos should match input
+          expect(result.totalPhotos).toBe(photos.length);
 
-              // Photos in stacks should not exceed total
-              expect(result.photosInStacks).toBeLessThanOrEqual(photos.length);
+          // Photos in stacks should not exceed total
+          expect(result.photosInStacks).toBeLessThanOrEqual(photos.length);
 
-              // Number of stacks should be reasonable
-              expect(result.stacksCreated).toBeLessThanOrEqual(
-                Math.floor(photos.length / 2),
-              );
-            },
-          ),
-          { numRuns: 5 },
-        ),
-      ).resolves.toBeUndefined();
+          // Number of stacks should be reasonable
+          expect(result.stacksCreated).toBeLessThanOrEqual(
+            Math.floor(photos.length / 2),
+          );
+        }
+      );
+      
+      await runAsyncPropertyTest(property, lightConfig);
     });
   });
 

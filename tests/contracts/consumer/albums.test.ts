@@ -243,7 +243,7 @@ describe("Albums API Consumer Tests", () => {
           headers: commonHeaders,
           body: {
             album: createAlbumMatcher({
-              name: Matchers.like(albumRequest.name),
+              title: Matchers.like(albumRequest.title),
               description: Matchers.like(albumRequest.description),
             }),
           },
@@ -259,14 +259,14 @@ describe("Albums API Consumer Tests", () => {
         expect(response.status).toBe(201);
         const data = await response.json();
         expect(data.album).toBeDefined();
-        expect(data.album.name).toBe(albumRequest.name);
+        expect(data.album.title).toBe(albumRequest.title);
         expect(data.album.description).toBe(albumRequest.description);
       });
     });
 
     it("should reject album creation with invalid data", async () => {
       const invalidAlbumRequest = {
-        name: "", // Empty name
+        title: "", // Empty title
         description: "",
       };
 

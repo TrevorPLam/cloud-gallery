@@ -276,6 +276,8 @@ export const createTestContext = () => {
   const context = {
     mocks: new Map<string, any>(),
     state: new Map<string, any>(),
+    asyncOperations: new Set<Promise<any>>(),
+    timers: new Set<NodeJS.Timeout>(),
     cleanup: () => {
       // Clean up all mocks in context
       context.mocks.forEach((mock, name) => {
@@ -285,16 +287,146 @@ export const createTestContext = () => {
       });
       context.mocks.clear();
       context.state.clear();
+      
+      // Clean up async operations
+      context.asyncOperations.clear();
+      
+      // Clean up timers
+      context.timers.forEach(timer => clearTimeout(timer));
+      context.timers.clear();
     },
   };
   
   return context;
 };
 
+/**
+ * Setup async test isolation with proper cleanup
+ */
+export const setupAsyncTestIsolation = () => {
+  beforeEach(() => {
+    // Use fake timers for async tests
+    vi.useFakeTimers();
+    
+    // Reset test state
+    resetTestState();
+  });
+  
+  afterEach(() => {
+    // Restore real timers
+    vi.useRealTimers();
+    
+    // Clean up any pending promises
+    if (typeof setImmediate !== 'undefined') {
+      // Clear any pending immediate callbacks
+      const immediateIds = (global as any).__immediateIds || [];
+      immediateIds.forEach((id: any) => clearImmediate(id));
+      (global as any).__immediateIds = [];
+    }
+    
+    // Reset test state
+    resetTestState();
+  });
+};
+
+/**
+ * Track async operations for cleanup
+ */
+export const trackAsyncOperation = (operation: Promise<any>) => {
+  // This would be used in a test context
+  // For now, we'll just track it globally
+  if (typeof global !== 'undefined') {
+    if (!(global as any).__asyncOperations) {
+      (global as any).__asyncOperations = new Set();
+    }
+    (global as any).__asyncOperations.add(operation);
+    
+    // Auto-remove when operation completes
+    operation.finally(() => {
+      (global as any).__asyncOperations?.delete(operation);
+    });
+  }
+};
+
+/**
+ * Wait for all tracked async operations to complete
+ */
+export const waitForAllAsyncOperations = async (timeout: number = 5000) => {
+  const operations = (global as any).__asyncOperations as Set<Promise<any>> || new Set();
+  
+  if (operations.size === 0) {
+    return;
+  }
+  
+  const startTime = Date.now();
+  while (operations.size > 0) {
+    if (Date.now() - startTime > timeout) {
+      throw new Error(`Timeout waiting for ${operations.size} async operations to complete`);
+    }
+    
+    // Wait a bit and check again
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
+};
+
+/**
+ * Create an isolated async mock factory
+ */
+export const createAsyncMockFactory = () => {
+  const mocks = new Map<string, any>();
+  
+  return {
+    /**
+     * Create a new async mock
+     */
+    createMock: <T extends (...args: any[]) => any>(
+      name: string,
+      implementation?: (...args: Parameters<T>) => Promise<Awaited<ReturnType<T>>>
+    ): T => {
+      const mock = vi.fn().mockImplementation(
+        async (...args: Parameters<T>) => {
+          const operation = implementation ? implementation(...args) : Promise.resolve(undefined);
+          trackAsyncOperation(operation);
+          return operation;
+        }
+      ) as T;
+      
+      mocks.set(name, mock);
+      return mock;
+    },
+    
+    /**
+     * Get an existing mock
+     */
+    getMock: <T>(name: string): T | undefined => {
+      return mocks.get(name) as T;
+    },
+    
+    /**
+     * Reset all mocks
+     */
+    resetAll: () => {
+      mocks.forEach(mock => {
+        if (mock.mockReset) {
+          mock.mockReset();
+        }
+      });
+    },
+    
+    /**
+     * Clear all mocks
+     */
+    clearAll: () => {
+      mocks.clear();
+    },
+  };
+};
+
 // Export test isolation utilities
 export const TestIsolation = {
   resetTestState,
   setupTestIsolation,
+  setupAsyncTestIsolation,
   trackMockCall,
   getMockCallStats,
   createMockLocalStorage,
@@ -304,6 +436,9 @@ export const TestIsolation = {
   setupGlobalMocks,
   cleanupGlobalMocks,
   createTestContext,
+  trackAsyncOperation,
+  waitForAllAsyncOperations,
+  createAsyncMockFactory,
 };
 
 export default TestIsolation;

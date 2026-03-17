@@ -15,6 +15,7 @@ import {
   fireEvent,
   waitFor,
 } from "@testing-library/react-native";
+import { vi } from "vitest";
 import { migrationHelpers } from "../test-utils/accessibility";
 import {
   AccessibilityTester,
@@ -25,22 +26,24 @@ import { Alert } from "react-native";
 import SmartAlbumsScreen from "./SmartAlbumsScreen";
 
 // Mock dependencies
-jest.mock("@react-navigation/native", () => ({
-  useFocusEffect: jest.requireActual("@react-navigation/native").useFocusEffect,
+vi.mock("@react-navigation/native", () => ({
+  useFocusEffect: vi.fn(),
 }));
 
-jest.mock("react-native-vector-icons/Ionicons", () => "Icon");
+vi.mock("react-native-vector-icons/Ionicons", () => ({
+  default: "Icon",
+}));
 
 // Mock Alert
-jest.mock("react-native", () => ({
-  ...jest.requireActual("react-native"),
+vi.mock("react-native", () => ({
+  ...vi.importActual("react-native"),
   Alert: {
-    alert: jest.fn(),
+    alert: vi.fn(),
   },
 }));
 
 // Mock fetch API
-global.fetch = jest.fn();
+global.fetch = vi.fn();
 
 // Test data
 const mockAlbums = {
@@ -146,10 +149,10 @@ const renderWithQueryClient = (component: React.ReactElement) => {
 
 describe("SmartAlbumsScreen", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Mock successful fetch for smart albums
-    (fetch as jest.Mock).mockImplementation((url) => {
+    (fetch as vi.Mock).mockImplementation((url) => {
       if (url === "/api/smart-albums") {
         return Promise.resolve({
           ok: true,
@@ -297,7 +300,7 @@ describe("SmartAlbumsScreen", () => {
 
     it("should toggle pin status when pin button is pressed", async () => {
       // Mock update API call
-      (fetch as jest.Mock).mockImplementation((url, options) => {
+      (fetch as vi.Mock).mockImplementation((url, options) => {
         if (url === "/api/smart-albums/album-1" && options?.method === "PUT") {
           return Promise.resolve({
             ok: true,
@@ -365,7 +368,7 @@ describe("SmartAlbumsScreen", () => {
 
     it("should call generate API when confirmed", async () => {
       // Mock generate API call
-      (fetch as jest.Mock).mockImplementation((url, options) => {
+      (fetch as vi.Mock).mockImplementation((url, options) => {
         if (
           url === "/api/smart-albums/generate" &&
           options?.method === "POST"
@@ -396,7 +399,7 @@ describe("SmartAlbumsScreen", () => {
       fireEvent.press(generateButton);
 
       // Get the alert callback and call the "Generate" button
-      const alertCall = (Alert.alert as jest.Mock).mock.calls[0];
+      const alertCall = (Alert.alert as vi.Mock).mock.calls[0];
       const generateCallback = alertCall[2][1].onPress;
 
       generateCallback();

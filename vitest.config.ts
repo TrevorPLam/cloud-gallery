@@ -6,7 +6,7 @@
  * Outputs: test execution configuration used by vitest CLI with performance metrics.
  * Invariants: coverage thresholds stay at 100% and focused tests are disallowed.
  */
-import { defineConfig } from "vitest/config";
+import { defineConfig } from "vitest";
 import path from "path";
 
 export default defineConfig({

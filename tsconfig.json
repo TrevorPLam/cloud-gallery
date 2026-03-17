@@ -20,5 +20,5 @@
     "types": ["node", "vitest/globals"]
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts", "e2e/**"]
+  "exclude": ["node_modules", "build", "dist", "e2e/**"]
 }
