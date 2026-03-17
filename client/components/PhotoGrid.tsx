@@ -30,6 +30,7 @@ import { Photo } from "@/types";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, Colors } from "@/constants/theme";
+import { usePhotoAccessibilityLabel } from "@/lib/photo-descriptions";
 
 interface PhotoGridProps {
   photos: Photo[];
@@ -59,6 +60,7 @@ function PhotoItem({
   style,
 }: PhotoItemProps) {
   const scale = useSharedValue(1);
+  const accessibilityLabel = usePhotoAccessibilityLabel(photo);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -90,12 +92,16 @@ function PhotoItem({
       delayLongPress={300}
       style={[style, animatedStyle]}
       testID={`photo-item-${photo.id}`}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
+      accessibilityHint="Opens photo to view in detail"
     >
       <Image
         source={{ uri: photo.uri }}
         style={styles.photo}
         contentFit="cover"
         transition={200}
+        accessibilityLabel={accessibilityLabel}
       />
       {photo.isFavorite ? (
         <View style={styles.favoriteIcon}>
