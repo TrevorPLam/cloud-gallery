@@ -5,94 +5,112 @@
  * Generates and updates the HTML metrics dashboard with latest data
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 // Main function to update metrics dashboard
 function updateMetricsDashboard(coverageDir, dashboardPath) {
   try {
     console.log(`🔄 Updating metrics dashboard with data from ${coverageDir}`);
-    
+
     // Load latest metrics data
     const latestMetrics = loadLatestMetrics(coverageDir);
     const flakyTests = loadFlakyTests(coverageDir);
     const trendAnalysis = loadTrendAnalysis(coverageDir);
-    
+
     // Generate dashboard HTML
-    const dashboardHTML = generateDashboardHTML(latestMetrics, flakyTests, trendAnalysis);
-    
+    const dashboardHTML = generateDashboardHTML(
+      latestMetrics,
+      flakyTests,
+      trendAnalysis,
+    );
+
     // Write dashboard file
     fs.writeFileSync(dashboardPath, dashboardHTML);
     console.log(`✅ Metrics dashboard updated: ${dashboardPath}`);
-    
+
     return dashboardHTML;
-    
   } catch (error) {
-    console.error('Error updating metrics dashboard:', error);
+    console.error("Error updating metrics dashboard:", error);
     process.exit(1);
   }
 }
 
 // Load latest test metrics
 function loadLatestMetrics(coverageDir) {
-  const files = fs.readdirSync(coverageDir).filter(file => 
-    file.startsWith('test-metrics-') && file.endsWith('.json')
-  );
-  
+  const files = fs
+    .readdirSync(coverageDir)
+    .filter(
+      (file) => file.startsWith("test-metrics-") && file.endsWith(".json"),
+    );
+
   if (files.length === 0) {
     return null;
   }
-  
+
   // Find the most recent file
   const latestFile = files.sort().pop(); // Assuming filenames include timestamps
   const filePath = path.join(coverageDir, latestFile);
-  
+
   try {
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
   } catch (error) {
-    console.warn(`Warning: Could not load latest metrics from ${latestFile}:`, error.message);
+    console.warn(
+      `Warning: Could not load latest metrics from ${latestFile}:`,
+      error.message,
+    );
     return null;
   }
 }
 
 // Load flaky test data
 function loadFlakyTests(coverageDir) {
-  const files = fs.readdirSync(coverageDir).filter(file => 
-    file.startsWith('flaky-tests-') && file.endsWith('.json')
-  );
-  
+  const files = fs
+    .readdirSync(coverageDir)
+    .filter(
+      (file) => file.startsWith("flaky-tests-") && file.endsWith(".json"),
+    );
+
   if (files.length === 0) {
     return null;
   }
-  
+
   const latestFile = files.sort().pop();
   const filePath = path.join(coverageDir, latestFile);
-  
+
   try {
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
   } catch (error) {
-    console.warn(`Warning: Could not load flaky tests from ${latestFile}:`, error.message);
+    console.warn(
+      `Warning: Could not load flaky tests from ${latestFile}:`,
+      error.message,
+    );
     return null;
   }
 }
 
 // Load trend analysis
 function loadTrendAnalysis(coverageDir) {
-  const files = fs.readdirSync(coverageDir).filter(file => 
-    file.startsWith('trend-analysis-') && file.endsWith('.json')
-  );
-  
+  const files = fs
+    .readdirSync(coverageDir)
+    .filter(
+      (file) => file.startsWith("trend-analysis-") && file.endsWith(".json"),
+    );
+
   if (files.length === 0) {
     return null;
   }
-  
+
   const latestFile = files.sort().pop();
   const filePath = path.join(coverageDir, latestFile);
-  
+
   try {
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
   } catch (error) {
-    console.warn(`Warning: Could not load trend analysis from ${latestFile}:`, error.message);
+    console.warn(
+      `Warning: Could not load trend analysis from ${latestFile}:`,
+      error.message,
+    );
     return null;
   }
 }
@@ -100,7 +118,7 @@ function loadTrendAnalysis(coverageDir) {
 // Generate dashboard HTML
 function generateDashboardHTML(metrics, flakyTests, trendAnalysis) {
   const timestamp = new Date().toISOString();
-  
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -317,9 +335,9 @@ function generateDashboardHTML(metrics, flakyTests, trendAnalysis) {
         
         ${metrics ? generateMetricsCards(metrics) : '<div class="section"><div class="no-data">No metrics data available</div></div>'}
         
-        ${flakyTests ? generateFlakyTestsSection(flakyTests) : ''}
+        ${flakyTests ? generateFlakyTestsSection(flakyTests) : ""}
         
-        ${trendAnalysis ? generateTrendsSection(trendAnalysis) : ''}
+        ${trendAnalysis ? generateTrendsSection(trendAnalysis) : ""}
         
         <div class="last-updated">
             Last updated: ${new Date(timestamp).toLocaleString()}
@@ -352,16 +370,24 @@ function generateDashboardHTML(metrics, flakyTests, trendAnalysis) {
 
 // Generate metrics cards HTML
 function generateMetricsCards(metrics) {
-  const successRate = metrics.totalTests > 0 ? (metrics.passedTests / metrics.totalTests) * 100 : 0;
-  const failureRate = metrics.totalTests > 0 ? (metrics.failedTests / metrics.totalTests) * 100 : 0;
+  const successRate =
+    metrics.totalTests > 0
+      ? (metrics.passedTests / metrics.totalTests) * 100
+      : 0;
+  const failureRate =
+    metrics.totalTests > 0
+      ? (metrics.failedTests / metrics.totalTests) * 100
+      : 0;
   const avgTestTime = metrics.averageTestTime || 0;
-  const stabilityScore = metrics.stabilityScore ? (metrics.stabilityScore * 100) : 0;
-  
+  const stabilityScore = metrics.stabilityScore
+    ? metrics.stabilityScore * 100
+    : 0;
+
   return `
     <div class="dashboard">
         <div class="card">
             <div class="card-header">
-                <div class="card-icon ${successRate >= 95 ? 'status-good' : successRate >= 80 ? 'status-warning' : 'status-danger'}">
+                <div class="card-icon ${successRate >= 95 ? "status-good" : successRate >= 80 ? "status-warning" : "status-danger"}">
                     ✅
                 </div>
                 <div class="card-title">Success Rate</div>
@@ -372,7 +398,7 @@ function generateMetricsCards(metrics) {
         
         <div class="card">
             <div class="card-header">
-                <div class="card-icon ${failureRate <= 5 ? 'status-good' : failureRate <= 15 ? 'status-warning' : 'status-danger'}">
+                <div class="card-icon ${failureRate <= 5 ? "status-good" : failureRate <= 15 ? "status-warning" : "status-danger"}">
                     ❌
                 </div>
                 <div class="card-title">Failure Rate</div>
@@ -383,7 +409,7 @@ function generateMetricsCards(metrics) {
         
         <div class="card">
             <div class="card-header">
-                <div class="card-icon ${avgTestTime <= 100 ? 'status-good' : avgTestTime <= 500 ? 'status-warning' : 'status-danger'}">
+                <div class="card-icon ${avgTestTime <= 100 ? "status-good" : avgTestTime <= 500 ? "status-warning" : "status-danger"}">
                     ⏱️
                 </div>
                 <div class="card-title">Avg Test Time</div>
@@ -394,7 +420,7 @@ function generateMetricsCards(metrics) {
         
         <div class="card">
             <div class="card-header">
-                <div class="card-icon ${stabilityScore >= 90 ? 'status-good' : stabilityScore >= 70 ? 'status-warning' : 'status-danger'}">
+                <div class="card-icon ${stabilityScore >= 90 ? "status-good" : stabilityScore >= 70 ? "status-warning" : "status-danger"}">
                     🎯
                 </div>
                 <div class="card-title">Stability Score</div>
@@ -415,21 +441,26 @@ function generateFlakyTestsSection(flakyTests) {
             <div class="no-data">No flaky tests detected - great job!</div>
         </div>`;
   }
-  
-  const flakyTestItems = flakyTests.analysis.flakyTests.slice(0, 10).map(test => `
+
+  const flakyTestItems = flakyTests.analysis.flakyTests
+    .slice(0, 10)
+    .map(
+      (test) => `
         <li class="flaky-test-item">
             <div class="flaky-test-name">${test.name}</div>
             <div class="flaky-test-reason">${test.reason}</div>
         </li>
-    `).join('');
-  
+    `,
+    )
+    .join("");
+
   return `
         <div class="section">
             <h2 class="section-title">🔍 Flaky Tests</h2>
             <div class="dashboard">
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-icon ${summary.flakyRate <= 0.05 ? 'status-good' : summary.flakyRate <= 0.15 ? 'status-warning' : 'status-danger'}">
+                        <div class="card-icon ${summary.flakyRate <= 0.05 ? "status-good" : summary.flakyRate <= 0.15 ? "status-warning" : "status-danger"}">
                             ⚠️
                         </div>
                         <div class="card-title">Flaky Test Rate</div>
@@ -440,7 +471,7 @@ function generateFlakyTestsSection(flakyTests) {
                 
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-icon ${summary.overallStability >= 0.8 ? 'status-good' : summary.overallStability >= 0.6 ? 'status-warning' : 'status-danger'}">
+                        <div class="card-icon ${summary.overallStability >= 0.8 ? "status-good" : summary.overallStability >= 0.6 ? "status-warning" : "status-danger"}">
                             📊
                         </div>
                         <div class="card-title">Overall Stability</div>
@@ -453,39 +484,53 @@ function generateFlakyTestsSection(flakyTests) {
             <h3 style="margin: 20px 0 12px 0; color: #333;">Detected Flaky Tests</h3>
             <ul class="flaky-test-list">
                 ${flakyTestItems}
-                ${summary.flakyCount > 10 ? `<li class="flaky-test-item"><div class="flaky-test-name">... and ${summary.flakyCount - 10} more</div></li>` : ''}
+                ${summary.flakyCount > 10 ? `<li class="flaky-test-item"><div class="flaky-test-name">... and ${summary.flakyCount - 10} more</div></li>` : ""}
             </ul>
         </div>`;
 }
 
 // Generate trends section HTML
 function generateTrendsSection(trendAnalysis) {
-  if (trendAnalysis.status === 'insufficient_data') {
+  if (trendAnalysis.status === "insufficient_data") {
     return `
         <div class="section">
             <h2 class="section-title">📈 Trends & Insights</h2>
             <div class="no-data">Insufficient data for trend analysis (need more historical data)</div>
         </div>`;
   }
-  
-  const trendItems = Object.entries(trendAnalysis.metrics || {}).map(([metric, analysis]) => {
-    const trendClass = analysis.trend === 'improving' ? 'trend-up' : 
-                      analysis.trend === 'declining' ? 'trend-down' : 'trend-stable';
-    const trendIcon = analysis.trend === 'improving' ? '↑' : 
-                     analysis.trend === 'declining' ? '↓' : '→';
-    
-    return `
+
+  const trendItems = Object.entries(trendAnalysis.metrics || {})
+    .map(([metric, analysis]) => {
+      const trendClass =
+        analysis.trend === "improving"
+          ? "trend-up"
+          : analysis.trend === "declining"
+            ? "trend-down"
+            : "trend-stable";
+      const trendIcon =
+        analysis.trend === "improving"
+          ? "↑"
+          : analysis.trend === "declining"
+            ? "↓"
+            : "→";
+
+      return `
         <div class="trend-item">
             <span class="trend-label">${formatMetricName(metric)}</span>
             <span class="trend-value ${trendClass}">${trendIcon} ${analysis.changePercent?.toFixed(1) || 0}%</span>
         </div>
     `;
-  }).join('');
-  
-  const insightItems = (trendAnalysis.overall?.insights || []).map(insight => `
+    })
+    .join("");
+
+  const insightItems = (trendAnalysis.overall?.insights || [])
+    .map(
+      (insight) => `
         <li class="insight-item">${insight}</li>
-    `).join('');
-  
+    `,
+    )
+    .join("");
+
   return `
         <div class="section">
             <h2 class="section-title">📈 Trends & Insights</h2>
@@ -493,7 +538,7 @@ function generateTrendsSection(trendAnalysis) {
             <div class="dashboard">
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-icon ${trendAnalysis.qualityScore >= 0.8 ? 'status-good' : trendAnalysis.qualityScore >= 0.6 ? 'status-warning' : 'status-danger'}">
+                        <div class="card-icon ${trendAnalysis.qualityScore >= 0.8 ? "status-good" : trendAnalysis.qualityScore >= 0.6 ? "status-warning" : "status-danger"}">
                             📊
                         </div>
                         <div class="card-title">Quality Score</div>
@@ -519,26 +564,30 @@ function generateTrendsSection(trendAnalysis) {
                 ${trendItems}
             </div>
             
-            ${insightItems ? `
+            ${
+              insightItems
+                ? `
                 <h3 style="margin: 20px 0 12px 0; color: #333;">💡 Key Insights</h3>
                 <ul class="insight-list">
                     ${insightItems}
                 </ul>
-            ` : ''}
+            `
+                : ""
+            }
         </div>`;
 }
 
 // Format metric name for display
 function formatMetricName(metric) {
   const names = {
-    totalTests: 'Total Tests',
-    passedTests: 'Passed Tests',
-    failedTests: 'Failed Tests',
-    totalExecutionTime: 'Execution Time',
-    averageTestTime: 'Avg Test Time',
-    successRate: 'Success Rate',
-    failureRate: 'Failure Rate',
-    stabilityScore: 'Stability Score'
+    totalTests: "Total Tests",
+    passedTests: "Passed Tests",
+    failedTests: "Failed Tests",
+    totalExecutionTime: "Execution Time",
+    averageTestTime: "Avg Test Time",
+    successRate: "Success Rate",
+    failureRate: "Failure Rate",
+    stabilityScore: "Stability Score",
   };
   return names[metric] || metric;
 }
@@ -546,12 +595,14 @@ function formatMetricName(metric) {
 // Main execution
 if (require.main === module) {
   const args = process.argv.slice(2);
-  
+
   if (args.length !== 2) {
-    console.error('Usage: node update-metrics-dashboard.js <coverage-dir> <dashboard-html>');
+    console.error(
+      "Usage: node update-metrics-dashboard.js <coverage-dir> <dashboard-html>",
+    );
     process.exit(1);
   }
-  
+
   const [coverageDir, dashboardPath] = args;
   updateMetricsDashboard(coverageDir, dashboardPath);
 }

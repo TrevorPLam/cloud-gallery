@@ -18,7 +18,14 @@ function walkDir(dir, fileList = []) {
   for (const e of entries) {
     const full = path.join(dir, e.name);
     if (e.isDirectory()) {
-      if (e.name !== "node_modules" && e.name !== ".git" && e.name !== "coverage" && e.name !== "dist" && e.name !== "build" && e.name !== "research") {
+      if (
+        e.name !== "node_modules" &&
+        e.name !== ".git" &&
+        e.name !== "coverage" &&
+        e.name !== "dist" &&
+        e.name !== "build" &&
+        e.name !== "research"
+      ) {
         walkDir(full, fileList);
       }
     } else if (/\.(test|spec)\.(ts|tsx|js|jsx)$/.test(e.name)) {
@@ -52,7 +59,9 @@ for (const file of testFiles) {
 
 if (violations.length > 0) {
   console.error("Found focused or skipped tests (remove before commit):");
-  violations.forEach(({ file, pattern }) => console.error(`  ${file}: ${pattern}`));
+  violations.forEach(({ file, pattern }) =>
+    console.error(`  ${file}: ${pattern}`),
+  );
   process.exit(1);
 }
 
