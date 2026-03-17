@@ -25,6 +25,8 @@
     "test:visual": "chromatic --build-script-name expo:static:build",
     "test:accessibility": "vitest run --reporter=verbose client/**/*.test.{ts,tsx}",
     "test:performance-monitor": "node scripts/performance-monitor.js",
+    "test:performance-monitor-enhanced": "node scripts/performance-monitor-enhanced.js",
+    "performance:dashboard": "node scripts/performance-dashboard.js",
     "test:performance:ci": "vitest bench --config vitest.performance.config.ts tests/performance/**/*.test.ts",
     "test:visual:ci": "chromatic --exit-zero-on-changes",
     "test:contracts": "vitest run tests/contracts/**/*.test.ts",
@@ -48,6 +50,14 @@
     "build:e2e:ios:release": "detox build --configuration ios.sim.release",
     "build:e2e:android": "detox build --configuration android.emu.debug",
     "build:e2e:android:release": "detox build --configuration android.emu.release",
+    "build:optimize": "node scripts/build-optimizer.js",
+    "build:analyze": "node scripts/build-optimizer.js --no-compression --analysis",
+    "build:parallel": "node scripts/build-optimizer.js --parallel",
+    "dev:tools": "node scripts/developer-tools.js",
+    "dev:analyze": "node scripts/developer-tools.js analyze",
+    "dev:generate": "node scripts/developer-tools.js generate",
+    "dev:refactor": "node scripts/developer-tools.js refactor",
+    "dev:report": "node scripts/developer-tools.js report",
     "desktop:dev": "cd desktop && npm run dev",
     "desktop:build": "cd desktop && npm run build",
     "desktop:tauri:dev": "cd desktop && npm run tauri:dev",
@@ -192,7 +202,8 @@
     "typescript": "~5.9.2",
     "vite": "^6.0.11",
     "vitest": "^3.0.5",
-    "vitest-axe": "^0.1.0"
+    "vitest-axe": "^0.1.0",
+    "ws": "^8.18.0"
   },
   "private": true
 }

@@ -28,14 +28,36 @@ class PerformanceMonitor {
         fastestTests: [],
         coverage: {},
         performanceScores: {}
+      },
+      // Enhanced metrics for advanced monitoring
+      systemMetrics: {
+        cpu: { usage: 0, cores: 0 },
+        memory: { used: 0, total: 0, heapUsed: 0, heapTotal: 0 },
+        network: { requests: 0, responseTime: 0, errors: 0 }
+      },
+      memoryProfiling: {
+        snapshots: [],
+        leaks: [],
+        growthRate: 0,
+        peakUsage: 0
+      },
+      performanceBudget: {
+        violations: [],
+        compliance: 100,
+        regressions: 0
       }
     };
+    this.memorySnapshots = [];
+    this.baselineMemory = null;
   }
 
   async runTests() {
     console.log('🚀 Running performance-monitored tests...');
     
     try {
+      // Start memory profiling
+      this.startMemoryProfiling();
+      
       // Run tests with JSON output for parsing
       const output = execSync(
         'npx vitest run --reporter=json --outputFile=/tmp/test-results.json',
@@ -51,6 +73,9 @@ class PerformanceMonitor {
     } catch (error) {
       console.error('❌ Test execution failed:', error.message);
       throw error;
+    } finally {
+      // Stop memory profiling
+      this.stopMemoryProfiling();
     }
   }
 
@@ -192,61 +217,6 @@ class PerformanceMonitor {
       } catch (error) {
         console.warn('⚠️ Failed to analyze trends:', error.message);
       }
-    }
-
-    return { trend: 'baseline', change: 0, lastScore: 0, currentScore: this.metrics.summary.performanceScores.overall };
-  }
-
-  async saveReport() {
-    const report = this.generateReport();
-    const reportsDir = path.join(__dirname, '../coverage');
-    
-    // Ensure reports directory exists
-    if (!fs.existsSync(reportsDir)) {
-      fs.mkdirSync(reportsDir, { recursive: true });
-    }
-
-    // Save detailed report
-    const reportPath = path.join(reportsDir, 'performance-report.json');
-    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
-
-    // Save trends data
-    const trendsPath = path.join(reportsDir, 'performance-trends.json');
-    let trends = [];
-    
-    if (fs.existsSync(trendsPath)) {
-      trends = JSON.parse(fs.readFileSync(trendsPath, 'utf8'));
-    }
-
-    trends.push({
-      timestamp: report.timestamp,
-      overall: report.summary.performanceScores.overall,
-      reliability: report.summary.performanceScores.reliability,
-      speed: report.summary.performanceScores.speed,
-      passRate: report.summary.performanceScores.passRate,
-      totalTests: report.summary.totalTests,
-      totalDuration: report.summary.totalDuration
-    });
-
-    // Keep only last 30 entries
-    if (trends.length > 30) {
-      trends = trends.slice(-30);
-    }
-
-    fs.writeFileSync(trendsPath, JSON.stringify(trends, null, 2));
-
-    console.log('📊 Performance report saved to:', reportPath);
-    console.log('📈 Trends data saved to:', trendsPath);
-
-    return report;
-  }
-
-  printSummary(report) {
-    const { summary, recommendations, trends } = report;
-    const scores = summary.performanceScores;
-
-    console.log('\n📊 Test Performance Summary');
-    console.log('='.repeat(50));
     console.log(`📈 Overall Score: ${scores.overall}/100`);
     console.log(`🎯 Reliability: ${scores.reliability}% (${summary.passedTests}/${summary.totalTests} tests passed)`);
     console.log(`⚡ Speed Score: ${scores.speed}/100`);
