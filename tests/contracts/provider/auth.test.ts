@@ -76,8 +76,8 @@ describe("Authentication API Provider Verification", () => {
       ];
 
       try {
-        const output = await verifier.verifyPacts({
-          pactFiles,
+        const output = await verifier.verifyProvider({
+          pactUrls: pactFiles,
           timeout: 30000, // 30 seconds timeout
         });
 
@@ -102,8 +102,8 @@ describe("Authentication API Provider Verification", () => {
       ];
 
       try {
-        const output = await verifier.verifyPacts({
-          pactFiles,
+        const output = await verifier.verifyProvider({
+          pactUrls: pactFiles,
           consumerVersionTags: ["dev"],
           providerVersionTags: ["dev"],
           includeWipPactsSince: "2020-01-01",
@@ -127,8 +127,8 @@ describe("Authentication API Provider Verification", () => {
       ];
 
       try {
-        const output = await verifier.verifyPacts({
-          pactFiles,
+        const output = await verifier.verifyProvider({
+          pactUrls: pactFiles,
           consumerVersionTags: ["dev"],
           providerVersionTags: ["dev"],
         });
@@ -151,8 +151,8 @@ describe("Authentication API Provider Verification", () => {
       ];
 
       try {
-        const output = await verifier.verifyPacts({
-          pactFiles,
+        const output = await verifier.verifyProvider({
+          pactUrls: pactFiles,
           consumerVersionTags: ["dev"],
           providerVersionTags: ["dev"],
         });
@@ -175,8 +175,8 @@ describe("Authentication API Provider Verification", () => {
       ];
 
       try {
-        const output = await verifier.verifyPacts({
-          pactFiles,
+        const output = await verifier.verifyProvider({
+          pactUrls: pactFiles,
           consumerVersionTags: ["dev"],
           providerVersionTags: ["dev"],
         });

@@ -155,7 +155,6 @@ describe("Albums API Provider Verification", () => {
         throw error;
       }
     }, 60000);
-    });
 
     it("should verify POST /api/albums/:id/photos", async () => {
       const pactFiles = [
@@ -181,7 +180,6 @@ describe("Albums API Provider Verification", () => {
         throw error;
       }
     }, 60000);
-    });
 
     it("should verify DELETE /api/albums/:id/photos/:photoId", async () => {
       const pactFiles = [

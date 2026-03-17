@@ -22,14 +22,11 @@ import {
   clampValue,
 } from "./photo-editor";
 
-// ─────────────────────────────────────────────────────────
-// FIX 1: mockManipulateAsync must be declared before vi.mock() so the
-// factory closure captures the same reference used in the call sites.
-// Previously the declaration was AFTER the mock, which works in CJS but
-// causes a TDZ ReferenceError under Vitest's ESM transform.
-// ─────────────────────────────────────────────────────────
-const mockManipulateAsync = vi.fn((uri: string) =>
-  Promise.resolve({ uri: `${uri}_processed`, width: 1000, height: 1000 }),
+// Use vi.hoisted to ensure mock is available during vi.mock factory execution
+const mockManipulateAsync = vi.hoisted(() =>
+  vi.fn((uri: string) =>
+    Promise.resolve({ uri: `${uri}_processed`, width: 1000, height: 1000 }),
+  ),
 );
 
 vi.mock("expo-image-manipulator", () => ({

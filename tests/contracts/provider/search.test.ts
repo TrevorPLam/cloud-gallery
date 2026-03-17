@@ -92,8 +92,8 @@ describe("Search API Provider Verification", () => {
       ];
 
       try {
-        const output = await verifier.verifyPacts({
-          pactFiles,
+        const output = await verifier.verifyProvider({
+          pactUrls: pactFiles,
           timeout: 30000,
         });
 
@@ -118,8 +118,8 @@ describe("Search API Provider Verification", () => {
       ];
 
       try {
-        const output = await verifier.verifyPacts({
-          pactFiles,
+        const output = await verifier.verifyProvider({
+          pactUrls: pactFiles,
           consumerVersionTags: ["dev"],
           providerVersionTags: ["dev"],
         });
@@ -142,8 +142,8 @@ describe("Search API Provider Verification", () => {
       ];
 
       try {
-        const output = await verifier.verifyPacts({
-          pactFiles,
+        const output = await verifier.verifyProvider({
+          pactUrls: pactFiles,
           consumerVersionTags: ["dev"],
           providerVersionTags: ["dev"],
         });
@@ -166,8 +166,8 @@ describe("Search API Provider Verification", () => {
       ];
 
       try {
-        const output = await verifier.verifyPacts({
-          pactFiles,
+        const output = await verifier.verifyProvider({
+          pactUrls: pactFiles,
           consumerVersionTags: ["dev"],
           providerVersionTags: ["dev"],
         });
@@ -190,8 +190,8 @@ describe("Search API Provider Verification", () => {
       ];
 
       try {
-        const output = await verifier.verifyPacts({
-          pactFiles,
+        const output = await verifier.verifyProvider({
+          pactUrls: pactFiles,
           consumerVersionTags: ["dev"],
           providerVersionTags: ["dev"],
         });
@@ -214,8 +214,8 @@ describe("Search API Provider Verification", () => {
       ];
 
       try {
-        const output = await verifier.verifyPacts({
-          pactFiles,
+        const output = await verifier.verifyProvider({
+          pactUrls: pactFiles,
           consumerVersionTags: ["dev"],
           providerVersionTags: ["dev"],
         });

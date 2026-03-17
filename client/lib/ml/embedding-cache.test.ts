@@ -45,7 +45,7 @@ vi.mock("./clip-embeddings", () => ({
     generateImageEmbeddings: vi.fn(),
     isReady: vi.fn().mockReturnValue(true),
   })),
-  Float32Array: Float32Array,
+  Float32Array: typeof Float32Array,
 }));
 
 // Mock implementation

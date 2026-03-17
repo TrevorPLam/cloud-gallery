@@ -19,19 +19,19 @@ import { config } from "dotenv";
 config({ path: ".env.test" });
 
 // ─────────────────────────────────────────────────────────
-// MOCK SETUP
+// MOCK SETUP - Use vi.hoisted() to ensure proper initialization order
 // ─────────────────────────────────────────────────────────
 
-// Module-scope mock database object
-const mockDb = {
+// Hoist mock database so it's available during vi.mock factory execution
+const mockDb = vi.hoisted(() => ({
   select: vi.fn(),
   insert: vi.fn(),
   delete: vi.fn(),
-};
+}));
 
 // Mock return values for database operations
-const mockSelectLimit = vi.fn();
-const mockInsertReturning = vi.fn();
+const mockSelectLimit = vi.hoisted(() => vi.fn());
+const mockInsertReturning = vi.hoisted(() => vi.fn());
 
 // Helper function to rebuild mock chains
 function rewireMockDb() {

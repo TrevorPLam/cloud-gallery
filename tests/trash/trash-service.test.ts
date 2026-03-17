@@ -41,6 +41,14 @@ vi.mock("@react-native-async-storage/async-storage", () => ({
   getItem: vi.fn(),
 }));
 
+// Mock the secure deletion module's internal functions
+vi.mock("@/lib/trash/secure-deletion", () => {
+  const getAuditTrail = vi.fn().mockResolvedValue([]);
+  return {
+    getAuditTrail,
+  };
+});
+
 describe("Trash Cleanup Service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -268,6 +276,28 @@ describe("Secure Deletion Service", () => {
   });
 
   describe("generateDeletionReport", () => {
+    beforeEach(() => {
+      // Reset the mock for each test
+      const secureDeletionModule = vi.mocked(await import("@/lib/trash/secure-deletion"));
+      secureDeletionModule.getAuditTrail.mockResolvedValue([
+        {
+          id: "audit-1",
+          photoId: "photo1",
+          userId: "user123",
+          action: "permanently_deleted",
+          timestamp: new Date().toISOString(),
+          metadata: {
+            originalSize: 1024,
+            originalPath: "/path/to/photo1",
+            deletionReason: "user_action",
+            retentionPeriod: 30,
+            verified: true,
+          },
+          cryptographicProof: "proof-hash-1",
+        }
+      ]);
+    });
+
     it("should generate comprehensive deletion report", async () => {
       const photoIds = ["photo1", "photo2", "photo3"];
       const userId = "user123";
@@ -287,6 +317,18 @@ describe("Secure Deletion Service", () => {
       expect(["compliant", "partial", "non-compliant"]).toContain(
         report.complianceStatus,
       );
+    });
+
+    it("should handle deletion report generation failure", async () => {
+      const photoIds = ["photo1", "photo2"];
+      const userId = "user123";
+
+      // Mock API failure
+      const { apiRequest } = await import("@/lib/query-client");
+      vi.mocked(apiRequest).mockRejectedValue(new Error("API Error"));
+
+      // Should handle the error gracefully
+      await expect(generateDeletionReport(photoIds, userId)).rejects.toThrow("Failed to generate deletion report");
     });
   });
 });

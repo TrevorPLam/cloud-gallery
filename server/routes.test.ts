@@ -47,7 +47,9 @@ vi.mock("./face-routes", () => ({ default: Router() }));
 vi.mock("./sharing-routes", () => ({ default: Router() }));
 vi.mock("./public-routes", () => ({ default: Router() }));
 vi.mock("./partner-sharing-routes", () => ({ default: Router() }));
+vi.mock("./family-sharing-routes", () => ({ default: Router() }));
 vi.mock("./sync-routes", () => ({ default: Router() }));
+vi.mock("./storage-routes", () => ({ default: Router() }));
 
 vi.mock("./auth", () => ({
   authenticateToken: vi.fn((req, _res, next) => {

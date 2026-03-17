@@ -56,21 +56,35 @@ export interface GPUDelegateConfig {
 }
 
 /**
- * Create mock TensorFlow Lite manager
+ * Create mock TensorFlow Lite manager with error simulation
  */
-export const createMockTFLiteManager = () => ({
+export const createMockTFLiteManager = (options: { 
+  shouldFailLoading?: boolean; 
+  shouldFailInference?: boolean;
+  shouldFailDeviceCapabilities?: boolean;
+} = {}) => ({
   // Device capability detection
-  getDeviceCapabilities: vi.fn().mockResolvedValue({
-    hasGPU: true,
-    hasNPU: false,
-    hasDSP: true,
-    maxMemory: 1024 * 1024 * 1024, // 1GB
-    supportedModelFormats: ['tflite', 'onnx'],
-    computeUnits: 8,
-  } as DeviceCapabilities),
+  getDeviceCapabilities: vi.fn().mockImplementation(() => {
+    if (options.shouldFailDeviceCapabilities) {
+      return Promise.reject(new Error("Device capabilities detection failed"));
+    }
+    return Promise.resolve({
+      hasGPU: true,
+      hasNPU: false,
+      hasDSP: true,
+      maxMemory: 1024 * 1024 * 1024, // 1GB
+      supportedModelFormats: ['tflite', 'onnx'],
+      computeUnits: 8,
+    } as DeviceCapabilities);
+  }),
 
   // Model loading and management
-  loadModel: vi.fn().mockResolvedValue(true),
+  loadModel: vi.fn().mockImplementation((config) => {
+    if (options.shouldFailLoading) {
+      return Promise.reject(new Error("Model loading failed"));
+    }
+    return Promise.resolve(true);
+  }),
   unloadModel: vi.fn().mockResolvedValue(true),
   isModelLoaded: vi.fn().mockReturnValue(true),
   getModelInfo: vi.fn().mockReturnValue({
@@ -81,10 +95,15 @@ export const createMockTFLiteManager = () => ({
   } as ModelConfig),
 
   // Model execution
-  runModel: vi.fn().mockResolvedValue({
-    outputs: [[0.1, 0.2, 0.3, 0.4]],
-    executionTime: 50,
-    memoryUsage: 1024 * 1024,
+  runModel: vi.fn().mockImplementation((modelName, inputs) => {
+    if (options.shouldFailInference) {
+      return Promise.reject(new Error("Inference failed"));
+    }
+    return Promise.resolve({
+      outputs: [[0.1, 0.2, 0.3, 0.4]],
+      executionTime: 50,
+      memoryUsage: 1024 * 1024,
+    });
   }),
 
   // GPU delegate management
@@ -110,7 +129,6 @@ export const createMockTFLiteManager = () => ({
   // Cleanup
   cleanup: vi.fn().mockResolvedValue(true),
   unloadAllModels: vi.fn().mockResolvedValue(true),
-  unloadModel: vi.fn().mockResolvedValue(true),
 });
 
 /**

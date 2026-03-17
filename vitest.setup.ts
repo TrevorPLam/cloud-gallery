@@ -97,13 +97,31 @@ vi.mock("expo-image", () => ({
   Image: "Image",
 }));
 
-// Mock expo-blur
-vi.mock("expo-blur", () => ({
-  BlurView: ({ children, ...props }: any) => {
-    const React = require("react");
-    const { View } = require("react-native");
-    return React.createElement(View, props, children);
+// Mock Expo modules that are missing in test environment
+vi.mock("expo-document-picker", () => ({
+  getDocumentAsync: vi.fn(),
+  pickDocument: vi.fn(),
+}));
+
+vi.mock("@lodev09/react-native-exify", () => ({
+  default: {
+    getExif: vi.fn(),
+    getTags: vi.fn(),
   },
+}));
+
+vi.mock("react-native-zip-archive", () => ({
+  unzip: vi.fn(),
+  zip: vi.fn(),
+}));
+
+// Mock ML model files
+vi.mock("../client/assets/models/clip-vit-b-32.tflite", () => ({
+  default: "mock-model-path",
+}));
+
+vi.mock("../client/assets/models/blazeface.tflite", () => ({
+  default: "mock-blazeface-path",
 }));
 
 // Mock @expo/vector-icons
@@ -120,32 +138,15 @@ vi.mock("@expo/vector-icons", () => ({
   },
 }));
 
-// Mock react-native-reanimated (native code fails to parse in Node; provides no-op animations)
-vi.mock("react-native-reanimated", () => {
-  const React = require("react");
-  const { View } = require("react-native");
-  return {
-    default: {
-      createAnimatedComponent: (Component: any) => Component,
-      View,
-      Text: View,
-      ScrollView: View,
-      FlatList: View,
-      Image: View,
-    },
-    useAnimatedStyle: () => ({}),
-    useSharedValue: (v: number) => ({ value: v }),
-    withSpring: (v: number) => v,
-    withTiming: (v: number) => v,
-    WithSpringConfig: {},
-    FadeIn: {},
-    FadeOut: {},
-    SlideInRight: {},
-    SlideOutLeft: {},
-    LinearTransition: {},
-    Layout: {},
-  };
-});
+// Mock react-native-gesture-handler
+vi.mock("react-native-gesture-handler", () => ({
+  PanGestureHandler: ({ children }: any) => children,
+  TapGestureHandler: ({ children }: any) => children,
+  PinchGestureHandler: ({ children }: any) => children,
+  GestureHandlerRootView: ({ children }: any) => children,
+  State: {},
+  Directions: {},
+}));
 
 // Mock ML modules
 vi.mock("react-native-fast-tflite", () => ({
@@ -153,10 +154,22 @@ vi.mock("react-native-fast-tflite", () => ({
   TFLiteManager: vi.fn(),
 }));
 
-// Mock TensorFlow Lite related modules
-vi.mock("../client/lib/ml/tflite", () => {
-  const { mockTFLite } = require("./client/lib/ml/__mocks__/tflite");
-  return mockTFLite;
+// Mock database module to prevent DATABASE_URL warnings
+// Inline the mock factory to avoid path resolution issues during hoisting
+vi.mock("./server/db", async () => {
+  // Import directly within the mock factory
+  const { getMockDatabase } = await import("./server/__mocks__/database");
+  return {
+    db: getMockDatabase(),
+  };
+});
+
+// But allow db.test.ts to import the real module by unmocking it in that specific test
+vi.hoisted(() => {
+  return {
+    // This will be used in db.test.ts to bypass the mock
+    __unmockDbForTest: false,
+  };
 });
 
 // Mock face detection
@@ -210,4 +223,31 @@ Object.defineProperty(global, "performance", {
     mark: vi.fn(),
     measure: vi.fn(),
   },
+});
+
+// Global cleanup for test isolation
+afterEach(() => {
+  // Clear all mocks to prevent test interference
+  vi.clearAllMocks();
+  
+  // Reset global state that might cause issues
+  if (global.__tracer__) {
+    delete global.__tracer__;
+  }
+  
+  // Reset any global timers or intervals
+  if (global.__setTimeout__) {
+    clearTimeout(global.__setTimeout__);
+    delete global.__setTimeout__;
+  }
+  
+  // Clear any cached modules that might hold state
+  vi.resetModules();
+});
+
+// Global setup for consistent test environment
+beforeEach(() => {
+  // Ensure consistent environment for each test
+  process.env.NODE_ENV = "test";
+  process.env.EXPO_PUBLIC_USE_ENCRYPTED_STORAGE = "false";
 });

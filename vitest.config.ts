@@ -18,6 +18,7 @@ export default defineConfig({
     server: {
       deps: {
         inline: ["react-native-reanimated"],
+        external: ["react-native", "expo", "@expo"],
       },
     },
     include: ["**/*.{test,spec}.{ts,tsx}"],
@@ -30,6 +31,10 @@ export default defineConfig({
       "**/.expo/**",
       "**/.git/**",
       "**/research/**",
+      // Exclude performance tests - they run separately with benchmark config
+      "tests/performance/**",
+      "**/performance/**",
+      "**/*.bench.{ts,js}",
     ],
     // Performance monitoring settings
     testTimeout: 30000, // 30 seconds per test
@@ -90,17 +95,19 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./client"),
       "@shared": path.resolve(__dirname, "./shared"),
+      // Redirect react-native to mock to avoid Flow syntax errors
+      "react-native": path.resolve(__dirname, "./__mocks__/react-native.ts"),
     },
   },
   define: {
     "process.env.NODE_ENV": '"test"',
   },
   optimizeDeps: {
-    exclude: ["react-native", "expo-blur", "@expo/vector-icons"],
+    exclude: ["react-native", "expo-blur", "@expo/vector-icons", "react-native-fast-tflite"],
   },
   // Handle React Native Flow types with performance optimizations
   esbuild: {
-    target: "esnext",
+    target: "es2022",
     // Performance optimizations
     minify: false, // Don't minify in test for better debugging
     sourcemap: true, // Enable sourcemaps for better error tracking

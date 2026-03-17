@@ -12,37 +12,155 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import request from "supertest";
 import express from "express";
 import syncRoutes from "./sync-routes";
-import { authenticateToken } from "./auth";
 import { createSyncService } from "./services/sync";
 import { db } from "./db";
+import { authenticateToken } from "./auth";
+import { createMockAuthMiddleware } from "./__mocks__/auth-middleware";
+import { createMockDatabase } from "./__mocks__/database";
 
-// Mock dependencies
-vi.mock("./auth");
+// Create mock db functions using vi.hoisted (available outside vi.mock)
+const mockDbFns = vi.hoisted(() => ({
+  selectFn: vi.fn(),
+  insertFn: vi.fn(),
+  updateFn: vi.fn(),
+  deleteFn: vi.fn(),
+}));
+
+// Mock data storage
+const mockData = vi.hoisted(() => ({
+  syncDevices: [] as any[],
+  syncItems: [] as any[],
+  syncOperations: [] as any[],
+}));
+
+// Helper to filter data based on conditions
+const filterData = (data: any[], conditions: any[]) => {
+  if (!conditions || conditions.length === 0) return data;
+  return data.filter(item => {
+    return conditions.every((cond: any) => {
+      if (cond && cond.column && cond.value !== undefined) {
+        return item[cond.column] === cond.value;
+      }
+      if (cond && cond.conditions) {
+        return filterData([item], cond.conditions).length > 0;
+      }
+      return true;
+    });
+  });
+};
+
+// Mock dependencies - use hoisted functions
 vi.mock("./services/sync");
-vi.mock("./db");
+vi.mock("./db", () => ({
+  db: {
+    select: mockDbFns.selectFn,
+    insert: mockDbFns.insertFn,
+    update: mockDbFns.updateFn,
+    delete: mockDbFns.deleteFn,
+  },
+}));
 
-// Mock authentication
-const mockAuth = vi.mocked(authenticateToken);
-const mockSyncService = vi.mocked(createSyncService);
-const mockDb = vi.mocked(db);
+// Mock auth directly like sharing-routes.test.ts
+vi.mock("./auth", () => ({
+  authenticateToken: vi.fn((req, res, next) => {
+    req.user = { id: "test-user-id", email: "test@example.com" };
+    next();
+  }),
+}));
 
-// Create test app
-const app = express();
-app.use(express.json());
-app.use("/api/sync", syncRoutes);
+// Use mock auth middleware - call inside tests, not at module level
+const getMockAuth = () => createMockAuthMiddleware();
+
+// Helper to setup mock chains in beforeEach
+const setupRewireMocks = () => {
+  mockDbFns.selectFn.mockImplementation(() => ({
+    from: vi.fn().mockImplementation((table: any) => {
+      // Determine which table we're querying
+      const hasDeviceId = table && table.deviceId !== undefined;
+      const dataSource = hasDeviceId ? mockData.syncDevices : mockData.syncDevices;
+      
+      return {
+        where: vi.fn().mockImplementation((...conditions: any[]) => {
+          const filtered = filterData(dataSource, conditions);
+          return {
+            orderBy: vi.fn().mockReturnValue(Promise.resolve(filtered)),
+            limit: vi.fn().mockImplementation((n: number) => 
+              Promise.resolve(filtered.slice(0, n))
+            ),
+            execute: vi.fn().mockReturnValue(Promise.resolve(filtered)),
+          };
+        }),
+        orderBy: vi.fn().mockReturnValue(Promise.resolve([...dataSource])),
+        limit: vi.fn().mockReturnValue(Promise.resolve([...dataSource])),
+        execute: vi.fn().mockReturnValue(Promise.resolve([...dataSource])),
+      };
+    }),
+  }));
+  
+  mockDbFns.insertFn.mockReturnValue({
+    values: vi.fn().mockImplementation((data) => ({
+      returning: vi.fn().mockImplementation(() => {
+        const newItem = { ...data, id: data.id || `test-${Date.now()}` };
+        mockData.syncDevices.push(newItem);
+        return Promise.resolve([newItem]);
+      }),
+    })),
+  });
+  
+  mockDbFns.updateFn.mockReturnValue({
+    set: vi.fn().mockImplementation((data) => ({
+      where: vi.fn().mockImplementation((...conditions) => {
+        const filtered = filterData(mockData.syncDevices, conditions);
+        if (filtered.length > 0) {
+          const item = filtered[0];
+          Object.assign(item, data);
+          return Promise.resolve([item]);
+        }
+        return Promise.resolve([]);
+      }),
+    })),
+  });
+  
+  mockDbFns.deleteFn.mockReturnValue({
+    where: vi.fn().mockImplementation((...conditions) => {
+      const filtered = filterData(mockData.syncDevices, conditions);
+      if (filtered.length > 0) {
+        const index = mockData.syncDevices.findIndex(d => d.id === filtered[0].id);
+        if (index > -1) {
+          mockData.syncDevices.splice(index, 1);
+        }
+      }
+      return Promise.resolve();
+    }),
+  });
+};
+
+// Create test app factory
+const createTestApp = () => {
+  const app = express();
+  app.use(express.json());
+  app.use("/api/sync", syncRoutes);
+  return app;
+};
 
 describe("Sync API Routes", () => {
   let mockSync: any;
+  let app: express.Application;
+  let mockAuth: any;
   const mockUser = { id: "test-user-id", email: "test@example.com" };
 
   beforeEach(() => {
     vi.clearAllMocks();
-
-    // Setup authentication mock
-    mockAuth.mockImplementation((req, res, next) => {
-      req.user = mockUser;
-      next();
-    });
+    
+    // Setup mock chains
+    setupRewireMocks();
+    
+    // Create fresh app for each test
+    app = createTestApp();
+    
+    // Setup mock auth
+    const auth = getMockAuth();
+    mockAuth = auth.mockAuth;
 
     // Setup sync service mock
     mockSync = {
@@ -55,24 +173,7 @@ describe("Sync API Routes", () => {
       getUserDevices: vi.fn(),
       removeDevice: vi.fn(),
     };
-    mockSyncService.mockReturnValue(mockSync);
-
-    // Setup database mock
-    mockDb.select = vi.fn().mockReturnValue({
-      where: vi.fn().mockReturnValue({
-        limit: vi.fn().mockResolvedValue([]),
-      }),
-    });
-    mockDb.update = vi.fn().mockReturnValue({
-      set: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([]),
-        }),
-      }),
-    });
-    mockDb.delete = vi.fn().mockReturnValue({
-      where: vi.fn().mockResolvedValue([]),
-    });
+    vi.mocked(createSyncService).mockReturnValue(mockSync);
   });
 
   afterEach(() => {
@@ -464,7 +565,7 @@ describe("Sync API Routes", () => {
           }),
         }),
       });
-      mockDb.update.mockReturnValue(mockUpdate as any);
+      mockDbFns.updateFn.mockReturnValue(mockUpdate as any);
 
       const response = await request(app)
         .put(`/api/sync/devices/${deviceId}`)
@@ -493,7 +594,7 @@ describe("Sync API Routes", () => {
           }),
         }),
       });
-      mockDb.update.mockReturnValue(mockUpdate as any);
+      mockDbFns.updateFn.mockReturnValue(mockUpdate as any);
 
       const response = await request(app)
         .put(`/api/sync/devices/${deviceId}`)
@@ -511,7 +612,7 @@ describe("Sync API Routes", () => {
       const deviceId = "phone-123";
 
       // Mock device exists check
-      mockDb.select.mockReturnValue({
+      mockDbFns.selectFn.mockReturnValue({
         where: vi.fn().mockReturnValue({
           limit: vi.fn().mockResolvedValue([{ id: "device-1" }]),
         }),
@@ -535,7 +636,7 @@ describe("Sync API Routes", () => {
       const deviceId = "non-existent-device";
 
       // Mock device not found
-      mockDb.select.mockReturnValue({
+      mockDbFns.selectFn.mockReturnValue({
         where: vi.fn().mockReturnValue({
           limit: vi.fn().mockResolvedValue([]),
         }),
@@ -583,7 +684,7 @@ describe("Sync API Routes", () => {
           where: vi.fn().mockResolvedValue([]),
         }),
       });
-      mockDb.update.mockReturnValue(mockUpdate as any);
+      mockDbFns.updateFn.mockReturnValue(mockUpdate as any);
 
       const response = await request(app)
         .post("/api/sync/reset")
@@ -621,7 +722,7 @@ describe("Sync API Routes", () => {
         .get("/api/sync/devices")
         .set("Authorization", "Bearer valid-token");
 
-      expect(mockAuth).toHaveBeenCalled();
+      expect(vi.mocked(authenticateToken)).toHaveBeenCalled();
     });
   });
 
@@ -641,7 +742,10 @@ describe("Sync API Routes", () => {
     });
 
     it("should handle database errors gracefully", async () => {
-      mockDb.select.mockRejectedValue(new Error("Database connection failed"));
+      // Use the hoisted mock function directly
+      mockDbFns.selectFn.mockImplementation(() => {
+        throw new Error("Database connection failed");
+      });
 
       const response = await request(app)
         .get("/api/sync/devices")

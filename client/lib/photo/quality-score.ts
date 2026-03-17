@@ -135,6 +135,11 @@ export class PhotoQualityScorer {
   public async assessQuality(imageUri: string): Promise<QualityMetrics> {
     const startTime = Date.now();
 
+    // Handle null/undefined/empty URIs gracefully
+    if (!imageUri) {
+      return this.fallbackQualityScore(startTime);
+    }
+
     try {
       // Load image data
       const imageData = await this.loadImageData(imageUri);

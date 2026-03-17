@@ -9,6 +9,8 @@
 // AI-META-END
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { Platform } from "react-native";
+import Share from "react-native-share";
 import { nativeShareService, NativeShareService } from "@/lib/native-share";
 import { Photo } from "@/types";
 

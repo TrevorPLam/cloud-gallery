@@ -11,7 +11,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import * as fc from "fast-check";
-import { SyncService, ConflictType } from "./sync";
+import { SyncService, ConflictType, ConflictStrategy, SyncConflict } from "./sync";
 import {
   setupTestDatabase,
   cleanupTestDatabase,
@@ -290,25 +290,39 @@ describe("SyncService (Sociable Tests)", () => {
 
     it("should resolve last-write-wins conflicts", async () => {
       const baseData = {
+        id: "photo-1",
         title: "Test Photo",
         description: "Original description",
+        modifiedAt: new Date(Date.now() - 2000).toISOString(),
       };
 
       const update1 = {
+        ...baseData,
         title: "Updated Photo 1",
-        timestamp: Date.now() - 1000,
+        modifiedAt: new Date(Date.now() - 1000).toISOString(),
       };
 
       const update2 = {
+        ...baseData,
         title: "Updated Photo 2",
-        timestamp: Date.now(),
+        modifiedAt: new Date(Date.now()).toISOString(),
       };
 
-      const conflict = syncService.resolveConflict(baseData, update1, update2);
+      // Create a proper SyncConflict object
+      const conflict: SyncConflict = {
+        id: "conflict-1",
+        type: ConflictType.UPDATE_CONFLICT,
+        deviceId: "device-1",
+        entityType: "photo",
+        entityId: "photo-1",
+        localData: update1,
+        remoteData: update2,
+        detectedAt: new Date().toISOString(),
+      };
 
-      expect(conflict.resolved).toBe(true);
-      expect(conflict.result.title).toBe("Updated Photo 2"); // Last write wins
-      expect(conflict.conflictType).toBe(ConflictType.LAST_WRITE_WINS);
+      const result = await syncService.resolveConflict(conflict, ConflictStrategy.LAST_WRITE_WINS);
+
+      expect(result.title).toBe("Updated Photo 2"); // Last write wins
     });
   });
 

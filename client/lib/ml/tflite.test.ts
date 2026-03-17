@@ -85,22 +85,22 @@ describe("TensorFlowLiteManager", () => {
     });
 
     it("should detect Android capabilities", async () => {
-      // Mock Android platform
-      vi.doMock("react-native", () => ({
-        Platform: {
-          OS: "android",
-          Version: "12",
-        },
-        InteractionManager: {
-          runAfterInteractions: vi.fn((callback) => callback()),
-        },
-      }));
+      // Save original mock
+      const originalMock = vi.mocked(require("react-native").Platform);
+      
+      // Mock Android platform temporarily  
+      vi.mocked(require("react-native").Platform).OS = "android";
+      vi.mocked(require("react-native").Platform).Version = "12";
 
       const androidDetector = DeviceCapabilityDetector.getInstance();
       const capabilities = await androidDetector.getCapabilities();
 
       expect(capabilities.platform).toBe("android");
       expect(capabilities.supportedDelegates.length).toBeGreaterThan(0);
+      
+      // Restore original mock
+      vi.mocked(require("react-native").Platform).OS = originalMock.OS;
+      vi.mocked(require("react-native").Platform).Version = originalMock.Version;
     });
   });
 

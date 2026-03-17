@@ -127,7 +127,6 @@ describe('LivePhotoProcessor', () => {
                 Length: 1024000,
                 Semantic: 'Primary',
               },
-              {
               Item: {
                 Mime: 'video/mp4',
                 Length: 3072000,

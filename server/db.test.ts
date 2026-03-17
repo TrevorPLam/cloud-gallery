@@ -10,6 +10,9 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
+// Unmock the db module for this specific test
+vi.unmock("./db");
+
 // ─────────────────────────────────────────────────────────
 // HELPERS
 // ─────────────────────────────────────────────────────────
