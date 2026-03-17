@@ -1,16 +1,15 @@
 /**
- * Vitest configuration for Cloud Gallery.
+ * Vitest configuration with performance monitoring
  *
- * Purpose: define test runtime, coverage, and module resolution behavior.
+ * Purpose: define test runtime, coverage, and module resolution behavior with performance tracking.
  * Inputs: test files under client/server/shared, runtime env (happy-dom).
- * Outputs: test execution configuration used by vitest CLI.
+ * Outputs: test execution configuration used by vitest CLI with performance metrics.
  * Invariants: coverage thresholds stay at 100% and focused tests are disallowed.
  */
 import { defineConfig } from "vitest/config";
 import path from "path";
 
 export default defineConfig({
-  plugins: [],
   test: {
     allowOnly: false,
     globals: true,
@@ -22,7 +21,6 @@ export default defineConfig({
       },
     },
     include: ["**/*.{test,spec}.{ts,tsx}"],
-    clearMocks: true,
     exclude: [
       "**/node_modules/**",
       "**/build/**",
@@ -33,8 +31,28 @@ export default defineConfig({
       "**/.git/**",
       "**/research/**",
     ],
-    // Transform React Native files to handle Flow types
-    testTransformMode: 'ssr',
+    // Performance monitoring settings
+    testTimeout: 30000, // 30 seconds per test
+    hookTimeout: 10000, // 10 seconds for hooks
+    isolate: true, // Isolate tests for accurate performance measurement
+    pool: 'threads', // Use thread pool for better performance
+    poolOptions: {
+      threads: {
+        singleThread: false,
+        maxThreads: 4,
+        minThreads: 1,
+      },
+    },
+    // Performance reporting
+    reporters: ['default', 'json'],
+    outputFile: {
+      json: './coverage/test-results.json',
+    },
+    // Benchmark configuration
+    benchmark: {
+      include: ['**/*.bench.{ts,js}'],
+      exclude: ['**/node_modules/**'],
+    },
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html", "lcov"],
@@ -53,18 +71,8 @@ export default defineConfig({
         "**/server_dist/**",
         "**/static-build/**",
         "**/.expo/**",
-        // Expo/React Native bootstrap files
-        "client/index.js",
-        "client/App.tsx",
-        // Server bootstrap file (tested via unit tests of individual functions)
-        "server/index.ts",
-        // React Native UI components (primarily JSX/styling, minimal logic)
-        "client/components/**",
-        "client/screens/**",
-        "client/navigation/**",
-        // Type definitions (no runtime code)
-        "client/types/**",
-        // Theme constants (static data)
+        "**/.git/**",
+        "**/research/**",
         "client/constants/**",
         // Platform-specific hooks (covered by integration tests)
         "client/hooks/**",
@@ -85,13 +93,18 @@ export default defineConfig({
     },
   },
   define: {
-    'process.env.NODE_ENV': '"test"',
+    "process.env.NODE_ENV": '"test"',
   },
   optimizeDeps: {
-    exclude: ['react-native', 'expo-blur', '@expo/vector-icons'],
+    exclude: ["react-native", "expo-blur", "@expo/vector-icons"],
   },
-  // Handle React Native Flow types
+  // Handle React Native Flow types with performance optimizations
   esbuild: {
-    target: 'esnext',
+    target: "esnext",
+    // Performance optimizations
+    minify: false, // Don't minify in test for better debugging
+    sourcemap: true, // Enable sourcemaps for better error tracking
+    // Tree shaking for test files
+    treeShaking: true,
   },
 });

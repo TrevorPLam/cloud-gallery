@@ -1,11 +1,19 @@
 import { vi } from "vitest";
 import "@testing-library/jest-dom";
 import "vitest-axe/extend-expect";
+import { setupTestIsolation, setupGlobalMocks } from "./tests/utils/test-isolation";
+
+// Setup test isolation
+setupTestIsolation();
+
+// Setup global mocks
+setupGlobalMocks();
 
 // Use plain (non-encrypted) storage in tests so client/lib/storage.test.ts does not need SecureStore
 if (typeof process !== "undefined") {
   process.env.EXPO_PUBLIC_USE_ENCRYPTED_STORAGE = "false";
-  process.env.EXPO_PUBLIC_DOMAIN = process.env.EXPO_PUBLIC_DOMAIN ?? "test.example.com";
+  process.env.EXPO_PUBLIC_DOMAIN =
+    process.env.EXPO_PUBLIC_DOMAIN ?? "test.example.com";
 }
 
 // Expo/React Native globals
@@ -139,6 +147,39 @@ vi.mock("react-native-reanimated", () => {
   };
 });
 
+// Mock ML modules
+vi.mock("react-native-fast-tflite", () => ({
+  createMockTFLiteManager: vi.fn(),
+  TFLiteManager: vi.fn(),
+}));
+
+// Mock TensorFlow Lite related modules
+vi.mock("../client/lib/ml/tflite", () => {
+  const { mockTFLite } = require("./client/lib/ml/__mocks__/tflite");
+  return mockTFLite;
+});
+
+// Mock face detection
+vi.mock("../client/lib/ml/face-detection", () => ({
+  detectFaces: vi.fn().mockResolvedValue([]),
+  generateEmbedding: vi.fn().mockResolvedValue(new Array(128).fill(0)),
+  compareFaces: vi.fn().mockResolvedValue({ similarity: 0.8 }),
+}));
+
+// Mock CLIP embeddings
+vi.mock("../client/lib/ml/clip-embeddings", () => ({
+  embedText: vi.fn().mockResolvedValue(new Array(512).fill(0)),
+  embedImage: vi.fn().mockResolvedValue(new Array(512).fill(0)),
+  calculateSimilarity: vi.fn().mockReturnValue(0.75),
+}));
+
+// Mock adaptive models
+vi.mock("../client/lib/ml/adaptive-models", () => ({
+  adaptModel: vi.fn().mockResolvedValue({ adaptedModelId: 'test' }),
+  evaluateModel: vi.fn().mockResolvedValue({ accuracy: 0.9 }),
+  optimizeModel: vi.fn().mockResolvedValue({ optimizedModelId: 'test' }),
+}));
+
 // Mock React Navigation
 vi.mock("@react-navigation/native", () => ({
   useNavigation: () => ({
@@ -162,7 +203,7 @@ vi.mock("chrono", () => ({
 }));
 
 // Performance polyfill for tests
-Object.defineProperty(global, 'performance', {
+Object.defineProperty(global, "performance", {
   writable: true,
   value: {
     now: vi.fn(() => Date.now()),

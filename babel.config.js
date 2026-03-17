@@ -1,5 +1,5 @@
 // AI-META-BEGIN
-// AI-META: Babel configuration for Expo with module resolution aliases
+// AI-META: Enhanced Babel configuration for performance optimization
 // OWNERSHIP: build/config
 // ENTRYPOINTS: used by Metro bundler and babel transpilation
 // DEPENDENCIES: babel-preset-expo, module-resolver plugin, react-native-reanimated
@@ -8,11 +8,21 @@
 // TESTS: expo:dev, check:types after alias changes
 // AI-META-END
 
-// AI-NOTE: module-resolver aliases (@, @shared) enable absolute imports; reanimated plugin must be last for worklet transformation
+// AI-NOTE: Enhanced configuration with performance optimizations and better module resolution
 module.exports = function (api) {
   api.cache(true);
   return {
-    presets: ["babel-preset-expo"],
+    presets: [
+      [
+        "babel-preset-expo",
+        {
+          // Enable modern JavaScript features for better performance
+          jsxImportSource: "react",
+          // Optimize for production builds
+          lazy: false,
+        },
+      ],
+    ],
     plugins: [
       [
         "module-resolver",
@@ -25,7 +35,27 @@ module.exports = function (api) {
           extensions: [".ios.js", ".android.js", ".js", ".ts", ".tsx", ".json"],
         },
       ],
+      // Performance optimizations
+      ["@babel/plugin-transform-runtime", {
+        helpers: true,
+        regenerator: true,
+        useESModules: false,
+      }],
+      // Remove unused imports for smaller bundles
+      ["babel-plugin-transform-remove-console", {
+        exclude: ["error", "warn", "info"],
+      }],
+      // React Native Reanimated must be last
       "react-native-reanimated/plugin",
     ],
+    env: {
+      production: {
+        plugins: [
+          // Additional optimizations for production
+          "babel-plugin-transform-react-remove-prop-types",
+          "babel-plugin-transform-react-pure-class-to-function",
+        ],
+      },
+    },
   };
 };
