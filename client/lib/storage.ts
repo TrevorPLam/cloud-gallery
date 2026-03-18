@@ -146,6 +146,11 @@ export async function deleteAlbum(albumId: string): Promise<void> {
   await plainSaveAlbums(filtered);
 }
 
+export async function getPhotosByPerceptualHash(perceptualHash: string): Promise<Photo[]> {
+  const photos = await getPhotos();
+  return photos.filter(photo => photo.perceptualHash === perceptualHash);
+}
+
 export async function addPhotosToAlbum(
   albumId: string,
   photoIds: string[],

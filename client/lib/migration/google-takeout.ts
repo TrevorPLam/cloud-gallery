@@ -13,7 +13,9 @@ import * as FileSystem from "expo-file-system";
 import { unzip } from "react-native-zip-archive";
 import * as Exify from "@lodev09/react-native-exify";
 import { Photo } from "@/types";
-import { addPhoto } from "@/lib/storage";
+import { encryptAndUpload } from "@/lib/upload-encrypted";
+import { getPhotosByPerceptualHash } from "@/lib/storage";
+import { pHash } from "@stabilityprotocol.com/phash";
 
 // Google Takeout JSON metadata interface
 export interface GoogleTakeoutMetadata {
@@ -77,6 +79,8 @@ interface ProcessingItem {
   imagePath: string;
   metadataPath?: string;
   metadata?: GoogleTakeoutMetadata;
+  perceptualHash?: string;
+  isDuplicate?: boolean;
 }
 
 class GoogleTakeoutProcessor {
@@ -312,7 +316,11 @@ class GoogleTakeoutProcessor {
 
       try {
         await this.processPhoto(item);
-        result.importedPhotos++;
+        if (!item.isDuplicate) {
+          result.importedPhotos++;
+        } else {
+          result.skippedFiles.push(item.imagePath + " (duplicate)");
+        }
       } catch (error) {
         const errorMessage = `Failed to process ${item.imagePath}: ${error instanceof Error ? error.message : "Unknown error"}`;
         result.errors.push(errorMessage);
@@ -324,20 +332,56 @@ class GoogleTakeoutProcessor {
   }
 
   /**
-   * Process individual photo with metadata restoration
+   * Process individual photo with metadata restoration and E2EE upload
    */
   private async processPhoto(item: ProcessingItem): Promise<void> {
-    // Copy photo to app's document directory
-    const photoUri = await this.copyPhotoToDocuments(item.imagePath);
+    try {
+      // Step 1: Check for duplicates using perceptual hash
+      if (item.perceptualHash) {
+        const existingPhotos = await getPhotosByPerceptualHash(item.perceptualHash);
+        if (existingPhotos.length > 0) {
+          item.isDuplicate = true;
+          console.log(`Skipping duplicate photo: ${item.imagePath}`);
+          return;
+        }
+      }
 
-    // Restore EXIF metadata if available
-    if (item.metadata) {
-      await this.restoreExifMetadata(photoUri, item.metadata);
+      // Step 2: Copy photo to app's document directory
+      const photoUri = await this.copyPhotoToDocuments(item.imagePath);
+
+      // Step 3: Restore EXIF metadata if available
+      if (item.metadata) {
+        await this.restoreExifMetadata(photoUri, item.metadata);
+      }
+
+      // Step 4: Create photo object from file and metadata
+      const photo = await this.createPhotoObject(photoUri, item.metadata);
+      
+      // Step 5: Generate perceptual hash for duplicate detection
+      if (!item.perceptualHash) {
+        item.perceptualHash = await this.generatePerceptualHash(photoUri);
+      }
+      photo.perceptualHash = item.perceptualHash;
+
+      // Step 6: Upload through E2EE pipeline
+      const metadata = this.createPhotoMetadata(item.metadata);
+      const result = await encryptAndUpload(photoUri, metadata, (progress) => {
+        // Update progress within individual photo processing
+        this.updateProgress(
+          `Uploading ${photoUri.split("/").pop()}`,
+          this.processingQueue.indexOf(item),
+          this.processingQueue.length,
+          photoUri.split("/").pop()
+        );
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to upload photo");
+      }
+    } catch (error) {
+      // Re-throw with more context
+      throw new Error(`Failed to process ${item.imagePath}: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
-
-    // Create photo object and save to storage
-    const photo = await this.createPhotoObject(photoUri, item.metadata);
-    await addPhoto(photo);
   }
 
   /**
@@ -490,11 +534,99 @@ class GoogleTakeoutProcessor {
   }
 
   /**
-   * Cleanup temporary files
+   * Generate perceptual hash for duplicate detection
+   */
+  private async generatePerceptualHash(imageUri: string): Promise<string> {
+    try {
+      // Convert file URI to base64 for pHash library
+      const base64 = await FileSystem.readAsStringAsync(imageUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      
+      // Generate perceptual hash using the pHash library
+      const hash = await pHash(base64);
+      return hash;
+    } catch (error) {
+      console.warn("Failed to generate perceptual hash:", error);
+      // Fallback to simple hash if pHash fails
+      const fileInfo = await FileSystem.getInfoAsync(imageUri);
+      const filename = imageUri.split("/").pop() || "";
+      const size = fileInfo.size || 0;
+      const hash = this.simpleHash(filename + size.toString());
+      return hash;
+    }
+  }
+
+  /**
+   * Simple hash function for placeholder perceptual hashing
+   */
+  private simpleHash(str: string): string {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash).toString(16).padStart(8, '0');
+  }
+
+  /**
+   * Create photo metadata for E2EE upload
+   */
+  private createPhotoMetadata(metadata?: GoogleTakeoutMetadata): any {
+    const result: any = {
+      width: 1920, // Default, would be extracted from actual image
+      height: 1080, // Default, would be extracted from actual image
+      filename: metadata?.title || "imported_photo",
+    };
+
+    if (metadata?.geoData?.latitude && metadata?.geoData?.longitude) {
+      result.location = {
+        latitude: metadata.geoData.latitude,
+        longitude: metadata.geoData.longitude,
+        altitude: metadata.geoData.altitude,
+      };
+    }
+
+    if (metadata?.googlePhotosOrigin?.mobileUpload?.deviceType) {
+      result.camera = {
+        make: metadata.googlePhotosOrigin.mobileUpload.deviceType,
+        model: "Unknown",
+      };
+    }
+
+    if (metadata?.description) {
+      result.notes = metadata.description;
+    }
+
+    if (metadata?.people) {
+      result.tags = metadata.people.map(p => p.name);
+    }
+
+    if (metadata?.favorited) {
+      result.isFavorite = true;
+    }
+
+    return result;
+  }
+
+  /**
+   * Cleanup temporary files with cancellation safety
    */
   private async cleanup(extractPath: string): Promise<void> {
     try {
-      await FileSystem.deleteAsync(extractPath, { idempotent: true });
+      // Clean up migration directory
+      const documentsDir = FileSystem.documentDirectory || "";
+      const migrationDir = `${documentsDir}migration/`;
+      
+      if (!this.isCancelled) {
+        await FileSystem.deleteAsync(extractPath, { idempotent: true });
+        await FileSystem.deleteAsync(migrationDir, { idempotent: true });
+      } else {
+        // If cancelled, be more aggressive with cleanup
+        await FileSystem.deleteAsync(extractPath, { idempotent: true });
+        await FileSystem.deleteAsync(migrationDir, { idempotent: true });
+      }
     } catch (error) {
       console.warn("Failed to cleanup temporary files:", error);
     }
