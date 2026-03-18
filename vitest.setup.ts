@@ -1,5 +1,5 @@
-import { vi } from "vitest";
-import "@testing-library/jest-dom";
+import { vi, expect, afterEach, beforeEach } from "vitest";
+// import "@testing-library/jest-dom";
 import "vitest-axe/extend-expect";
 import { setupTestIsolation, setupGlobalMocks } from "./tests/utils/test-isolation";
 
@@ -171,8 +171,17 @@ vi.mock("react-native-gesture-handler", () => ({
 
 // Mock ML modules with proper hoisted initialization
 const mockTFLiteManager = vi.hoisted(() => {
-  const { createMockTFLiteManager } = require("../client/lib/ml/__mocks__/tflite");
-  return createMockTFLiteManager();
+  // Return a simple mock for now
+  return {
+    getDeviceCapabilities: vi.fn().mockResolvedValue({
+      hasGPU: true,
+      hasNPU: false,
+      maxMemory: 1024 * 1024 * 1024
+    }),
+    loadModel: vi.fn().mockResolvedValue(true),
+    runInference: vi.fn().mockResolvedValue([]),
+    unloadModel: vi.fn().mockResolvedValue(true),
+  };
 });
 
 vi.mock("react-native-fast-tflite", () => ({

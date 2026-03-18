@@ -341,7 +341,7 @@ describe("Property Testing Framework", () => {
   });
 
   describe("Error Handling", () => {
-    it("should handle property test failures gracefully", () => {
+    it("should handle property test failures gracefully", async () => {
       const failingProperty = standardProperty(
         fc.integer({ min: 1, max: 100 }),
         (num) => {
@@ -350,7 +350,7 @@ describe("Property Testing Framework", () => {
       );
 
       // This should throw an error due to failing property
-      expect(() => runPropertyTest(failingProperty, lightConfig)).toThrow();
+      await expect(runPropertyTest(failingProperty, lightConfig)).rejects.toThrow();
     });
 
     it("should handle async property test failures gracefully", async () => {

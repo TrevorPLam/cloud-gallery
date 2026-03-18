@@ -1,3 +1,4 @@
+import { describe, it, expect } from "vitest";
 import { PactV4, Matchers } from "@pact-foundation/pact";
 import path from "path";
 

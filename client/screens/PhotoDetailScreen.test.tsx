@@ -37,11 +37,11 @@ vi.mock("@/lib/secure-storage", () => ({
   getDecryptedPhotoUri: vi.fn((photo) => Promise.resolve(photo.uri)),
 }));
 
-vi.mock("@shopify/flash-list", () => ({
-  FlashList: ({ children }: { children: React.ReactNode }) => 
-    React.createElement('View', { testID: 'flash-list', children })
-  },
-}));
+// vi.mock("@shopify/flash-list", () => ({
+//   FlashList: ({ children }: { children: React.ReactNode }) => 
+//     React.createElement('View', { testID: 'flash-list', children })
+//   },
+// }));
 
 describe("PhotoDetailScreen - Metadata Updates", () => {
   let queryClient: QueryClient;

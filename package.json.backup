@@ -177,14 +177,6 @@
     "ws": "^8.18.0",
     "zod": "^3.24.2"
   },
-  "overrides": {
-    "@aws-sdk/xml-builder": "^3.972.11",
-    "@aws-sdk/core": "^3.973.20",
-    "fast-xml-parser": "^5.5.6",
-    "@react-native-async-storage/async-storage": {
-      "react-native": "^0.84.1-0"
-    }
-  },
   "devDependencies": {
     "@pact-foundation/pact": "^16.3.0",
     "@storybook/react": "^8.6.18",
@@ -216,7 +208,6 @@
     "eslint-config-expo": "~10.0.0",
     "eslint-config-prettier": "^9.1.0",
     "fast-check": "^4.6.0",
-    "happy-dom": "^20.8.4",
     "supertest": "^7.2.2",
     "ts-jest": "^29.4.6",
     "typescript": "^5.9.2",
@@ -224,5 +215,10 @@
     "vitest-axe": "^0.1.0"
   },
   "license": "MIT",
-  "private": true
+  "private": true,
+  "overrides": {
+    "@react-native-async-storage/async-storage": {
+      "react-native": "^0.84.1-0"
+    }
+  }
 }

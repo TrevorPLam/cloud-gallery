@@ -9,6 +9,7 @@
  */
 
 import * as fc from 'fast-check';
+import { expect } from 'vitest';
 
 // ─────────────────────────────────────────────────────────
 // CONSTRAINT HELPERS
@@ -144,10 +145,10 @@ export const normalizedBoundingBox = () =>
  */
 export const detectionOutputs = () =>
   fc.tuple(
-    fc.array(fc.float32({ min: 0, max: 1 }), { minLength: 4, maxLength: 20 })
+    fc.array(fc.float({ min: 0, max: 1 }), { minLength: 4, maxLength: 20 })
       .filter(values => values.length % 4 === 0), // Bbox values must be multiple of 4
-    fc.array(fc.float32({ min: 0, max: 1 }), { minLength: 1, maxLength: 5 }),
-    fc.array(fc.float32({ min: 0, max: 10 }), { minLength: 1, maxLength: 5 })
+    fc.array(fc.float({ min: 0, max: 1 }), { minLength: 1, maxLength: 5 }),
+    fc.array(fc.float({ min: 0, max: 10 }), { minLength: 1, maxLength: 5 })
   ).filter(([bboxValues, scores, classes]) => {
     // Ensure consistent array sizes
     return bboxValues.length > 0 && 
@@ -230,7 +231,7 @@ export const runPropertyTest = async <T>(
   config: Partial<typeof standardConfig> = {}
 ): Promise<void> => {
   const finalConfig = { ...standardConfig, ...config };
-  await expect(fc.assert(property, finalConfig)).resolves.toBeUndefined();
+  await fc.assert(property, finalConfig);
 };
 
 /**
@@ -241,7 +242,7 @@ export const runAsyncPropertyTest = async <T>(
   config: Partial<typeof standardConfig> = {}
 ): Promise<void> => {
   const finalConfig = { ...standardConfig, ...config };
-  await expect(fc.assert(property, finalConfig)).resolves.toBeUndefined();
+  await fc.assert(property, finalConfig);
 };
 
 // ─────────────────────────────────────────────────────────

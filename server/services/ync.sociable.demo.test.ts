@@ -2,7 +2,7 @@
 // Shows the principles of behavior-focused testing without complex setup
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { SyncService, ConflictType } from "./sync";
+import { SyncService, ConflictType, SyncConflict, ConflictStrategy } from "./sync";
 
 // Mock only external boundaries (BullMQ queues) - keep this as true boundary
 vi.mock("bullmq", () => ({
@@ -55,7 +55,7 @@ describe("SyncService (Sociable Testing Demonstration)", () => {
       expect(comparison.vector2Newer).toBe(false);
     });
 
-    it("should resolve last-write-wins conflicts correctly", () => {
+    it("should resolve last-write-wins conflicts correctly", async () => {
       const baseData = {
         title: "Test Photo",
         description: "Original description",
@@ -72,13 +72,21 @@ describe("SyncService (Sociable Testing Demonstration)", () => {
       };
 
       // Test behavior - not implementation details
-      const conflict = syncService.resolveConflict(baseData, update1, update2);
+      const conflict: SyncConflict = {
+        id: "conflict-1",
+        photoId: "photo-1",
+        localData: { ...baseData, ...update1 },
+        remoteData: { ...baseData, ...update2 },
+        strategy: ConflictStrategy.LAST_WRITE_WINS,
+        resolved: false,
+        timestamp: new Date(),
+      };
+
+      const result = await syncService.resolveConflict(conflict, ConflictStrategy.LAST_WRITE_WINS);
 
       // Verify business outcome
-      expect(conflict.resolved).toBe(true);
-      expect(conflict.result.title).toBe("Updated Photo 2"); // Last write wins
-      expect(conflict.conflictType).toBe(ConflictType.LAST_WRITE_WINS);
-      expect(conflict.result.description).toBe(baseData.description); // Preserved
+      expect(result.title).toBe("Updated Photo 2"); // Last write wins
+      expect(result.description).toBe(baseData.description); // Preserved
     });
   });
 
