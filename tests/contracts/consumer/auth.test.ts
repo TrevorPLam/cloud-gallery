@@ -1,3 +1,5 @@
+// @vitest-environment node
+import { describe, it, expect } from "vitest";
 import { PactV4, Matchers } from "@pact-foundation/pact";
 import path from "path";
 import { commonHeaders, matchers } from "../utils/setup";
@@ -13,17 +15,8 @@ describe("Authentication API Consumer Tests", () => {
     consumer: "cloud-gallery-client",
     provider: "cloud-gallery-api",
     port: 4000,
-    log: path.resolve(process.cwd(), "logs", "pact.log"),
     dir: path.resolve(process.cwd(), "tests", "contracts", "pacts"),
     logLevel: "INFO",
-  });
-
-  beforeAll(async () => {
-    await provider.setup();
-  });
-
-  afterAll(async () => {
-    await provider.finalize();
   });
 
   describe("POST /api/auth/register", () => {
@@ -31,15 +24,16 @@ describe("Authentication API Consumer Tests", () => {
       const registrationRequest = createRegistrationRequest();
 
       await provider
+        .addInteraction()
         .given("user does not exist")
         .uponReceiving("a valid user registration request")
         .withRequest("POST", "/api/auth/register", (builder) => {
           builder.headers(commonHeaders);
-          builder.body(registrationRequest);
+          builder.jsonBody(registrationRequest);
         })
         .willRespondWith(201, (builder) => {
           builder.headers(commonHeaders);
-          builder.body(
+          builder.jsonBody(
             createAuthResponseMatcher({
               message: Matchers.like("User registered successfully"),
             }),
@@ -65,15 +59,16 @@ describe("Authentication API Consumer Tests", () => {
       const registrationRequest = createRegistrationRequest();
 
       await provider
+        .addInteraction()
         .given("user already exists")
         .uponReceiving("a registration request with existing email")
         .withRequest("POST", "/api/auth/register", (builder) => {
           builder.headers(commonHeaders);
-          builder.body(registrationRequest);
+          builder.jsonBody(registrationRequest);
         })
         .willRespondWith(409, (builder) => {
           builder.headers(commonHeaders);
-          builder.body(
+          builder.jsonBody(
             createErrorResponseMatcher(
               409,
               "User already exists",
@@ -101,14 +96,15 @@ describe("Authentication API Consumer Tests", () => {
       };
 
       await provider
+        .addInteraction()
         .uponReceiving("a registration request with invalid email")
         .withRequest("POST", "/api/auth/register", (builder) => {
           builder.headers(commonHeaders);
-          builder.body(invalidRequest);
+          builder.jsonBody(invalidRequest);
         })
         .willRespondWith(400, (builder) => {
           builder.headers(commonHeaders);
-          builder.body(
+          builder.jsonBody(
             createErrorResponseMatcher(
               400,
               "Validation error",
@@ -135,14 +131,15 @@ describe("Authentication API Consumer Tests", () => {
       const loginRequest = createLoginRequest();
 
       await provider
+        .addInteraction()
         .uponReceiving("a valid login request")
         .withRequest("POST", "/api/auth/login", (builder) => {
           builder.headers(commonHeaders);
-          builder.body(loginRequest);
+          builder.jsonBody(loginRequest);
         })
         .willRespondWith(200, (builder) => {
           builder.headers(commonHeaders);
-          builder.body(
+          builder.jsonBody(
             createAuthResponseMatcher({
               message: Matchers.like("Login successful"),
             }),
@@ -171,14 +168,15 @@ describe("Authentication API Consumer Tests", () => {
       };
 
       await provider
+        .addInteraction()
         .uponReceiving("a login request with invalid credentials")
         .withRequest("POST", "/api/auth/login", (builder) => {
           builder.headers(commonHeaders);
-          builder.body(invalidLoginRequest);
+          builder.jsonBody(invalidLoginRequest);
         })
         .willRespondWith(401, (builder) => {
           builder.headers(commonHeaders);
-          builder.body(
+          builder.jsonBody(
             createErrorResponseMatcher(
               401,
               "Invalid credentials",
@@ -206,14 +204,15 @@ describe("Authentication API Consumer Tests", () => {
       };
 
       await provider
+        .addInteraction()
         .uponReceiving("a login request for non-existent user")
         .withRequest("POST", "/api/auth/login", (builder) => {
           builder.headers(commonHeaders);
-          builder.body(nonExistentUserRequest);
+          builder.jsonBody(nonExistentUserRequest);
         })
         .willRespondWith(401, (builder) => {
           builder.headers(commonHeaders);
-          builder.body(
+          builder.jsonBody(
             createErrorResponseMatcher(
               401,
               "Invalid credentials",
@@ -242,14 +241,15 @@ describe("Authentication API Consumer Tests", () => {
       };
 
       await provider
+        .addInteraction()
         .uponReceiving("a token refresh request")
         .withRequest("POST", "/api/auth/refresh", (builder) => {
           builder.headers(commonHeaders);
-          builder.body(refreshRequest);
+          builder.jsonBody(refreshRequest);
         })
         .willRespondWith(200, (builder) => {
           builder.headers(commonHeaders);
-          builder.body({
+          builder.jsonBody({
             message: Matchers.like("Token refreshed successfully"),
             accessToken: matchers.jwtToken,
           });
@@ -274,14 +274,15 @@ describe("Authentication API Consumer Tests", () => {
       };
 
       await provider
+        .addInteraction()
         .uponReceiving("a token refresh request with invalid token")
         .withRequest("POST", "/api/auth/refresh", (builder) => {
           builder.headers(commonHeaders);
-          builder.body(invalidRefreshRequest);
+          builder.jsonBody(invalidRefreshRequest);
         })
         .willRespondWith(403, (builder) => {
           builder.headers(commonHeaders);
-          builder.body(
+          builder.jsonBody(
             createErrorResponseMatcher(
               403,
               "Invalid or expired refresh token",
@@ -306,6 +307,7 @@ describe("Authentication API Consumer Tests", () => {
   describe("GET /api/auth/me", () => {
     it("should return current user info with valid token", async () => {
       await provider
+        .addInteraction()
         .uponReceiving("a request for current user info")
         .withRequest("GET", "/api/auth/me", (builder) => {
           builder.headers({
@@ -315,7 +317,7 @@ describe("Authentication API Consumer Tests", () => {
         })
         .willRespondWith(200, (builder) => {
           builder.headers(commonHeaders);
-          builder.body({
+          builder.jsonBody({
             user: {
               id: matchers.uuid,
               email: Matchers.like("test@example.com"),
@@ -340,13 +342,14 @@ describe("Authentication API Consumer Tests", () => {
 
     it("should reject request without authentication token", async () => {
       await provider
+        .addInteraction()
         .uponReceiving("a request without authentication token")
         .withRequest("GET", "/api/auth/me", (builder) => {
           builder.headers(commonHeaders);
         })
         .willRespondWith(401, (builder) => {
           builder.headers(commonHeaders);
-          builder.body(
+          builder.jsonBody(
             createErrorResponseMatcher(
               401,
               "Unauthorized",

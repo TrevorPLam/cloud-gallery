@@ -6,8 +6,11 @@ import { setupTestIsolation, setupGlobalMocks } from "./tests/utils/test-isolati
 // Setup test isolation
 setupTestIsolation();
 
-// Setup global mocks
-setupGlobalMocks();
+// Only setup browser-dependent mocks (including mock fetch) in browser-like environments.
+// Contract tests use // @vitest-environment node and need real HTTP fetch for Pact mock servers.
+if (typeof window !== "undefined") {
+  setupGlobalMocks();
+}
 
 // Use plain (non-encrypted) storage in tests so client/lib/storage.test.ts does not need SecureStore
 if (typeof process !== "undefined") {
@@ -242,8 +245,10 @@ vi.mock("@react-navigation/native", () => ({
   NavigationContainer: ({ children }: any) => children,
 }));
 
-// Mock React Query
-global.fetch = vi.fn();
+// Mock React Query (only in browser-like environments; contract tests need real fetch)
+if (typeof window !== "undefined") {
+  global.fetch = vi.fn();
+}
 
 // Mock chrono library for date parsing
 vi.mock("chrono", () => ({
@@ -276,8 +281,11 @@ afterEach(() => {
     delete global.__setTimeout__;
   }
   
-  // Clear any cached modules that might hold state
-  vi.resetModules();
+  // NOTE: vi.resetModules() intentionally removed from the global afterEach.
+  // It clears the entire module registry after every test which forces
+  // re-initialization of all 50+ mocks and is extremely slow at scale.
+  // Files that need isolated module state (e.g. server/db.test.ts) call
+  // vi.resetModules() in their own scoped afterEach / helper functions.
 });
 
 // Global setup for consistent test environment

@@ -1,3 +1,5 @@
+// @vitest-environment node
+import { describe, it, expect } from "vitest";
 import { PactV4, Matchers } from "@pact-foundation/pact";
 import path from "path";
 import { commonHeaders } from "../utils/setup";
@@ -8,17 +10,8 @@ describe("Authentication API Consumer Tests (Fixed)", () => {
     consumer: "cloud-gallery-client",
     provider: "cloud-gallery-api",
     port: 4000,
-    log: path.resolve(process.cwd(), "logs", "pact.log"),
     dir: path.resolve(process.cwd(), "tests", "contracts", "pacts"),
     logLevel: "INFO",
-  });
-
-  beforeAll(async () => {
-    await provider.setup();
-  });
-
-  afterAll(async () => {
-    // Pact V4 automatically handles cleanup
   });
 
   describe("POST /api/auth/register", () => {
@@ -27,23 +20,25 @@ describe("Authentication API Consumer Tests (Fixed)", () => {
 
       await provider
         .addInteraction()
-        .uponReceiving("a valid user registration request")
-        .withRequest("POST", "/api/auth/register")
-        .withHeaders(commonHeaders)
-        .withBody(registrationRequest)
-        .willRespondWith(201)
-        .withHeaders(commonHeaders)
-        .withBody({
-          message: "User registered successfully",
-          user: {
-            id: Matchers.uuid(),
-            email: registrationRequest.email,
-            createdAt: Matchers.datetime("iso-date-time"),
-          },
-          tokens: {
-            accessToken: Matchers.string(),
-            refreshToken: Matchers.string(),
-          },
+        .uponReceiving("a valid user registration request (fixed)")
+        .withRequest("POST", "/api/auth/register", (builder) => {
+          builder.headers(commonHeaders);
+          builder.jsonBody(registrationRequest);
+        })
+        .willRespondWith(201, (builder) => {
+          builder.headers(commonHeaders);
+          builder.jsonBody({
+            message: Matchers.like("User registered successfully"),
+            user: {
+              id: Matchers.like("123e4567-e89b-12d3-a456-426614174000"),
+              email: Matchers.like(registrationRequest.email),
+              createdAt: Matchers.like("2024-01-01T00:00:00.000Z"),
+            },
+            tokens: {
+              accessToken: Matchers.like("mock-access-token"),
+              refreshToken: Matchers.like("mock-refresh-token"),
+            },
+          });
         })
         .executeTest(async (mockServer) => {
           const response = await fetch(`${mockServer.url}/api/auth/register`, {

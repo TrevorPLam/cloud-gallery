@@ -21,11 +21,10 @@ export function createUserMatcher(overrides: Partial<any> = {}) {
 export function createPhotoMatcher(overrides: Partial<any> = {}) {
   return Matchers.like({
     id: matchers.uuid,
-    uri: Matchers.term({
-      matcher: "regex",
-      regex: "^https?://.*/photo/.*\\.(jpg|jpeg|png|gif)$",
-      generate: "https://example.com/photo/test.jpg",
-    }),
+    uri: Matchers.regex(
+      "^https?://.*/photo/.*\\.(jpg|jpeg|png|gif)$",
+      "https://example.com/photo/test.jpg",
+    ),
     filename: Matchers.like("test-photo.jpg"),
     width: Matchers.like(1920),
     height: Matchers.like(1080),

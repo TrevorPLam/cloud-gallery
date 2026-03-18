@@ -1,7 +1,10 @@
+// @vitest-environment node
+import { describe, it, expect } from "vitest";
 import { Verifier } from "@pact-foundation/pact";
 import path from "path";
 
-describe("Search API Provider Verification", () => {
+// Provider verification tests require a live server. Skip when PROVIDER_BASE_URL is not set.
+describe.skipIf(!process.env.PROVIDER_BASE_URL)("Search API Provider Verification", () => {
   const providerBaseUrl =
     process.env.PROVIDER_BASE_URL || "http://localhost:5000";
 
@@ -10,9 +13,10 @@ describe("Search API Provider Verification", () => {
     providerBaseUrl,
     provider: "cloud-gallery-api",
     providerStatesSetupUrl: `${providerBaseUrl}/api/pact/states`,
-    requestFilter: (req, res) => {
+    requestFilter: (req: any, _res: any, next: () => void) => {
       // Add authentication headers for all search endpoints
       req.headers["Authorization"] = "Bearer test-jwt-token";
+      next();
     },
     stateHandlers: {
       "user has photos matching search query": async () => {

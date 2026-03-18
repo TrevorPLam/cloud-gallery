@@ -1,0 +1,3534 @@
+{
+  "consumer": {
+    "name": "cloud-gallery-client"
+  },
+  "interactions": [
+    {
+      "description": "a login request for non-existent user",
+      "pending": false,
+      "request": {
+        "body": {
+          "content": {
+            "email": "nonexistent@example.com",
+            "password": "SomePassword123!"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "POST",
+        "path": "/api/auth/login"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "error": "Invalid credentials",
+            "message": "Email or password is incorrect"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.error": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 401
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a login request with invalid credentials",
+      "pending": false,
+      "request": {
+        "body": {
+          "content": {
+            "email": "test@example.com",
+            "password": "wrongpassword"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "POST",
+        "path": "/api/auth/login"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "error": "Invalid credentials",
+            "message": "Email or password is incorrect"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.error": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 401
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a registration request with existing email",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "user already exists"
+        }
+      ],
+      "request": {
+        "body": {
+          "content": {
+            "email": "test@example.com",
+            "password": "SecurePassword123!"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "POST",
+        "path": "/api/auth/register"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "error": "User already exists",
+            "message": "An account with this email already exists"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.error": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 409
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a registration request with invalid email",
+      "pending": false,
+      "request": {
+        "body": {
+          "content": {
+            "email": "invalid-email",
+            "password": "ValidPassword123!"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "POST",
+        "path": "/api/auth/register"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "error": "Validation error",
+            "message": "Invalid input data"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.error": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 400
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for a specific album",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "album exists and belongs to user"
+        }
+      ],
+      "request": {
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Authorization": [
+            "Bearer valid-jwt-token"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "GET",
+        "path": "/api/albums/123e4567-e89b-12d3-a456-426614174000"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "album": {
+              "coverPhotoId": {
+                "generate": "123e4567-e89b-12d3-a456-426614174000",
+                "matcher": "regex",
+                "regex": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "createdAt": {
+                "generate": "2024-01-01T00:00:00.000Z",
+                "matcher": "regex",
+                "regex": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z?$"
+              },
+              "description": "Photos from our summer trip",
+              "id": "123e4567-e89b-12d3-a456-426614174000",
+              "modifiedAt": {
+                "generate": "2024-01-01T00:00:00.000Z",
+                "matcher": "regex",
+                "regex": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z?$"
+              },
+              "photoCount": 25,
+              "title": "Summer Vacation",
+              "userId": {
+                "generate": "123e4567-e89b-12d3-a456-426614174000",
+                "matcher": "regex",
+                "regex": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              }
+            },
+            "photoIds": [
+              {
+                "generate": "123e4567-e89b-12d3-a456-426614174000",
+                "matcher": "regex",
+                "regex": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              }
+            ]
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.album": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.album.description": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.album.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.album.photoCount": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.album.title": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photoIds": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for a specific photo",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "photo exists and belongs to user"
+        }
+      ],
+      "request": {
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Authorization": [
+            "Bearer valid-jwt-token"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "GET",
+        "path": "/api/photos/123e4567-e89b-12d3-a456-426614174000"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "photo": {
+              "createdAt": {
+                "generate": "2024-01-01T00:00:00.000Z",
+                "matcher": "regex",
+                "regex": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z?$"
+              },
+              "deletedAt": null,
+              "filename": "test-photo.jpg",
+              "height": 1080,
+              "id": "123e4567-e89b-12d3-a456-426614174000",
+              "isFavorite": false,
+              "isVideo": false,
+              "location": {
+                "city": "New York",
+                "country": "USA",
+                "latitude": 40.7128,
+                "longitude": -74.006
+              },
+              "mimeType": "image/jpeg",
+              "mlLabels": [
+                "beach"
+              ],
+              "modifiedAt": {
+                "generate": "2024-01-01T00:00:00.000Z",
+                "matcher": "regex",
+                "regex": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z?$"
+              },
+              "size": 1024000,
+              "tags": [
+                "vacation"
+              ],
+              "uri": "https://example.com/photo/test.jpg",
+              "userId": {
+                "generate": "123e4567-e89b-12d3-a456-426614174000",
+                "matcher": "regex",
+                "regex": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "width": 1920
+            }
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.photo": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.filename": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.height": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.isFavorite": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.isVideo": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.location": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.location.city": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.location.country": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.location.latitude": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.location.longitude": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.mimeType": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.mlLabels": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.photo.size": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.tags": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.photo.uri": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "^https?://.*/photo/.*\\.(jpg|jpeg|png|gif)$"
+                }
+              ]
+            },
+            "$.photo.width": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for album belonging to another user",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "album exists but belongs to another user"
+        }
+      ],
+      "request": {
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Authorization": [
+            "Bearer valid-jwt-token"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "GET",
+        "path": "/api/albums/123e4567-e89b-12d3-a456-426614174000"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "error": "Album not found",
+            "message": "Album not found"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.error": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 404
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for albums when none exist",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "user has no albums"
+        }
+      ],
+      "request": {
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Authorization": [
+            "Bearer valid-jwt-token"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "GET",
+        "path": "/api/albums"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "albums": []
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for albums without authentication",
+      "pending": false,
+      "request": {
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "GET",
+        "path": "/api/albums"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "error": "User not authenticated",
+            "message": "Authentication required"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.error": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 401
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for current user info",
+      "pending": false,
+      "request": {
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Authorization": [
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "GET",
+        "path": "/api/auth/me"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "user": {
+              "email": "test@example.com",
+              "id": {
+                "generate": "123e4567-e89b-12d3-a456-426614174000",
+                "matcher": "regex",
+                "regex": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              }
+            }
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.user.email": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for favorite photos",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "user has favorite photos"
+        }
+      ],
+      "request": {
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Authorization": [
+            "Bearer valid-jwt-token"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "GET",
+        "path": "/api/photos",
+        "query": {
+          "favorites": [
+            "true"
+          ],
+          "limit": [
+            "10"
+          ],
+          "offset": [
+            "0"
+          ]
+        }
+      },
+      "response": {
+        "body": {
+          "content": {
+            "pagination": {
+              "hasMore": false,
+              "limit": 10,
+              "offset": 0,
+              "total": 5
+            },
+            "photos": [
+              {
+                "createdAt": {
+                  "generate": "2024-01-01T00:00:00.000Z",
+                  "matcher": "regex",
+                  "regex": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z?$"
+                },
+                "deletedAt": null,
+                "filename": "test-photo.jpg",
+                "height": 1080,
+                "id": {
+                  "generate": "123e4567-e89b-12d3-a456-426614174000",
+                  "matcher": "regex",
+                  "regex": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                },
+                "isFavorite": true,
+                "isVideo": false,
+                "location": {
+                  "city": "New York",
+                  "country": "USA",
+                  "latitude": 40.7128,
+                  "longitude": -74.006
+                },
+                "mimeType": "image/jpeg",
+                "mlLabels": [
+                  "beach"
+                ],
+                "modifiedAt": {
+                  "generate": "2024-01-01T00:00:00.000Z",
+                  "matcher": "regex",
+                  "regex": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z?$"
+                },
+                "size": 1024000,
+                "tags": [
+                  "vacation"
+                ],
+                "uri": "https://example.com/photo/test.jpg",
+                "userId": {
+                  "generate": "123e4567-e89b-12d3-a456-426614174000",
+                  "matcher": "regex",
+                  "regex": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                },
+                "width": 1920
+              }
+            ]
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.pagination": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.pagination.hasMore": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.pagination.limit": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.pagination.offset": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.pagination.total": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photos": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.photos[*]": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photos[*].filename": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photos[*].height": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photos[*].isVideo": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photos[*].location": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photos[*].location.city": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photos[*].location.country": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photos[*].location.latitude": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photos[*].location.longitude": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photos[*].mimeType": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photos[*].mlLabels": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.photos[*].size": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photos[*].tags": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.photos[*].uri": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "^https?://.*/photo/.*\\.(jpg|jpeg|png|gif)$"
+                }
+              ]
+            },
+            "$.photos[*].width": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for non-existent album",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "album does not exist"
+        }
+      ],
+      "request": {
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Authorization": [
+            "Bearer valid-jwt-token"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "GET",
+        "path": "/api/albums/123e4567-e89b-12d3-a456-426614174999"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "error": "Album not found",
+            "message": "Album not found"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.error": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 404
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for non-existent photo",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "photo does not exist"
+        }
+      ],
+      "request": {
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Authorization": [
+            "Bearer valid-jwt-token"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "GET",
+        "path": "/api/photos/123e4567-e89b-12d3-a456-426614174999"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "error": "Photo not found",
+            "message": "Photo not found"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.error": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 404
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for photo belonging to another user",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "photo exists but belongs to another user"
+        }
+      ],
+      "request": {
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Authorization": [
+            "Bearer valid-jwt-token"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "GET",
+        "path": "/api/photos/123e4567-e89b-12d3-a456-426614174000"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "error": "Photo not found",
+            "message": "Photo not found"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.error": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 404
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for user albums",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "user has albums"
+        }
+      ],
+      "request": {
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Authorization": [
+            "Bearer valid-jwt-token"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "GET",
+        "path": "/api/albums"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "albums": [
+              {
+                "coverPhotoId": {
+                  "generate": "123e4567-e89b-12d3-a456-426614174000",
+                  "matcher": "regex",
+                  "regex": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                },
+                "createdAt": {
+                  "generate": "2024-01-01T00:00:00.000Z",
+                  "matcher": "regex",
+                  "regex": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z?$"
+                },
+                "description": "Photos from our summer trip",
+                "id": {
+                  "generate": "123e4567-e89b-12d3-a456-426614174000",
+                  "matcher": "regex",
+                  "regex": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                },
+                "modifiedAt": {
+                  "generate": "2024-01-01T00:00:00.000Z",
+                  "matcher": "regex",
+                  "regex": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z?$"
+                },
+                "photoCount": 25,
+                "title": "Summer Vacation",
+                "userId": {
+                  "generate": "123e4567-e89b-12d3-a456-426614174000",
+                  "matcher": "regex",
+                  "regex": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                }
+              }
+            ]
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.albums": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.albums[*]": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.albums[*].description": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.albums[*].photoCount": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.albums[*].title": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for user photos",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "user has photos"
+        }
+      ],
+      "request": {
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Authorization": [
+            "Bearer valid-jwt-token"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "GET",
+        "path": "/api/photos",
+        "query": {
+          "limit": [
+            "20"
+          ],
+          "offset": [
+            "0"
+          ]
+        }
+      },
+      "response": {
+        "body": {
+          "content": {
+            "pagination": {
+              "hasMore": true,
+              "limit": 20,
+              "offset": 0,
+              "total": 50
+            },
+            "photos": [
+              {
+                "createdAt": {
+                  "generate": "2024-01-01T00:00:00.000Z",
+                  "matcher": "regex",
+                  "regex": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z?$"
+                },
+                "deletedAt": null,
+                "filename": "test-photo.jpg",
+                "height": 1080,
+                "id": {
+                  "generate": "123e4567-e89b-12d3-a456-426614174000",
+                  "matcher": "regex",
+                  "regex": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                },
+                "isFavorite": false,
+                "isVideo": false,
+                "location": {
+                  "city": "New York",
+                  "country": "USA",
+                  "latitude": 40.7128,
+                  "longitude": -74.006
+                },
+                "mimeType": "image/jpeg",
+                "mlLabels": [
+                  "beach"
+                ],
+                "modifiedAt": {
+                  "generate": "2024-01-01T00:00:00.000Z",
+                  "matcher": "regex",
+                  "regex": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z?$"
+                },
+                "size": 1024000,
+                "tags": [
+                  "vacation"
+                ],
+                "uri": "https://example.com/photo/test.jpg",
+                "userId": {
+                  "generate": "123e4567-e89b-12d3-a456-426614174000",
+                  "matcher": "regex",
+                  "regex": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                },
+                "width": 1920
+              }
+            ]
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.pagination": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.pagination.hasMore": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.pagination.limit": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.pagination.offset": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.pagination.total": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photos": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.photos[*]": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photos[*].filename": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photos[*].height": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photos[*].isFavorite": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photos[*].isVideo": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photos[*].location": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photos[*].location.city": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photos[*].location.country": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photos[*].location.latitude": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photos[*].location.longitude": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photos[*].mimeType": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photos[*].mlLabels": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.photos[*].size": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photos[*].tags": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.photos[*].uri": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "^https?://.*/photo/.*\\.(jpg|jpeg|png|gif)$"
+                }
+              ]
+            },
+            "$.photos[*].width": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to add photo already in album",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "album and photo exist and belong to user"
+        },
+        {
+          "name": "photo is already in album"
+        }
+      ],
+      "request": {
+        "body": {
+          "content": {
+            "photoId": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Authorization": [
+            "Bearer valid-jwt-token"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "POST",
+        "path": "/api/albums/123e4567-e89b-12d3-a456-426614174000/photos"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "error": "Photo already in album",
+            "message": "Photo already in album"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.error": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 409
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to add photo to non-existent album",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "album does not exist"
+        }
+      ],
+      "request": {
+        "body": {
+          "content": {
+            "photoId": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Authorization": [
+            "Bearer valid-jwt-token"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "POST",
+        "path": "/api/albums/123e4567-e89b-12d3-a456-426614174999/photos"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "error": "Album not found",
+            "message": "Album not found"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.error": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 404
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to create a photo",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "user is authenticated"
+        }
+      ],
+      "request": {
+        "body": {
+          "content": {
+            "filename": "test-photo.jpg",
+            "height": 1080,
+            "mimeType": "image/jpeg",
+            "size": 1024000,
+            "uri": "https://example.com/photo/test.jpg",
+            "width": 1920
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Authorization": [
+            "Bearer valid-jwt-token"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "POST",
+        "path": "/api/photos"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "photo": {
+              "createdAt": {
+                "generate": "2024-01-01T00:00:00.000Z",
+                "matcher": "regex",
+                "regex": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z?$"
+              },
+              "deletedAt": null,
+              "filename": "test-photo.jpg",
+              "height": 1080,
+              "id": {
+                "generate": "123e4567-e89b-12d3-a456-426614174000",
+                "matcher": "regex",
+                "regex": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "isFavorite": false,
+              "isVideo": false,
+              "location": {
+                "city": "New York",
+                "country": "USA",
+                "latitude": 40.7128,
+                "longitude": -74.006
+              },
+              "mimeType": "image/jpeg",
+              "mlLabels": [
+                "beach"
+              ],
+              "modifiedAt": {
+                "generate": "2024-01-01T00:00:00.000Z",
+                "matcher": "regex",
+                "regex": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z?$"
+              },
+              "size": 1024000,
+              "tags": [
+                "vacation"
+              ],
+              "uri": "https://example.com/photo/test.jpg",
+              "userId": {
+                "generate": "123e4567-e89b-12d3-a456-426614174000",
+                "matcher": "regex",
+                "regex": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "width": 1920
+            }
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.photo": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.filename": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.height": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.isFavorite": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.isVideo": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.location": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.location.city": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.location.country": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.location.latitude": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.location.longitude": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.mimeType": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.mlLabels": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.photo.size": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.tags": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.photo.uri": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.width": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 201
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to create album with invalid data",
+      "pending": false,
+      "request": {
+        "body": {
+          "content": {
+            "description": "",
+            "title": ""
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Authorization": [
+            "Bearer valid-jwt-token"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "POST",
+        "path": "/api/albums"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "error": "Invalid album data",
+            "message": "Invalid input data"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.error": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 400
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to create an album",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "user is authenticated"
+        }
+      ],
+      "request": {
+        "body": {
+          "content": {
+            "description": "A test album for contract testing",
+            "title": "Test Album"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Authorization": [
+            "Bearer valid-jwt-token"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "POST",
+        "path": "/api/albums"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "album": {
+              "coverPhotoId": {
+                "generate": "123e4567-e89b-12d3-a456-426614174000",
+                "matcher": "regex",
+                "regex": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "createdAt": {
+                "generate": "2024-01-01T00:00:00.000Z",
+                "matcher": "regex",
+                "regex": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z?$"
+              },
+              "description": "A test album for contract testing",
+              "id": {
+                "generate": "123e4567-e89b-12d3-a456-426614174000",
+                "matcher": "regex",
+                "regex": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "modifiedAt": {
+                "generate": "2024-01-01T00:00:00.000Z",
+                "matcher": "regex",
+                "regex": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z?$"
+              },
+              "photoCount": 25,
+              "title": "Test Album",
+              "userId": {
+                "generate": "123e4567-e89b-12d3-a456-426614174000",
+                "matcher": "regex",
+                "regex": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              }
+            }
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.album": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.album.description": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.album.photoCount": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.album.title": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 201
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to create photo with invalid data",
+      "pending": false,
+      "request": {
+        "body": {
+          "content": {
+            "filename": "",
+            "height": -1,
+            "mimeType": "invalid-type",
+            "size": -1,
+            "uri": "invalid-uri",
+            "width": -1
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Authorization": [
+            "Bearer valid-jwt-token"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "POST",
+        "path": "/api/photos"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "error": "Invalid photo data",
+            "message": "Invalid input data"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.error": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 400
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to create photo without authentication",
+      "pending": false,
+      "request": {
+        "body": {
+          "content": {
+            "filename": "test-photo.jpg",
+            "height": 1080,
+            "mimeType": "image/jpeg",
+            "size": 1024000,
+            "uri": "https://example.com/photo/test.jpg",
+            "width": 1920
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "POST",
+        "path": "/api/photos"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "error": "User not authenticated",
+            "message": "Authentication required"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.error": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 401
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to delete a photo",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "photo exists and belongs to user"
+        }
+      ],
+      "request": {
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Authorization": [
+            "Bearer valid-jwt-token"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "DELETE",
+        "path": "/api/photos/123e4567-e89b-12d3-a456-426614174000"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "message": "Photo moved to trash",
+            "photoId": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photoId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to delete an album",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "album exists and belongs to user"
+        }
+      ],
+      "request": {
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Authorization": [
+            "Bearer valid-jwt-token"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "DELETE",
+        "path": "/api/albums/123e4567-e89b-12d3-a456-426614174000"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "albumId": "123e4567-e89b-12d3-a456-426614174000",
+            "message": "Album deleted successfully"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.albumId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to delete non-existent photo",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "photo does not exist"
+        }
+      ],
+      "request": {
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Authorization": [
+            "Bearer valid-jwt-token"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "DELETE",
+        "path": "/api/photos/123e4567-e89b-12d3-a456-426614174999"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "error": "Photo not found or already deleted",
+            "message": "Photo not found or already deleted"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.error": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 404
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to favorite non-existent photo",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "photo does not exist"
+        }
+      ],
+      "request": {
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Authorization": [
+            "Bearer valid-jwt-token"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "PUT",
+        "path": "/api/photos/123e4567-e89b-12d3-a456-426614174999/favorite"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "error": "Photo not found",
+            "message": "Photo not found"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.error": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 404
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to remove photo from album",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "album and photo exist and belong to user"
+        },
+        {
+          "name": "photo is in album"
+        }
+      ],
+      "request": {
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Authorization": [
+            "Bearer valid-jwt-token"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "DELETE",
+        "path": "/api/albums/123e4567-e89b-12d3-a456-426614174000/photos/123e4567-e89b-12d3-a456-426614174000"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "albumId": "123e4567-e89b-12d3-a456-426614174000",
+            "message": "Photo removed from album",
+            "photoId": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.albumId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photoId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to toggle photo favorite status",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "photo exists and belongs to user"
+        }
+      ],
+      "request": {
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Authorization": [
+            "Bearer valid-jwt-token"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "PUT",
+        "path": "/api/photos/123e4567-e89b-12d3-a456-426614174000/favorite"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "message": "Photo added to favorites",
+            "photo": {
+              "createdAt": {
+                "generate": "2024-01-01T00:00:00.000Z",
+                "matcher": "regex",
+                "regex": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z?$"
+              },
+              "deletedAt": null,
+              "filename": "test-photo.jpg",
+              "height": 1080,
+              "id": "123e4567-e89b-12d3-a456-426614174000",
+              "isFavorite": true,
+              "isVideo": false,
+              "location": {
+                "city": "New York",
+                "country": "USA",
+                "latitude": 40.7128,
+                "longitude": -74.006
+              },
+              "mimeType": "image/jpeg",
+              "mlLabels": [
+                "beach"
+              ],
+              "modifiedAt": {
+                "generate": "2024-01-01T00:00:00.000Z",
+                "matcher": "regex",
+                "regex": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z?$"
+              },
+              "size": 1024000,
+              "tags": [
+                "vacation"
+              ],
+              "uri": "https://example.com/photo/test.jpg",
+              "userId": {
+                "generate": "123e4567-e89b-12d3-a456-426614174000",
+                "matcher": "regex",
+                "regex": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "width": 1920
+            }
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.filename": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.height": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.isFavorite": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.isVideo": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.location": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.location.city": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.location.country": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.location.latitude": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.location.longitude": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.mimeType": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.mlLabels": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.photo.size": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.photo.tags": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.photo.uri": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "^https?://.*/photo/.*\\.(jpg|jpeg|png|gif)$"
+                }
+              ]
+            },
+            "$.photo.width": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request without authentication",
+      "pending": false,
+      "request": {
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "GET",
+        "path": "/api/photos"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "error": "User not authenticated",
+            "message": "Authentication required"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.error": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 401
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request without authentication token",
+      "pending": false,
+      "request": {
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "GET",
+        "path": "/api/auth/me"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "error": "Unauthorized",
+            "message": "Authentication required"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.error": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 401
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a simple request",
+      "pending": false,
+      "request": {
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "GET",
+        "path": "/api/health"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "status": "ok",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.timestamp": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a token refresh request",
+      "pending": false,
+      "request": {
+        "body": {
+          "content": {
+            "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "POST",
+        "path": "/api/auth/refresh"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "accessToken": {
+              "generate": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+              "matcher": "regex",
+              "regex": "^[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+$"
+            },
+            "message": "Token refreshed successfully"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a token refresh request with invalid token",
+      "pending": false,
+      "request": {
+        "body": {
+          "content": {
+            "refreshToken": "invalid-jwt-token"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "POST",
+        "path": "/api/auth/refresh"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "error": "Invalid or expired refresh token",
+            "message": "Please authenticate again"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.error": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 403
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a valid user registration request (fixed)",
+      "pending": false,
+      "request": {
+        "body": {
+          "content": {
+            "email": "test@example.com",
+            "password": "SecurePassword123!"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "POST",
+        "path": "/api/auth/register"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "message": "User registered successfully",
+            "tokens": {
+              "accessToken": "mock-access-token",
+              "refreshToken": "mock-refresh-token"
+            },
+            "user": {
+              "createdAt": "2024-01-01T00:00:00.000Z",
+              "email": "test@example.com",
+              "id": "123e4567-e89b-12d3-a456-426614174000"
+            }
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.tokens.accessToken": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.tokens.refreshToken": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.user.createdAt": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.user.email": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.user.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 201
+      },
+      "type": "Synchronous/HTTP"
+    }
+  ],
+  "metadata": {
+    "pact-js": {
+      "version": "16.3.0"
+    },
+    "pactRust": {
+      "ffi": "0.5.3",
+      "models": "1.3.9"
+    },
+    "pactSpecification": {
+      "version": "4.0"
+    }
+  },
+  "provider": {
+    "name": "cloud-gallery-api"
+  }
+}
