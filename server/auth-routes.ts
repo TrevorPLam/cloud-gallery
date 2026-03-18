@@ -33,8 +33,8 @@ import { createSRPSessionManager, SRPSessionData } from "./srp-sessions";
 import { getSRPSecurityService } from "./srp-security";
 
 import { db } from "./db";
-import { users } from "../shared/schema";
-import { eq } from "drizzle-orm";
+import { users, passwordResetTokens } from "../shared/schema";
+import { eq, lt, and, gt, isNull } from "drizzle-orm";
 
 const router = Router();
 
@@ -62,6 +62,28 @@ const registerSchema = z.object({
 const loginSchema = z.object({
   email: z.string().email("Invalid email format"),
   password: z.string().min(1, "Password is required"),
+});
+
+// Password reset schemas
+const forgotPasswordSchema = z.object({
+  email: z.string().email("Invalid email format"),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Reset token is required"),
+  newPassword: z.string().min(8, "Password must be at least 8 characters long"),
+});
+
+// Rate limiting for password reset (stricter than general auth)
+export const passwordResetRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // Limit each IP to 5 password reset requests per hour
+  message: {
+    error: "Too many password reset requests",
+    message: "Please try again later",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 // Helper function to find user by email
@@ -510,6 +532,187 @@ router.get("/me", authenticateToken, async (req: Request, res: Response) => {
     res.status(500).json({
       error: "Internal server error",
       message: "Failed to get user info",
+    });
+  }
+});
+
+/**
+ * POST /api/auth/forgot-password
+ * Send password reset email with security controls
+ */
+router.post("/forgot-password", passwordResetRateLimit, async (req: Request, res: Response) => {
+  try {
+    // Validate input
+    const validatedData = forgotPasswordSchema.parse(req.body);
+
+    // Always return 200 to prevent email enumeration
+    res.status(200).json({
+      message: "If that email exists, a reset link was sent.",
+    });
+
+    // Check if user exists (async, after response)
+    const user = await findUserByEmail(validatedData.email);
+    if (!user) {
+      // Log the attempt but don't reveal user doesn't exist
+      await logSecurityEvent(AuditEventType.SRP_INVALID_REQUEST, {
+        email: validatedData.email,
+        reason: "User not found",
+        ipAddress: req.ip,
+      });
+      return;
+    }
+
+    // Generate secure reset token
+    const rawToken = generateSecureToken(32); // 64-character hex token
+    const hashedToken = await hashPassword(rawToken);
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+    // Store token in database
+    await db.insert(passwordResetTokens).values({
+      userId: user.id,
+      token: hashedToken,
+      expiresAt,
+    });
+
+    // TODO: Send email with reset link
+    // For now, log the token (in production, this should be sent via email)
+    console.log(`Password reset token for ${validatedData.email}: ${rawToken}`);
+    
+    // Log successful password reset request
+    await logAuthEvent(AuditEventType.SRP_INVALID_REQUEST, {
+      email: validatedData.email,
+      action: "password_reset_requested",
+      ipAddress: req.ip,
+    });
+
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        error: "Validation error",
+        message: "Invalid input data",
+        details: error.errors,
+      });
+    }
+
+    console.error("Forgot password error:", error);
+    // Don't expose internal errors, but log them
+    await logSecurityEvent(AuditEventType.SRP_INVALID_REQUEST, {
+      email: req.body.email,
+      reason: "Internal server error",
+      ipAddress: req.ip,
+    });
+    
+    // Still return 200 to prevent enumeration
+    res.status(200).json({
+      message: "If that email exists, a reset link was sent.",
+    });
+  }
+});
+
+/**
+ * POST /api/auth/reset-password
+ * Reset password using valid token
+ */
+router.post("/reset-password", async (req: Request, res: Response) => {
+  try {
+    // Validate input
+    const validatedData = resetPasswordSchema.parse(req.body);
+
+    // Find valid reset token
+    const currentTime = new Date();
+    const tokenRecords = await db
+      .select()
+      .from(passwordResetTokens)
+      .where(
+        and(
+          eq(passwordResetTokens.token, await hashPassword(validatedData.token)),
+          gt(passwordResetTokens.expiresAt, currentTime),
+          isNull(passwordResetTokens.usedAt)
+        )
+      )
+      .limit(1);
+
+    const tokenRecord = tokenRecords[0];
+    if (!tokenRecord) {
+      return res.status(400).json({
+        error: "Invalid or expired token",
+        message: "Please request a new password reset link",
+      });
+    }
+
+    // Get user
+    const user = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, tokenRecord.userId))
+      .limit(1);
+
+    const userData = user[0];
+    if (!userData) {
+      return res.status(400).json({
+        error: "Invalid token",
+        message: "Please request a new password reset link",
+      });
+    }
+
+    // Validate new password strength
+    const passwordValidation = validatePasswordStrength(validatedData.newPassword);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({
+        error: "Weak password",
+        message: "Password does not meet security requirements",
+        details: passwordValidation.errors,
+      });
+    }
+
+    // Check if password has been breached
+    const isBreached = await checkPasswordBreach(validatedData.newPassword);
+    if (isBreached) {
+      return res.status(400).json({
+        error: "Breached password",
+        message: "This password has been found in known data breaches. Please choose a different password.",
+      });
+    }
+
+    // Hash new password
+    const newPasswordHash = await hashPassword(validatedData.newPassword);
+
+    // Update user password
+    await db
+      .update(users)
+      .set({ password: newPasswordHash })
+      .where(eq(users.id, userData.id));
+
+    // Mark token as used
+    await db
+      .update(passwordResetTokens)
+      .set({ usedAt: new Date() })
+      .where(eq(passwordResetTokens.id, tokenRecord.id));
+
+    // Log successful password reset
+    await logAuthEvent(AuditEventType.SRP_INVALID_REQUEST, {
+      email: userData.username,
+      action: "password_reset_completed",
+      ipAddress: req.ip,
+    });
+
+    res.json({
+      message: "Password reset successfully",
+    });
+
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        error: "Validation error",
+        message: "Invalid input data",
+        details: error.errors,
+      });
+    }
+
+    console.error("Reset password error:", error);
+    res.status(500).json({
+      error: "Internal server error",
+      message: "Failed to reset password",
     });
   }
 });

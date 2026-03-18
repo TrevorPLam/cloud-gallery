@@ -47,6 +47,47 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
 // ─────────────────────────────────────────────────────────
+// PASSWORD RESET TOKENS TABLE
+// ─────────────────────────────────────────────────────────
+// Stores password reset tokens with security controls
+// Each token is single-use and expires after 15 minutes
+
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  // Primary key - unique ID for this token request
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+
+  // Foreign key - WHICH user this token is for
+  // references(() => users.id) = must match a real user
+  // onDelete: 'cascade' = if user deleted, delete their tokens too
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+
+  // Hashed token (never store plaintext tokens)
+  // Argon2 hash of the 32-byte random token
+  token: text("token").notNull(),
+
+  // Expiration time (15 minutes from creation)
+  // Prevents token reuse after expiration window
+  expiresAt: timestamp("expires_at").notNull(),
+
+  // Single-use tracking (null until used)
+  // Set when token is successfully used for password reset
+  usedAt: timestamp("used_at"),
+});
+
+export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTokens).pick({
+  userId: true,
+  token: true,
+  expiresAt: true,
+});
+
+export type InsertPasswordResetToken = z.infer<typeof insertPasswordResetTokenSchema>;
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+
+// ─────────────────────────────────────────────────────────
 // PHOTOS TABLE
 // ─────────────────────────────────────────────────────────
 // Stores all photos with metadata, linked to users

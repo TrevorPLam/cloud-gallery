@@ -1,0 +1,147 @@
+# AI-META-BEGIN
+# AI-META: Docker Compose configuration for Cloud Gallery self-hosting
+# OWNERSHIP: deployment/infrastructure
+# ENTRYPOINTS: docker-compose up, docker-compose down
+# DEPENDENCIES: Docker, Docker Compose v2, PostgreSQL 15, MinIO
+# DANGER: Database credentials in env vars, volume management, service dependencies
+# CHANGE-SAFETY: Service definitions can be updated; volume names should remain stable
+# TESTS: docker-compose up, health checks, service communication, data persistence
+# AI-META-END
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database Service
+  db:
+    image: postgres:15-alpine
+    container_name: cloud-gallery-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-gallery}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gallery}
+      POSTGRES_DB: ${POSTGRES_DB:-gallery}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - cloud-gallery-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gallery} -d ${POSTGRES_DB:-gallery}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    # Do not expose database port externally - only accessible within Docker network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
+
+  # MinIO Object Storage Service
+  minio:
+    image: minio/minio:RELEASE.2025-09-06T17-38-46Z
+    container_name: cloud-gallery-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - miniodata:/data
+    networks:
+      - cloud-gallery-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    # Expose MinIO ports for direct access (optional)
+    ports:
+      - "9000:9000"   # MinIO API
+      - "9001:9001"   # MinIO Console
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
+
+  # Cloud Gallery Server Service
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+      target: production
+    container_name: cloud-gallery-server
+    environment:
+      # Database connection
+      DATABASE_URL: postgres://${POSTGRES_USER:-gallery}:${POSTGRES_PASSWORD:-gallery}@db:5432/${POSTGRES_DB:-gallery}
+      
+      # Object storage configuration
+      STORAGE_PROVIDER: minio
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-cloud-gallery-photos}
+      STORAGE_ENDPOINT: http://minio:9000
+      STORAGE_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      STORAGE_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      STORAGE_REGION: ${STORAGE_REGION:-us-east-1}
+      
+      # Server configuration
+      NODE_ENV: production
+      PORT: 3000
+      HOST: 0.0.0.0
+      JWT_SECRET: ${JWT_SECRET}
+      
+      # CORS for development
+      REPLIT_DEV_DOMAIN: ${REPLIT_DEV_DOMAIN:-}
+      REPLIT_DOMAINS: ${REPLIT_DOMAINS:-}
+    networks:
+      - cloud-gallery-network
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "cloud-gallery-server"
+
+# Named volumes for persistent data storage
+volumes:
+  pgdata:
+    driver: local
+  miniodata:
+    driver: local
+
+# Docker network for service communication
+networks:
+  cloud-gallery-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

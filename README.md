@@ -294,6 +294,150 @@ docker build -t cloud-gallery-server .
 docker run -p 5000:5000 cloud-gallery-server
 ```
 
+### 🏠 Self-Hosting with Docker Compose
+
+For complete control over your data, you can self-host Cloud Gallery using Docker Compose. This setup includes the application server, PostgreSQL database, and MinIO object storage.
+
+#### 🚀 Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/TrevorPLam/cloud-gallery.git
+cd cloud-gallery
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your configuration (generate a secure JWT_SECRET)
+
+# Start the full stack
+docker-compose up -d
+
+# Access your Cloud Gallery instance
+open http://localhost:3000
+```
+
+#### 📋 Prerequisites
+
+- **Docker** 20.10+ and **Docker Compose** v2
+- **Git** for cloning the repository
+- **2GB+ RAM** recommended for smooth operation
+- **5GB+ disk space** for data storage
+
+#### 🏗️ Architecture
+
+The Docker Compose setup includes:
+
+- **Server**: Node.js application with multi-stage build optimization
+- **Database**: PostgreSQL 15 with persistent storage
+- **Storage**: MinIO S3-compatible object storage
+- **Network**: Isolated Docker network for secure communication
+
+#### ⚙️ Configuration
+
+Create a `.env` file from `.env.example`:
+
+```bash
+# Required - Generate a secure random string
+JWT_SECRET=your-super-secret-jwt-key-change-this
+
+# Optional - Customize for your environment
+POSTGRES_USER=gallery
+POSTGRES_PASSWORD=your-secure-password
+POSTGRES_DB=gallery
+
+# Optional - MinIO configuration
+MINIO_ROOT_USER=your-minio-user
+MINIO_ROOT_PASSWORD=your-secure-minio-password
+STORAGE_BUCKET=your-gallery-bucket-name
+```
+
+#### 🔧 Management Commands
+
+```bash
+# Start the stack
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop the stack
+docker-compose down
+
+# Update and rebuild
+docker-compose pull
+docker-compose up -d --build
+
+# Database access
+docker-compose exec db psql -U gallery -d gallery
+
+# Backup data
+docker-compose exec db pg_dump -U gallery gallery > backup.sql
+```
+
+#### 📊 Services & Ports
+
+| Service | Port | Access | Purpose |
+|---------|------|--------|---------|
+| **Server** | 3000 | External | Main application |
+| **MinIO API** | 9000 | External | Object storage |
+| **MinIO Console** | 9001 | External | Storage management |
+| **PostgreSQL** | 5432 | Internal | Database (not exposed) |
+
+#### 🔒 Security Features
+
+- ✅ **Non-root containers** for enhanced security
+- ✅ **Health checks** for service monitoring
+- ✅ **Resource limits** to prevent resource exhaustion
+- ✅ **Named volumes** for persistent data storage
+- ✅ **Internal networking** for database security
+- ✅ **Automatic migrations** on startup
+
+#### 📁 Data Persistence
+
+- **PostgreSQL data**: Stored in `pgdata` volume
+- **MinIO data**: Stored in `miniodata` volume
+- **Application logs**: Rotated JSON logs
+- **Backups**: Manual backup commands provided
+
+#### 🚨 Production Considerations
+
+For production deployments:
+
+1. **Generate secure secrets** for all passwords
+2. **Set up reverse proxy** (nginx/Caddy) for SSL termination
+3. **Configure backup strategy** for data protection
+4. **Monitor resource usage** and set up alerts
+5. **Regular security updates** for Docker images
+
+#### 🛠️ Troubleshooting
+
+**Database connection issues:**
+```bash
+# Check database health
+docker-compose exec db pg_isready -U gallery
+
+# View database logs
+docker-compose logs db
+```
+
+**Storage access issues:**
+```bash
+# Check MinIO status
+docker-compose exec minio mc ready local
+
+# Access MinIO console
+open http://localhost:9001
+```
+
+**Server startup issues:**
+```bash
+# View server logs
+docker-compose logs server
+
+# Check health status
+docker-compose ps
+```
+
 ### ☁️ Cloud Deployment (Optional)
 - **Vercel** - Frontend hosting
 - **Railway** - Backend hosting  

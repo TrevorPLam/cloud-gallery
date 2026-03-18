@@ -1,49 +1,68 @@
 import React, { useState } from "react";
-import { View, StyleSheet, Pressable, Alert } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { View, StyleSheet, Alert } from "react-native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, Colors } from "@/constants/theme";
 import { AccessibleTextInput } from "@/components/AccessibleTextInput";
 import { AccessibleButton } from "@/components/AccessibleButton";
 
-export default function ForgotPasswordScreen() {
+interface RouteParams {
+  token: string;
+}
+
+export default function ResetPasswordScreen() {
   const { theme, isDark } = useTheme();
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const colors = isDark ? Colors.dark : Colors.light;
   
-  const [email, setEmail] = useState("");
+  const { token } = route.params as RouteParams;
+  
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleSubmit = async () => {
-    if (!email.trim()) {
-      Alert.alert("Error", "Please enter your email address");
+    if (!newPassword.trim()) {
+      Alert.alert("Error", "Please enter a new password");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      Alert.alert("Error", "Password must be at least 8 characters long");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert("Error", "Passwords do not match");
       return;
     }
 
     setLoading(true);
     
     try {
-      const response = await fetch("/api/auth/forgot-password", {
+      const response = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ 
+          token: token.trim(),
+          newPassword: newPassword.trim() 
+        }),
       });
 
       const data = await response.json();
       
       if (response.ok) {
-        setSubmitted(true);
+        setShowSuccess(true);
       } else {
-        // Show generic error to prevent email enumeration
-        Alert.alert("Error", data.message || "Something went wrong. Please try again.");
+        Alert.alert("Error", data.message || "Invalid or expired reset link");
       }
     } catch (error) {
-      console.error("Forgot password error:", error);
-      // Show generic error to prevent email enumeration
+      console.error("Reset password error:", error);
       Alert.alert("Error", "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
@@ -51,26 +70,25 @@ export default function ForgotPasswordScreen() {
   };
 
   const handleBackToSignIn = () => {
-    navigation.goBack();
+    navigation.navigate("Login");
   };
 
-  if (submitted) {
+  if (showSuccess) {
     return (
       <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
         <View style={styles.successCard}>
-          <ThemedText style={styles.successTitle}>Check Your Email</ThemedText>
+          <ThemedText style={styles.successTitle}>Password Reset Successful</ThemedText>
           <ThemedText style={[styles.successMessage, { color: colors.textSecondary }]}>
-            We've sent a password reset link to {email}
+            Your password has been updated successfully.
           </ThemedText>
           <ThemedText style={[styles.instructionText, { color: colors.textSecondary }]}>
-            The link will expire in 15 minutes. If you don't see the email, check your spam folder.
+            You can now sign in with your new password.
           </ThemedText>
           
           <AccessibleButton
-            title="Back to Sign In"
+            title="Sign In"
             onPress={handleBackToSignIn}
-            style={styles.backButton}
-            variant="link"
+            style={styles.signInButton}
           />
         </View>
       </View>
@@ -79,31 +97,39 @@ export default function ForgotPasswordScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
-      <ThemedText style={styles.title}>Forgot password</ThemedText>
+      <ThemedText style={styles.title}>Reset Password</ThemedText>
       <ThemedText style={[styles.message, { color: colors.textSecondary }]}>
-        Enter your email address and we'll send you a link to reset your password.
+        Enter your new password below.
       </ThemedText>
 
       <View style={styles.form}>
         <AccessibleTextInput
           style={styles.input}
-          placeholder="Email address"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-          accessibilityLabel="Email address input"
-          accessibilityHint="Enter your email address to receive password reset link"
+          placeholder="New password"
+          value={newPassword}
+          onChangeText={setNewPassword}
+          secureTextEntry
+          accessibilityLabel="New password input"
+          accessibilityHint="Enter your new password (minimum 8 characters)"
+        />
+
+        <AccessibleTextInput
+          style={styles.input}
+          placeholder="Confirm new password"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureTextEntry
+          accessibilityLabel="Confirm password input"
+          accessibilityHint="Re-enter your new password to confirm"
         />
 
         <AccessibleButton
-          title={loading ? "Sending..." : "Send Reset Link"}
+          title={loading ? "Resetting..." : "Reset Password"}
           onPress={handleSubmit}
-          disabled={loading || !email.trim()}
+          disabled={loading || !newPassword.trim() || !confirmPassword.trim()}
           style={styles.submitButton}
-          accessibilityLabel="Send password reset link"
-          accessibilityHint="Sends a password reset link to your email address"
+          accessibilityLabel="Reset password button"
+          accessibilityHint="Updates your account password and signs you in"
         />
       </View>
 
@@ -180,7 +206,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
     textAlign: "center",
   },
-  backButton: {
+  signInButton: {
     marginTop: Spacing.md,
   },
 });
